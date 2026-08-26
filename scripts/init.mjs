@@ -80,7 +80,10 @@ writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({
     paths: {
       "report-builder": [join(ROOT, "src/index.ts")],
       "report-builder/types": [join(ROOT, "src/types.ts")],
-      "report-builder/svg": [join(ROOT, "scripts/svg.mjs")],
+      // paths 는 타입 해결 전용이므로 선언 파일을 가리킨다.
+      // .mjs 를 직접 가리키면 TS 가 형제 .d.mts 를 찾지 않아 TS7016 이 난다.
+      // 런타임 해결은 build.mjs 의 esbuild alias 가 .mjs 로 따로 한다.
+      "report-builder/svg": [join(ROOT, "scripts/svg.d.mts")],
     },
   },
   include: ["*.ts", "*.tsx"],

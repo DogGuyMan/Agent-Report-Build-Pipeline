@@ -2081,7 +2081,9 @@ writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({
     paths: {
       "report-builder": [join(ROOT, "src/index.ts")],
       "report-builder/types": [join(ROOT, "src/types.ts")],
-      "report-builder/svg": [join(ROOT, "scripts/svg.mjs")],
+      // paths 는 타입 해결 전용이므로 선언 파일(scripts/svg.d.mts)을 가리킨다.
+      // .mjs 를 직접 가리키면 TS 가 형제 .d.mts 를 찾지 않아 TS7016 이 난다. (실측 확인)
+      "report-builder/svg": [join(ROOT, "scripts/svg.d.mts")],
     },
     // 기본 typeRoots 는 이 tsconfig 파일 위치(외부 저장소) 기준으로 계산되어
     // base 가 요구하는 "types": ["node"] 를 못 찾고 TS2688 로 죽는다. (실측 확인)
