@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    // 트랜스파일은 esbuild 가 한다. tsc 는 타입 검사 전용 (인계 문서 §B-2)
+    "noEmit": true,
+
+    // React 는 renderToStaticMarkup 용 템플릿 엔진으로만 쓴다
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
