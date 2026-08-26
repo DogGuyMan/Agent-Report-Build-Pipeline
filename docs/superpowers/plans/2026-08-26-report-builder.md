@@ -1996,6 +1996,20 @@ git commit -m "feat : report 빌드 명령과 cli 진입점"
 
 ### Task 4.10: report init
 
+> **실행 중 변경됨 (2026-08-26).** 아래 원안은 slug 을 전혀 검증하지 않아 오타를 치면 조용히
+> 빈 디렉토리를 만들었다. slug 은 임의 문자열이 아니라 `specs/YYYY-MM-DD-<slug>-design.md` 에서
+> 오는 값이므로(인계 문서 §B-3), 실제 `scripts/init.mjs` 는 아래처럼 동작한다:
+>
+> - **인자 없음** → `specs/` 를 훑어 아직 보고서가 없는 spec 을 날짜 내림차순으로 나열하고 exit 1
+> - **대응 `*-design.md` 없음** → 거부하고 비슷한 slug 을 제시, exit 1
+> - **찾음** → `date`(파일명), `specName`(문서 첫 `# ` 제목), `branch`(git) 를 자동으로 채운다.
+>   세 값 모두 `JSON.stringify` 로 이스케이프한다 — 실제 spec 제목에 백틱과 큰따옴표가 들어 있다
+> - **`data.ts` 가 이미 있음** → 기존 멱등 동작 유지. 이 경로에서는 spec 존재를 따지지 않는다
+>   (작업 중인 보고서를 spec 이름이 바뀌었다는 이유로 막으면 안 된다)
+>
+> 순수 함수 `parseSpecFilename` / `findSimilar` 두 개만 내보내고 나머지는 직접 실행 가드 안에 둔다.
+> 테스트는 `test/init.test.mjs`. 아래 원안 코드는 이 변경 이전 형태이므로 실제 파일을 정본으로 삼아라.
+
 **Files:**
 - Create: `scripts/init.mjs`
 
