@@ -152,7 +152,7 @@ npm pkg set scripts.build="node scripts/build.mjs"
 npm pkg set scripts.check="node scripts/check.mjs"
 npm pkg set scripts.typecheck="tsc --noEmit"
 npm pkg set scripts.pretest="node scripts/lib.mjs"
-npm pkg set scripts.test="node --test test/"
+npm pkg set scripts.test="node --test"
 ```
 
 ### Task 0.2: tsconfig.json
@@ -2567,9 +2567,13 @@ git commit -m "chore : 역할이 끝난 b1 이식 스크립트 제거"
 
 # 검증 명령 모음
 
+**함정 — `node --test test/` 는 Node v25.8.0 에서 실패한다.** 디렉토리 인자를 테스트 파일로 취급해
+`Cannot find module '.../test'` 로 죽는다. **인자 없는 `node --test`** 를 쓰면 Node 가 알아서 탐색한다.
+(2026-08-26 실측 확인.)
+
 ```bash
 cd ~/report-builder
-npm test              # scripts/lib.mjs 빌드 후 node --test test/
+npm test              # scripts/lib.mjs 빌드 후 node --test (Node 가 test/ 를 자동 탐색)
 npm run typecheck     # tsc --noEmit
 node --test test/svg.test.mjs           # 단일 테스트 파일
 node --test --test-name-pattern="접두사" test/svg.test.mjs   # 단일 테스트
