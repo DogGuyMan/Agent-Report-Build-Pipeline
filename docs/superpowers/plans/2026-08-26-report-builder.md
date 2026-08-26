@@ -242,6 +242,7 @@ Expected: `$HOME/report-builder/bin`
 ```
 node_modules/
 .tmp/
+.tmp-report.mjs
 
 # 빌드 산출물 — 소스에서 재생성한다 (인계 문서 §B-3)
 out/
@@ -1881,7 +1882,10 @@ function currentBuilderVersion() {
 }
 
 const entry = join(cwd, "report.tsx");
-const tmp = join(cwd, ".tmp-report.mjs");
+// tmp 번들은 반드시 ROOT 에 둔다. cwd(보고서가 있는 외부 저장소)에 두면
+// 동적 import 시 Node 가 그 위치 기준으로 react/jsx-runtime 을 찾는데
+// 외부 저장소에는 react 가 없어 ERR_MODULE_NOT_FOUND 로 죽는다. (실측 확인)
+const tmp = join(ROOT, ".tmp-report.mjs");
 
 await build({
   entryPoints: [entry],
@@ -2079,6 +2083,9 @@ writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({
       "report-builder/types": [join(ROOT, "src/types.ts")],
       "report-builder/svg": [join(ROOT, "scripts/svg.mjs")],
     },
+    // 기본 typeRoots 는 이 tsconfig 파일 위치(외부 저장소) 기준으로 계산되어
+    // base 가 요구하는 "types": ["node"] 를 못 찾고 TS2688 로 죽는다. (실측 확인)
+    typeRoots: [join(ROOT, "node_modules/@types")],
   },
   include: ["*.ts", "*.tsx"],
 }, null, 2) + "\n");
