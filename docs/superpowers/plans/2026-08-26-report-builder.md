@@ -1838,7 +1838,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
 - [ ] **Step 2: 검사**
 
 ```bash
-node scripts/lib.mjs && npx tsc --noEmit && node --test test/
+node scripts/lib.mjs && npx tsc --noEmit && node --test
 ```
 
 Expected: 전부 통과.
