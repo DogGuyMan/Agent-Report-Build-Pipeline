@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock } from "../.tmp/lib.mjs";
+import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter } from "../.tmp/lib.mjs";
 
 const html = (el) => renderToStaticMarkup(el);
 
@@ -134,4 +134,66 @@ test("TriageBlock 은 상위 항목을 순서대로 낸다", () => {
   const posD2 = out.indexOf("D2"), posD0 = out.indexOf("D0");
   assert.ok(posD2 < posD0, "입력 순서가 보존되지 않았다");
   assert.ok(out.includes("되돌리기 비용이 가장 크다"));
+});
+
+test("BeforeAfter 는 토글과 두 패널을 낸다", () => {
+  const out = html(BeforeAfter({
+    id: "d1",
+    before: { title: "Before", diagram: { svg: "<svg id='a'></svg>", naturalWidthPx: 2615, naturalHeightPx: 681 } },
+    after:  { title: "After",  diagram: { svg: "<svg id='b'></svg>", naturalWidthPx: 1896, naturalHeightPx: 1051 } },
+    legend: [{ color: "var(--green)", label: "added" }, { color: "var(--red)", label: "removed" }],
+  }));
+  assert.ok(out.includes('id="zoom-d1"'), "토글 id 없음");
+  assert.ok(out.includes('class="zoom-toggle"'));
+  assert.ok(out.includes('for="zoom-d1"'));
+  assert.ok(out.includes('class="diagram-panel before"'));
+  assert.ok(out.includes('class="diagram-panel after"'));
+  assert.ok(out.includes('class="diagram-legend"'));
+});
+
+test("BeforeAfter 는 원본 폭을 --svg-w 로 주입한다 — B1 복구의 핵심", () => {
+  const out = html(BeforeAfter({
+    id: "d1",
+    before: { title: "Before", diagram: { svg: "<svg></svg>", naturalWidthPx: 2615, naturalHeightPx: 681 } },
+    after:  { title: "After",  diagram: { svg: "<svg></svg>", naturalWidthPx: 1896, naturalHeightPx: 1051 } },
+    legend: [],
+  }));
+  assert.ok(out.includes("--svg-w:2615px"), "before 폭 미주입");
+  assert.ok(out.includes("--svg-w:1896px"), "after 폭 미주입");
+});
+
+test("BeforeAfter 는 SVG 문자열을 이스케이프하지 않고 넣는다", () => {
+  const out = html(BeforeAfter({
+    id: "d1",
+    before: { title: "B", diagram: { svg: '<svg id="x"><g/></svg>', naturalWidthPx: 10, naturalHeightPx: 10 } },
+    after:  { title: "A", diagram: { svg: "<svg/>", naturalWidthPx: 10, naturalHeightPx: 10 } },
+    legend: [],
+  }));
+  assert.ok(out.includes('<svg id="x"><g/></svg>'), "SVG 가 이스케이프됐다");
+  assert.ok(!out.includes("&lt;svg"), "SVG 가 이스케이프됐다");
+});
+
+test("BeforeAfter 는 토글과 diagram-grid 를 형제로 낸다 — 형제 결합자 요건", () => {
+  const out = html(BeforeAfter({
+    id: "d1",
+    before: { title: "B", diagram: { svg: "<svg/>", naturalWidthPx: 10, naturalHeightPx: 10 } },
+    after:  { title: "A", diagram: { svg: "<svg/>", naturalWidthPx: 10, naturalHeightPx: 10 } },
+    legend: [],
+  }));
+  const toggle = out.indexOf('class="zoom-toggle"');
+  const label = out.indexOf('class="zoom-label"');
+  const grid = out.indexOf('class="diagram-grid"');
+  assert.ok(toggle !== -1 && label !== -1 && grid !== -1, "셋 중 빠진 것이 있다");
+  assert.ok(toggle < label && label < grid, "토글 → 라벨 → 그리드 순서가 아니다");
+  assert.ok(!out.slice(0, grid).includes("<div class=\"diagram-panel"), "그리드보다 패널이 먼저 나온다");
+});
+
+test("VerdictFooter 는 값을 채우지 않은 빈 기입란을 낸다", () => {
+  const out = html(VerdictFooter({}));
+  assert.ok(out.includes('class="verdict-footer"'));
+  assert.ok(out.includes("승인"));
+  assert.ok(out.includes("보류"));
+  assert.ok(out.includes("번복"));
+  assert.equal((out.match(/class="box"/g) || []).length, 3, "체크박스가 3개가 아니다");
+  assert.ok(out.includes('class="owner-note"'));
 });
