@@ -91,6 +91,22 @@ tr.row-recommended td:first-child { border-left: 3px solid var(--accent); }
 .newstruct-note { margin-top: 10px; padding: 10px 14px; background: var(--gray-soft);
   border-radius: 6px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
 
+/* 번복·정정 기록 — 정본의 "⚠ rev.1 번복 기록" / "⚠ 2차 정정" 블록에 대응 */
+.reversal-note, .correction-note { margin-top: 10px; padding: 12px 14px; border-radius: 6px;
+  font-size: 12px; line-height: 1.7; background: var(--amber-soft);
+  border-left: 3px solid var(--amber); color: var(--text-2); }
+.correction-note { background: var(--red-soft); border-left-color: var(--red); }
+.reversal-note .note-title, .correction-note .note-title { font-weight: 700; color: var(--text);
+  margin-bottom: 6px; }
+
+/* 먼저 볼 것 — 보고서 최상단 분류 블록 */
+.triage-block { background: var(--surface); border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; }
+.triage-block .note-title { font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+.triage-block ol { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.9; }
+.triage-block .triage-why { font-size: 12px; color: var(--text-3); }
+
 /* (g) 수용 판정 푸터 — 이 블록 값은 AI가 채우지 않는다. 사용자 기입 전용 */
 .verdict-footer { background: var(--surface); border: 2px dashed var(--border-strong); border-radius: 8px; padding: 18px 20px; }
 .verdict-footer .choices { display: flex; gap: 22px; margin-bottom: 12px; }
