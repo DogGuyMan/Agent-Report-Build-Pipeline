@@ -91,6 +91,18 @@ tr.row-recommended td:first-child { border-left: 3px solid var(--accent); }
 .newstruct-note { margin-top: 10px; padding: 10px 14px; background: var(--gray-soft);
   border-radius: 6px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
 
+/* 실측 / 판단 분리 행 — 배지를 왼쪽 고정 열에 걸고 본문은 문장마다 단락 */
+.newstruct-note .note-row { display: grid; grid-template-columns: max-content 1fr;
+  gap: 10px; align-items: start; }
+.newstruct-note .note-row + .note-row { margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border); }
+.newstruct-note .note-row > .conf-badge { white-space: nowrap; }
+.newstruct-note .note-body p { margin: 0; }
+.newstruct-note .note-body p + p { margin-top: 6px; }
+@media (max-width: 620px) {
+  .newstruct-note .note-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
 /* 번복·정정 기록 — 정본의 "⚠ rev.1 번복 기록" / "⚠ 2차 정정" 블록에 대응 */
 .reversal-note, .correction-note { margin-top: 10px; padding: 12px 14px; border-radius: 6px;
   font-size: 12px; line-height: 1.7; background: var(--amber-soft);

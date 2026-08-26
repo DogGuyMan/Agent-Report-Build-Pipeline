@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter } from "../.tmp/lib.mjs";
+import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote } from "../.tmp/lib.mjs";
 
 const html = (el) => renderToStaticMarkup(el);
 
@@ -196,4 +197,43 @@ test("VerdictFooter 는 값을 채우지 않은 빈 기입란을 낸다", () => 
   assert.ok(out.includes("번복"));
   assert.equal((out.match(/class="box"/g) || []).length, 3, "체크박스가 3개가 아니다");
   assert.ok(out.includes('class="owner-note"'));
+});
+
+test("EvidenceNote 는 실측과 판단을 별개 행으로 낸다", () => {
+  const out = html(EvidenceNote({
+    measured: ["노멀 반전 4지점 실측.", "back_face=true 호출부 0건."],
+    judged: ["지금 만들면 검증할 대상이 없는 코드가 된다."],
+  }));
+  assert.equal((out.match(/class="note-row"/g) || []).length, 2, "행이 2개가 아니다");
+  assert.ok(out.includes('<span class="conf-badge conf-green">🔵 실측</span>'));
+  assert.ok(out.includes('<span class="conf-badge conf-red">💭 판단</span>'));
+  // 두 배지가 같은 행에 있으면 안 된다
+  const firstRowEnd = out.indexOf('class="note-row"', out.indexOf('class="note-row"') + 1);
+  assert.ok(out.slice(0, firstRowEnd).includes("🔵 실측"), "첫 행에 실측이 없다");
+  assert.ok(!out.slice(0, firstRowEnd).includes("💭 판단"), "판단이 실측과 같은 행에 있다");
+});
+
+test("EvidenceNote 는 문장마다 단락을 나눈다", () => {
+  const out = html(EvidenceNote({
+    measured: ["첫 문장.", "둘째 문장.", "셋째 문장."],
+    judged: ["판단 한 문장."],
+  }));
+  assert.equal((out.match(/<p>/g) || []).length, 4, "단락이 4개가 아니다");
+  assert.ok(out.includes("<p>첫 문장.</p>"));
+  assert.ok(out.includes("<p>둘째 문장.</p>"));
+  assert.ok(!out.includes("&nbsp;·&nbsp;"), "한 줄로 이어붙였다");
+});
+
+test("EvidenceNote 는 판단이 없으면 실측 행만 낸다", () => {
+  const out = html(EvidenceNote({ measured: ["실측만 있다."] }));
+  assert.equal((out.match(/class="note-row"/g) || []).length, 1);
+  assert.ok(!out.includes("💭 판단"), "빈 판단 행이 나왔다");
+});
+
+test("EvidenceNote 는 단락 안의 인라인 마크업을 보존한다", () => {
+  const mono = createElement("span", { className: "mono" }, "geometry.cpp:231");
+  const out = html(EvidenceNote({
+    measured: [createElement("span", null, "실측 근거는 ", mono, " 이다.")],
+  }));
+  assert.ok(out.includes('<span class="mono">geometry.cpp:231</span>'));
 });

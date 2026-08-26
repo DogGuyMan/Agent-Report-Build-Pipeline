@@ -63,3 +63,34 @@ export function TriageBlock({ items }: { items: TriageItem[] }) {
 }
 
 export type { ReactNode };
+
+/**
+ * 실측 근거와 주관 판단을 **별개 행**으로 갈라놓는 주석 블록.
+ * 인계 문서 §5 — "객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다" 를 마크업으로 강제한다.
+ *
+ * 문장 분리는 호출자가 배열로 넘긴다. 마침표로 자동 분할하지 않는다 —
+ * 실제 본문에 `geometry.cpp:231`, `material_property_block.h:70-89` 같은
+ * 마침표 포함 토큰이 흔해서 휴리스틱이 깨진다.
+ */
+export function EvidenceNote({
+  measured, judged,
+}: { measured: ReactNode[]; judged?: ReactNode[] }) {
+  return (
+    <div className="newstruct-note">
+      <div className="note-row">
+        <span className="conf-badge conf-green">🔵 실측</span>
+        <div className="note-body">
+          {measured.map((p, i) => <p key={i}>{p}</p>)}
+        </div>
+      </div>
+      {judged && judged.length > 0 && (
+        <div className="note-row">
+          <span className="conf-badge conf-red">💭 판단</span>
+          <div className="note-body">
+            {judged.map((p, i) => <p key={i}>{p}</p>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
