@@ -1,0 +1,179 @@
+# 프리팹 YAML 표본 — 발췌(잘랐음). 원본: Assets/@Resources/Prefabs/UI/Buttons/UI_SettingButton.prefab (총 628줄)
+# 목적: 사용자 스크립트와 그 필드 값의 '배선' 이 코드가 아니라 이 YAML 에
+#       GUID 로 들어 있다는 것을 원문으로 보이는 것.
+#
+# GUID -> 파일 해석 (이 발췌에 나오는 것만):
+#   95c3578ea555a4b9fb70dfb3db137d34 -> Assets/@Scripts/UIs/Buttons/UI_OpenSettingButton.cs   (사용자 코드)
+#   d2fbd9b945f874e3f98052ff015fa5d3 -> Assets/@Scripts/UIs/Varients/UI_ButtonSound.cs        (사용자 코드)
+#   ee5e07d91a3624e2d9526b22b6e6e2bb -> Assets/@Scripts/UIs/Varients/UI_ButtonAnimationInAndOut.cs (사용자 코드)
+#   4e29b1a8efbd4b44bb3f3716e73f07ff -> UnityEngine.UI.Button                                  (엔진/패키지)
+#   306cc8c2b49d7114eaa3623786fc2126 / 0186b0e08a08b6645958d1b546fb94ba -> TMPro 등 서드파티
+
+############ (1) UnityEngine.UI.Button + m_OnClick (UnityEvent 인스펙터 연결) — 줄 450-500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422072900737014958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 0
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 5694992498747326841}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5697953436270456932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422072900737014958}
+  m_Enabled: 1
+
+############ (2) 사용자 스크립트 MonoBehaviour 3개 연속 — 줄 494-560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422072900737014958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee5e07d91a3624e2d9526b22b6e6e2bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _buttonInScale: 1.1
+  _buttonInTime: 0.3
+  _buttonOutScale: 1
+  _buttonOutTime: 0.2
+--- !u!114 &7498127788768403328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422072900737014958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2fbd9b945f874e3f98052ff015fa5d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1499862730380826906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422072900737014958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c3578ea555a4b9fb70dfb3db137d34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!1 &8461426080172345418
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5883832060128706395}
+  - component: {fileID: 8386242133776688422}
+  - component: {fileID: 7660881248521224687}
+  - component: {fileID: 3320943602572589289}
+  m_Layer: 5
+  m_Name: SettingIcon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &5883832060128706395
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8461426080172345418}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -10}
+
+############ (3) [SerializeField] 객체 참조 — 대입이 코드에 없고 YAML 에 있는 사례
+# 원본: Assets/@Resources/Prefabs/UI/Panels/Outgame_GameOverPanel.prefab 줄 2303-2306 (발췌)
+# 코드: Assets/@Scripts/UIs/Varients/UI_ButtonAnimationPressPositionDown.cs:12
+#         [SerializeField] Image _movableImage;      <- 선언
+#       같은 파일 41,43,44 줄에서 '읽기'만 하고, 대입문은 코드 어디에도 없다.
+#       대입은 아래 YAML 의 fileID 한 줄이 전부다.
+
+  m_Script: {fileID: 11500000, guid: ed8ce6118b1b64448b334a57e60fa6c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _movableImage: {fileID: 1780476830347659760}
+
+# 그 fileID 가 가리키는 대상 (같은 프리팹 내부, 줄 6658-):
+--- !u!114 &1780476830347659760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+
+# 정리: Roslyn 은 이 필드를 'UI_ButtonAnimationPressPositionDown -> UnityEngine.UI.Image'
+#       타입 참조(assoc) 로만 본다. 실제로 어느 인스턴스를 가리키는지는 YAML 에만 있다.
+
+############ (4) UnityEvent 영구 호출(m_PersistentCalls) 이 실제로 채워진 레코드
+# 원본: Assets/@Resources/Prefabs/UI/Panels/Outgame_GameOverPanel.prefab 줄 1316-1331 (발췌)
+# 위 (1) 의 UI_SettingButton 표본에서는 m_Calls 가 비어 있었으나, 전수 조사해 보니
+# 저장소 전체에 m_MethodName 이 472건 있고 그중 471건에 실제 메서드 이름이 들어 있다.
+# 사용자 자산 쪽만 세면 @Resources 프리팹 16건 + @Scenes 씬 6건 = 22건이다.
+
+    m_TableEntryReference:
+      m_KeyId: 0
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  m_FormatArguments: []
+  m_UpdateString:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 2780235465455634724}
+        m_TargetAssemblyTypeName: TMPro.TMP_Text, Unity.TextMeshPro
+        m_MethodName: set_text
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+
+# 요점: 이 레코드는 '호출 간선' 이다 — 대상 인스턴스(m_Target 의 fileID),
+#       대상 타입(m_TargetAssemblyTypeName), 메서드 이름(m_MethodName) 이 전부 있다.
+#       그런데 이 정보는 .cs 어디에도 없고 이 YAML 에만 있다.

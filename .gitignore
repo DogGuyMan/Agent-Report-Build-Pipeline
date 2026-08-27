@@ -12,3 +12,9 @@ out/
 *.b1.html
 
 .DS_Store
+
+# Track C 파이프라인 (C-12) — networkx/pydot/lxml
+.venv/
+
+# Track C 다이어그램 산출물 — codegraph 에서 재생성한다
+out/diagrams/
