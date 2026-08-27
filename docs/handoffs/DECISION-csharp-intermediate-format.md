@@ -53,6 +53,9 @@ kind=assoc	src=Gamerecipe.StickRush.Data.ScriptableFoodCells	field=_foodCells	ds
 | **F9** | 도구와 `normalize.py` 를 **둘 다 `$REPO_ROOT/codegraph/` 에 둔다.** 대상 저장소 경로는 **인자로 받는다** | 2026-08-27 사용자 확정. 사용자 프로젝트에 도구를 심지 않는다 |
 | **F10** | 덤프 범위는 **사용자 코드만 — `compilation` 은 하나다** | 2026-08-27 사용자 확정. 🔵 이미 오류 0건으로 검증된 경로(모드 C)다. 서드파티는 C-9 로 외부 노드 12개에 접힌다 |
 | **F11** | **`dependency` 간선을 함께 뽑는다** — 메서드 파라미터·반환형·지역 변수 타입·`new` 표현식 | 2026-08-27 사용자 확정. C++ 쪽 `dependency` 206건과 층을 맞춘다 |
+| **F12** | **`types[].members[]` 를 낸다** — 필드와 프로퍼티. `is_property` 로 구분하고 enum 멤버는 `is_enum_member` 플래그로 남긴다 | 2026-08-27 사용자 확정(v2). 🔵 P3 3분할이 이것 없이는 **이름 상자**만 그린다. C++ 은 clang-uml 이 `members[]` 를 공짜로 준다 |
+| **F13** | **`types[].methods[]` 를 낸다** — `Ordinary` 와 `Constructor`. 파라미터는 **개수만**(`param_count`) | 2026-08-27 사용자 확정(v2). 🔵 `render_classes.py` 는 `+ Name()` 형태로만 그리고 개수는 인자 없는 `Get*`/`Is*` 를 접근자로 거르는 데에만 쓴다. 전체 시그니처가 필요해지면 그때 추가한다(확장 규율 "추가만") |
+| **F14** | **`types[].is_abstract` · `accessibility` · `unity{}` 를 낸다** | 2026-08-27 사용자 확정(v2). 🔵 `kind=="Interface"` 는 이미 됐으나 **추상 클래스**는 표시할 수 없었다(25개). `unity.is_monobehaviour` 는 `BaseType` 을 타고 올라가 판정한다 — 🔵 **정규식 5 vs Roslyn 45** |
 
 ---
 
@@ -303,3 +306,95 @@ clang-uml 에서 `std::` 타입의 `source_location` 이 첫 사용 지점을 �
 외부 노드 17개 — probe 시점 12개보다 5개 많다. **`depend`(F11) 가 새로 닿게 한 어셈블리**
 (`com.unity.localization` 7 · `com.cysharp.unitask` 2 · `(벤더링) ZString` 1 등)가 원인이며,
 §8 이 예고한 "depend 를 뽑으면 R1 통과가 달라진다" 가 실측으로 확인된 것이다.
+
+---
+
+## 10. v2 구현 노트 (🔵 2026-08-27 — F12~F14 구현 후 기록)
+
+### v2 가 더한 것
+
+```
+v2 살 — members 695 · methods 532 · is_abstract=true 25
+        · MonoBehaviour 45 · ScriptableObject 6
+```
+
+`types[]` 레코드에 붙은 키: `is_abstract` · `accessibility` · `unity` · `members` · `methods`.
+**전부 소스 선언 타입(214개)에만 채운다.** 외부 타입 189개는 `null` 이다 — C-9 로 외딴 섬에
+접히므로 살이 쓰이지 않고, 넣으면 파일만 커진다.
+
+### 회귀 — 구조 수치가 하나도 안 바뀌었다 🔵
+
+살을 더하는 작업이므로 v1 수치가 그대로여야 한다. **12개 항목 전부 동일했다.**
+
+```
+errors 0 / unresolved 0 · types 403 (소스 214 + 외부 189) · relations 1586
+inherit 190 · realize 70 · assoc 494 · depend 832 · enum 209 · [SerializeField] 27
+normalize 후 노드 231 / 간선 540 / 모듈 10 / 순환 5
+```
+
+probe 대사도 4항목 전부 일치 — inherit(암묵 기반 제외) 64 · assoc(enum 제외) 285 ·
+realize 70 · 소스 타입 214.
+
+### 새 필드의 L3 대조 — 표본이 아니라 전수 🔵
+
+C++ 쪽에서 표본 10건이 100% 통과한 뒤 전수 203건에서 5건이 어긋난 전례가 있어 전수로 쟀다.
+
+```
+멤버   695건 중 그 줄에 그 이름이 있는 것: 694/695
+메서드 532건 중 그 줄에 그 이름이 있는 것: 532/532
+```
+
+**불일치 1건의 원인 — 위치 오류가 아니다.** 🔵 인덱서(indexer)다.
+`IPropertySymbol.Name` 이 `this[]` 를 주는데 소스는 `public List<int> this[int i] {` 다.
+`file`/`line` 은 정확히 그 선언 줄을 가리킨다. **위치 정확도는 1,227/1,227 (100%)** 이다.
+
+⚠ **`partial` 은 어긋나지 않았다.** 명세가 예측한 위험처였으나 `partial_decls ≥ 2` 인 타입
+10개(`InGameController` 5분할 등)의 멤버·메서드 위치가 전부 통과했다.
+`SrcLoc` 이 파일·줄 순으로 정렬해 첫 선언을 고르기 때문이다.
+
+### `render_classes.py` 의 `--detail` 리더를 한 갈래 더 태웠다 🔵
+
+`load_detail()` 이 clang-uml 의 `elements[].display_name` 만 알았다.
+`roslyn-dump.json` 은 `types[].name` 이므로 갈래를 나눴다 — 입력에 `elements` 가 있으면
+clang-uml, 없으면 `types` 를 읽는다. **형식 어댑터일 뿐 표시 정책은 넣지 않았다**(F2).
+
+메서드 키 대응: `is_ctor → is_constructor` · `is_abstract → is_pure_virtual` ·
+`param_count → parameters` (길이만 쓰이므로 `[None]*n`). 멤버는 `name`/`type`/`access` 가
+이미 같은 키다.
+
+### 그림이 실제로 나온다 🔵
+
+```
+Exceptions  클래스  2 / 노드  4 / 간선  3
+Fixture     클래스  1 / 노드  9 / 간선  8
+Interface   클래스 13 / 노드 46 / 간선 57   («interface» 스테레오타입 11개)
+Utils       클래스 14 / 노드 29 / 간선 42   (멤버 31행 · 메서드 34행)
+```
+
+v1 에서 나오던 `⚠ --detail 이 없다. 3분할 없이 이름 상자만 그린다` 경고가 사라졌다.
+
+### 구현 중 발견 — 명세가 예측하지 못한 것 둘
+
+**(가) 🔵 `Managers` 모듈은 Graphviz 가 죽는다. 이 작업과 무관한 기존 결함이다.**
+
+```
+Assertion failed: (LIST_SIZE(&arr) == agnnodes_z(sg)), function fixLabelOrder,
+file mincross.c, line 273.
+```
+
+`--detail` **없이도 똑같이 죽는다** — v1 과 같은 조건에서 재현되므로 F12~F14 가 원인이 아니다.
+Graphviz 15.1.1 의 클러스터 + 간선 라벨 정렬 버그로 보인다. 💭 55 — 원인을 확정하지 못했다.
+**별도 과제다.**
+
+**(나) 🔵 enum 노드는 멤버 칸에 enum 값이 그려진다.** `LogLevel` 이
+`None`/`Error`/`Warning`/`Info`/`Debug` 를 멤버로 보인다. F8 이 "버리지 않고 플래그로" 낸
+것을 렌더러가 그대로 그린 결과이고, **enum 에 대해서는 이것이 옳은 그림**이다.
+버릴지 말지는 표시 정책이므로 도구가 정하지 않는다.
+
+### 남은 것 — 이 작업이 답하지 않았다
+
+- **큰 모듈의 생략 규칙.** 🔵 `Utils` 는 클래스 14개인데 렌더 결과가 **가로 6,771px** 이다.
+  `UIs`(50) · `Data`(53) · `Controller`(63) 은 더 크다.
+  Track C §1 20번("무엇을 생략할지")이 **LLM 에만 남는 넷** 중 하나로 분류한 항목이다.
+- **프로퍼티를 멤버 칸에 그릴지 메서드 칸에 그릴지.** 지금은 `is_property: true` 를 달아
+  멤버로 내고 렌더러가 멤버 칸에 그린다. 그림을 보고 정할 일이다.

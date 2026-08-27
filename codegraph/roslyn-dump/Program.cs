@@ -191,6 +191,75 @@ var srcTypes = AllTypes(compilation.Assembly.GlobalNamespace)
     .Select(x => x.t).ToList();
 foreach (var t in srcTypes) Reg(t);
 
+// ── v2 살 채우기 (D1~D4). 관계 추출과 독립이고 srcTypes 만 대상이다.
+//    ⚠ 걸러내기(표시 정책)는 하지 않는다 — 렌더러 몫이다(F2).
+{
+    string Acc(Accessibility a) => a switch {
+        Microsoft.CodeAnalysis.Accessibility.Public => "public",
+        Microsoft.CodeAnalysis.Accessibility.Private => "private",
+        Microsoft.CodeAnalysis.Accessibility.Protected => "protected",
+        Microsoft.CodeAnalysis.Accessibility.Internal => "internal",
+        Microsoft.CodeAnalysis.Accessibility.ProtectedOrInternal => "protected internal",
+        Microsoft.CodeAnalysis.Accessibility.ProtectedAndInternal => "private protected",
+        _ => "unknown" };
+    string AttrName(AttributeData a) {
+        var n = a.AttributeClass?.Name ?? "?";
+        return n.EndsWith("Attribute") && n.Length > 9 ? n[..^9] : n; }
+    // D4 — BaseType 을 타고 올라가며 전이 파생을 판정한다. 정규식이 못 하는 것이 이것이다.
+    bool DerivesFrom(INamedTypeSymbol t, string full) {
+        for (var b = t.BaseType; b != null; b = b.BaseType)
+            if (b.OriginalDefinition.ToDisplayString(NameFmt) == full || b.ToDisplayString(NameFmt) == full) return true;
+        return false; }
+
+    foreach (var st in srcTypes)
+    {
+        var rec = typeRecs[int.Parse(ids[st].Substring(1)) - 1];
+        rec.IsAbstract = st.IsAbstract;                                   // D3
+        rec.Accessibility = Acc(st.DeclaredAccessibility);
+        rec.Unity = new UnityRec {                                        // D4
+            IsMonoBehaviour = DerivesFrom(st, "UnityEngine.MonoBehaviour"),
+            IsScriptableObject = DerivesFrom(st, "UnityEngine.ScriptableObject") };
+
+        var mems = new List<MemberRec>();
+        var meths = new List<MethodRec>();
+        foreach (var mem in st.GetMembers())
+        {
+            if (mem.IsImplicitlyDeclared) continue;                       // 컴파일러 생성 제외
+            switch (mem)
+            {
+                case IFieldSymbol f: {                                    // D1
+                    var (ff, fl) = SrcLoc(f);
+                    mems.Add(new MemberRec {
+                        Name = f.Name, Type = f.Type.ToDisplayString(NameFmt), Access = Acc(f.DeclaredAccessibility),
+                        IsStatic = f.IsStatic, IsProperty = false,
+                        IsEnumMember = st.TypeKind == TypeKind.Enum && f.IsConst,
+                        Attrs = f.GetAttributes().Select(AttrName).ToList(), File = ff, Line = fl });
+                    break; }
+                case IPropertySymbol pr: {                                // D1 — is_property 로 구분
+                    var (pf, pl) = SrcLoc(pr);
+                    mems.Add(new MemberRec {
+                        Name = pr.Name, Type = pr.Type.ToDisplayString(NameFmt), Access = Acc(pr.DeclaredAccessibility),
+                        IsStatic = pr.IsStatic, IsProperty = true, IsEnumMember = false,
+                        Attrs = pr.GetAttributes().Select(AttrName).ToList(), File = pf, Line = pl });
+                    break; }
+                case IMethodSymbol m when m.AssociatedSymbol == null      // D2 — 접근자(get/set) 제외
+                        && (m.MethodKind == MethodKind.Ordinary || m.MethodKind == MethodKind.Constructor): {
+                    var (mf, ml) = SrcLoc(m);
+                    meths.Add(new MethodRec {
+                        Name = m.Name, Access = Acc(m.DeclaredAccessibility), IsStatic = m.IsStatic,
+                        IsAbstract = m.IsAbstract, IsVirtual = m.IsVirtual, IsOverride = m.IsOverride,
+                        IsCtor = m.MethodKind == MethodKind.Constructor,
+                        ParamCount = m.Parameters.Length,
+                        Returns = m.MethodKind == MethodKind.Constructor ? null : m.ReturnType.ToDisplayString(NameFmt),
+                        File = mf, Line = ml });
+                    break; }
+            }
+        }
+        rec.Members = mems;
+        rec.Methods = meths;
+    }
+}
+
 // ── 관계
 var rels = new List<RelRec>();
 string ShortAttr(AttributeData a)
@@ -330,7 +399,7 @@ catch { /* git 없으면 null */ }
 var roslynVer = typeof(CSharpCompilation).Assembly.GetName().Version?.ToString(3) ?? "?";
 var dump = new Dump
 {
-    FormatVersion = 1,
+    FormatVersion = 2,
     Tool = $"roslyn-dump 0.1 (Microsoft.CodeAnalysis.CSharp {roslynVer})",
     RepoCommit = commit,
     Engine = new EngineRec { Unity = unity, LangVersion = langVersion.ToDisplayString(), Defines = defines.Count },
@@ -362,6 +431,10 @@ Console.WriteLine($"  types {typeRecs.Count} (소스 {srcTypes.Count} + 외부 {
 Console.WriteLine($"  relations {rels.Count} — " + string.Join(" · ", byKind.Select(kv => $"{kv.Key} {kv.Value}")));
 Console.WriteLine($"  depend origin — " + string.Join(" · ", byOrigin.Select(kv => $"{kv.Key} {kv.Value}")));
 Console.WriteLine($"  enum 멤버 플래그 {rels.Count(r => r.IsEnumMember)} / [SerializeField] {rels.Count(r => r.Attrs != null && r.Attrs.Contains("SerializeField"))}");
+Console.WriteLine($"  v2 살 — members {typeRecs.Sum(t => t.Members?.Count ?? 0)} · methods {typeRecs.Sum(t => t.Methods?.Count ?? 0)}"
+    + $" · is_abstract=true {typeRecs.Count(t => t.IsAbstract == true)}"
+    + $" · MonoBehaviour {typeRecs.Count(t => t.Unity?.IsMonoBehaviour == true)}"
+    + $" · ScriptableObject {typeRecs.Count(t => t.Unity?.IsScriptableObject == true)}");
 return errors.Count > 0 ? 2 : 0;
 
 // ── 레코드 (형식 명세 §3 의 키 이름 그대로)
@@ -401,6 +474,44 @@ class TypeRec
     [JsonPropertyName("partial_decls")] public int PartialDecls { get; set; }
     [JsonPropertyName("generic_def")] public string? GenericDef { get; set; }
     [JsonPropertyName("type_args")] public List<string> TypeArgs { get; set; } = new();
+
+    // v2 (F12·F13·F14) — 소스 선언 타입에만 채운다. 외부 타입은 null 이다.
+    [JsonPropertyName("is_abstract")] public bool? IsAbstract { get; set; }
+    [JsonPropertyName("accessibility")] public string? Accessibility { get; set; }
+    [JsonPropertyName("unity")] public UnityRec? Unity { get; set; }
+    [JsonPropertyName("members")] public List<MemberRec>? Members { get; set; }
+    [JsonPropertyName("methods")] public List<MethodRec>? Methods { get; set; }
+}
+class UnityRec
+{
+    [JsonPropertyName("is_monobehaviour")] public bool IsMonoBehaviour { get; set; }
+    [JsonPropertyName("is_scriptable_object")] public bool IsScriptableObject { get; set; }
+}
+class MemberRec
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("type")] public string? Type { get; set; }
+    [JsonPropertyName("access")] public string? Access { get; set; }
+    [JsonPropertyName("is_static")] public bool IsStatic { get; set; }
+    [JsonPropertyName("is_property")] public bool IsProperty { get; set; }
+    [JsonPropertyName("is_enum_member")] public bool IsEnumMember { get; set; }
+    [JsonPropertyName("attrs")] public List<string>? Attrs { get; set; }
+    [JsonPropertyName("file")] public string? File { get; set; }
+    [JsonPropertyName("line")] public int? Line { get; set; }
+}
+class MethodRec
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("access")] public string? Access { get; set; }
+    [JsonPropertyName("is_static")] public bool IsStatic { get; set; }
+    [JsonPropertyName("is_abstract")] public bool IsAbstract { get; set; }
+    [JsonPropertyName("is_virtual")] public bool IsVirtual { get; set; }
+    [JsonPropertyName("is_override")] public bool IsOverride { get; set; }
+    [JsonPropertyName("is_ctor")] public bool IsCtor { get; set; }
+    [JsonPropertyName("param_count")] public int ParamCount { get; set; }
+    [JsonPropertyName("returns")] public string? Returns { get; set; }
+    [JsonPropertyName("file")] public string? File { get; set; }
+    [JsonPropertyName("line")] public int? Line { get; set; }
 }
 class RelRec
 {

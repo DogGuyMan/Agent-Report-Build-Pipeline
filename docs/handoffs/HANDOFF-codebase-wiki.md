@@ -103,9 +103,12 @@
 | C-10 | **간선 `kind` enum 을 8종으로 확장한다** — 기존 6종 + `instantiation` + `friendship`. `schema_version` 을 2 로 올린다 | 2026-08-27 사용자 확정. C++ 실측에서 6종에 자리 없는 문자열이 나왔다(§7 참조) |
 | ~~C-11~~ | 🔴 **2026-08-27 C-13 으로 번복됨.** ~~인용 검증 L3 의 판정 기준을 간선이 아니라 노드로 내린다.~~ 간선의 `file`/`line` 은 **선택 필드**로 남기고, 있으면 채우되 **L3 판정에는 쓰지 않는다** | 2026-08-27 사용자 확정. clang-uml 이 간선 411건 전량에 위치를 주지 않는다(§7 설계 근거 1) |
 | C-12 | **파이프라인 코드는 전부 `$REPO_ROOT/codegraph/` 에 둔다.** `normalize.py` 도 `roslyn-dump` 도 여기 살고, **대상 저장소 경로는 인자로 받는다** | 2026-08-27 사용자 확정. 사용자 프로젝트(C++·Unity)에는 산출물만 남기고 도구를 심지 않는다 |
-| C-13 | **C-11 을 번복한다. 인용 검증 L3 의 판정 대상은 노드 + 소유 간선(`composition`·`aggregation`)이다.** 그 외 간선은 근거가 없으므로 검증기가 **"근거 없음"** 으로 낸다 — 판정은 통과/실패 2값이 아니라 **3값**이다 | 2026-08-27 사용자 확정. C-11 의 근거가 실측으로 뒤집혔다(아래 §7 설계 근거 1) |
+| C-13 *(C-16 으로 확장됨)* | **C-11 을 번복한다. 인용 검증 L3 의 판정 대상은 노드 + 소유 간선(`composition`·`aggregation`)이다.** 그 외 간선은 근거가 없으므로 검증기가 **"근거 없음"** 으로 낸다 — 판정은 통과/실패 2값이 아니라 **3값**이다 | 2026-08-27 사용자 확정. C-11 의 근거가 실측으로 뒤집혔다(아래 §7 설계 근거 1) |
 | C-14 | **`containment` 는 버린다.** 8종 enum 에 자리가 없고 `dependency` 로 흡수하지 않는다 | 2026-08-27 사용자 확정. 방향이 안쪽→바깥쪽이라 흡수하면 P4 의미축에 역방향 화살표가 생겨 오독을 부른다. 🔵 이 저장소 7건 |
 | C-15 | **`modules[].depends_on` 은 클래스 간선에서 유도한다.** `cmake --graphviz` 타겟 층과 조인하지 않는다 | 2026-08-27 사용자 확정. 입도가 다르고(폴더 20 vs 타겟 70), **C# 에는 CMake 대응물이 없어** 두 언어가 같은 방식을 쓸 수 있는 유일한 축이다 |
+| C-16 | **C-13 을 확장한다. L3 판정 대상 = 노드 + `file/line` 이 null 이 아닌 간선 전부 + (--detail 시) 살 파일의 멤버·메서드 선언 줄** | 2026-08-27 사용자 확정. 🔵 C# 파일럿에서 간선 위치와 일치하는 인용 26건이 "소유 간선만" 제한으로 근거없음에 떨어졌다. C++ 은 소유 간선만 위치를 가져 실질 불변 |
+| C-17 | **큰 모듈의 생략 규칙 — 간선 0(고아) 타입은 본문 서술에서 빼고 "전체 목록" 표에만 남긴다.** 생략하되 숨기지 않는다 | 2026-08-27 사용자 확정. Track C §1 20번(LLM 에만 남는 넷)의 첫 확정. 🔵 Controller 63→38 · UIs 50→24 · Data 53→36 |
+| C-18 | **Mermaid 는 전면 치환한다(A안).** `mmdc` 로 사전 렌더하고 구조 다이어그램은 Graphviz SVG 로 교체. VitePress 의 클라이언트 Mermaid 렌더에 맡기지 않는다 | 2026-08-27 사용자 확정. C-8("Graphviz 가 정본")을 완화하지 않고 그대로 집행 |
 
 C-8이 중요하다. deep-wiki에는 **"다이어그램은 외부 SVG를 참조하라"고만 지시**하고, 실제 그림은 clang-uml 필터로 모듈별 작게 잘라 Graphviz로 렌더한다.
 
@@ -415,6 +418,10 @@ python3 -m venv .venv
 > ```
 >
 > Homebrew Python 3.14.6 은 전역 설치를 거부한다(PEP 668). **venv 를 만들어야 한다.**
+>
+> 🔵 **2026-08-27 — `numpy` 와 `scipy` 도 필요하다.** 원래 목록(networkx·pydot·lxml)에 없었으나
+> `networkx.pagerank` 가 scipy 구현만 갖고 있어 `ModuleNotFoundError: numpy` 로 죽는다(실측).
+> `.venv/bin/pip install networkx pydot lxml numpy scipy` 가 완전한 목록이다.
 > 실측 — 이 머신의 Python 5종(homebrew 3.14 · python.org 3.13 · macports 3.12 ·
 > 시스템 3.9) 어디에도 `networkx` 가 없었다.
 
@@ -500,6 +507,123 @@ Phase 0·2의 산출물을 §7의 `codegraph.json`으로 변환한다.
 🔵 켜고 렌더해 보니 외부 17개가 세로로 늘어져 1차 밴드를 압도했고 점선이 캔버스를 가로질렀다.
 이 그림의 논증은 "1차 모듈 간 의존과 순환" 하나이고 외부 접촉은 다른 논증이다 —
 같은 장에 넣으면 둘 다 죽는다(스킬 Phase 2 "생략이 가치다"). 수치는 `external-nodes.tsv` 에 있다.
+
+### Phase 7-1 — `roslyn-dump` v2 (보고서가 요구하는 살) 🔵 완료 (2026-08-27)
+
+인계 문서 — `HANDOFF-unity-roslyn-dump-v2.md`. **F12~F14 로 형식이 확장됐다**
+(`DECISION-csharp-intermediate-format.md` §10 에 구현 노트).
+
+```
+v2 살 — members 695 · methods 532 · is_abstract=true 25
+        · MonoBehaviour 45 · ScriptableObject 6
+```
+
+- **회귀 12개 항목 전부 동일** — 살을 더하는 작업이라 구조 수치가 안 바뀌어야 하고, 안 바뀌었다.
+  `errors 0 / unresolved 0 · types 403 · relations 1586 · normalize 후 노드 231 / 간선 540 / 모듈 10 / 순환 5`
+- **새 필드 L3 전수 대조 — 위치 1,227/1,227 (100%)**. 표본이 아니라 전수로 쟀다.
+  불일치로 잡힌 1건은 위치 오류가 아니라 인덱서(`IPropertySymbol.Name` 이 `this[]`)다.
+  ⚠ **`partial` 은 어긋나지 않았다** — 명세가 예측한 위험처였으나 `partial_decls ≥ 2` 인 타입 10개가 전부 통과했다.
+- **P3 3분할이 실제로 그려진다.** `render_classes.py` 의 `--detail` 리더에 `roslyn-dump.json`
+  갈래를 태웠다(clang-uml 은 `elements[].display_name`, C# 은 `types[].name`).
+  `Exceptions 2/4/3` · `Fixture 1/9/8` · `Interface 13/46/57`(«interface» 11) · `Utils 14/29/42`(멤버 31행 · 메서드 34행).
+
+⚠ **남은 결함 둘** — 둘 다 이 작업이 만든 것이 아니다.
+1. `Managers` 모듈은 Graphviz 15.1.1 이 죽는다 (`fixLabelOrder`, mincross.c:273).
+   `--detail` 없이도 재현되므로 v1 부터 있던 것이다. 💭 55 원인 미확정. **별도 과제.**
+2. **큰 모듈 생략 규칙이 없다.** `Utils`(클래스 14)가 렌더 결과 가로 **6,771px** 이다.
+   `UIs` 50 · `Data` 53 · `Controller` 63 은 더 크다. §1 20번(LLM 에만 남는 넷)에 걸린 항목.
+
+| 소비자 | 막힌 이유 |
+|---|---|
+| 클래스 다이어그램 P3 3분할 | `types[].members`/`methods` 부재 |
+| 추상 클래스 «interface» 표시 | `is_abstract` 부재 (`kind` 로 인터페이스는 이미 구분됨) |
+| 진입점 식별 | `MonoBehaviour` 전이 파생 표시 부재 — 🔵 정규식 5 vs Roslyn 45 |
+
+⚠ **Track C §7 의 "`nodes[].members` 지금 만들지 말 것" 과 헷갈리지 말 것.** 그 금지는
+`codegraph.json` 이고, 채우는 것은 `roslyn-dump.json` 이다. C++ 이 clang-uml 원문에서
+살을 읽는 것과 **대칭**이다.
+
+### Phase 5-2 — facts + ranking 생성기 🔵 완료 (2026-08-27)
+
+`codegraph/facts.py` — `codegraph.json` (+ C# 은 `--detail roslyn-dump.json`) →
+**`ranking.json` + `facts/*.md` 5종** (modules · classes · external · entrypoints · hotspot).
+언어 무관, 전량 기계 덤프 — **생략하지 않는다**(생략 판단은 LLM 계층 §1 20번의 몫).
+
+```bash
+.venv/bin/python codegraph/facts.py <codegraph.json> --repo <저장소> [--detail <roslyn-dump.json>]
+```
+
+| | C++ | C# |
+|---|---|---|
+| 클래스 (전량) | 185 | 214 |
+| hotspot 코드파일 | 106 | 107 |
+| PageRank 상위 | `Actor` · `Component` · `Layer` · `Transform` | `InitBase` · `UI_Base` · `IDataCustomerAccessor` |
+
+- **PageRank 는 1차 클래스 그래프에서만** 잰다 — 외부 노드를 넣으면 R3 섬의 단방향 간선이
+  rank 를 전부 흡수한다(`netstandard` 1위가 되어 목적이 죽는다). 가중치는 `occurrences`.
+- **hotspot 은 codegraph 밖의 피더다** — `git log --numstat` 전 이력. 이름변경은 새 경로 귀속.
+- **인용을 deep-wiki 로컬 규격 `(path:line)` 그대로 낸다** — 위키가 표의 인용을 옮겨 적으면
+  검증기 L3 가 잴 수 있다. C-3 주입 재료가 이것으로 완성됐다.
+- 🔵 교차 신호 — C++ 에서 순환의 중심 `material` 의 `material.h` 가 hotspot 4위(17커밋)다.
+  구조 신호(순환)와 변경 신호(hotspot)가 같은 곳을 가리킨다.
+- ⚠ C# `entrypoints.md` 는 `--detail` 없이는 비어 있다 — unity 플래그가 `codegraph.json` 에
+  없고 `roslyn-dump.json` 에만 있다(구조/살 분리, render_classes 와 같은 이유).
+
+### Phase 8 — deep-wiki 파일럿 🔵 1건 완료 (2026-08-27, C# Managers 스코프)
+
+`/deep-wiki:page` 규정(3단계 절차·Mermaid 3종·인용 규격·Unknown 표기)대로
+**`Managers` 모듈 페이지를 생성**했다 — `<Unity저장소>/out/codegraph-raw/wiki/managers.md`.
+C-3 주입: facts 5종을 근거 정본으로 사용. C-8: 대형 그림은 `csharp-modules.svg` 참조로
+지시하고 페이지 내 Mermaid 는 소형(≤10노드, 부활 트리거 범위 안)만 넣었다.
+
+**생성 직후 검증기로 쟀다 — 파이프라인이 처음으로 끝까지 한 바퀴 돌았다:**
+
+```
+인용 56건 — L1 56/56 · L2 56/56 (실패 0)
+L3  노드 14 · 소유간선 0 · 근거없음 42
+```
+
+🔵 **근거없음 42건을 해부하니 검증 정책의 결함 둘이 나왔다.** 파일럿의 최대 수확이다.
+
+| 42건의 실제 분포 | 건수 | 정체 |
+|---|---|---|
+| **assoc/depend 간선 위치와 정확히 일치** | **26** | `Managers.cs:38`(`_resource` 필드) 등 — codegraph 에 간선 위치로 실재하는데 **C-13 이 "소유 간선만" 으로 제한해 판정에서 빠진다.** C# 은 소유 간선이 언어상 0 이라 이 제한이 판정력을 죽인다 |
+| 메서드 선언·본문 줄 | 16 | `Awake`(:55)·`Start`(:68)·`AsyncInitialize` 등 — codegraph 에 메서드 층이 없다. 단 **'살' 파일(roslyn-dump `methods[].file/line`, clang-uml `methods[].source_location`)에는 있다** |
+
+**✅ 둘 다 확정·구현됐다 (같은 날, C-16):**
+1. L3 대상 = 위치 있는 간선 전부 → C# 26건 회복
+2. 검증기 `--detail` → 멤버·메서드 층 9건 회복
+
+🔵 **재검 결과 — 근거없음 42 → 7.** 남은 7건은 메서드 본문·주석·partial 재선언 줄로,
+선언이 아닌 위치를 인용한 것 — **3값 설계가 의도한 정당한 "근거 없음"** 이다.
+회귀: facts 자기 일관성 C++ 185/185 · C# 265/265 그대로.
+
+```
+최종:  L1 56/56 · L2 56/56 · L3 = 노드 14 + 간선 26 + 멤버·메서드 9 + 근거없음 7
+```
+
+### Phase 9 — 검증 계층 도구 조사와 C-18 집행 🔵 (2026-08-27)
+
+**기성 도구 조사 — 자체 제작이 필요한 것은 하나뿐이었다.**
+
+| 필요 | 기성 도구 | 판정 |
+|---|---|---|
+| Mermaid→SVG | `@mermaid-js/mermaid-cli`(`mmdc` 11.16.0, MIT) — `.md` 입력을 직접 받아 블록을 추출·렌더 | ✅ 채택. 설치함 |
+| dead-link | VitePress **내장** `ignoreDeadLinks: false` 가 빌드 시 전수 검사·실패 처리. 외부는 `lychee`/`markdown-link-check` | ✅ 내장으로 충분 — 별도 도구 불요 |
+| VitePress 조립 | deep-wiki `wiki-vitepress` 스킬이 스캐폴딩·다크테마 3층·click-to-zoom 까지 규정 | ✅ 기성 사용 |
+| 회귀 테스트 | `pytest` / stdlib `unittest` | ✅ 기성 사용 |
+| **Mermaid 정책 집행** | **없음** | ❌ **자체 제작** — `codegraph/demermaid.py` |
+
+⚠ **기성 경로가 C-8 과 충돌했다.** `wiki-vitepress` 는 `vitepress-plugin-mermaid` 로
+**클라이언트에서 Mermaid 를 그린다.** 그대로 쓰면 "Graphviz 가 정본" 이 무력화된다.
+→ **C-18 (A안, 전면 치환)** 으로 확정하고 `demermaid.py` 를 만들었다.
+
+**`demermaid.py` — 두 단 치환. 원본은 고치지 않는다**(인용 검증기 대상으로 보존):
+
+1. `<!-- graphviz: <이름> -->` 표식이 앞에 있으면 **우리 Graphviz SVG 로 교체** — C-8 의 본뜻
+2. 표식 없는 나머지는 `mmdc` 로 사전 렌더 — 문법은 살리되 클라이언트 JS 의존 제거
+
+🔵 C# 위키 실측 — **Graphviz 교체 1 · mmdc 렌더 2 · 실패 0 · 남은 클라이언트 Mermaid 의존 0.**
 
 ### Phase 6 — Windows 산출물로 검증
 
@@ -717,6 +841,24 @@ MSVC 전용 확장(`__declspec`, MSVC STL 내부)을 쓰는 코드는 mingw 로 
 
 **L3가 값의 전부다.** deep-wiki가 "Renderer는 `renderer.h:42`에 있다"고 쓰면 `codegraph.json`과 맞춰 참/거짓을 기계적으로 판정할 수 있다.
 
+> 🔵 **2026-08-27 — 검증기 구현 완료: `codegraph/verify_citations.py`.**
+>
+> ```bash
+> .venv/bin/python codegraph/verify_citations.py <문서.md ...> --repo <저장소> --codegraph <codegraph.json>
+> ```
+>
+> - **판정 3값** — 통과 / 실패(L1·L2, 종료코드 1) / 근거 없음(L3). 인용 패턴은 확장자
+>   화이트리스트 정규식 — deep-wiki 로컬 규격 `(path:line)` 과 백틱·링크·범위 전부 잡는다.
+> - **자기 일관성 시험 통과** — facts/*.md 의 인용 C++ 185/185 · C# 265/265 가 전부
+>   L3 노드 일치. facts 는 codegraph 에서 생성됐으므로 100% 가 나와야 정상이고, 나왔다.
+> - **오염 시험 통과** — 없는 파일(L1)·줄 초과(L2)·**위치는 유효한 선언인데 문서가 다른
+>   심볼을 주장하는 경우(이름 대조 경고)** 를 전부 잡는다.
+> - **실전 표본** — 손으로 쓴 관찰 보고서(OBSERVATION.md) 28건: 노드 16 · 소유간선 3 ·
+>   근거없음 9. 3값의 분포가 실제 문서에서 이렇게 나온다.
+> - 🔵 **구현 중 발견 — (file,line) → 심볼은 1:1 이 아니다.** StageFSMState.h:42 에
+>   그 줄의 실제 선언(`BaseStageFsmState`)과 사용 지점을 위치로 갖는 템플릿 인스턴스
+>   (`IFsmState<Actor>`)가 함께 등록돼 있다(F-1 함정의 1차 코드판). 색인은 다중값이다.
+
 > **2026-08-27 C-13 — L3 의 대상은 노드 + 소유 간선이다.** 근거는 §7 설계 근거 1.
 > 검증기가 판정하는 주장은 둘이다:
 >
@@ -780,7 +922,7 @@ MSVC 전용 확장(`__declspec`, MSVC STL 내부)을 쓰는 코드는 mingw 로 
 | `.gitignore`에 `build-cc/` 추가했는지 | 안 하면 생성물이 커밋된다 |
 | `toolchain/mingw-w64.cmake` 존재 여부 | 함정 2의 폴백 경로 |
 | C# 프로젝트가 실제로 있는지, 솔루션 파일 위치 | Phase 7 전제 |
-| microsoft/skills `deep-wiki` 플러그인 설치 여부 | `/plugin marketplace add microsoft/skills` |
+| microsoft/skills `deep-wiki` 플러그인 설치 여부 | ✅ 🔵 **2.0.0 설치 완료 (2026-08-27, `deep-wiki@skills`).** C-1 근거 3개 실물 대조 통과 — VitePress(`wiki-vitepress`) · file:line 인용 강제(Step 0 + Mermaid `<!-- Sources -->` + 페이지당 최소 5파일) · 미확인 영역(`(Unknown – verify in ...)` 규칙). **C-3 주입 지점 = `/deep-wiki:generate` Step 1(Repository Scan)** · C-8 치환 대상(Mermaid 11회 내장) 확인. | `/plugin marketplace add microsoft/skills` → `/plugin install deep-wiki`. ⚠ 🔵 **`npx skills add microsoft/skills` 로는 안 된다** — 그 명령은 레포의 `.github/skills/`(스킬 13개, Azure/KQL 등)만 가져오고, deep-wiki 는 `.github/plugins/deep-wiki/` 의 **플러그인**이라 빠진다. 2026-08-27 실제로 그렇게 헛설치됐다. 제공 명령: `/deep-wiki:generate` · `page` · `research` |
 
 ---
 
@@ -793,3 +935,81 @@ cmake -S . -B build-cc --graphviz=out/modules.dot
 ```
 
 `.dot` 파일이 나오면 그 내용을 사용자에게 보여주고, **그것을 기준으로 `normalize.py`의 첫 파서를 설계하라.** 스키마를 추측으로 먼저 짜지 말 것 — 실제 산출물을 보고 맞추는 것이 순서다.
+
+---
+
+## 13. 2026-08-27 세션 변경 이력 — 오케스트레이터 보고용
+
+**이 문서와 하위 문서에 이번 세션이 가한 변경 전량이다.** 무엇이 사용자 확정이고
+무엇이 에이전트 실측인지 구분해 적는다.
+
+### 확정 결정이 둘 늘었다 (§2)
+
+| ID | 결정 | 확정 근거 |
+|---|---|---|
+| **C-9** | 외부 의존은 전이 확장 없이 단일 노드로 접고, 하나의 외딴 섬에 모으고, 간선은 사용자→외부 단방향만 | 2026-08-27 사용자 확정. 상세 §2-1 |
+| **C-10** | 간선 `kind` enum 을 **8종**으로 확장 (6종 + `instantiation` + `friendship`), `schema_version` 1 → 2 | 2026-08-27 사용자 확정. C++ 실측에서 6종에 자리 없는 문자열이 나왔다 |
+
+### §2-1 규칙이 R1~R7 로 자랐다
+
+- **R1~R4** (C# 실측에서) — 전이 금지 / 패키지 이름 노드 하나 / `__external__` 외딴 섬 / 단방향
+- **R5~R6** (C++ 실측에서, 사용자 추가) — 컨테이너·스마트포인터 투과 / 섬 간선 `constraint=false`
+- **R7** (이번 세션 추가) — **원시 타입과 암묵적 기반 타입은 간선으로 만들지 않는다.**
+  🔵 근거: `(BCL) netstandard` 접촉이 **274 → 9**. 나머지 11개 외부 노드 접촉 합이 72 이므로
+  R7 없이는 표준 라이브러리 하나가 전체의 4배가 된다. ⚠ 노드는 사라지지 않는다(9건이 남는다).
+
+**적용 순서 고정: R5 → R7 → R2 → R1 → R4 → R3 → R6.**
+⚠ C++ 쪽 R7 은 **규칙만 넣었고 실측이 없다.** `(STL) std` 가 R7 전후로 어떻게 변하는지,
+C++ 에 "암묵적 기반 타입" 이 있기는 한지는 재봐야 한다(`HANDOFF-cpp-pattern-collection.md` §2-3).
+
+### §7 스키마 갱신
+
+`schema_version` 2. `kind` 8종. **UML 근거를 실측으로 확인해 적었다** 🔵 —
+UML 은 Dependency · Association(Aggregation/Composition 으로 더 특정됨) · Generalization · Realization 을
+관계 종류로 두고, `AggregationKind` 는 `none`/`shared`/`composite` 로 **association 끝(Property)에 붙는
+열거값**이다(UML 2.5.1 사양 127쪽).
+
+**이것이 두 언어의 0건을 설명한다** — 이 enum 은 관계 종류 축과 소유 강도 축을 한 줄로 평탄화했다.
+C++ 는 전부 `shared`/`composite` 로 몰려 `association` 0건, C# 은 전부 `none` 으로 몰려
+`composition`·`aggregation` 0건이다. **대응표의 오류가 아니다.**
+축 분리안(`kind` 4종 + `ownership` 필드)은 검토 후 **채택하지 않았다** — `kind` 에서 값을 빼는 것이
+§7 확장 규율("제거·의미 변경 금지")에 걸린다.
+
+### 하위 문서 변경
+
+| 문서 | 변경 |
+|---|---|
+| `HANDOFF-unity-pattern-collection.md` | §2-2(C-9 의 C# 적용) · 단계 2-1(패키지 노드) · **단계 5-1(Roslyn 질의 파이프라인)** 신설. §3 단계 5 의 "정규식은 전부 하한" 경고를 **실측으로 정정** |
+| `HANDOFF-cpp-pattern-collection.md` | §2-3(C-9 의 C++ 적용) 신설 + R7 |
+| `templates/OBSERVATION-template.md` | D절 enum 6종 → 8종 |
+| `DECISION-csharp-intermediate-format.md` | **F12~F14** 추가 + **§10 v2 구현 노트** 신설 |
+| `samples/{cpp,csharp-unity}/OBSERVATION.md` | D절에 결정 반영 주석. **관찰 기록 자체는 고치지 않았다** — 6종 시점의 관찰이라는 사실이 정보이므로 |
+
+### 이번 세션이 실측으로 뒤집은 것 셋 🔵
+
+1. **정규식 계수는 하한조차 아니다.** `MonoBehaviour` 정규식 5 vs Roslyn 45,
+   `StartCoroutine` 정규식 5 vs Roslyn 1(5건 중 **4건이 주석**). 하한도 상한도 아니다.
+   → 단계 5-1(Roslyn 질의 파이프라인)이 이 때문에 생겼다.
+2. **모듈 간 의존은 `roslyn-dump` 없이도 잴 수 있었다.** 상속·실현·필드만 보면 7모듈/101건인데
+   `dependency` 를 넣으면 **10모듈/1,484건**(14배)이 된다.
+3. **`(BCL) netstandard` 접촉 274건의 실질은 9건이다.** 265건이 원시 타입이고 그중 129건은
+   암묵적 기반 타입(`object` 60 · `System.Enum` 62 · `System.ValueType` 7)이었다. → R7.
+
+### 열려 있는 게이트 — 사용자 판정 대기
+
+| # | 항목 | 막는 것 |
+|---|---|---|
+| 1 | **큰 모듈 생략 규칙** | 🔵 `Utils`(클래스 14) 렌더가 가로 6,771px. §1 20번(LLM 에만 남는 넷) |
+| 2 | **`codegraph-rules.toml` 의 `[[layer]]` 확정 + 순환 판정** | C# 은 초안 있음, C++ 은 파일 자체가 없음 |
+| 3 | R5 `TRANSPARENT` 에 `IReadOnlyDictionary` 추가 여부 | (A) 전수 census 가 잡아낸 누락 1건 |
+
+### 다음 세션이 할 일 — 제안
+
+**정적 계층은 이제 전부 끝났다.** `codegraph.json` 아래로는 아무것도 없다 —
+`facts/*.md` · `ranking.json` · 검증 계층(L1/L2/L3 · Mermaid 치환 · 경계 판정 · dead-link) ·
+deep-wiki 결합 · VitePress 가 전부 미착수다.
+
+💭 65 — **인용 검증기(L1/L2/L3)를 먼저 만드는 것**을 제안한다. 재료가 100% 갖춰져 있고
+(간선 540/540 · 멤버·메서드 1,227/1,227 에 위치), 위 게이트를 기다리지 않으며,
+§8 이 "L3 가 값의 전부" 라고 못박은 것이기 때문이다. 반면 `facts`·`ranking`·deep-wiki 는
+게이트 1번(무엇을 생략할지)에 걸린다.
