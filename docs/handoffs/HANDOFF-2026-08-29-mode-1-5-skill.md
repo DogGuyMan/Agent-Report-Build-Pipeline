@@ -1,5 +1,10 @@
 # HANDOFF ④ — `term-benchmark` 스킬 저작 (Task 6.1 · 슬롯 C 용 프롬프트)
 
+> 🔴 **완료됨 (2026-08-29). 이 프롬프트를 다시 실행하지 말 것.**
+> 슬롯 C 가 `~/.claude/skills/term-benchmark/SKILL.md` (223줄) 를 썼고, 오케스트레이터가 검토 후 저장소 사본
+> `.claude/skills/term-benchmark/SKILL.md` 로 커밋했다(`1c22f65`). 절 구성·CLI 인자 순서·채점 구간·금지 단어 전부 실물과 대조했다.
+> 이 문서는 **기록용**이다. 현재 진입점은 `HANDOFF-2026-08-29-mode-1-5-orchestration.md` 다.
+
 > 아래 ``` 블록을 새 세션에 그대로 붙여넣는다. 자기완결이다.
 > 정본 참조(읽지 않아도 됨): `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` Task 6.1,
 > `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md` Mode 1.5 절
