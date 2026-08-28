@@ -100,7 +100,7 @@ report-term emit term-grades.json               → terms.json + term-study-note
 - **코드베이스 전체를 출제하지 않는다.** 이 Plan 이 요구하는 용어만
 
 ### 진입점
-`bin/report-term` — `collect` · `grade` · `emit`. (`quiz` 는 `grade` 의 별칭으로 남겨 두되 사람에게 묻는 기능은 넣지 않는다.)
+`bin/report-term` — `collect` · `grade` · `emit`. (`quiz` 명령은 두지 않는다 — 문항 출제는 CLI 가 아니라 스킬의 일이다. 2026-08-29 Task 3.1 실측 후 제거.)
 
 ### Skill
 `~/.claude/skills/term-benchmark/SKILL.md` — 계획서 Task 6.1. **오케스트레이터가 직접 쓴다.** 담을 것: 전제 확인 → collect → 저자에게 정답 요청 → 출제 규율 → 한 용어씩 묻기 → grade → emit.

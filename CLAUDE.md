@@ -78,7 +78,7 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 | 진입점 | Mode | 명령 | 하는 일 |
 |---|---|---|---|
 | `report-wiki` | 1 | (없음) | 코드베이스 위키. **아직 Node 파이프라인이 없어 길잡이만 낸다.** 실제 흐름은 `codegraph/*.py` + deep-wiki 스킬 |
-| `report-term` | 1.5 | `collect` · `quiz` · `grade` · `emit` | 용어 이해도 점검. Plan 이 요구하는 용어를 모으고, 객관식 답안을 채점해, 학습 노트와 용어집 DB 를 낸다 |
+| `report-term` | 1.5 | `collect` · `grade` · `emit` | 용어 이해도 점검. Plan 이 요구하는 용어를 모으고, 객관식 답안을 채점해, 학습 노트와 용어집 DB 를 낸다 |
 | `report-spec` | 2 | `init` · `build` · `check` | 설계 검토 보고서 |
 | `report` | — | (`report-spec` 과 같음) | **옛 이름.** `report-spec` 으로 위임하고 stderr 에 알림 한 줄을 낸다. stdout 은 동일 |
 
