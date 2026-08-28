@@ -31,8 +31,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 커밋 / 태그 | 22개 (`794b17a`~`ea33069`) / `v1` |
 | 테스트 | `npm test` 44개 전부 통과 |
 | `tsc --noEmit` | 통과 |
-| 컴포넌트 export | 14개 (인계 문서가 지정한 11개 + `Page` + `Section` + `EvidenceNote`) |
-| 빌드 산출물 `<script>` | **0개** |
+| 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
+| 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
 | Node / TypeScript / Graphviz | v25.8.0 / 7.0.2 / 15.1.1 |
 
 **아직 "검증됨"이 아닌 것 — 이렇게 쓰지 말 것:**
@@ -148,16 +148,20 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 |---|---|
 | 위치 | `$REPO_ROOT` 고정 경로. `bin` 을 PATH 에 추가 |
 | 트랜스파일 | **esbuild** |
-| 렌더 | **React `renderToStaticMarkup`** — 템플릿 엔진으로만 |
+| 렌더 | **React `renderToStaticMarkup`** — 마크업은 템플릿 엔진으로만. **단 용어 그래프 런타임 1개는 산출물에 실린다**(아래) |
 | 타입 | props 타입 정의만. `tsc --noEmit` |
 | 단일 파일화 | **Node 문자열 조립** (번들러의 CSS 파이프라인조차 불필요) |
-| 확대 UX | **CSS 체크박스 토글. JavaScript 0줄** (아래) |
-| UI / 상태 | **없음. React 훅 한 개도 쓰지 않는다** |
+| 확대 UX | 다이어그램은 **CSS 체크박스 토글, JavaScript 0줄**. 용어 그래프는 런타임 스크립트 (아래) |
+| UI / 상태 | **React 훅은 여전히 쓰지 않는다.** 클라이언트 상태는 용어 그래프 안에만 있다 |
 
 ### 산출물 불변식 (기계 검사 대상)
 
-**빌드된 `report.html` 에 `<script>` 태그가 pan/zoom 하나를 초과하면 잘못된 것이다.**
-`grep -c '<script' out/report.html` 로 검사한다. **현재 실측은 0개이므로 예산 1칸이 통째로 남아 있다.**
+**빌드된 `report.html` 에 `<script>` 태그가 1개를 초과하면 잘못된 것이다.**
+`grep -c '<script' out/report.html` 로 검사한다.
+
+**예산 1칸은 2026-08-29 에 용어 그래프 런타임이 가져갔다.** `data.ts` 에 `terms` 가 있을 때만
+`scripts/build.mjs` 가 `src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
+여전히 `<script>` 0개다. **예산이 다 찼으므로 새 런타임 코드를 넣으려면 이 번들 안에 합쳐야 한다.**
 
 ## B1 — 다이어그램 가독성은 CSS 만으로 고쳐졌다
 
@@ -368,9 +372,55 @@ $GRAPHICS_REPO/doc/
 | Vite / vite-plugin-singlefile | 산출물이 진짜 클라이언트 상호작용(다중 위젯·상태·라우팅)을 가질 때 |
 | `@hpcc-js/wasm` | graphviz 없는 환경에서 렌더해야 할 때 |
 | svg-pan-zoom / panzoom | 핀치 줌·모바일 제스처가 필요할 때 (MIT 인 anvaka/panzoom 우선) |
-| React 훅 / 상태관리 | 산출물에 클라이언트 상태가 생길 때 |
+| ~~React 훅 / 상태관리~~ | **2026-08-29 부활** — 용어 그래프가 클라이언트 상태를 갖는다. 단 **React 훅은 여전히 안 쓴다**. 런타임은 d3 + 바닐라다 |
 | UI 라이브러리 / Tailwind | **없음.** LLM 이 유틸리티 클래스를 길게 써서 토큰이 오히려 늚 |
 | 인용 자동 검증 | 규율 미준수 사례가 관측될 때. 현재는 잡을 것이 없다 |
+
+## 용어집과 관계 그래프 — 2026-08-29 신설
+
+**읽는 사람은 배경 지식이 없다고 가정한다.** 대상은 객체지향을 갓 배운 대학 1학년 수준이다.
+`C-19`·`calls[]`·`PageRank` 같은 낱말이 정의 없이 나오면 그 보고서는 읽히지 않는다.
+
+**정의는 `data.ts` 의 `terms` 배열 한 곳에만 쓴다.** 본문 인라인 참조도, 용어집 표도, 관계 그래프도
+전부 그 배열에서 나온다. 용어가 여기저기 흩어지는 것을 구조로 막는다.
+
+| 컴포넌트 | 하는 일 |
+|---|---|
+| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다** |
+| `<Glossary terms>` | 정의 전량을 표로 보인다. 보고서 맨 앞에 놓는다 |
+| `<TermGraph terms>` | 용어 관계를 그물로 그린다. 좌표 계산·드래그·확대·hover 는 런타임이 한다 |
+
+### 왜 d3-force + SVG 인가 — 다른 것을 다시 제안하기 전에 읽을 것
+
+조사 문서(`docs/handoffs/compass_artifact_*.md`)가 **자기 임계값**을 이렇게 적어 뒀다 —
+"노드 **2천 미만이면 d3+SVG/Canvas 로 충분**; 2천~2만이면 WebGL; 2만 이상이면 GPU 시뮬레이션".
+
+**용어집은 노드 수십 개다.** 임계값보다 두 자릿수 아래다. 🔵 실측 번들 크기(esbuild `--minify`):
+
+| 조합 | 최소화 후 |
+|---|---|
+| `d3-force` 만 | 13,796 바이트 |
+| `d3-force`+`d3-zoom`+`d3-drag`+`d3-selection` (**채택**) | 62,232 바이트 |
+| `pixi.js` · `cytoscape` · `@cosmos.gl/graph` (패키지) | 74MB · 5.7MB · 4.7MB |
+
+**PixiJS·WebGL·GPU 를 여기 들이는 것은 거울 함정이다** — 용어를 설명하려고 물리 엔진을 얹는 것이 된다.
+조사 문서가 PixiJS 를 권하는 대목은 "Obsidian 룩앤필 재현" 과 "그래픽스 포트폴리오" 목적이고,
+이 도구의 목적이 아니다.
+
+### 구현상 급소
+
+- **데이터는 `data-terms` 속성으로 넘긴다.** `<script type="application/json">` 을 쓰면
+  `countScripts` 가 2로 세어 불변식이 깨진다
+- **런타임은 `terms` 가 있을 때만 번들된다.** 안 쓰는 보고서가 65KB 를 물지 않게
+- **`</script>` 문자열을 이스케이프한다.** 번들 코드 안에 그 문자열이 있으면 HTML 파서가 조기 종료한다
+- 본문 인라인 참조의 hover 카드는 **CSS 만으로** 뜬다. 스크립트는 그래프에만 쓰인다
+
+### `report check` 의 용어 대조 — 경고이지 실패가 아니다
+
+본문에 식별자 꼴 낱말이 있는데 `terms` 에 없으면 목록을 띄운다. 잡는 꼴은 셋뿐이다 —
+결정 코드(`C-19`·`U5`·`M4`), 산출물 파일명(`*.json`), 배열 필드(`calls[]`).
+자연어 용어(`WarmUp`·`PageRank`)는 기계가 가릴 수 없어 **저자가 직접 넣어야 한다.**
+실패시키지 않는 이유는 탐지 규칙이 오탐을 낼 수 있어서다.
 
 ## 함정
 
