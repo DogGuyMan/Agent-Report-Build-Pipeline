@@ -64,6 +64,26 @@ if (data.builderVersion !== version) {
 
 const css = readFileSync(join(ROOT, "src/theme.css"), "utf8");
 
+// 용어 그래프 런타임. **terms 가 있을 때만** 번들해 넣는다 — 안 쓰는 보고서가 62KB 를 물지 않게.
+// 산출물 불변식상 <script> 는 1개까지이므로 이 번들 하나로 끝낸다.
+let runtime = "";
+if (Array.isArray(data.terms) && data.terms.length > 0) {
+  const r = await build({
+    entryPoints: [join(ROOT, "src/runtime/term-graph.ts")],
+    bundle: true,
+    minify: true,
+    format: "iife",
+    platform: "browser",
+    target: "es2020",
+    write: false,
+    logLevel: "warning",
+  });
+  const code = r.outputFiles[0].text;
+  // </script> 가 코드 안에 있으면 HTML 파서가 스크립트를 조기 종료한다.
+  runtime = `<script>${code.replace(/<\/script/gi, "<\\/script")}</script>`;
+  console.log(`용어 그래프 런타임 ${code.length} 자 삽입 (용어 ${data.terms.length}개)`);
+}
+
 const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -76,6 +96,7 @@ ${css}
 </head>
 <body>
 ${body}
+${runtime}
 </body>
 </html>
 `;
