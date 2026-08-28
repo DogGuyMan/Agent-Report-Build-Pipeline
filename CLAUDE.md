@@ -71,14 +71,37 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 `scripts/lib.mjs` 가 esbuild 로 `.tmp/lib.mjs` 를 만들고 `test/components.test.mjs` 가 그것을 import 한다.
 `src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
 
-보고서 쪽 명령은 **보고서가 있는 저장소의 스펙 디렉토리에서** 실행한다 (`bin` 을 PATH 에 추가):
+### mode 별 진입점 — 2026-08-29 분리
+
+`bin/` 에 진입점이 네 개다. 전부 PATH 에 잡힌다 (`~/.zshrc:211`).
+
+| 진입점 | Mode | 명령 | 하는 일 |
+|---|---|---|---|
+| `report-wiki` | 1 | (없음) | 코드베이스 위키. **아직 Node 파이프라인이 없어 길잡이만 낸다.** 실제 흐름은 `codegraph/*.py` + deep-wiki 스킬 |
+| `report-term` | 1.5 | `collect` · `quiz` · `grade` · `emit` | 용어 이해도 점검. Plan 이 요구하는 용어를 모으고, 객관식 답안을 채점해, 학습 노트와 용어집 DB 를 낸다 |
+| `report-spec` | 2 | `init` · `build` · `check` | 설계 검토 보고서 |
+| `report` | — | (`report-spec` 과 같음) | **옛 이름.** `report-spec` 으로 위임하고 stderr 에 알림 한 줄을 낸다. stdout 은 동일 |
+
+`report-spec` 과 `report-term` 은 `scripts/dispatch.mjs` 의 `runDispatch` 를 공유하고, 각자 자기 명령표만 갖는다.
+`report-wiki` 는 자리 표시자라 `runDispatch` 를 쓰지 않고, `report` 는 `report-spec` 을 자식 프로세스로 실행한다(`spawnSync`).
+
+보고서 쪽 명령은 **보고서가 있는 저장소의 스펙 디렉토리에서** 실행한다:
 
 ```bash
-cd <프로젝트>                 # specs/ 가 있는 저장소
-report init                   # 보고서가 없는 spec 을 날짜 내림차순으로 나열, exit 1
-report init <slug>            # 대응 specs/YYYY-MM-DD-<slug>-design.md 가 있어야 스켈레톤 생성
-cd specs/<slug> && report build   # → out/report.html
-report check                      # script 수 · tsc · 링크 무결성 · builderVersion
+cd <프로젝트>                      # specs/ 가 있는 저장소
+report-spec init                   # 보고서가 없는 spec 을 날짜 내림차순으로 나열, exit 1
+report-spec init <slug>            # 대응 specs/YYYY-MM-DD-<slug>-design.md 가 있어야 스켈레톤 생성
+cd specs/<slug> && report-spec build   # → out/report.html
+report-spec check                      # script 수 · tsc · 링크 무결성 · 용어집 대조(경고) · builderVersion
+```
+
+용어 이해도 점검은 Plan 하나를 놓고 돈다. 사람에게 묻는 절차는 CLI 가 아니라 `term-benchmark` 스킬이 맡는다:
+
+```bash
+report-term collect <plan.md> [terms-db.json]   # → term-candidates.json
+#   (스킬이 객관식으로 묻고 answers.json 을 만든다)
+report-term grade answers.json                  # → term-grades.json  확실/애매/모름
+report-term emit term-grades.json               # → terms.json + term-study-note.md
 ```
 
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
