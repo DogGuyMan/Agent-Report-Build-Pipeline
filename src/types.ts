@@ -26,6 +26,28 @@ export interface Decision {
   optionCount: number;
 }
 
+
+/** 용어 분류. 그래프 노드의 색 계열을 정한다. */
+export type TermKind = "decision" | "artifact" | "concept" | "tool";
+
+/**
+ * 용어 하나. **정의는 여기 한 곳에만 쓴다** — 본문·그래프·용어집이 전부 이 배열에서 나온다.
+ * 읽는 사람은 배경 지식이 없다고 가정한다. `short` 와 `body` 를 그 눈높이로 쓴다.
+ */
+export interface Term {
+  /** 본문에서 참조하는 키. 예: "C-19", "calls[]" */
+  id: string;
+  /** 그래프 노드에 표시되는 짧은 이름 */
+  label: string;
+  /** 커서를 올렸을 때 뜨는 한 줄. 문장으로 쓴다 */
+  short: string;
+  /** 용어집 절에만 나오는 자세한 설명 */
+  body?: string;
+  kind: TermKind;
+  /** 이어지는 다른 용어의 id. 방향 없는 그물 간선이 된다 */
+  links?: string[];
+}
+
 export interface ReportData {
   /** ~/report-builder 의 git 태그. build 시 현재 버전과 대조된다. */
   builderVersion: string;
@@ -34,6 +56,8 @@ export interface ReportData {
   date: string;
   branch: string;
   decisions: Decision[];
+  /** 용어집. 없으면 용어 기능이 통째로 빠진다 */
+  terms?: Term[];
 }
 
 /** scripts/svg.mjs 의 반환 형태. */

@@ -129,6 +129,62 @@ tr.row-recommended td:first-child { border-left: 3px solid var(--accent); }
 
 footer.page-footer { margin-top: 34px; font-size: 11px; color: var(--text-3); text-align: center; }
 
+
+/* ── 용어집 (Glossary) ───────────────────────────────────────────────
+   읽는 사람은 배경 지식이 없다고 가정한다. 정의는 data.ts 의 terms 한 곳에만 있다. */
+.term-kind { display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; white-space: nowrap; }
+.term-kind-decision { background: var(--accent-soft); color: var(--accent); }
+.term-kind-artifact { background: var(--green-soft); color: var(--green); }
+.term-kind-concept  { background: var(--amber-soft); color: var(--amber); }
+.term-kind-tool     { background: var(--gray-soft); color: var(--gray); }
+.term-body { margin-top: 4px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
+
+/* 본문 인라인 참조 — 커서를 올리면 설명 카드. JavaScript 없이 CSS 만으로 뜬다. */
+.term-ref { position: relative; border-bottom: 1px dashed var(--accent);
+  cursor: help; font-weight: 600; }
+.term-missing { border-bottom-color: var(--red); color: var(--red); }
+.term-missing::after { content: " (정의 없음)"; font-size: 11px; font-weight: 400; }
+.term-card { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+  width: max-content; max-width: 320px; padding: 9px 12px; border-radius: 7px;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.13);
+  font-size: 12px; font-weight: 400; line-height: 1.6; color: var(--text-2); white-space: normal; }
+.term-ref:hover .term-card, .term-ref:focus .term-card,
+.term-ref:focus-within .term-card { display: block; }
+.term-card-head { display: flex; align-items: center; gap: 7px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.term-card-body { display: block; }
+
+/* 용어 관계 그물 그래프 — 좌표 계산과 조작은 런타임 스크립트가 한다(d3-force). */
+.term-graph { position: relative; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.term-graph-svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.term-graph-svg:active { cursor: grabbing; }
+.term-link { stroke: var(--border-strong); stroke-width: 1.2; }
+.term-node { cursor: pointer; }
+.term-node circle { stroke: var(--surface); stroke-width: 2; fill: var(--gray); }
+.term-node text { font-size: 11px; font-weight: 600; fill: var(--text-2);
+  pointer-events: none; user-select: none; }
+.term-node:hover circle, .term-node:focus circle { stroke: var(--text); }
+.term-node:focus { outline: none; }
+.term-node.term-kind-decision circle { fill: var(--accent); }
+.term-node.term-kind-artifact circle { fill: var(--green); }
+.term-node.term-kind-concept  circle { fill: var(--amber); }
+.term-node.term-kind-tool     circle { fill: var(--gray); }
+.term-graph-tip { position: absolute; z-index: 10; pointer-events: none;
+  max-width: 300px; padding: 7px 10px; border-radius: 6px;
+  background: var(--text); color: #fff; font-size: 12px; line-height: 1.5; }
+.term-graph-tip[hidden] { display: none; }
+.term-graph-hint { position: absolute; left: 12px; bottom: 10px;
+  font-size: 11px; color: var(--text-3); pointer-events: none; }
+
+@media print {
+  .term-graph-hint { display: none; }
+  .term-card { display: none !important; }
+}
+
 @media (max-width: 860px) {
   .diagram-grid { grid-template-columns: 1fr; }
   .header { flex-direction: column; align-items: flex-start; gap: 8px; }
