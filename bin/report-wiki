@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+// bin/report-wiki — Mode 1. 코드베이스 위키.
+// 아직 Node 진입점이 없다. 실제 파이프라인은 codegraph/*.py 와 deep-wiki 스킬이다.
+// 이 파일은 그 사실을 알려 주는 자리 표시자이며, Mode 1 이 Node 로 옮겨오면 채운다.
+console.log(`Mode 1 — 코드베이스 위키
+
+아직 이 진입점은 비어 있다. 현재 Mode 1 은 아래로 돈다:
+
+  1) 정적 계층   codegraph/normalize.py · codegraph/facts.py
+  2) 용어 DB     codegraph/terms_db.py   (Mode 1.5 의 재료)
+  3) 위키 작성   deep-wiki 스킬 (wiki-architect · wiki-researcher · wiki-page-writer)
+
+용어 DB 만 필요하면:
+  .venv/bin/python codegraph/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
+`);
+process.exit(0);

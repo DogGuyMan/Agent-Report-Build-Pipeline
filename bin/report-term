@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+// bin/report-term — Mode 1.5. 용어 이해도 점검.
+//   collect : 이 Plan 을 이해하는 데 필요한 용어를 모은다
+//   quiz    : 객관식 문항을 낸다
+//   grade   : 답안을 채점해 확실/애매/모름을 매긴다
+//   emit    : 학습 노트와 용어집 DB 를 낸다
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { runDispatch } from "../scripts/dispatch.mjs";
+
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+
+runDispatch({
+  root: ROOT,
+  argv: process.argv.slice(2),
+  table: {
+    collect: "scripts/term/collect.mjs",
+    quiz: "scripts/term/quiz.mjs",
+    grade: "scripts/term/quiz.mjs",
+    emit: "scripts/term/emit.mjs",
+  },
+  usage: "사용법 — report-term <collect|quiz|grade|emit> [인자]",
+});
