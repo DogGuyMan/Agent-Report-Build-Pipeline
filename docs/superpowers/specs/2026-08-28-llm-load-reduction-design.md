@@ -1,0 +1,1 @@
+../docs/superpowers/plans/2026-08-28-llm-load-reduction.md
