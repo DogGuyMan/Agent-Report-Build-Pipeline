@@ -3,6 +3,14 @@
 > 세 mode 각각을 맡는 Claude Code 에이전트가 **자기 역할과 경계**를 알기 위한 문서다.
 > 구현 Task 의 코드는 계획서에, 실행 순서는 HANDOFF ① 에 있다. 이 문서는 **"나는 무엇이고 무엇이 아닌가"** 만 답한다.
 
+> ## 🟢 상태 — 활성. 단 이 문서는 더 이상 **유일한** 사본이 아니다 (2026-08-29 갱신)
+>
+> 이 문서의 세 절이 **실행 가능한 서브에이전트 정의 3개로 옮겨졌다** — `.claude/agents/*.md`.
+> 아래 `## 이 문서가 실체가 된 곳` 절을 먼저 읽어라.
+>
+> **역할을 고칠 때는 두 곳을 같이 고친다.** 이 문서가 서술 원본이고, `.claude/agents/` 가 실행본이다.
+> 한쪽만 고치면 조용히 어긋난다 — 실제로 이번 갱신에서 "CLI 4단계" 오기가 그렇게 발견됐다.
+
 ---
 
 ## 전체 그림 — 세 mode 가 한 흐름이다
@@ -37,7 +45,7 @@ Mode 1 ─────────────▶ Mode 1.5 ───────
 | `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `codegraph/normalize.py` |
 | `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `codegraph/facts.py` |
 | `ranking.json` | 모듈 중요도(PageRank·hotspot) | `codegraph/facts.py` |
-| **`terms-db.json`** | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `codegraph/terms_db.py` (**신설 예정**, 계획서 Task 1.1) |
+| **`terms-db.json`** | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `codegraph/terms_db.py` (✅ 존재. Task 1.1, 커밋 `8069517`) |
 | 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
 
 ### 이 mode 에 새로 붙는 것
@@ -62,7 +70,11 @@ Mode 1.5 가 시작되기 전에 **이 mode 가 완전히 WarmUp 되어 있어�
 ### 나는 무엇인가
 **인공지능 벤치마크를 사람 쪽으로 뒤집은 것.** 정답지를 만들고 → 객관식으로 묻고 → 정답률로 채점해 → 확실/애매/모름으로 가른다.
 
-### 절차 (CLI 4단계 + Skill 1단계)
+### 절차 (CLI 3단계 + Skill 1단계)
+
+🔵 2026-08-29 실측 — `report-term` 을 인자 없이 실행하면 `사용법 — report-term <collect|grade|emit> [인자]` 가 나온다.
+**명령은 셋이다.** 이 문서의 이전 판이 "CLI 4단계" 라고 적은 것은 `quiz` 명령이 있던 시절의 잔재다(Task 3.1 에서 제거됨).
+
 ```
 report-term collect <plan.md> <terms-db.json>   → term-candidates.json
     코드베이스 용어 ∩ Plan 본문  +  Plan 신규 개념
@@ -102,8 +114,17 @@ report-term emit term-grades.json               → terms.json + term-study-note
 ### 진입점
 `bin/report-term` — `collect` · `grade` · `emit`. (`quiz` 명령은 두지 않는다 — 문항 출제는 CLI 가 아니라 스킬의 일이다. 2026-08-29 Task 3.1 실측 후 제거.)
 
-### Skill
-`~/.claude/skills/term-benchmark/SKILL.md` — 계획서 Task 6.1. **슬롯 C 가 쓴다**(HANDOFF ④). 담을 것: 전제 확인 → collect → 저자에게 정답 요청 → 출제 규율 → 한 용어씩 묻기 → grade → emit.
+### Skill — ✅ 저작 완료 (2026-08-29, 커밋 `1c22f65`)
+
+`~/.claude/skills/term-benchmark/SKILL.md` — 계획서 Task 6.1. **슬롯 C 가 썼다**(HANDOFF ④). 223줄.
+저장소 사본은 `.claude/skills/term-benchmark/SKILL.md` 이고 🔵 실측 `diff -q` 결과 **원본과 동일**하다.
+**저장소 밖이 원본, 안이 사본이다 — 고치면 둘 다 갱신한다.**
+
+담기로 했던 7단계가 다 들어갔다(🔵 `grep -n` 으로 확인): 전제 확인 → collect → 저자에게 정답 요청 →
+출제 규율 → `AskUserQuestion` 으로 한 용어씩 묻기 → grade → emit.
+
+**남은 것은 저작이 아니라 시험이다.** ⚖ 사용자가 실제로 시험을 쳐 봐야 문항 난이도를 판정할 수 있고,
+그 전에 **시험 재료를 정해야 한다**(RESUME 문서의 열린 결정 R1).
 
 ---
 
@@ -140,6 +161,51 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 ---
 
+## 이 문서가 실체가 된 곳 — `.claude/agents/` (2026-08-29)
+
+이 문서는 **서술**이지 실행되는 것이 아니었다. 2026-08-29 에 세 절을 각각 **Claude Code 서브에이전트 정의**로 옮겼다.
+그 전까지 `.claude/agents/` 도 `~/.claude/agents/` 도 **존재하지 않았다**(🔵 `ls` 로 확인 — 둘 다 `No such file or directory`).
+
+| 정의 파일 | `name` | 옮겨 담은 절 |
+|---|---|---|
+| `.claude/agents/mode-1-codebase-wiki.md` | `mode-1-codebase-wiki` | `## Mode 1 에이전트` |
+| `.claude/agents/mode-1-5-term-benchmark.md` | `mode-1-5-term-benchmark` | `## Mode 1.5 에이전트` |
+| `.claude/agents/mode-2-spec-report.md` | `mode-2-spec-report` | `## Mode 2 에이전트` |
+
+### 이 문서에 없던 것 중 정의 파일이 추가로 담은 것
+
+서술만으로는 서브에이전트가 사고를 낼 수 있어 **경계와 검증을 붙였다.** 출처는 이 문서가 아니라 다른 문서다:
+
+| 더한 것 | 어디서 왔나 |
+|---|---|
+| `## 소유 파일과 경계` 표 | HANDOFF ① §4 파일 소유 매트릭스 + §0 슬롯 충돌 매트릭스에서 그 mode 의 행만 |
+| `## 지켜야 할 규율` 표 | HANDOFF ① §7 가드레일 + 이 문서 `## 세 에이전트가 공유하는 규율` |
+| 검증 명령 (`npm test` · `pytest` · `typecheck`) | HANDOFF ① §7. **`node --test test/` 는 Node 25 에서 죽는다**는 함정 포함 |
+| **커밋 금지** 를 규율표에 명시 | HANDOFF ① §2(마) — 서브에이전트는 구현 + 검증 + 보고까지만 |
+| 보고 형식 `DONE / DONE_WITH_CONCERNS / BLOCKED` | HANDOFF ① §5 하네스 |
+| frontmatter `tools` 목록 | Mode 1.5 만 `AskUserQuestion` 을 갖는다 — **묻는 것은 Mode 1.5 뿐**이라는 이 문서의 규정을 도구 권한으로 구현한 것 |
+
+### 아직 안 된 것 — 이어서 할 일
+
+| # | 할 일 | 왜 아직인가 |
+|---|---|---|
+| **1** | **세 정의 파일 커밋** | 미추적 상태(`?? .claude/agents/`). 커밋은 사용자 승인 후. `git add .claude/agents/` 로 좁혀 **한 묶음으로** — 셋이 한 벌이다 |
+| **2** | **`mode-2-spec-report` 가 실제로 로드되는지 확인** | 아래 참조 |
+| 3 | 세 에이전트에 실제 작업을 태워 보기 | 정의만 있고 **한 번도 실행되지 않았다.** 경계가 실전에서 맞는지는 아직 모른다 |
+
+**#2 — 확인이 필요한 관측.** 정의 파일 3개를 만든 뒤 하네스가 새 에이전트를 알렸는데 그 목록에
+`mode-1-codebase-wiki` 와 `mode-1-5-term-benchmark` **둘만 있었고 `mode-2-spec-report` 가 없었다.**
+🔵 실측으로는 세 파일 모두 frontmatter 4줄이 같은 꼴이고 YAML 로 깨질 만한 문자(값 안의 `: `, ` #`, 들여쓰기)가 없다.
+**원인을 특정하지 못했다** — 목록이 잘렸을 수도, 스캔 시점 문제일 수도 있다.
+확인 방법: `/agents` 로 세 개가 다 보이는지 본다. 안 보이면 그때 원인을 판다. **정의 파일에 결함이 있다고 단정하지 말 것.**
+
+### 역할을 고칠 때의 규약
+
+**이 문서와 `.claude/agents/*.md` 는 같이 고친다.** 한쪽만 고치면 어긋난다.
+정의 파일은 **각 슬롯 소유**다(HANDOFF ① §0) — 오케스트레이터는 검토하고, 슬롯 밖에서 남의 정의를 고치지 않는다.
+
+---
+
 ## 세 에이전트가 공유하는 규율
 
 | 규율 | 내용 |
@@ -151,3 +217,25 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | 읽는 사람은 배경 지식이 없다 | 객체지향을 갓 배운 대학 1학년 눈높이 |
 | 옛 산출물은 기준이 아니다 | 출발점일 뿐. 새 출력을 거기에 맞추지 않는다 |
 | 커밋은 사용자 승인 후 | 서브에이전트는 커밋하지 않는다 |
+
+---
+
+## 다음 세션이 이 문서를 열었을 때 — 한 문단 요약
+
+세 mode 의 역할 서술은 **완결됐고**, 그것이 `.claude/agents/` 의 실행 가능한 정의 3개로 옮겨졌다(미커밋).
+Mode 1.5 쪽은 계획서 Task 10개가 전부 끝났고 `term-benchmark` 스킬까지 있다 — **코드는 더 쓸 것이 없다.**
+막혀 있는 것은 하나다: **시험 재료를 어디서 얻을 것인가**(RESUME 문서 R1). `terms-db.json` 을 만들려면
+Mode 1(Track C)이 외부 저장소에서 돌아야 하는데 아직 안 돌았다. 그래서 다음 걸음은 코드가 아니라
+**사용자 결정**이다. 결정이 나면 그때 세 에이전트에 실작업을 태운다.
+
+---
+
+## 변경 이력 (추가만)
+
+- 2026-08-29 03:10 — 최초 작성. 세 mode 의 역할·경계 서술. 이 시점에 `.claude/agents/` 는 없었다.
+- 2026-08-29 (같은 날 늦게) — 세 절을 `.claude/agents/*.md` 3개로 옮김. 그 과정에서 실측으로 잡은 것:
+  - **"CLI 4단계" 는 오기.** `report-term` 명령은 `collect` · `grade` · `emit` 셋이다. `quiz` 가 있던 시절의 잔재.
+    같은 오기가 HANDOFF ① 세 곳(§0 슬롯표 · §3 의존 그래프 · §3 직렬 강제 표)에도 있어 함께 고쳤다.
+  - **Task 6.1 스킬은 이미 완료돼 있었다** — 이 문서가 "슬롯 C 가 쓴다"(미래형)로 적고 있었으나
+    `~/.claude/skills/term-benchmark/SKILL.md` 223줄이 커밋 `1c22f65` 로 들어와 있다.
+  - `mode-2-spec-report` 가 하네스 에이전트 목록에 안 보인 관측 1건 — **원인 미특정.** `/agents` 로 확인할 것.

@@ -34,7 +34,7 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 |---|---|---|---|---|
 | **A** | 오케스트레이터 | 이 문서 | `scripts/term/*` · `src/*` · `test/*` · `scripts/init.mjs` | 지금 (진행 중) |
 | **B** | Mode 1 — 코드베이스 위키 | HANDOFF ③ Mode 1 절 + `RESUME-2026-08-28-track-c.md` | `codegraph/*.py` (**`terms_db.py` 제외**) | **지금** |
-| **C** | Mode 1.5 스킬 저작 (Task 6.1) | HANDOFF ③ Mode 1.5 절 + 계획서 Task 6.1 | `~/.claude/skills/term-benchmark/SKILL.md` | **지금** — CLI 4단계가 확정됐다 |
+| **C** | Mode 1.5 스킬 저작 (Task 6.1) | HANDOFF ③ Mode 1.5 절 + 계획서 Task 6.1 | `~/.claude/skills/term-benchmark/SKILL.md` | **지금** — CLI 3개 명령이 확정됐다 |
 | **D** | Mode 2 실사용 | HANDOFF ③ Mode 2 절 + `spec-review-dashboard` 스킬 | **다른 저장소**의 `docs/superpowers/specs/<slug>/` | **지금** |
 
 ### 파일 충돌 매트릭스
@@ -163,7 +163,7 @@ L4 ── Task 5.1  src/types.ts · components/terms.tsx · theme.css · test/co
          │
          ▼
 L6 ── Task 6.1  ~/.claude/skills/term-benchmark/SKILL.md
-                (CLI 4개 명령이 다 있어야 절차를 쓸 수 있다)
+                (CLI 3개 명령이 다 있어야 절차를 쓸 수 있다)
                 ⚖ 사용자가 실제로 시험을 쳐 본다
 ```
 
@@ -187,7 +187,7 @@ L6 ── Task 6.1  ~/.claude/skills/term-benchmark/SKILL.md
 | `4.1 → 5.1` | **논리 의존** | 5.1 이 `TermMeans`/`UserMentalValue` 필드명과 `"확실"|"애매"|"모름"` 값을 참조한다. 4.1 이 정하기 전에 쓰면 이름이 어긋난다 |
 | `0.1 → 0.2` | **논리 의존** | `bin/report-*` 가 `scripts/dispatch.mjs` 를 import 한다 |
 | `5.1 → 5.2` | **논리 의존** | 5.2 의 `data.ts` 템플릿 주석이 5.1 의 `mental` 필드를 언급한다 |
-| `전부 → 6.1` | **논리 의존** | Skill 이 CLI 4개 명령을 절차로 적는다 |
+| `전부 → 6.1` | **논리 의존** | Skill 이 CLI 3개 명령을 절차로 적는다 |
 
 ### 임계 경로
 
@@ -311,3 +311,7 @@ L6 ── Task 6.1  ~/.claude/skills/term-benchmark/SKILL.md
 - 2026-08-29 (마지막) — 6.1 완료. **10/10.** 슬롯 B 가 `.claude/agents/mode-1-codebase-wiki.md` (Claude Code 서브에이전트
   정의)를 만들었다 — 계획서에 없던 산출물이나 HANDOFF ③ Mode 1 절을 에이전트 형식으로 옮긴 것이라 방향에 맞는다.
   핸드오프 ② 에 완료 배너를 달았다(원칙 5 — 발신 측 정리를 늦게 한 것).
+- 2026-08-29 (더 늦게, 에이전트 정의 세션) — HANDOFF ③ 을 `.claude/agents/*.md` 3개로 옮기던 중 실측으로
+  **"CLI 4단계 / CLI 4개 명령" 오기 3곳을 정정**했다(§0 슬롯 C 행 · §3 의존 그래프 L6 · §3 직렬 강제 표).
+  `report-term` 명령은 `collect` · `grade` · `emit` **셋**이다 - `quiz` 제거(Task 3.1) 가 이 문서에 반영되지 않았다.
+  §6 실행 절차 7번의 "Task 6.1 은 오케스트레이터가 직접 쓴다" 는 이미 §9 앞 항목이 뒤집었으므로 그대로 둔다.
