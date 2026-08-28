@@ -1,0 +1,36 @@
+digraph before {
+  rankdir=TB;
+  graph [fontname="Apple SD Gothic Neo", fontsize=11, bgcolor="transparent", nodesep=0.28, ranksep=0.42];
+  node  [fontname="Apple SD Gothic Neo", fontsize=10, shape=box, style="filled,rounded",
+         fillcolor="#f4f5f7", color="#c3c8d0", penwidth=1.1, margin="0.14,0.07"];
+  edge  [fontname="Apple SD Gothic Neo", fontsize=9, color="#8b93a1", arrowsize=0.7];
+
+  subgraph cluster_static {
+    label="정적 계층 — C# · C++ 저장소만"; color="#c3c8d0"; fontcolor="#5b6472"; style=rounded;
+    dump [label="정적 수집기\nroslyn-dump · clang-uml"];
+    norm [label="normalize.py"];
+    cg   [label="codegraph.json\n원본 — 노드 · 간선 · 모듈"];
+    tdb  [label="terms_db.py"];
+    db   [label="terms-db.json\n정형문 means\n간선 방향 · 종류 버림", fillcolor="#fdeaea", color="#d9534f", penwidth=1.6];
+    dump -> norm -> cg -> tdb -> db;
+  }
+
+  subgraph cluster_self {
+    label="Python · JS 저장소 (report-builder)"; color="#d9534f"; fontcolor="#c0392b"; style=rounded;
+    none [label="수집기 없음\n→ codegraph.json 없음\n→ terms-db.json 없음", fillcolor="#fdeaea", color="#d9534f", penwidth=1.6];
+  }
+
+  subgraph cluster_llm {
+    label="LLM 계층"; color="#c3c8d0"; fontcolor="#5b6472"; style=rounded;
+    llm  [label="deep-wiki 에이전트\n(코드 정독 1회)", fillcolor="#eef2fb", color="#8fa4d4"];
+    wiki [label="위키"];
+    llm -> wiki;
+  }
+
+  m15 [label="Mode 1.5 collect\n정답지 재료", fillcolor="#eef2fb", color="#8fa4d4"];
+
+  cg   -> llm  [label="재료"];
+  db   -> m15  [label="정형문 정답지", color="#d9534f", fontcolor="#c0392b"];
+  none -> m15  [label="재료 없음", style=dashed, color="#d9534f", fontcolor="#c0392b"];
+  llm  -> db   [label="뜻을 보태지 않음", style=dashed, color="#8b93a1"];
+}

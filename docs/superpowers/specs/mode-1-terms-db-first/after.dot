@@ -1,0 +1,39 @@
+digraph after {
+  rankdir=TB;
+  graph [fontname="Apple SD Gothic Neo", fontsize=11, bgcolor="transparent", nodesep=0.28, ranksep=0.42];
+  node  [fontname="Apple SD Gothic Neo", fontsize=10, shape=box, style="filled,rounded",
+         fillcolor="#f4f5f7", color="#c3c8d0", penwidth=1.1, margin="0.14,0.07"];
+  edge  [fontname="Apple SD Gothic Neo", fontsize=9, color="#8b93a1", arrowsize=0.7];
+
+  subgraph cluster_llm {
+    label="LLM 계층 — 추론 1회"; color="#8fa4d4"; fontcolor="#5b6472"; style=rounded;
+    agent   [label="mode-1-codebase-wiki\n전수조사 (뜻 · 동작 · 관계 · 인용)", fillcolor="#eef2fb", color="#8fa4d4"];
+    reading [label="terms-reading.json\ndocs/codegraph/ — 추적", fillcolor="#fff6e0", color="#d2a03c", penwidth=1.6];
+    agent -> reading;
+  }
+
+  subgraph cluster_static {
+    label="정적 계층 — 있으면 쓴다"; color="#c3c8d0"; fontcolor="#5b6472"; style=rounded;
+    cg_in [label="codegraph.json\n(C# · C++ 만)"];
+  }
+
+  subgraph cluster_tdb {
+    label="terms_db.py — 결정론"; color="#d2a03c"; fontcolor="#5b6472"; style=rounded;
+    build [label="build_terms\nid · uses[] 보존", fillcolor="#fff6e0", color="#d2a03c"];
+    merge [label="merge_terms\n구조는 codegraph 가 이긴다", fillcolor="#fff6e0", color="#d2a03c"];
+    check [label="check_terms\nL1 · L2 · L3 3값", fillcolor="#eaf5ec", color="#6aa06f", penwidth=1.6];
+    db    [label="terms-db.json — 원본\nmeans · does · uses · where", fillcolor="#fff6e0", color="#d2a03c", penwidth=1.6];
+    proj  [label="project_codegraph", fillcolor="#fff6e0", color="#d2a03c"];
+    cg_out [label="codegraph.json — 투영\n(look-up · 부분집합)"];
+    build -> merge -> check -> db -> proj -> cg_out;
+  }
+
+  ver [label="verify_citations.py\nL1 · L2 · L3", fillcolor="#eaf5ec", color="#6aa06f"];
+  m15 [label="Mode 1.5 collect\nknown ≥ 8", fillcolor="#eef2fb", color="#8fa4d4"];
+
+  cg_in   -> build [label="있을 때만"];
+  reading -> merge [label="뜻 · 새 간선"];
+  cg_in   -> proj  [label="부분집합 대조", style=dashed];
+  cg_out  -> ver;
+  db      -> m15   [label="진짜 정답지", color="#6aa06f", fontcolor="#3d7a45"];
+}
