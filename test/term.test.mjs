@@ -59,3 +59,32 @@ test("gradeOne 은 정답률을 함께 돌려준다", () => {
   assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).rate, 80);
   assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).rate, 20);
 });
+
+import { toTermsDb, toStudyNote } from "../scripts/term/emit.mjs";
+
+const SAMPLE = {
+  "calls[]": { means: "누가 누구를 부르는지 모은 목록", mental: "모름", rate: 20 },
+  Renderer: { means: "render 모듈의 class", mental: "확실", rate: 100 },
+};
+
+test("toTermsDb 는 확실한 것도 빠뜨리지 않는다", () => {
+  const db = toTermsDb(SAMPLE);
+  assert.equal(Object.keys(db).length, 2, "확실로 판정된 것이 빠졌다");
+});
+
+test("toTermsDb 는 정답과 이해도를 다른 필드에 담는다", () => {
+  const db = toTermsDb(SAMPLE);
+  assert.equal(db["calls[]"].TermMeans, "누가 누구를 부르는지 모은 목록");
+  assert.equal(db["calls[]"].UserMentalValue, "모름");
+});
+
+test("toStudyNote 는 모름과 애매만 싣는다", () => {
+  const md = toStudyNote(SAMPLE);
+  assert.ok(md.includes("calls[]"), "모름인 용어가 학습 노트에 없다");
+  assert.ok(!md.includes("Renderer"), "확실한 용어가 학습 노트에 들어갔다");
+});
+
+test("toStudyNote 는 학습할 것이 없으면 그 사실을 적는다", () => {
+  const md = toStudyNote({ A: { means: "x", mental: "확실", rate: 100 } });
+  assert.ok(md.includes("학습할 용어가 없다"));
+});
