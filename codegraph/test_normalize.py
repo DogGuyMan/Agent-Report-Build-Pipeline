@@ -269,3 +269,58 @@ def test_verifier_matches_name_on_adjacent_line(tmp_path):
                         "핵심 타입은 Material 이고 그 선언은\n(src/material/material.h:73) 이다\n",
                         CPP_REPO, cg)
     assert "이름 대조 경고" not in out, out
+
+
+# ── 8. 코드베이스 용어 DB (Mode 1.5 의 재료)
+#   codegraph.json 의 실제 키를 따른다(normalize.py 출력부 실측): 노드 id/name/kind/module/file/line,
+#   간선 from/to, 모듈 id/depends_on. source/target · name/files 는 존재하지 않는다.
+
+def test_terms_db_extracts_modules_and_classes():
+    """codegraph.json 의 노드와 모듈이 용어 항목이 돼야 한다. 이웃은 간선 from/to 에서 온다."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import terms_db as T
+    g = {
+        "language": "csharp",
+        "nodes": [
+            {"id": "A.B.Renderer", "name": "Renderer", "module": "render",
+             "file": "src/render/renderer.cs", "line": 12, "kind": "class"},
+            {"id": "A.B.Mesh", "name": "Mesh", "module": "render",
+             "file": "src/render/mesh.cs", "line": 3, "kind": "class"},
+        ],
+        "edges": [{"from": "A.B.Renderer", "to": "A.B.Mesh", "kind": "association"}],
+        "modules": [{"id": "render", "depends_on": []}],
+    }
+    db = T.build_terms(g, facts={}, hotspot=[])
+    assert "Renderer" in db, "클래스 이름이 용어로 안 들어갔다"
+    assert "render" in db, "모듈 이름이 용어로 안 들어갔다"
+    assert db["Renderer"]["kind"] == "class"
+    assert db["Renderer"]["where"] == "src/render/renderer.cs:12"
+    assert db["Renderer"]["neighbors"] == ["Mesh"], "간선 from/to 가 이웃으로 안 들어갔다"
+    assert db["Mesh"]["neighbors"] == ["Renderer"], "이웃은 양방향이어야 한다"
+    assert db["render"]["kind"] == "module"
+
+
+def test_terms_db_means_is_never_empty():
+    """정답 칸이 비면 Mode 1.5 가 출제할 수 없다. 최소한 기계가 아는 사실로 채운다."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import terms_db as T
+    g = {"language": "cpp",
+         "nodes": [{"id": "N", "name": "Thing", "module": "core",
+                    "file": "src/core/thing.h", "line": 4, "kind": "struct"}],
+         "edges": [], "modules": [{"id": "core", "depends_on": []}]}
+    db = T.build_terms(g, facts={}, hotspot=[])
+    for name, rec in db.items():
+        assert rec["means"].strip(), f"{name} 의 means 가 비었다"
+
+
+def test_terms_db_is_deterministic():
+    """같은 입력이면 같은 출력이어야 한다. LLM 혼선을 막는 것이 이 파일의 목적이다."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import terms_db as T
+    g = {"language": "cpp",
+         "nodes": [{"id": "N1", "name": "B", "module": "m", "file": "b.h", "line": 1, "kind": "class"},
+                   {"id": "N2", "name": "A", "module": "m", "file": "a.h", "line": 2, "kind": "class"}],
+         "edges": [], "modules": [{"id": "m", "depends_on": []}]}
+    first = json.dumps(T.build_terms(g, facts={}, hotspot=[]), ensure_ascii=False, sort_keys=True)
+    second = json.dumps(T.build_terms(g, facts={}, hotspot=[]), ensure_ascii=False, sort_keys=True)
+    assert first == second
