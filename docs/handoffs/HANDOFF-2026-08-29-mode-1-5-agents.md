@@ -103,7 +103,7 @@ report-term emit term-grades.json               → terms.json + term-study-note
 `bin/report-term` — `collect` · `grade` · `emit`. (`quiz` 명령은 두지 않는다 — 문항 출제는 CLI 가 아니라 스킬의 일이다. 2026-08-29 Task 3.1 실측 후 제거.)
 
 ### Skill
-`~/.claude/skills/term-benchmark/SKILL.md` — 계획서 Task 6.1. **오케스트레이터가 직접 쓴다.** 담을 것: 전제 확인 → collect → 저자에게 정답 요청 → 출제 규율 → 한 용어씩 묻기 → grade → emit.
+`~/.claude/skills/term-benchmark/SKILL.md` — 계획서 Task 6.1. **슬롯 C 가 쓴다**(HANDOFF ④). 담을 것: 전제 확인 → collect → 저자에게 정답 요청 → 출제 규율 → 한 용어씩 묻기 → grade → emit.
 
 ---
 
@@ -115,17 +115,17 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 ### 지금 완성된 것 (2026-08-29 실측)
 | 항목 | 상태 |
 |---|---|
-| CLI | `report init` → `build` → `check` (곧 `report-spec` 으로 개명, `report` 는 위임으로 호환) |
+| CLI | `report-spec init` → `build` → `check` (`report` 는 위임으로 호환) |
 | 컴포넌트 | 17개 — 배지·표·블록·BeforeAfter·VerdictFooter·**Glossary·TermGraph·defineTerms** |
 | 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조·용어집 표·관계 그래프가 전부 거기서 나온다 |
 | 관계 그래프 | d3-force 런타임. 드래그·확대·hover. `<script>` 예산 1개를 이것이 쓴다 |
 | 검사 | `<script>` ≤ 1 · `tsc --noEmit` · 링크 무결성 · **용어집 대조(경고)** · builderVersion |
-| 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 13개, 관계도 |
+| 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개(전부 미측정), 관계도 |
 
-### Mode 1.5 가 붙으면 바뀌는 것 (계획서 Phase 5)
-- `Term` 에 `mental?: "확실" | "애매" | "모름"` 필드가 더해진다. **기존 필드는 그대로**
-- `<Glossary>` 에 이해도 컬럼이 생긴다. 확실한 것은 흐리게
-- `report-spec init` 스켈레톤의 `data.ts` 에 `terms: []` 자리와 `terms.json` 을 옮겨 적으라는 주석이 생긴다
+### Mode 1.5 연동 — 2026-08-29 완료 (계획서 Phase 5)
+- `Term` 에 `mental?: "확실" | "애매" | "모름"` 필드가 더해졌다. **기존 필드는 그대로**
+- `<Glossary>` 에 이해도 컬럼이 생겼다. 확실은 흐리게, 없으면 "미측정"
+- `report-spec init` 스켈레톤의 `data.ts` 에 `terms: []` 자리와 `terms.json` 을 옮겨 적으라는 주석이 생겼다
 - **`terms.json` 을 자동 import 하지 않는다.** `data.ts` 는 사람이 읽는 파일이고 값이 눈에 보여야 한다
 
 ### 나는 무엇이 아닌가

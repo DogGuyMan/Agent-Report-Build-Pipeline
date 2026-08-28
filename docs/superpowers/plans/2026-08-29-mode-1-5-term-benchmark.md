@@ -1072,6 +1072,9 @@ git commit -m "[feat] : init 스켈레톤에 Mode 1.5 용어집 연결 자리 �
 
 ## Task 6.1: `term-benchmark` 스킬을 쓴다
 
+> **2026-08-29 — 슬롯 C 에 위임.** 붙여넣기용 프롬프트는 `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-skill.md` (HANDOFF ④).
+> 오케스트레이터가 결과를 검토하고 저장소 사본을 커밋한다. Task 0.1~5.2 는 전부 완료됐다.
+
 **Files:**
 - Create: `~/.claude/skills/term-benchmark/SKILL.md`
 
