@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 이 저장소의 현재 상태 (2026-08-27 실측)
 
-파이프라인 `report init` → `report build` → `report check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다.
+파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
@@ -120,7 +120,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 
 ```
 $REPO_ROOT             <프로젝트>/specs/<slug>/
-  bin/report        디스패치만            data.ts      결정 데이터만. builderVersion 포함
+  bin/report-spec   디스패치만            data.ts      결정 데이터만. builderVersion 포함
   src/components/   읽기 전용             report.tsx   서사·옵션표·판정 등 나머지 전부
   src/theme.css     옛 출력에서 추출+B1패치 (tsconfig.json)  check 가 ROOT 에 임시 생성
   scripts/build.mjs esbuild→RTSM→조립     (out/report.html)  git 제외 — 재생성
@@ -234,7 +234,7 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 **보고서를 쓰다 반복 요소를 발견해도 그 자리에서 컴포넌트를 만들지 말 것.** 보고서 끝에
 `## 컴포넌트 후보` 절로 **반복 횟수와 함께** 보고만 하고 사후 일괄 처리한다.
 
-## `report init` 의 slug 검증
+## `report-spec init` 의 slug 검증
 
 인계 문서에 없던 요구로, 사용자 지적에 의해 추가됐다. 초기 구현은 아무 문자열이나 받아 조용히 빈
 디렉토리를 만들었다.
@@ -357,7 +357,7 @@ $GRAPHICS_REPO/doc/
 ```
 
 `번복기록/` 의 분석 보고서들은 spec 에 딸리지 않고, 수용 판정란이 없고, before/after 쌍이 아니라
-현황 그래프 한 장을 쓴다. **현재 `report init` 은 대응 `*-design.md` 를 요구하므로 이 장르를 구조적으로
+현황 그래프 한 장을 쓴다. **현재 `report-spec init` 은 대응 `*-design.md` 를 요구하므로 이 장르를 구조적으로
 배제한다.** 그래도 **지금 두 번째 mode 를 추가하지 말 것** — 실제로 그 장르의 보고서를 쓸 일이
 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다. 컴포넌트 후보로 횟수와 함께 기록만 한다.
 
@@ -438,7 +438,7 @@ $GRAPHICS_REPO/doc/
 - **`</script>` 문자열을 이스케이프한다.** 번들 코드 안에 그 문자열이 있으면 HTML 파서가 조기 종료한다
 - 본문 인라인 참조의 hover 카드는 **CSS 만으로** 뜬다. 스크립트는 그래프에만 쓰인다
 
-### `report check` 의 용어 대조 — 경고이지 실패가 아니다
+### `report-spec check` 의 용어 대조 — 경고이지 실패가 아니다
 
 본문에 식별자 꼴 낱말이 있는데 `terms` 에 없으면 목록을 띄운다. 잡는 꼴은 셋뿐이다 —
 결정 코드(`C-19`·`U5`·`M4`), 산출물 파일명(`*.json`), 배열 필드(`calls[]`).
