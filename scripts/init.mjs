@@ -92,6 +92,11 @@ export const data: ReportData = {
   date: ${JSON.stringify(date)},
   branch: ${JSON.stringify(branch)},
   decisions: [],
+  // 용어집 — Mode 1.5 가 낸 terms.json 을 여기에 옮겨 적는다.
+  //   report-term collect <plan.md> <terms-db.json>  →  (스킬이 묻는다)  →  report-term grade  →  report-term emit
+  // terms.json 의 { "용어": { TermMeans, UserMentalValue } } 를
+  // { id, label, short, kind, mental } 로 옮긴다. 자동 import 하지 않는다 — 이 파일은 사람이 읽는 파일이다.
+  terms: [],
 };
 `);
 
