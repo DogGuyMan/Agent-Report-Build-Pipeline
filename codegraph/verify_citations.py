@@ -113,6 +113,12 @@ def main():
     for doc in a.docs:
         text = open(doc, encoding="utf-8").read().splitlines()
         for lineno, raw in enumerate(text, 1):
+            # ⚠ 이름 대조는 **인접 줄까지** 본다. 🔵 실측 — 산문이 줄바꿈되면 인용은 이 줄에,
+            #   심볼 이름은 앞줄에 있다(data.md:29). 한 줄만 보면 정상 문서가 경고로 뜬다.
+            ctx = "\n".join(text[max(0, lineno - 2):lineno + 1])
+            # ⚠ `<!-- Sources: ... -->` 는 다이어그램 근거 **목록**이지 주장이 아니다.
+            #   이름이 없는 것이 정상이므로 이름 대조에서 뺀다(오탐 방지).
+            is_src_list = raw.lstrip().startswith("<!-- Sources:")
             for m in CITE.finditer(raw):
                 f, ln = m.group(1), int(m.group(2))
                 total["인용"] += 1
@@ -136,8 +142,8 @@ def main():
                 if (f, ln) in nodes:
                     names = nodes[(f, ln)]
                     total["L3 통과(노드)"] += 1
-                    # 그 위치의 이름 중 하나라도 문서 줄에 있으면 통과. 전부 없으면 경고.
-                    if not any(short(nm) in raw for nm in names):
+                    # 그 위치의 이름 중 하나라도 인접 줄에 있으면 통과. 전부 없으면 경고.
+                    if not is_src_list and not any(short(nm) in ctx for nm in names):
                         cand = " / ".join(short(nm) for nm in names)
                         name_warn.append(f"[이름?] {where}  {f}:{ln} 의 심볼은 {cand} 인데 "
                                          f"문서 줄에 어느 것도 없다")
