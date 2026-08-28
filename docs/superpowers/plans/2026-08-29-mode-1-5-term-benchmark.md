@@ -75,23 +75,19 @@ report-builder/
 
 ---
 
-## ⚠ 착수 전 사용자 결정이 하나 필요하다
+## 채점 구간 — 2026-08-29 사용자 확정
 
-**애매와 모름의 경계가 정해지지 않았다.**
+한 용어당 **5문항**이다. 4문항이면 정답률이 0/25/50/75/100 이라 80% 임계에 딱 떨어지는 값이 없다.
 
-확정된 것은 "확신도 80% 이하면 모르는 것으로 추론" 하나뿐이다. 그런데 갈래는 셋이다. 80% 하나로는 확실과 나머지만 갈린다.
-
-한 용어당 문항 수를 **5문항**으로 잡으면 정답률이 0 / 20 / 40 / 60 / 80 / 100% 여섯 값만 나온다. 이때 제안하는 구간은 이렇다:
-
-| 정답률 | 갈래 | 근거 |
+| 맞힌 수 | 정답률 | 갈래 |
 |---|---|---|
-| 100% (5/5) | **확실** | 80% 초과가 확실이라는 확정 사항을 그대로 적용 |
-| 40~80% (2~4개) | **애매** | 반쯤 안다 |
-| 20% 이하 (0~1개) 또는 "모른다"를 3회 이상 선택 | **모름** | 찍어서 맞힌 수준 |
+| 4~5개 | 80~100% | **확실** |
+| 2~3개 | 40~60% | **애매** |
+| 0~1개 | 0~20% | **모름** |
 
-**이 구간은 임의값이다. Task 3 착수 전에 사용자가 확정해야 한다.** 근거 없는 임의값을 코드에 박는 것은 이 저장소가 금지한 바다.
+"모른다"를 **3회 이상** 고르면 정답률과 무관하게 **모름**이다. 찍어서 맞힌 것을 안다고 세지 않기 위해서다.
 
-문항 수를 5로 제안한 이유는 4문항이면 정답률이 0/25/50/75/100 이라 80% 임계에 딱 떨어지는 값이 없어서다.
+**이 구간은 임의값이 아니라 사용자가 확정한 값이다. 코드에서 바꾸지 말 것.**
 
 ---
 
@@ -669,8 +665,6 @@ git commit -m "[feat] : term - Plan 이 요구하는 용어와 신규 개념을 
 
 # Phase 3 — 출제와 채점
 
-**⚠ Task 3.1 착수 전에 위의 "사용자 결정" 절을 해소해야 한다.** 애매와 모름의 경계가 정해지지 않으면 채점 함수를 쓸 수 없다.
-
 ## Task 3.1: 채점 규칙 — 실패하는 테스트 먼저
 
 **Files:**
@@ -679,7 +673,7 @@ git commit -m "[feat] : term - Plan 이 요구하는 용어와 신규 개념을 
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
-아래 구간 경계는 **사용자 확정 후 실제 값으로 바꾼다.** 여기서는 제안값(확실 100% / 애매 40~80% / 모름 20% 이하)을 쓴다.
+구간 경계는 위 "채점 구간" 절의 확정값을 쓴다.
 
 `test/term.test.mjs` 끝에 추가:
 
@@ -690,12 +684,13 @@ test("한 용어당 문항 수는 5개다", () => {
   assert.equal(QUESTIONS_PER_TERM, 5);
 });
 
-test("gradeOne 은 전부 맞히면 확실로 매긴다", () => {
+test("gradeOne 은 4개 이상 맞히면 확실로 매긴다", () => {
   assert.equal(gradeOne({ correct: 5, dontKnow: 0 }).mental, "확실");
+  assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).mental, "확실");
 });
 
-test("gradeOne 은 절반쯤 맞히면 애매로 매긴다", () => {
-  assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).mental, "애매");
+test("gradeOne 은 2~3개 맞히면 애매로 매긴다", () => {
+  assert.equal(gradeOne({ correct: 3, dontKnow: 0 }).mental, "애매");
   assert.equal(gradeOne({ correct: 2, dontKnow: 0 }).mental, "애매");
 });
 
@@ -710,6 +705,7 @@ test("gradeOne 은 모른다를 3회 이상 고르면 정답률과 무관하게 
 
 test("gradeOne 은 정답률을 함께 돌려준다", () => {
   assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).rate, 80);
+  assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).rate, 20);
 });
 ```
 
@@ -740,10 +736,10 @@ export const QUESTIONS_PER_TERM = 5;
 export function gradeOne({ correct, dontKnow }) {
   const rate = Math.round((correct / QUESTIONS_PER_TERM) * 100);
   let mental;
-  if (dontKnow >= 3) mental = "모름";
-  else if (rate > 80) mental = "확실";
-  else if (rate >= 40) mental = "애매";
-  else mental = "모름";
+  if (dontKnow >= 3) mental = "모름";        // 찍어서 맞힌 것을 안다고 세지 않는다
+  else if (rate >= 80) mental = "확실";      // 4~5개
+  else if (rate >= 40) mental = "애매";      // 2~3개
+  else mental = "모름";                      // 0~1개
   return { rate, mental };
 }
 
@@ -1095,8 +1091,8 @@ git commit -m "[docs] : term-benchmark 스킬 사본 - 사람에게 묻는 절�
 
 | Phase | 종류 | 내용 |
 |---|---|---|
-| 3 | ❓ | **애매와 모름의 경계.** 위 "사용자 결정" 절. Task 3.1 의 선결 조건 |
-| 3 | ❓ | 한 용어당 문항 수를 5로 확정할지 |
+| ~~3~~ | ✅ | ~~애매와 모름의 경계~~ — 2026-08-29 확정. 확실 4~5개 / 애매 2~3개 / 모름 0~1개 |
+| ~~3~~ | ✅ | ~~문항 수~~ — 2026-08-29 확정. 5문항 |
 | 6 | ⚖ | 실제로 시험을 쳐 본다. 문항이 너무 쉽거나 어려운지 판정 |
 | 6 | ❓ | 재시험 주기 — `UserMentalValue` 를 언제 다시 재는가 |
 | 5 | ❓ | 확실로 판정된 용어의 표시 방법(흐리게 vs 접기) |
