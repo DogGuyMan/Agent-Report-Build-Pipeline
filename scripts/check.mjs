@@ -1,6 +1,6 @@
 // scripts/check.mjs
 // 산출물 검사 규칙. 전부 기계 판정이며 사람 판단이 필요 없다.
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -55,8 +55,37 @@ if (process.argv[1] && process.argv[1].endsWith("check.mjs")) {
   console.log(`${s.ok ? "통과" : "실패"} — <script> ${s.count}개 (허용 1)`);
   if (!s.ok) failed = true;
 
-  // 보고서 디렉토리의 tsconfig 를 쓴다. ROOT 를 검사하면 report.tsx 가 빠진다.
-  const tsc = spawnSync("npx", ["tsc", "--noEmit", "-p", cwd], { cwd: ROOT, stdio: "pipe" });
+  // 타입 검사용 tsconfig 는 검사 시점에 ROOT 에 임시로 만들고 지운다.
+  // 보고서마다 내용이 동일한 보일러플레이트라 대상 저장소에 남길 이유가 없다
+  // (build.mjs 가 .tmp-report.mjs 를 ROOT 에 두는 것과 같은 이유).
+  //
+  // paths 는 타입 해결 전용이라 선언 파일을 가리킨다. .mjs 를 직접 가리키면
+  // TS 가 형제 .d.mts 를 찾지 않아 TS7016 이 난다 — 런타임 해결은 build.mjs 의 alias 가 따로 한다.
+  // typeRoots 를 명시하는 이유: 기본값은 tsconfig 파일 위치 기준이라 @types/node 를 놓치고 TS2688 이 난다.
+  //
+  // include 글로브 대신 files 에 절대경로를 열거한다. 글로브는 tsconfig 위치 기준으로
+  // 해석되는데 이 파일은 ROOT 에 있고 검사 대상은 cwd 라 서로 다르다.
+  const tsconfigPath = join(ROOT, ".tmp-report-tsconfig.json");
+  writeFileSync(tsconfigPath, JSON.stringify({
+    extends: join(ROOT, "tsconfig.json"),
+    compilerOptions: {
+      typeRoots: [join(ROOT, "node_modules/@types")],
+      paths: {
+        "report-builder": [join(ROOT, "src/index.ts")],
+        "report-builder/types": [join(ROOT, "src/types.ts")],
+        "report-builder/svg": [join(ROOT, "scripts/svg.d.mts")],
+      },
+    },
+    files: readdirSync(cwd).filter((f) => /\.tsx?$/.test(f)).map((f) => join(cwd, f)),
+    include: [],
+  }, null, 2) + "\n");
+
+  let tsc;
+  try {
+    tsc = spawnSync("npx", ["tsc", "--noEmit", "-p", tsconfigPath], { cwd: ROOT, stdio: "pipe" });
+  } finally {
+    rmSync(tsconfigPath, { force: true });
+  }
   console.log(`${tsc.status === 0 ? "통과" : "실패"} — tsc --noEmit`);
   if (tsc.status !== 0) {
     console.error(tsc.stdout.toString());

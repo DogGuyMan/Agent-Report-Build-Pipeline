@@ -4,6 +4,8 @@
 //  - 인자 있으면: 대응하는 specs/YYYY-MM-DD-<slug>-design.md 가 있어야 스켈레톤을 만든다.
 //    없으면 거부(exit 1) — 오타를 조용히 통과시키지 않는다.
 //  - data.ts 가 이미 있으면(멱등) 스펙 문서 존재 여부와 무관하게 이어서 쓴다.
+//  - tsconfig.json 은 만들지 않는다. 보고서마다 내용이 동일한 보일러플레이트라
+//    대상 저장소에 남길 이유가 없다. check.mjs 가 검사 시점에 ROOT 에 임시 생성한다.
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -112,23 +114,6 @@ export default function Report() {
 }
 `);
 
-    writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({
-      extends: join(ROOT, "tsconfig.json"),
-      compilerOptions: {
-        // 기본 typeRoots 는 이 tsconfig 파일 위치(다른 저장소) 기준으로 잡혀
-        // report-builder 의 node_modules/@types 를 못 찾는다. 명시적으로 지정한다.
-        typeRoots: [join(ROOT, "node_modules/@types")],
-        paths: {
-          "report-builder": [join(ROOT, "src/index.ts")],
-          "report-builder/types": [join(ROOT, "src/types.ts")],
-          // paths 는 타입 해결 전용이므로 선언 파일을 가리킨다.
-          // .mjs 를 직접 가리키면 TS 가 형제 .d.mts 를 찾지 않아 TS7016 이 난다.
-          // 런타임 해결은 build.mjs 의 esbuild alias 가 .mjs 로 따로 한다.
-          "report-builder/svg": [join(ROOT, "scripts/svg.d.mts")],
-        },
-      },
-      include: ["*.ts", "*.tsx"],
-    }, null, 2) + "\n");
   }
 
   if (!slug) {
