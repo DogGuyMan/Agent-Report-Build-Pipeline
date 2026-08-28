@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote } from "../.tmp/lib.mjs";
+import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote, Glossary } from "../.tmp/lib.mjs";
 
 const html = (el) => renderToStaticMarkup(el);
 
@@ -236,4 +236,19 @@ test("EvidenceNote 는 단락 안의 인라인 마크업을 보존한다", () =>
     measured: [createElement("span", null, "실측 근거는 ", mono, " 이다.")],
   }));
   assert.ok(out.includes('<span class="mono">geometry.cpp:231</span>'));
+});
+
+test("Glossary 는 이해도를 표시한다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "calls[]", label: "calls[]", short: "호출 목록", kind: "artifact", mental: "모름" },
+  ] }));
+  assert.ok(out.includes("mental-모름"), "이해도 클래스가 없다");
+});
+
+test("Glossary 는 이해도가 없어도 렌더된다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "A", label: "A", short: "x", kind: "concept" },
+  ] }));
+  assert.ok(out.includes("<td"), "이해도 없는 용어에서 깨졌다");
+  assert.ok(out.includes("mental-미측정"), "이해도 없음이 미측정으로 표시되지 않는다");
 });

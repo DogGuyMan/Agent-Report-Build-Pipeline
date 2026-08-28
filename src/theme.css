@@ -140,6 +140,14 @@ footer.page-footer { margin-top: 34px; font-size: 11px; color: var(--text-3); te
 .term-kind-tool     { background: var(--gray-soft); color: var(--gray); }
 .term-body { margin-top: 4px; font-size: 12px; color: var(--text-2); line-height: 1.6; }
 
+/* 이해도 — Mode 1.5 가 실측한 값. 확실한 것은 흐리게 해 시선이 빈 칸으로 가게 한다 */
+.term-mental { display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; white-space: nowrap; }
+.mental-확실 { background: var(--gray-soft); color: var(--text-3); }
+.mental-애매 { background: var(--amber-soft); color: var(--amber); }
+.mental-모름 { background: var(--red-soft); color: var(--red); }
+.mental-미측정 { background: transparent; color: var(--text-3); font-weight: 400; }
+
 /* 본문 인라인 참조 — 커서를 올리면 설명 카드. JavaScript 없이 CSS 만으로 뜬다. */
 .term-ref { position: relative; border-bottom: 1px dashed var(--accent);
   cursor: help; font-weight: 600; }

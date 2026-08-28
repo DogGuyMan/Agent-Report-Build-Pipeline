@@ -46,6 +46,8 @@ export interface Term {
   kind: TermKind;
   /** 이어지는 다른 용어의 id. 방향 없는 그물 간선이 된다 */
   links?: string[];
+  /** Mode 1.5 가 실측한 읽는 사람의 이해도. 없으면 "미측정" 으로 표시된다 */
+  mental?: "확실" | "애매" | "모름";
 }
 
 export interface ReportData {

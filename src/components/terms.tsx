@@ -46,6 +46,7 @@ export function Glossary({ terms }: { terms: Term[] }) {
           <tr>
             <th>용어</th>
             <th>갈래</th>
+            <th>이해도</th>
             <th>뜻</th>
           </tr>
         </thead>
@@ -54,6 +55,9 @@ export function Glossary({ terms }: { terms: Term[] }) {
             <tr key={t.id}>
               <td className="mono">{t.id}</td>
               <td><span className={`term-kind term-kind-${t.kind}`}>{KIND_LABEL[t.kind]}</span></td>
+              <td>
+                <span className={`term-mental mental-${t.mental ?? "미측정"}`}>{t.mental ?? "미측정"}</span>
+              </td>
               <td>
                 <div>{t.short}</div>
                 {t.body && <div className="term-body">{t.body}</div>}
