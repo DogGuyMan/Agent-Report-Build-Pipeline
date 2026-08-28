@@ -1,0 +1,36 @@
+digraph after {
+  rankdir=TB;
+  graph [fontname="Apple SD Gothic Neo", fontsize=11, bgcolor="transparent", nodesep=0.28, ranksep=0.42];
+  node  [fontname="Apple SD Gothic Neo", fontsize=10, shape=box, style="filled,rounded",
+         fillcolor="#f4f5f7", color="#c3c8d0", penwidth=1.1, margin="0.14,0.07"];
+  edge  [fontname="Apple SD Gothic Neo", fontsize=9, color="#8b93a1", arrowsize=0.7];
+
+  subgraph cluster_static {
+    label="정적 계층"; color="#c3c8d0"; fontcolor="#5b6472"; style=rounded;
+    dump  [label="roslyn-dump.json\ntypes · relations · calls[]", fillcolor="#fff6e0", color="#d2a03c", penwidth=1.6];
+    norm  [label="normalize.py\n(수치 불변)"];
+    cg    [label="codegraph.json\n231 노드 · 540 간선"];
+    facts [label="facts/*.md · ranking.json\n+ calls.md · tier 열", fillcolor="#fff6e0", color="#d2a03c", penwidth=1.6];
+    dump -> norm -> cg -> facts;
+    dump -> facts [label="calls[]", color="#d2a03c", fontcolor="#a3762a", constraint=false];
+  }
+
+  src  [label="사용자 소스 .cs\n정독 계층 모듈만", fillcolor="#fdf4e3", color="#d2a03c", penwidth=1.2];
+  warm [label="warmup.json\n파일별 요약 · git blob SHA\n유효 / 낡음 / 판정불가", fillcolor="#fff6e0", color="#d2a03c", penwidth=1.6];
+
+  subgraph cluster_llm {
+    label="LLM 계층"; color="#c3c8d0"; fontcolor="#5b6472"; style=rounded;
+    llm  [label="deep-wiki 에이전트", fillcolor="#eef2fb", color="#8fa4d4"];
+    wiki [label="위키 10장"];
+    llm -> wiki;
+  }
+
+  ver [label="verify_citations.py\nL1·L2·L3 + 호출식", fillcolor="#eaf5ec", color="#6aa06f", penwidth=1.6];
+
+  facts -> llm  [label="정적 재료 (확대)"];
+  warm  -> llm  [label="재사용", color="#d2a03c", fontcolor="#a3762a"];
+  llm   -> warm [label="요약 적립", style=dashed, color="#d2a03c", constraint=false];
+  src   -> llm  [label="소수만 정독", color="#d2a03c", fontcolor="#a3762a"];
+  wiki  -> ver;
+  cg    -> ver  [style=dashed, constraint=false];
+}
