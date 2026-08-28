@@ -24,6 +24,39 @@ export function linkIntegrity(decisionIds, reportSource) {
   return { ok: missingSections.length === 0 && orphanSections.length === 0, missingSections, orphanSections };
 }
 
+
+/**
+ * 본문에 쓰인 식별자 꼴 낱말 중 용어집에 정의가 없는 것을 찾는다.
+ * **경고이지 실패가 아니다** — 탐지 규칙이 오탐을 낼 수 있어 빌드를 막지 않는다.
+ *
+ * 잡는 꼴은 셋뿐이다. 자연어 용어(WarmUp, PageRank 같은 것)는 기계가 가릴 수 없어 빼고,
+ * 저자가 용어집에 직접 넣어야 한다.
+ *   - 결정 코드      C-19 · D-1 · U5 · R-13 · M4
+ *   - 산출물 파일명   codegraph.json · roslyn-dump.json
+ *   - 배열 필드      calls[] · edges[]
+ */
+export function undefinedTerms(reportSource, termIds) {
+  const known = new Set(termIds);
+  const found = new Set();
+  const patterns = [
+    /\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b/g,
+    /\b[a-z][a-z0-9_-]*\.json\b/g,
+    /\b[a-z][A-Za-z0-9_]*\[\]/g,
+  ];
+  // JSX 속성값과 import 경로는 본문이 아니다. 거칠게 걷어낸다.
+  const body = reportSource
+    .replace(/^import[^\n]*$/gm, "")
+    .replace(/className="[^"]*"/g, "")
+    // 절 제목의 D0·D1 은 결정 번호이고 링크 무결성 검사가 따로 담당한다. 통째로 뺀다.
+    .replace(/<Section\s+title="[^"]*"/g, "");
+  for (const re of patterns) {
+    for (const m of body.matchAll(re)) {
+      if (!known.has(m[0])) found.add(m[0]);
+    }
+  }
+  return { ok: found.size === 0, missing: [...found].sort() };
+}
+
 /** builderVersion 불일치는 경고이지 실패가 아니다. */
 export function versionMatch(dataVersion, currentVersion) {
   return { ok: true, warn: dataVersion !== currentVersion };
@@ -101,6 +134,20 @@ if (process.argv[1] && process.argv[1].endsWith("check.mjs")) {
     if (link.missingSections.length) console.error(`  절이 없는 결정: ${link.missingSections.join(", ")}`);
     if (link.orphanSections.length) console.error(`  결정이 없는 절: ${link.orphanSections.join(", ")}`);
     failed = true;
+  }
+
+
+  // 용어집 대조 — 경고만 낸다.
+  // 용어는 { id: "C-19", ... } 처럼 줄 중간에 오므로 줄머리에 고정하지 않는다.
+  // 결정 id(D0·D1…)는 링크 무결성 검사가 담당하므로 여기서 뺀다.
+  const termIds = [...dataSrc.matchAll(/\bid:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const glossaryIds = termIds.filter((t) => !/^D\d+$/.test(t));
+  const ut = undefinedTerms(reportSrc, glossaryIds);
+  if (ut.ok) {
+    console.log(`통과 — 용어집 대조 (정의 ${glossaryIds.length}개)`);
+  } else {
+    console.log(`경고 — 용어집에 없는 식별자 ${ut.missing.length}개`);
+    console.log(`  ${ut.missing.join(", ")}`);
   }
 
   const dv = dataSrc.match(/builderVersion:\s*"([^"]+)"/)?.[1] ?? "?";
