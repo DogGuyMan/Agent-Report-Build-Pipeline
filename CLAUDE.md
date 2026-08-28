@@ -62,11 +62,20 @@ report check                      # script 수 · tsc · 링크 무결성 · bui
 이 저장소는 렌더러이고, **보고서는 다른 저장소의 `<프로젝트>/specs/<slug>/` 에 산다.** 여기서 나오는
 비직관적 결정이 코드 곳곳에 박혀 있다.
 
+**경로 실측 (2026-08-28).** 루트는 `$REPO_ROOT` 다. `~/report-builder` 는 **존재하지 않는다** —
+이 문서의 이전 판이 그렇게 적어 두 세션이 헛짚었다. 근거: `~/.zshrc:211` 의
+`export PATH="$HOME/LLM-Tools/report-builder/bin:$PATH"` (다른 셸 설정 파일에는 등록 없음),
+`readlink -f "$(which report)"` → `$REPO_ROOT/bin/report`.
+
+**자기호스팅은 예외가 아니라 의도다.** `report` 는 PATH 에 등록된 툴 바이너리이므로 어느 저장소에서든
+부를 수 있고, 이 저장소 자신의 계획서도 검토 대상이 된다. 실제로 `specs/llm-load-reduction/` 이
+여기 안에 있다 — Track C 계획을 Track A/B 도구로 검토하는 자기참조 구조다. 옮기지 말 것.
+
 ```
-~/report-builder                       <프로젝트>/specs/<slug>/
+$REPO_ROOT             <프로젝트>/specs/<slug>/
   bin/report        디스패치만            data.ts      결정 데이터만. builderVersion 포함
   src/components/   읽기 전용             report.tsx   서사·옵션표·판정 등 나머지 전부
-  src/theme.css     정본 추출 + B1 패치    tsconfig.json  init 이 생성
+  src/theme.css     정본 추출 + B1 패치    (tsconfig.json)  check 가 ROOT 에 임시 생성
   scripts/build.mjs esbuild→RTSM→조립     (out/report.html)  git 제외 — 재생성
   scripts/check.mjs 기계 검사 규칙
 ```
@@ -79,11 +88,18 @@ report check                      # script 수 · tsc · 링크 무결성 · bui
 | | 담당 | 가리키는 곳 |
 |---|---|---|
 | 런타임 | `scripts/build.mjs` 의 esbuild `alias` | `src/index.ts` · `src/types.ts` · **`scripts/svg.mjs`** |
-| 타입 | `scripts/init.mjs` 가 생성하는 tsconfig 의 `paths` | 같음. 단 svg 는 **`scripts/svg.d.mts`** (선언 파일) |
+| 타입 | `scripts/check.mjs` 가 **임시 생성**하는 tsconfig 의 `paths` | 같음. 단 svg 는 **`scripts/svg.d.mts`** (선언 파일) |
 
 `paths` 가 `.mjs` 를 직접 가리키면 TypeScript 가 형제 `.d.mts` 를 찾지 않아 `TS7016` 이 난다.
-같은 이유로 생성 tsconfig 는 `typeRoots: [<ROOT>/node_modules/@types]` 를 명시한다 —
-기본 `typeRoots` 는 tsconfig 파일 위치(외부 저장소) 기준이라 `@types/node` 를 못 찾고 `TS2688` 이 난다.
+같은 이유로 임시 tsconfig 는 `typeRoots: [<ROOT>/node_modules/@types]` 를 명시한다 —
+기본 `typeRoots` 는 tsconfig 파일 위치 기준이라 `@types/node` 를 못 찾고 `TS2688` 이 난다.
+
+**타입 검사용 tsconfig 는 대상 저장소에 남기지 않는다 (2026-08-28 변경).** `check.mjs` 가 검사 직전에
+`<ROOT>/.tmp-report-tsconfig.json` 을 만들고 끝나면 지운다. 이유는 성격 구분이다 — `data.ts` 와
+`report.tsx` 는 결정 데이터와 본문, 즉 **원고**라서 `.md`/`.html` 과 같은 자격으로 대상 저장소에 산다.
+반면 tsconfig 는 보고서 고유값이 **0건**인 순수 보일러플레이트라 남길 이유가 없다.
+검사 대상은 `include` 글로브가 아니라 `files` 에 **절대경로로 열거**한다 — 글로브는 tsconfig 위치
+기준으로 해석되는데 그 파일은 `ROOT` 에 있고 검사 대상은 `cwd` 라 서로 다르다.
 
 **빌드 임시 번들(`.tmp-report.mjs`)은 `cwd` 가 아니라 `ROOT` 에 쓴다.** 동적 `import()` 는 파일 위치
 기준으로 `react/jsx-runtime` 을 찾으므로, 외부 저장소에 두면 `ERR_MODULE_NOT_FOUND` 로 즉사한다.
@@ -106,7 +122,7 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 
 | 축 | 결정 |
 |---|---|
-| 위치 | `~/report-builder` 고정 경로. `bin` 을 PATH 에 추가 |
+| 위치 | `$REPO_ROOT` 고정 경로. `bin` 을 PATH 에 추가 |
 | 트랜스파일 | **esbuild** |
 | 렌더 | **React `renderToStaticMarkup`** — 템플릿 엔진으로만 |
 | 타입 | props 타입 정의만. `tsc --noEmit` |
