@@ -62,10 +62,10 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 |---|---|
 | 저장소 | `$REPO_ROOT` (`~/report-builder` 는 **존재하지 않는다**) |
 | 브랜치 | `feat/report-builder` |
-| HEAD | `dccced5 [docs] : 채점 구간 확정 반영 - 확실 4-5개, 애매 2-3개, 모름 0-1개` |
+| HEAD | `22d7c2b [docs] : 오케스트레이션 핸드오프에 진행 상태와 슬롯 분배 반영` (5.1 진행 중이라 작업 트리에 미커밋 변경이 있을 수 있다) |
 | 미커밋 | `docs/prompt/checklist.yaml` 하나 (사용자 메모, 의도적 미추적) |
-| Node 테스트 | 44개 통과 (`npm test`) |
-| Python 테스트 | 28개 통과 (`.venv/bin/python -m pytest codegraph/ -q`) |
+| Node 테스트 | 62개 통과 (`npm test`) — 5.1 완료 시 64 |
+| Python 테스트 | 31개 통과 (`.venv/bin/python -m pytest codegraph/ -q`) |
 | 타입 검사 | 통과 (`npm run typecheck`) |
 
 **직전 세션(2026-08-28~29)에서 확정된 것** — 이 문서를 읽는 세션은 다시 논쟁하지 않는다:
@@ -80,20 +80,20 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 | Plan 신규 개념의 정답 | **Plan 저자가 직접 쓴다** |
 | 자료 구조 | `{ "용어": { TermMeans, UserMentalValue } }` — 객관 정답과 주관 이해도를 필드로 분리 |
 | Mode 2 용어집 | **전부 싣되** 확실한 것은 흐리게 표시 |
-| CLI | 바이너리 3개 — `report-wiki` · `report-term` · `report-spec` |
+| CLI | 바이너리 3개 — `report-wiki` · `report-term` · `report-spec`. **분리 완료.** `report-term` 은 `collect` · `grade` · `emit` |
 | 산출물 `<script>` | **1개 예산이 이미 찼다** (용어 그래프 런타임). 새 런타임은 그 번들에 합친다 |
 
 ---
 
 ## 2. ⚠ 함정 — 재개 전에 반드시 읽을 것
 
-### (가) 계획서의 섹션 번호 하나가 틀렸다
+### (가) ~~계획서의 섹션 번호 하나가 틀렸다~~ — Task 1.1 에서 `# ── 8.` 로 처리됨
 
 계획서 Task 1.1 Step 1 이 `codegraph/test_normalize.py` 에 `# ── 12.` 섹션을 추가하라고 적었다.
 🔵 실측 — 그 파일의 마지막 섹션은 **`# ── 7.`** 이다(`test_normalize.py:221`). **`# ── 8.` 로 붙여라.**
 계획서 본문은 고치지 않았다. 이 문서가 우선한다.
 
-### (나) `test/components.test.mjs` 의 import 에 `Glossary` 가 없다
+### (나) `test/components.test.mjs` 의 import 에 `Glossary` 가 없다 — Task 5.1 프롬프트에 반영됨
 
 계획서 Task 5.1 이 `Glossary` 렌더 테스트를 추가하라고 하는데, 🔵 실측 — 그 파일 5번째 줄의 import 목록에
 `Glossary` 가 **없다.** Task 5.1 수행자는 import 에 `Glossary` 를 먼저 더해야 한다.
