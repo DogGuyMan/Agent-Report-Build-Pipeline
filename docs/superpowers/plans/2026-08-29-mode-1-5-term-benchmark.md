@@ -19,7 +19,7 @@
 | 2 | 용어 후보 수집 — Plan 교차 | 코드 (Node) | `scripts/term/collect.mjs` |
 | 3 | 출제와 채점 | 코드 (Node) | `scripts/term/quiz.mjs` |
 | 4 | 산출물 두 갈래 | 코드 (Node) | 학습 노트 `.md` + 용어집 DB `.json` |
-| 5 | Mode 2 연동 | 코드 (TS) | `terms` 배열이 DB 에서 나온다 |
+| 5 | Mode 2 연동 | 코드 (TS) | `Term.mental` 필드 + 이해도 표시 + init 스켈레톤 연결 자리 |
 | 6 | 사람에게 묻는 절차 | **Skill 문서** | `~/.claude/skills/term-benchmark/SKILL.md` |
 
 **Phase 0 을 맨 앞에 둔 이유:** Mode 1.5 의 명령이 기존 `report init|build|check` 와 성격이 다르다. 지금 한 바구니에 넣으면 나중에 가르는 비용이 커진다. 빌드 타깃을 먼저 갈라 두고 그 안에 새 모드를 넣는다.
@@ -45,7 +45,6 @@ report-builder/
       collect.mjs       [신설] 용어 후보 수집 — 코드베이스 DB 와 Plan 의 교차
       quiz.mjs          [신설] 객관식 출제와 채점
       emit.mjs          [신설] 학습 노트와 용어집 DB 출력
-    build.mjs           [수정] terms 를 용어집 DB 에서도 읽는다
   src/
     types.ts            [수정] Term 에 mental 필드 추가
     components/terms.tsx[수정] 이해도별 표시 구분
@@ -342,7 +341,7 @@ git commit -m "[docs] : mode 별 CLI 진입점 분리 반영"
 `codegraph/test_normalize.py` 끝에 추가:
 
 ```python
-# ── 12. 코드베이스 용어 DB (Mode 1.5 의 재료)
+# ── 8. 코드베이스 용어 DB (Mode 1.5 의 재료)
 
 def test_terms_db_extracts_modules_and_classes():
     """codegraph.json 의 노드와 모듈이 용어 항목이 돼야 한다."""
