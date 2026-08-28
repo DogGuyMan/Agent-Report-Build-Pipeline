@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import {
   Page, Section, DecisionTable, OptionTable, EvidenceNote, BeforeAfter, VerdictFooter,
+  Glossary, TermGraph, defineTerms,
 } from "report-builder";
 import { inlineSvg } from "report-builder/svg";
-import { data } from "./data.js";
+import { data, terms } from "./data.js";
 
 export { data };
 
@@ -15,9 +16,20 @@ const after = inlineSvg(readFileSync("after.svg", "utf8"), "llmafter");
 
 const SPEC = "2026-08-28-llm-load-reduction-design.md";
 
+// 용어 인라인 참조. 정의는 data.ts 의 terms 에만 있다.
+const T = defineTerms(terms);
+
 export default function Report() {
   return (
     <Page data={data}>
+      <Section title="용어집 — 먼저 읽을 것">
+        <Glossary terms={terms} />
+      </Section>
+
+      <Section title="용어 관계도">
+        <TermGraph terms={terms} />
+      </Section>
+
       <Section title="결정 요약">
         <DecisionTable decisions={data.decisions} />
       </Section>
@@ -53,9 +65,9 @@ export default function Report() {
       <Section title="D2 — calls[] 는 roslyn-dump.json 에만 넣는다 (C-19)">
         <EvidenceNote
           measured={[
-            <>Track C §7 이 금지한 것은 <span className="mono">codegraph.json</span> 의 <span className="mono">calls[]</span> 이고, <span className="mono">roslyn-dump.json</span> 은 자체 형식이다 — <span className="mono">members[]</span>/<span className="mono">methods[]</span> 를 넣을 때와 같은 논거. <span className="mono">{SPEC}:261-262</span></>,
+            <>Track C §7 이 금지한 것은 <T id="codegraph.json" /> 의 <T id="calls[]" /> 이고, <T id="roslyn-dump.json" /> 은 자체 형식이다 — <span className="mono">members[]</span>/<span className="mono">methods[]</span> 를 넣을 때와 같은 논거. <span className="mono">{SPEC}:261-262</span></>,
             <>인계 문서가 <span className="mono">calls[]</span> 를 “나중에 붙일 자리(지금 만들지 말 것)” 로 적어 뒀다. <span className="mono">docs/handoffs/HANDOFF-codebase-wiki.md:900</span></>,
-            <>사용자 확정 U5 — <span className="mono">codegraph.json</span> 스키마 확장 허용, M1 을 근거로 재검토. <span className="mono">{SPEC}:40</span></>,
+            <>사용자 확정 U5 — <T id="codegraph.json" /> 스키마 확장 허용, M1 을 근거로 재검토. <span className="mono">{SPEC}:40</span></>,
             <>대상 Task — 2(추출) · 3(검증기 인식) · 4(<span className="mono">facts/calls.md</span> 주입)</>,
           ]}
           judged={[
