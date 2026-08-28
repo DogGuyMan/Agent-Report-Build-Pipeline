@@ -38,6 +38,7 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 |---|---|---|---|---|
 | `scripts/term/*` · `src/*` · `test/*` | **소유** | — | — | 읽기만 |
 | `codegraph/terms_db.py` | 읽기만 | **건드리지 말 것** (A 가 참조) | — | — |
+| `codegraph/normalize.py` 의 **출력 키** | — | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to`·`id`/`depends_on` 을 읽는다 (간접 의존) | — | — |
 | `codegraph/` 나머지 | — | **소유** | — | — |
 | `CLAUDE.md` | 소유 | Track C 절만 | — | — |
 | `~/.claude/skills/term-benchmark/` | 검토 | — | **소유** | — |
