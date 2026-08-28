@@ -29,8 +29,25 @@ FENCE = re.compile(r"^```mermaid\s*$")
 MARK = re.compile(r"<!--\s*graphviz:\s*([A-Za-z0-9_.-]+)\s*-->")
 
 
-def render_mermaid(src_text, out_svg):
-    """mmdc 로 Mermaid 하나를 SVG 로 굽는다. 실패하면 None."""
+# ── 알려진 mermaid 11.16 문법 제약 셋. 🔵 전부 이 저장소 위키에서 실측됐다.
+#    전부 **색 지시자나 표기 문제**라 걷어내도 그림의 내용(노드·간선)은 바뀌지 않는다.
+#    클라이언트 렌더에 맡겼다면 브라우저에서 조용히 깨졌을 것들이다 — C-18 전면 치환이
+#    이것을 빌드 시점에 잡아낸다는 것이 A안의 실질 이득이다.
+
+# (1) `style X~T~ fill:...` — 제네릭 클래스에 style 을 걸면 GENERICTYPE 토큰 오류
+# (2) `style 한글이름 fill:...` — 비ASCII 식별자에 style 을 걸면 파서가 죽는다
+GENERIC_STYLE = re.compile(r"^[ \t]*style[ \t]+(?:\S*~[^~]*~\S*|[^\s\x00-\x7f][^\s]*)[ \t][^\n]*\n?", re.M)
+
+# (3) HTML 엔티티 — `&lt;T&gt;` 가 라벨에 그대로 들어오면 렉서가 못 읽는다.
+#     VitePress 호환을 위해 제네릭을 이스케이프한 것이 mmdc 에서는 역효과다.
+ENTITY = [("&lt;", "<"), ("&gt;", ">"), ("&amp;", "&"), ("&quot;", '"')]
+
+# (4) 라벨 안의 백틱 — `["`이름`"]` 은 mermaid 의 markdown-string 문법이라
+#     <br> 이나 꺾쇠와 섞이면 렉서가 죽는다. 백틱만 빼면 라벨 내용은 같다.
+LABEL_BACKTICK = re.compile(r'(\["\[?)`([^`]*)`')
+
+
+def _mmdc(src_text, out_svg):
     tmp = out_svg + ".mmd"
     open(tmp, "w", encoding="utf-8").write(src_text)
     r = subprocess.run(
@@ -38,10 +55,32 @@ def render_mermaid(src_text, out_svg):
          "-b", "transparent", "-t", "dark"],
         capture_output=True, text=True)
     os.remove(tmp)
-    if r.returncode != 0:
-        print(f"  ⚠ mmdc 실패: {r.stderr.strip().splitlines()[-1] if r.stderr else '?'}", file=sys.stderr)
-        return None
-    return out_svg
+    return r
+
+
+def render_mermaid(src_text, out_svg):
+    """mmdc 로 Mermaid 하나를 SVG 로 굽는다. 실패하면 None.
+
+    한 번 실패하면 **알려진 문법 제약을 걷어내고 한 번만 재시도**한다.
+    걷어내는 것은 색 지시자뿐이라 그림의 내용은 바뀌지 않는다."""
+    r = _mmdc(src_text, out_svg)
+    if r.returncode == 0:
+        return out_svg
+
+    stripped = GENERIC_STYLE.sub("", src_text)
+    for a, b in ENTITY:
+        stripped = stripped.replace(a, b)
+    stripped = LABEL_BACKTICK.sub(r"\1\2", stripped)
+    if stripped != src_text:
+        r2 = _mmdc(stripped, out_svg)
+        if r2.returncode == 0:
+            print("  ↻ style 지시자/HTML 엔티티를 정리하고 재시도해 성공", file=sys.stderr)
+            return out_svg
+        r = r2
+
+    tail = [l for l in (r.stderr or "").strip().splitlines() if l.strip()]
+    print(f"  ⚠ mmdc 실패: {tail[0] if tail else '?'}", file=sys.stderr)
+    return None
 
 
 def process(path, outdir, assets, svg_dir, rel_assets):
