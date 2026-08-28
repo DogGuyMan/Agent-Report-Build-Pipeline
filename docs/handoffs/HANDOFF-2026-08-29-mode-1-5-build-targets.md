@@ -1,5 +1,11 @@
 # HANDOFF ② — CLI 빌드 타깃 분리 (Task 0.1 · 0.2 · 0.3 의 붙여넣기용 프롬프트)
 
+> 🔴 **완료됨 (2026-08-29). 이 프롬프트를 다시 실행하지 말 것.**
+> Task 0.1 → `3c32fc6` · Task 0.2 → `2316d6c` · Task 0.3 → `af03897` 로 전부 커밋됐다.
+> `scripts/dispatch.mjs` · `test/dispatch.test.mjs` · `bin/report-{spec,term,wiki}` 가 실재한다(`ls` 로 확인).
+> 이 문서는 **기록용**으로만 남긴다 — 서브에이전트 프롬프트의 하네스 7블록 형식 예시로 참고할 수 있다.
+> 현재 진입점은 `HANDOFF-2026-08-29-mode-1-5-orchestration.md` 다.
+
 > 아래 ``` 블록을 새 세션에 그대로 붙여넣는다. 자기완결이다.
 > 정본 참조(읽지 않아도 됨): `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` Phase 0
 
