@@ -1,0 +1,400 @@
+# ARCHITECTURE — report-builder 의 구조
+
+이 문서는 **코드가 서로를 어떻게 부르는가**만 적는다. 규약·함정·기각안은 `CLAUDE.md` 에, 설치 절차는 `README.md` 에 있다.
+
+읽는 사람이 배경 지식을 갖고 있다고 가정하지 않는다. 처음 나오는 낱말은 그 자리에서 푼다.
+
+표기 — 🔵 는 실제로 읽은 `파일:줄` 또는 실제로 돌린 명령의 출력, 💭 는 거기서 끌어낸 판단(사실이 아니다).
+`파일:줄` 인용은 `codegraph/verify_citations.py` 로 기계 검사가 된다.
+
+---
+
+## 0. 한 문단 요약
+
+이 저장소는 **렌더러**다. 자기 안에 보고서를 쌓지 않고, **다른 저장소**를 읽거나 다른 저장소에 산출물을 만든다.
+갈래는 셋이고 각각 CLI 진입점 하나와 파이썬 실행기 하나를 갖는다. 갈래마다 큰 언어 모형(LLM)을 부르는 칸이
+**정확히 하나**이며, 실측상 그 한 칸이 전체 시간의 99% 를 쓴다. 나머지는 전부 결정론적 기계 단계다.
+
+---
+
+## 1. 두 저장소에 걸쳐 있다는 것이 아키텍처의 전부다
+
+가장 비직관적인 사실부터. **이 저장소에는 보고서도 위키도 없다.** 원고는 대상 저장소에 살고,
+여기에는 그것을 굽는 도구만 있다.
+
+```mermaid
+flowchart LR
+  subgraph RB["report-builder — 도구"]
+    BIN["bin/ 진입점 4개"]
+    SCR["scripts/ Node"]
+    CG["codegraph/ Python"]
+    SRC["src/ React 컴포넌트"]
+  end
+  subgraph TGT["대상 저장소 — 원고와 산출물"]
+    MS["specs/&lt;slug&gt;/data.ts · report.tsx"]
+    WK["docs/wiki/*.md"]
+    OUT["out/ — 재생성물"]
+  end
+  BIN --> SCR --> CG
+  SCR -. 읽는다 .-> MS
+  SCR -. 읽는다 .-> WK
+  SCR --> OUT
+  SRC -. 빌드 때만 .-> SCR
+```
+
+### 무엇이 어디에 사는가
+
+| 사는 곳 | 무엇 | 왜 거기인가 |
+|---|---|---|
+| report-builder | `src/components/` React 컴포넌트, `src/theme.css` | 모든 보고서가 공유한다. 읽기 전용 |
+| report-builder | `scripts/*.mjs` 빌드·검사, `codegraph/*.py` 정적 계층 | 도구 본체 |
+| 대상 저장소 (git 추적) | `specs/<slug>/data.ts` · `report.tsx` | **원고**다. `.md` 와 같은 자격으로 그 저장소에 산다 |
+| 대상 저장소 (git 추적) | `docs/wiki/*.md` | LLM 이 쓴 산문. 역시 원고다 (`scripts/wiki/paths.mjs:22`) |
+| 대상 저장소 (추적 안 함) | `out/codegraph-raw/` · `out/report.html` · `out/codegraph-raw/wiki-site/` | 결정론으로 재생성된다 (`scripts/wiki/paths.mjs:18,23-25`) |
+
+### 이 갈림에서 나온 비직관적 결정 셋
+
+**(가) 모듈 해결이 런타임과 타입 검사에서 서로 다른 길을 탄다.**
+대상 저장소의 원고는 `import { Page } from "report-builder"` 라고 쓰는데, 그 저장소의 `node_modules` 에는
+그런 패키지가 없다. 그래서 길을 둘 뚫었다.
+
+| | 담당 | 가리키는 곳 |
+|---|---|---|
+| 런타임 | `scripts/build.mjs:54` 의 esbuild `alias` | `src/index.ts` · `src/types.ts` · `scripts/svg.mjs` |
+| 타입 검사 | `scripts/check.mjs:124` 가 임시 생성하는 tsconfig 의 `paths` | 같음. 단 svg 는 선언 파일 `scripts/svg.d.mts` |
+
+한쪽만 고치면 다른 쪽이 조용히 깨진다.
+
+**(나) 임시 파일은 `cwd` 가 아니라 이 저장소 뿌리(`ROOT`)에 쓴다.**
+동적 `import()` 는 **파일이 놓인 자리**를 기준으로 `react/jsx-runtime` 을 찾는다. 대상 저장소에 두면
+그 저장소에 React 가 없어 즉사한다 (`scripts/build.mjs:36`). 타입 검사용 tsconfig 도 같은 이유로
+`ROOT` 에 만들었다 지운다 (`scripts/check.mjs:119`).
+
+**(다) 위키 정적 사이트도 이 저장소 안에서 짓는다.**
+`scripts/wiki/build.mjs:98` 이 산문을 `.tmp/wiki/<저장소이름>/` 으로 복사한 뒤 거기서 VitePress 를 돌리고,
+산출물만 절대경로 `outDir` 로 대상 저장소에 되돌려 보낸다 (`scripts/wiki/build.mjs:109`).
+같은 사정 — 대상 저장소에는 `node_modules` 가 없다.
+
+---
+
+## 2. 세 갈래(mode)와 그 안의 LLM 한 칸
+
+| mode | 진입점 | 실행기 | 하는 일 |
+|---|---|---|---|
+| 1 | `report-wiki` | `codegraph/run_mode1.py` | 코드베이스를 읽어 코드 지도와 위키를 만든다 |
+| 1.5 | `report-term` | `codegraph/run_mode1_5.py` | 그 용어를 **사람이** 얼마나 아는지 객관식으로 잰다 |
+| 2 | `report-spec` | `codegraph/run_mode2.py` | 설계 문서를 한 장짜리 HTML 보고서로 압축한다 |
+
+`bin/report` 는 옛 이름이며 `bin/report-spec` 을 자식 프로세스로 그대로 실행한다 (`bin/report:13`).
+
+세 진입점은 명령표만 다르고 갈림길 함수는 하나를 공유한다 — `scripts/dispatch.mjs:25` 의 `runDispatch` 가
+명령 이름을 스크립트 경로로 바꿔(`scripts/dispatch.mjs:13`) 자식 프로세스로 띄운다(`scripts/dispatch.mjs:32`).
+
+### 세 갈래의 단계 — 파랑은 기계, 주황은 LLM, 초록은 사람
+
+```mermaid
+flowchart LR
+  subgraph M1["Mode 1 — 코드베이스 위키"]
+    P1["prep"] --> A1["agent"] --> T1["terms"] --> B1["build"] --> C1["check"]
+  end
+  subgraph M15["Mode 1.5 — 용어 이해도"]
+    CO["collect"] --> AU["author"] --> H(["사람이 답안"]) --> GR["grade"] --> EM["emit"]
+  end
+  subgraph M2["Mode 2 — 설계 검토 보고서"]
+    I2["init"] --> A2["agent"] --> B2["build"] --> C2["check"]
+  end
+  classDef machine fill:#e8f0fe,stroke:#4a6fa5,color:#123
+  classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px
+  classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px
+  class P1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
+  class A1,AU,A2 llm
+  class H human
+```
+
+단계 목록은 상수로 못 박혀 있고 레지스트리나 플러그인 구조를 만들지 않는다
+(`codegraph/run_mode1.py:65`, `codegraph/run_mode1_5.py:84`, `codegraph/run_mode2.py:80`).
+LLM 칸도 갈래마다 하나뿐이다 (`codegraph/run_mode1.py:68`, `codegraph/run_mode1_5.py:88`, `codegraph/run_mode2.py:83`).
+
+**Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
+
+| 단계 | 기계/LLM | 부르는 것 | 읽는 것 → 쓰는 것 |
+|---|---|---|---|
+| `prep` | 기계 | `scripts/wiki/prep.mjs` (`codegraph/run_mode1.py:247`) | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
+| `agent` | **LLM 1회** | `claude -p` | 소스 + `facts/*.md` → `docs/codegraph/terms-reading.json` · `docs/wiki/*.md` |
+| `terms` | 기계 | `codegraph/terms_db.py` (`codegraph/run_mode1.py:255`) | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
+| `build` | 기계 | `scripts/wiki/build.mjs` | `docs/wiki/*.md` → VitePress 정적 사이트 |
+| `check` | 기계 | `scripts/wiki/check.mjs` | 산문 → 인용 판정 표 (표준 출력) |
+
+**Mode 2 단계별로**
+
+| 단계 | 기계/LLM | 부르는 것 | 도는 폴더 |
+|---|---|---|---|
+| `init` | 기계 | `scripts/init.mjs` | `specs/` 가 있는 **프로젝트 뿌리** |
+| `agent` | **LLM 1회** | `claude -p` | 프로젝트 뿌리 |
+| `build` | 기계 | `scripts/build.mjs` | **보고서 폴더** `specs/<slug>/` |
+| `check` | 기계 | `scripts/check.mjs` | 보고서 폴더 |
+
+단계마다 작업 폴더가 다르다는 것이 Mode 2 의 가장 조용한 함정이다. 틀려도 오류가 나지 않고 엉뚱한 곳에
+파일이 생긴다. 그래서 갈림을 상수와 함수로 드러내 뒀다 (`codegraph/run_mode2.py:87`, `codegraph/run_mode2.py:105`).
+
+### Mode 1.5 는 사람 앞에서 멈춘다
+
+Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
+`answers.json` 이 없으면 실행기가 뒤 단계로 가지 않고 멈춘다 (`codegraph/run_mode1_5.py:150`).
+
+💭 왜 사람을 모형으로 대신할 수 없나 — 이 도구가 재려는 값 자체가 *사람의* 이해도라서다. 모형에게
+답을 시키면 재는 대상이 바뀐다. 이 논거는 `codegraph/run_mode1_5.py` 머리 주석에 적혀 있다.
+
+한 용어당 문항은 3개로 고정이며 채점 구간도 상수다 (`scripts/term/quiz.mjs:12`). CLI 는 사람에게 묻지 않는다 —
+묻는 절차는 `term-benchmark` 스킬의 일이다.
+
+---
+
+## 3. 비대칭 — LLM 한 칸이 시간의 99% 를 쓴다
+
+🔵 실측 (2026-08-30, 대상 QtVisionEdit, 백지 상태. 근거: `docs/superpowers/plans/2026-08-30-warmup-mode1-wiring.md:18`)
+
+| Mode 1 단계 | 벽시계 | 토큰 |
+|---|---:|---:|
+| `prep` | 1.3초 | 0 |
+| **`agent`** | **26분 53.1초** | **17,925,770** |
+| `terms` | 0.1초 | 0 |
+| `build` | 13.6초 | 0 |
+| `check` | 0.2초 | 0 |
+| **합계** | **27분 08.1초** | 17,925,770 |
+
+시간의 **99.1%**, 토큰의 **100%** 가 `agent` 한 칸에 있다. 기계 네 단계를 다 합쳐 약 15.1초다.
+
+🔵 Mode 2 도 같은 모양이다. 같은 실행기로 잰 연습 실행(haiku)에서 전체 149.2초 중 `agent` 가 147.98초로
+**99.2%**, 기계 세 단계 합은 약 1.2초였다. (이 측정 기록은 실행 산출물이라 저장소에 커밋돼 있지 않다.
+`codegraph/run_mode2.py` 의 `--json` 으로 다시 낼 수 있다.)
+
+💭 여기서 나오는 설계 결론 하나 — **기계 단계를 최적화할 여지가 없다.** 성능을 건드릴 자리는
+`agent` 의 *입력 범위* 뿐이고, 그것이 `codegraph/warmup.py` 가 존재하는 이유다(파일 해시로 다시 읽을
+파일만 골라낸다). 🔵 `codegraph/warmup.py` 는 있으나 `run_mode1.py` 의 `STAGES` 에 아직 없다
+(`codegraph/run_mode1.py:65` 에 `warmup` 이 없음) — 배선은 미완이다.
+
+---
+
+## 4. 모듈 간 의존 — 한 방향으로만 흐른다
+
+### 계층
+
+```mermaid
+flowchart TD
+  BIN["bin/ 진입점 4개"] --> DIS["scripts/dispatch.mjs"]
+  DIS --> SPEC["scripts/{init,build,check}.mjs"]
+  DIS --> TERM["scripts/term/*.mjs"]
+  DIS --> WIKI["scripts/wiki/*.mjs"]
+  SPEC --> SRC["src/ 컴포넌트 · 타입"]
+  WIKI --> PY["codegraph/*.py"]
+  RUN["codegraph/run_mode*.py 실행기"] --> WIKI
+  RUN --> SPEC
+  RUN --> TERM
+```
+
+### 실제로 확인한 방법과 결과
+
+🔵 저장소 안 상대 import 를 전수로 뽑아 확인했다.
+
+```bash
+grep -rnE '^(import|from) ' codegraph/*.py            # 표준 라이브러리를 걸러낸 뒤
+grep -rnE '^import .* from "\.' scripts/ bin/ src/    # 상대 경로 import 만
+```
+
+파이썬 쪽 저장소 내부 import 는 시험 파일을 빼면 여섯 줄뿐이다.
+
+| 부르는 쪽 | 불리는 쪽 | 줄 |
+|---|---|---|
+| `codegraph/normalize.py` | `clang_doc` | `codegraph/normalize.py:20` |
+| `codegraph/reverse_refs.py` | `clangd_refs` | `codegraph/reverse_refs.py:17` |
+| `codegraph/terms_db.py` | `verify_citations` | `codegraph/terms_db.py:31` |
+| `codegraph/warmup.py` | `declmap` | `codegraph/warmup.py:45` |
+| `codegraph/run_mode1_5.py` | `run_mode1` | `codegraph/run_mode1_5.py:81` |
+| `codegraph/run_mode2.py` | `run_mode1` | `codegraph/run_mode2.py:68` |
+
+Node·TypeScript 쪽도 같은 모양이다 — `bin/*` → `scripts/dispatch.mjs`, `scripts/build.mjs` →
+`wrap-terms.mjs`·`link-paths.mjs` (`scripts/build.mjs:13-14`), `scripts/wiki/*` → `paths.mjs`·`python.mjs`,
+`src/index.ts:5-7` → `components/index.ts` → 개별 컴포넌트, `src/components/tables.tsx:6` → `badges.js`,
+`src/runtime/term-graph.ts:16` → `graph-math.js`.
+
+**🔵 import 층위의 순환은 0건이다.** 위 표의 여섯 쌍 어디에도 되돌아오는 변이 없고, Node 쪽도 마찬가지다.
+같은 결론을 이 저장소의 자체 도구로도 얻었다 — `render_modules.py` 가 `순환 0개, 순환 참여 간선 0개` 를 냈다(아래 §8).
+
+**다만 언어 층에는 왕복이 있다.** Python 실행기가 Node 스크립트를 자식 프로세스로 부르고
+(`codegraph/run_mode1.py:247`), 그 Node 스크립트가 다시 Python 도구를 부른다
+(`scripts/wiki/prep.mjs:131`, `:135`, `:137`). Python → Node → Python 이다.
+
+💭 이것을 순환으로 세지 않는 이유 — 프로세스 경계라 한쪽을 고쳐도 다른 쪽이 다시 컴파일되지 않고,
+부르는 방향도 늘 실행기 → 스크립트 → 도구 한 갈래다. 되돌아오는 호출은 없다.
+
+### 한 곳에만 있는 지식
+
+| 지식 | 사는 곳 |
+|---|---|
+| 접기 규칙과 kind 대응표 (언어 도구의 낱말 → 공통 낱말) | `codegraph/normalize.py` 만 |
+| 위키 경로 규약 | `scripts/wiki/paths.mjs:17` 의 `wikiPaths` 만 |
+| 파이썬 해석기 찾기 | `scripts/python.mjs:43` 의 `pythonPath` 만 |
+| 측정 코드 (토큰 세기·합계·표 그리기) | `codegraph/run_mode1.py` 만. 1.5 와 2 는 가져다 쓴다 |
+
+---
+
+## 5. 데이터 흐름 — 어느 도구가 만들고 어느 도구가 읽는가
+
+```mermaid
+graph LR
+  CGJ["codegraph.json"] --> TDB["terms-db.json"]
+  RDG["terms-reading.json"] --> TDB
+  TDB --> CAND["term-candidates.json"]
+  CAND --> ANS["answers.json"]
+  ANS --> GRD["term-grades.json"] --> TJS["terms.json"]
+  TJS -. 사람이 옮겨 적는다 .-> DTS["data.ts"]
+  DTS --> RPT["report.html"]
+```
+
+| 파일 | 만드는 것 | 읽는 것 |
+|---|---|---|
+| `out/codegraph-raw/codegraph.json` | `codegraph/normalize.py` (`scripts/wiki/prep.mjs:131`) | `facts.py` · `render_modules.py` · `terms_db.py` · `verify_citations.py` |
+| `out/codegraph-raw/facts/*.md` · `ranking.json` | `codegraph/facts.py` (`scripts/wiki/prep.mjs:135`) | LLM 이 프롬프트로 받는다 |
+| `docs/codegraph/terms-reading.json` | LLM (`agent` 단계) | `codegraph/terms_db.py` |
+| `out/codegraph-raw/terms-db.json` | `codegraph/terms_db.py` | `scripts/term/collect.mjs` |
+| `term-candidates.json` | `scripts/term/collect.mjs:26` · `:45` | 사람 / 출제 모형 |
+| `answers.json` | **사람** | `scripts/term/quiz.mjs:38` |
+| `term-grades.json` | `scripts/term/quiz.mjs` | `scripts/term/emit.mjs` |
+| `terms.json` · `term-study-note.md` | `scripts/term/emit.mjs:18` · `:33` | 사람. Mode 2 의 `data.ts` 로 **손으로** 옮긴다 |
+| `specs/<slug>/data.ts` | `scripts/init.mjs` 가 뼈대, LLM 이 본문 | `scripts/build.mjs` · `scripts/check.mjs` |
+| `specs/<slug>/out/report.html` | `scripts/build.mjs:152` | 사람 |
+
+**`terms.json` → `data.ts` 사이만 자동이 아니다.** 기계로 병합하지 않는 것이 의도다 —
+`data.ts` 는 사람이 읽는 원고이고, 옮기면서 뜻을 다듬는 것이 그 단계의 일이라고 못 박아 뒀다
+(`codegraph/run_mode2.py` 머리 주석 · `scripts/init.mjs:107-110`).
+
+### 보고서 굽기 — 문자열 조립까지
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as scripts/build.mjs
+  participant E as esbuild
+  participant R as React 정적 렌더
+  participant F as out/report.html
+  B->>E: report.tsx 트랜스파일 + alias 해결
+  E-->>B: .tmp-report.mjs
+  B->>R: renderToStaticMarkup
+  R-->>B: 본문 HTML 문자열
+  B->>B: wrapTerms → linkPaths → theme.css 삽입
+  B->>F: 문자열 조립해 저장
+```
+
+5번의 후처리 둘 — `scripts/build.mjs:80` 의 `wrapTerms` 가 본문 용어를 설명 카드 마크업으로 감싸고,
+`scripts/build.mjs:99` 의 `linkPaths` 가 경로 꼴 낱말을 실제 로컬 파일 링크로 바꾼다.
+**React 는 빌드 시점 Node 에만 있고, 산출물은 순수 HTML + CSS 다.**
+
+---
+
+## 6. 불변식과 그것을 지키는 검사
+
+| 불변식 | 뜻 | 어느 명령이 검사하나 |
+|---|---|---|
+| `<script>` **1개 이하** | 결과물은 정적 HTML 이다. 예산 1칸은 용어 그래프 런타임이 쓴다 | `report-spec build` 가 굽는 즉시 (`scripts/build.mjs:156`) **와** `report-spec check` (`scripts/check.mjs:17`) |
+| 타입이 맞는다 | 원고의 `data.ts`·`report.tsx` 가 `src/types.ts` 와 어긋나지 않는다 | `report-spec check` 가 임시 tsconfig 로 `tsc --noEmit` (`scripts/check.mjs:136`) |
+| 링크 무결성 | `data.ts` 의 결정 id 와 `report.tsx` 의 절이 1:1 | `report-spec check` (`scripts/check.mjs:29`) |
+| 용어집 대조 | 본문의 식별자 꼴 낱말에 정의가 있나 | `report-spec check` — **경고이지 실패가 아니다** (`scripts/check.mjs:50`) |
+| `builderVersion` 일치 | 원고가 어느 도구 버전으로 만들어졌나 | `report-spec check` — 경고까지 (`scripts/check.mjs:76`) |
+| 인용 L1/L2/L3 | 문서의 `파일:줄` 이 진짜인가 | `report-wiki check` → `codegraph/verify_citations.py` (`scripts/wiki/check.mjs:57`) |
+
+### 인용 3값 판정이 이 파이프라인의 차별점이다
+
+| 층 | 묻는 것 | 어떻게 |
+|---|---|---|
+| L1 | 그 파일이 있나 | 파일 존재 확인 (`codegraph/verify_citations.py:142`) |
+| L2 | 그 줄이 있나 | 줄 수 비교 (`codegraph/verify_citations.py:150`) |
+| L3 | **그 위치에 그 심볼이 있나** | `codegraph.json` 과 대조 (`codegraph/verify_citations.py:156`) |
+
+판정은 통과 / 실패 / **근거 없음** 3값이다. "근거 없음" 은 L1·L2 는 통과했으나 코드 지도에 그 위치의
+선언이 없는 경우이고, 종료 코드는 L1·L2 실패가 있을 때만 1 이다 (`codegraph/verify_citations.py:22`).
+
+💭 왜 3값인가 — 함수 본문 줄처럼 코드 지도가 원래 담지 않는 자리가 있다. 그것을 통과로 세면 검사가
+무의미해지고 실패로 세면 정상 인용이 전부 실패한다.
+
+### 시험
+
+| 명령 | 무엇 | 🔵 이번 실측 |
+|---|---|---|
+| `npm test` | Node 쪽 순수 함수와 컴포넌트 | 141 통과 · 0 실패 |
+| `.venv/bin/python -m pytest codegraph/` | 파이썬 쪽 | 201 통과 · 19 건너뜀 |
+| `npm run typecheck` | 이 저장소 `src/` 의 `tsc --noEmit` | — |
+| `npm run doctor` | 이 컴퓨터에 무엇이 있나. 필수가 없으면 exit 1 (`scripts/doctor.mjs:51`) | — |
+
+**건너뛴 19개는 골든 시험이다.** 합성 데이터만으로 검증하지 않으려고 실제 저장소의 산출물을 읽는데,
+그 저장소 경로가 환경변수로 들어온다(`GRAPHICS_REPO` · `CSHARP_REPO` · `CPP_REPO`). 변수가 없으면
+건너뛴다 — 실패가 아니다. 변수가 비었을 때 빈 문자열이 되면 상대경로로 풀려 **이 저장소의 산출물을
+골든으로 착각한다.** 그래서 존재할 수 없는 경로를 준다 (`codegraph/test_normalize.py:28`).
+
+**테스트가 `src/` 를 직접 import 하지 않는다.** `node --test` 는 JSX 를 못 읽으므로 `scripts/lib.mjs` 가
+`.tmp/lib.mjs` 로 먼저 굽고 테스트가 그것을 읽는다 (`test/components.test.mjs:5`).
+
+---
+
+## 7. 확장 지점과 막힌 지점
+
+### 새 정적 수집기를 더하려면
+
+정적 수집기란 소스를 읽어 "무엇이 무엇을 쓰는가" 를 뽑아 주는 바깥 도구다. 지금은 **둘 고정**이다.
+
+| 언어 | 도구 | 무엇을 낸다 |
+|---|---|---|
+| C++ | `clang-uml` + `clang-doc` | 타입 사이의 관계 + 심볼 전량 |
+| C# | `codegraph/roslyn-dump` (.NET 프로그램) | 타입·멤버 덤프 |
+
+고를 곳은 한 곳뿐이다 — `scripts/wiki/paths.mjs:39` 의 `collectorFor` 가 저장소 최상위 파일 목록만 보고
+고른다 (`.csproj`/`.slnx`/`.sln` 이면 C#, `CMakeLists.txt` 면 C++). 셋째를 더하려면 손댈 자리는 셋이다.
+
+1. `scripts/wiki/paths.mjs:39` — 고르는 규칙에 한 줄
+2. `scripts/wiki/prep.mjs:24` 의 `prepPlan` — 어떤 단계를 어떤 순서로 돌릴지
+3. `codegraph/normalize.py` — 그 도구의 낱말을 공통 `codegraph.json` 낱말로 옮기는 대응표
+
+**왜 이것을 쉽게 만들지 않았나.** 플러그인 구조·파서 레지스트리·추상 인터페이스를 만들면 그 자체가
+이 도구가 잡으려는 실패(거울 함정)가 된다. 구현자 1, 소비자 1 이면 인터페이스를 만들지 않는다는
+규율을 코드 주석에 적어 뒀다 (`scripts/wiki/paths.mjs:35`, `codegraph/normalize.py:14`).
+
+### 일부러 막아 둔 곳
+
+| 막힌 것 | 왜 |
+|---|---|
+| 산출물에 `<script>` 를 하나 더 넣기 | 예산이 다 찼다. 새 런타임 코드는 기존 번들 안에 합쳐야 한다 (`scripts/build.mjs:117`) |
+| 도구가 수용/보류/번복을 판정하기 | 판정은 사람 몫이다. `VerdictFooter` 는 비워서 낸다 (`src/components/VerdictFooter.tsx:9`) |
+| CLI 가 사람에게 되묻기 | 묻는 절차는 스킬의 일이다 (`scripts/term/quiz.mjs:6`) |
+| `terms.json` 을 `data.ts` 로 자동 병합 | 옮기면서 뜻을 다듬는 것이 그 단계의 일 (`scripts/init.mjs:107`) |
+| 컴포넌트의 props 를 없애거나 뜻을 바꾸기 | 추가만 한다. API 가 바뀌면 태그를 올린다 |
+| 코드에 절대경로를 박기 | 파이썬은 `scripts/python.mjs:43`, 바깥 명령은 PATH 로 찾는다 |
+
+### 컴포넌트 층
+
+`src/index.ts:5-7` 이 바깥문이다. 실제 구현은 여섯 파일로 갈려 있고 `src/components/index.ts:4-9` 가 모은다 —
+`badges` · `tables` · `blocks` · `BeforeAfter` · `VerdictFooter` · `terms`. 상태를 갖는 것은
+`src/runtime/term-graph.ts` 하나뿐이며 React 훅은 쓰지 않는다.
+
+다이어그램 확대는 자바스크립트 0줄로 되어 있다 — 체크박스 하나와 형제 결합자다
+(`src/theme.css:77-79`). 그 복구의 급소는 `--svg-w` 로, `scripts/svg.mjs:18` 이 원본 크기를 px 로 환산해
+돌려주고 `src/components/BeforeAfter.tsx:14` 가 인라인 style 로 주입한다. 연결고리 하나만 끊겨도
+"실제 크기" 모드가 조용히 죽는다.
+
+---
+
+## 8. 이 그림을 다시 그리는 법
+
+위 다이어그램들은 손으로 그렸다. **기계가 그린 모듈 관계도**가 따로 있고, 명령 하나로 다시 낸다.
+
+```bash
+.venv/bin/python codegraph/render_modules.py out/codegraph-raw/codegraph.json -o /tmp/modules
+# → /tmp/modules.svg · .png · .dot
+```
+
+🔵 이번에 실제로 돌린 출력 — `언어 unknown — 모듈 7 / 의존 1 / 외부 0` · `순환 0개, 순환 참여 간선 0개`.
+모듈 7개는 `codegraph` · `scripts` · `scripts/term` · `scripts/wiki` · `src` · `src/components` · `src/runtime` 이다.
+
+⚠ **이 코드 지도는 이 저장소 자신을 완전히 담고 있지 않다.** 🔵 노드 173 · 간선 105 인데
+`language` 가 `unknown` 이고 모듈 간 의존은 1건만 잡혔다 — 위 §4 에서 손으로 센 상대 import 보다 적다.
+정적 수집기가 C++ 과 C# 둘뿐이라 이 저장소(Python + TypeScript)는 본래 대상이 아니다.
+**모듈 사이 의존을 알고 싶으면 §4 의 표를 보라.** 기계 그림은 참고다.
