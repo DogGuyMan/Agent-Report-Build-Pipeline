@@ -95,7 +95,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph M1["Mode 1 — 코드베이스 위키"]
-    P1["prep"] --> A1["agent"] --> T1["terms"] --> B1["build"] --> C1["check"]
+    P1["prep"] --> W1["warmup"] --> A1["agent"] --> S1["warmup-save"] --> T1["terms"] --> B1["build"] --> C1["check"]
   end
   subgraph M15["Mode 1.5 — 용어 이해도"]
     CO["collect"] --> AU["author"] --> H(["사람이 답안"]) --> GR["grade"] --> EM["emit"]
@@ -106,22 +106,24 @@ flowchart LR
   classDef machine fill:#e8f0fe,stroke:#4a6fa5,color:#123
   classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px
   classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px
-  class P1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
+  class P1,W1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
   class A1,AU,A2 llm
   class H human
 ```
 
 단계 목록은 상수로 못 박혀 있고 레지스트리나 플러그인 구조를 만들지 않는다
-(`codegraph/run_mode1.py:65`, `codegraph/run_mode1_5.py:84`, `codegraph/run_mode2.py:80`).
-LLM 칸도 갈래마다 하나뿐이다 (`codegraph/run_mode1.py:68`, `codegraph/run_mode1_5.py:88`, `codegraph/run_mode2.py:83`).
+(`codegraph/run_mode1.py:81`, `codegraph/run_mode1_5.py:107`, `codegraph/run_mode2.py:80`).
+LLM 칸도 갈래마다 하나뿐이다 (`codegraph/run_mode1.py:84`, `codegraph/run_mode1_5.py:111`, `codegraph/run_mode2.py:83`).
 
 **Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
 
 | 단계 | 기계/LLM | 부르는 것 | 읽는 것 → 쓰는 것 |
 |---|---|---|---|
-| `prep` | 기계 | `scripts/wiki/prep.mjs` (`codegraph/run_mode1.py:247`) | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
+| `prep` | 기계 | `scripts/wiki/prep.mjs` (`codegraph/run_mode1.py:359`) | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
+| `warmup` | 기계 | `codegraph/warmup.py` (`codegraph/run_mode1.py:505`) | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다) |
 | `agent` | **LLM 1회** | `claude -p` | 소스 + `facts/*.md` → `docs/codegraph/terms-reading.json` · `docs/wiki/*.md` |
-| `terms` | 기계 | `codegraph/terms_db.py` (`codegraph/run_mode1.py:255`) | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
+| `warmup-save` | 기계 | `codegraph/warmup.py` (`codegraph/run_mode1.py:557`) | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**에이전트가 성공했을 때만**) |
+| `terms` | 기계 | `codegraph/terms_db.py` (`codegraph/run_mode1.py:367`) | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
 | `build` | 기계 | `scripts/wiki/build.mjs` | `docs/wiki/*.md` → VitePress 정적 사이트 |
 | `check` | 기계 | `scripts/wiki/check.mjs` | 산문 → 인용 판정 표 (표준 출력) |
 
@@ -171,8 +173,10 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 
 💭 여기서 나오는 설계 결론 하나 — **기계 단계를 최적화할 여지가 없다.** 성능을 건드릴 자리는
 `agent` 의 *입력 범위* 뿐이고, 그것이 `codegraph/warmup.py` 가 존재하는 이유다(파일 해시로 다시 읽을
-파일만 골라낸다). 🔵 `codegraph/warmup.py` 는 있으나 `run_mode1.py` 의 `STAGES` 에 아직 없다
-(`codegraph/run_mode1.py:65` 에 `warmup` 이 없음) — 배선은 미완이다.
+파일만 골라낸다). 🔵 2026-08-30 에 배선됐다(`1e5d766`) — `run_mode1.py` 의 `STAGES` 가 일곱이 되어
+`warmup` 과 `warmup-save` 가 `agent` 앞뒤를 감싼다. 🔵 QtVisionEdit 에서 아무것도 안 바뀐 실행은
+`agent` 가 **건너뜀 · 토큰 0 · $0** 으로 그려진다. **다만 국소 변경을 준 증분 실행의 절감폭은 아직
+재지 않았다**(계획서 Task 9 미실행) — 위 냉시동 표가 여전히 유일한 기준선이다.
 
 ---
 

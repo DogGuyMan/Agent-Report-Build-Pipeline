@@ -26,7 +26,7 @@
 자동화는 수단이고, 목적은 **단계마다 벽시계 시간과 토큰을 붙들어 표로 내는 것**이다.
 
 ```
-Mode 1    prep ─▶ agent ─▶ terms ─▶ build ─▶ check
+Mode 1    prep ─▶ warmup ─▶ agent ─▶ warmup-save ─▶ terms ─▶ build ─▶ check
 Mode 1.5  collect ─▶ author ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ agent ─▶ build ─▶ check
 ```
@@ -65,7 +65,14 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 🔵 2026-08-30 실측으로 확인했다. **그래서 에이전트에 먹일 목록은 `재읽기` 가 아니라
 `blast_radius(재읽기 ∪ 위치만)` 이어야 한다** — `warmup.py` 의 CLI 도 그렇게 한다.
 
-배선 계획은 `../docs/superpowers/plans/2026-08-30-warmup-mode1-wiring.md` 에 있다(미실행).
+**2026-08-30 에 배선됐다**(`1e5d766`). `run_mode1.py` 의 단계가 일곱이 되면서 `warmup`(판정만)과
+`warmup-save`(확정)가 `agent` 앞뒤에 붙었다. **둘로 가른 것이 급소다** — 한 칸이면 에이전트가 실패해도
+그 파일이 `유효` 로 기록되어 읽지 않은 파일이 읽은 것으로 남는다. 씨앗은 `changed_seed` 가 만들고
+위 경고대로 `재읽기 ∪ 위치만` 이다. 판정을 못 하면 옛 동작인 전량 조사로 되돌아가고, 대조군은
+`--skip warmup,warmup-save` 로 만든다.
+
+계획서는 `../docs/superpowers/plans/2026-08-30-warmup-mode1-wiring.md` 다. **Task 9(실측 대조)만 미실행** —
+국소 변경을 준 증분 실행의 절감폭은 아직 숫자가 없다.
 
 ## 경로 변수 — 문서와 테스트가 쓰는 이름
 
