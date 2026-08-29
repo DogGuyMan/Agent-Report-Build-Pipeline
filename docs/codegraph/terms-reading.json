@@ -328,7 +328,7 @@
   "QUESTIONS_PER_TERM": {
     "kind": "concept",
     "module": "scripts/term",
-    "where": "scripts/term/quiz.mjs:12",
+    "where": "scripts/term/quiz.mjs:18",
     "means": "용어 하나에 내는 문항 수. 5 다.",
     "does": "5개여야 정답률이 80% 라는 경계에 딱 떨어진다.",
     "uses": [],
@@ -616,10 +616,11 @@
   "answers.json": {
     "kind": "artifact",
     "module": "scripts/term",
-    "where": "scripts/term/quiz.mjs:49",
-    "means": "사람이 객관식에 답한 결과. 스킬이 만들고 quiz.mjs 가 읽는다.",
+    "where": "scripts/term/quiz.mjs:194",
+    "means": "사람이 채운 기입란. 고른 보기 번호만 들어 있고 정답은 없다.",
     "uses": [],
-    "source": "reading"
+    "source": "reading",
+    "does": "answer-sheet.json 의 UserAns 를 채워 이 이름으로 둔 것이다. quiz.mjs 가 questions.json 과 함께 읽어 맞힌 수를 센다."
   },
   "badges.tsx": {
     "kind": "file",
@@ -1217,7 +1218,7 @@
   "gradeAll": {
     "kind": "function",
     "module": "scripts/term",
-    "where": "scripts/term/quiz.mjs:38",
+    "where": "scripts/term/quiz.mjs:178",
     "means": "답안 전체를 채점한다. 입력이 같으면 출력도 같다.",
     "uses": [
       {
@@ -1232,7 +1233,7 @@
   "gradeOne": {
     "kind": "function",
     "module": "scripts/term",
-    "where": "scripts/term/quiz.mjs:25",
+    "where": "scripts/term/quiz.mjs:165",
     "means": "용어 하나의 답안을 채점해 확실 · 애매 · 모름을 매긴다.",
     "does": "모른다를 세 번 이상 골랐으면 정답률과 무관하게 모름이다. 찍어서 맞힌 것을 안다고 세지 않기 위해서다.",
     "uses": [
@@ -1240,7 +1241,7 @@
         "to": "QUESTIONS_PER_TERM",
         "kind": "dependency",
         "label": "reads",
-        "where": "scripts/term/quiz.mjs:26"
+        "where": "scripts/term/quiz.mjs:166"
       }
     ],
     "source": "reading"
@@ -1735,13 +1736,13 @@
     "module": "scripts/term",
     "where": "scripts/term/quiz.mjs:1",
     "means": "객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.",
-    "does": "용어마다 맞힌 개수를 보고 확실 · 애매 · 모름을 매겨 term-grades.json 에 쓴다. 모른다를 세 번 이상 골랐으면 정답률과 무관하게 모름이다.",
+    "does": "채운 기입란과 문항지를 대조해 용어마다 맞힌 개수를 세고, 확실 · 모름을 매겨 term-grades.json 에 쓴다. 모르겠다를 두 번 이상 골랐으면 정답률과 무관하게 모름이다.",
     "uses": [
       {
         "to": "term-grades.json",
         "kind": "dependency",
         "label": "writes",
-        "where": "scripts/term/quiz.mjs:56"
+        "where": "scripts/term/quiz.mjs:212"
       }
     ],
     "source": "reading"
@@ -2162,7 +2163,7 @@
   "term-grades.json": {
     "kind": "artifact",
     "module": "scripts/term",
-    "where": "scripts/term/quiz.mjs:56",
+    "where": "scripts/term/quiz.mjs:212",
     "means": "용어마다 확실 · 애매 · 모름을 매긴 채점 결과.",
     "does": "quiz.mjs 가 쓰고 emit.mjs 가 읽는다.",
     "uses": [],
@@ -3774,7 +3775,7 @@
   "run_mode1_5.is_agent_stage": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:110",
+    "where": "codegraph/run_mode1_5.py:139",
     "means": "이 단계가 큰 언어 모형을 부르는 자리인지 답한다.",
     "does": "출제 하나뿐이다.",
     "uses": [],
@@ -3784,7 +3785,7 @@
   "run_mode1_5.plan_stages": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:118",
+    "where": "codegraph/run_mode1_5.py:147",
     "means": "네 단계 중 무엇을 실제로 돌릴지 고른다.",
     "does": "이미 있는 산출물을 보고 건너뛴다. 답안이 없으면 채점과 산출을 목록에 넣지 않아, 마른 실행만 봐도 어디서 멈출지 보인다.",
     "uses": [],
@@ -3794,7 +3795,7 @@
   "run_mode1_5.human_gate_open": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:150",
+    "where": "codegraph/run_mode1_5.py:179",
     "means": "사람 차례가 아직 안 끝났는지 답한다.",
     "does": "답안 파일이 있느냐 하나로만 판정한다.",
     "uses": [],
@@ -3804,7 +3805,7 @@
   "run_mode1_5.split_new_concepts": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:162",
+    "where": "codegraph/run_mode1_5.py:191",
     "means": "새로 나온 개념을 출제할 것과 미룰 것으로 가른다.",
     "does": "뜻이 정해졌으면 출제한다. 뜻이 없으면 미룬다 — 지어내면 채점이 무의미해진다. 헛짚었는지 여부는 따지지 않는다.",
     "uses": [],
@@ -3814,7 +3815,7 @@
   "run_mode1_5.validate_questions": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:187",
+    "where": "codegraph/run_mode1_5.py:216",
     "means": "문항지가 채점할 수 있는 꼴인지 본다.",
     "does": "문항 수·보기 수·모른다 자리·정답 자리·겹친 보기·정답 쏠림을 본다. 문항이 좋은지 나쁜지는 판정하지 않는다.",
     "uses": [],
@@ -3824,19 +3825,9 @@
   "run_mode1_5.unasked_known": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:251",
+    "where": "codegraph/run_mode1_5.py:282",
     "means": "출제도 안 되고 뺀 이유도 안 적힌 용어를 낸다.",
     "does": "조용히 빠지면 좁힌 것인지 잊은 것인지 구별할 수 없다.",
-    "uses": [],
-    "confidence": "HIGH",
-    "source": "reading"
-  },
-  "run_mode1_5.answers_template": {
-    "kind": "function",
-    "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:273",
-    "means": "문항지에서 빈 답안 틀을 만든다.",
-    "does": "뜻은 미리 채우고 숫자 둘만 비운다. 사람이 뜻을 손으로 옮기다 내는 오타가 그대로 용어집이 되는 것을 막는다.",
     "uses": [],
     "confidence": "HIGH",
     "source": "reading"
@@ -3844,9 +3835,9 @@
   "run_mode1_5.validate_answers": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:293",
-    "means": "답안이 문항지와 아귀가 맞는지 본다.",
-    "does": "빠진 답안·없던 용어·문항 수를 넘는 응답·빈 뜻을 잡는다. 채점기는 이것을 보지 않고 조용히 매긴다.",
+    "where": "codegraph/run_mode1_5.py:369",
+    "means": "채운 기입란이 문항지와 아귀가 맞는지 본다.",
+    "does": "빠진 답안 · 없던 문항 · 빈 UserAns · 보기 밖 번호 · 용어와 물음 문구의 어긋남을 잡는다. QNum 규칙이 파이썬과 quiz.mjs 두 곳에 살기 때문에 필요한 대조다.",
     "uses": [],
     "confidence": "HIGH",
     "source": "reading"
@@ -3854,7 +3845,7 @@
   "run_mode1_5._term_script": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:330",
+    "where": "codegraph/run_mode1_5.py:422",
     "means": "용어 점검 스크립트의 절대 경로를 만든다.",
     "does": "저장소 뿌리와 파일 이름을 잇는다.",
     "uses": [],
@@ -3864,7 +3855,7 @@
   "run_mode1_5.collect_argv": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:338",
+    "where": "codegraph/run_mode1_5.py:430",
     "means": "후보 모으기 명령줄을 만든다.",
     "does": "사전이 없으면 그 인자를 뺀다.",
     "uses": [],
@@ -3874,9 +3865,9 @@
   "run_mode1_5.grade_argv": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:356",
+    "where": "codegraph/run_mode1_5.py:448",
     "means": "채점 명령줄을 만든다.",
-    "does": "답안 파일 하나만 넘긴다.",
+    "does": "채운 기입란과 문항지 둘을 넘긴다. 기입란에는 정답이 없어서 둘이 만나야 채점이 된다.",
     "uses": [],
     "confidence": "HIGH",
     "source": "reading"
@@ -3884,7 +3875,7 @@
   "run_mode1_5.emit_argv": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:364",
+    "where": "codegraph/run_mode1_5.py:461",
     "means": "산출 명령줄을 만든다.",
     "does": "채점 결과 파일 하나만 넘긴다.",
     "uses": [],
@@ -3894,7 +3885,7 @@
   "run_mode1_5.author_argv": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:372",
+    "where": "codegraph/run_mode1_5.py:469",
     "means": "출제 세션의 헤드리스 명령줄을 만든다.",
     "does": "작업 폴더·도구 뿌리·계획서 폴더 셋을 겹치지 않게 열어 준다.",
     "uses": [],
@@ -3904,7 +3895,7 @@
   "run_mode1_5.author_prompt": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:390",
+    "where": "codegraph/run_mode1_5.py:487",
     "means": "한 세션이 할 일 전부를 적은 글.",
     "does": "용어 보충과 출제를 이어서 시킨다. 쪼개면 두 번째 세션이 처음부터 다시 읽어 토큰이 부푼다.",
     "uses": [],
@@ -3914,7 +3905,7 @@
   "run_mode1_5.gate_notice": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:485",
+    "where": "codegraph/run_mode1_5.py:585",
     "means": "사람 차례에서 화면에 낼 안내문.",
     "does": "풀 파일과 채울 파일과 다시 돌리는 법을 알린다. 멈춘 것을 실패라고 부르지 않는다.",
     "uses": [],
@@ -3924,7 +3915,7 @@
   "run_mode1_5.format_run": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:527",
+    "where": "codegraph/run_mode1_5.py:631",
     "means": "측정 표에 건너뜀과 사람 차례를 덧붙인다.",
     "does": "실제로 돌린 단계만 표에 담고 나머지는 표 밖에 글로 적는다.",
     "uses": [],
@@ -3934,7 +3925,7 @@
   "run_mode1_5._read_json": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:550",
+    "where": "codegraph/run_mode1_5.py:654",
     "means": "있으면 읽고 없거나 깨졌으면 아무것도 아닌 값을 낸다.",
     "does": "실패를 예외가 아니라 빈 값으로 삼킨다.",
     "uses": [],
@@ -3944,7 +3935,7 @@
   "run_mode1_5.run_machine": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:562",
+    "where": "codegraph/run_mode1_5.py:666",
     "means": "기계 단계 하나를 작업 폴더에서 부른다.",
     "does": "일하는 폴더를 강제한다 — 그 스크립트들이 지금 폴더에 쓰기 때문이다.",
     "uses": [],
@@ -3954,7 +3945,7 @@
   "run_mode1_5.run_author": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:576",
+    "where": "codegraph/run_mode1_5.py:680",
     "means": "출제 세션을 한 번 부른다.",
     "does": "시킬 말은 표준 입력으로 준다.",
     "uses": [],
@@ -3964,9 +3955,106 @@
   "run_mode1_5.main": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/run_mode1_5.py:594",
+    "where": "codegraph/run_mode1_5.py:698",
     "means": "명령줄을 읽고 단계를 돌린 뒤 측정 표와 사람 차례 안내를 낸다.",
     "does": "답안 틀을 미리 깔아 두고, 답안이 생기면 같은 명령으로 채점부터 이어 간다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "run_mode1_5.flatten_questions": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/run_mode1_5.py:304",
+    "means": "문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.",
+    "does": "걸러 내지 않고 그대로 편다. quiz.mjs 의 flattenQuestions 와 같은 순서여야 번호가 맞고, 하나라도 걸러 내면 그 자리에서 양쪽이 어긋난다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "run_mode1_5.answer_sheet": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/run_mode1_5.py:323",
+    "means": "문항지에서 정답을 빼고 사람이 채울 기입란을 만든다.",
+    "does": "정답을 싣지 않는 것이 요점이다. 사람은 UserAns 에 고른 보기 번호만 적고, 맞힌 수를 세는 일은 quiz.mjs 가 한다.",
+    "uses": [
+      {
+        "to": "run_mode1_5.flatten_questions",
+        "kind": "dependency",
+        "label": "calls",
+        "where": "codegraph/run_mode1_5.py:333"
+      }
+    ],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "run_mode1_5.choice_number": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/run_mode1_5.py:349",
+    "means": "사람이 적은 UserAns 를 보기 번호로 읽는다.",
+    "does": "숫자와 숫자 문자열을 둘 다 받고, 빈 칸은 None 이다. 안 푼 것을 모르겠다로 메우지 않는다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "flattenQuestions": {
+    "kind": "function",
+    "module": "scripts/term",
+    "where": "scripts/term/quiz.mjs:40",
+    "means": "문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.",
+    "does": "0부터인 정답 자리를 1부터인 보기 번호로 옮겨 둔다. 기입란의 UserAns 가 1부터라 여기서 자릿수를 맞춘다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "choiceNumber": {
+    "kind": "function",
+    "module": "scripts/term",
+    "where": "scripts/term/quiz.mjs:69",
+    "means": "사람이 적은 UserAns 를 보기 번호로 읽는다.",
+    "does": "숫자와 숫자 문자열을 둘 다 받고, 빈 칸은 null 이다. 안 푼 것을 모르겠다로 메우지 않는다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "tallySheet": {
+    "kind": "function",
+    "module": "scripts/term",
+    "where": "scripts/term/quiz.mjs:89",
+    "means": "채운 기입란을 문항지와 대조해 용어마다 맞힌 수와 모르겠다 수를 센다.",
+    "does": "사람이 세던 자리를 가져간 함수다. 마지막 보기 번호를 고른 것은 dontKnow 로 센다. 아귀가 안 맞으면 problems 를 채우고, 부르는 쪽은 그때 채점하지 않는다.",
+    "uses": [
+      {
+        "to": "flattenQuestions",
+        "kind": "dependency",
+        "label": "calls",
+        "where": "scripts/term/quiz.mjs:115"
+      },
+      {
+        "to": "choiceNumber",
+        "kind": "dependency",
+        "label": "calls",
+        "where": "scripts/term/quiz.mjs:133"
+      }
+    ],
+    "source": "reading"
+  },
+  "questions.json": {
+    "kind": "artifact",
+    "module": "codegraph",
+    "where": "codegraph/run_mode1_5.py:129",
+    "means": "용어마다 3문항 × 5지선다를 담은 문항지. 정답이 들어 있다.",
+    "does": "출제 세션이 쓰고 validate_questions 가 검사한다. 정답이 들어 있어서 사람에게 그대로 내밀지 않는다 — answer_sheet 가 정답을 뺀 기입란을 따로 만든다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "answer-sheet.json": {
+    "kind": "artifact",
+    "module": "codegraph",
+    "where": "codegraph/run_mode1_5.py:130",
+    "means": "정답을 뺀 기입란. 사람이 UserAns 에 고른 보기 번호를 적는다.",
+    "does": "실행기가 사람 차례에서 깔아 둔다. 채워서 answers.json 이라는 이름으로 두면 채점부터 이어서 돈다. 옛 이름 answers-template.json 을 물려 쓰지 않는다 — 꼴이 통째로 달라서 지난 실행의 파일이 새 기입란인 척 섞인다.",
     "uses": [],
     "confidence": "HIGH",
     "source": "reading"

@@ -112,7 +112,7 @@
     <means>다이어그램 한 쪽(전 또는 후)을 그린다.</means>
     <does>SVG 의 원본 폭을 --svg-w 로 넣는다. 이 값이 없으면 브라우저가 기본 크기로 그려 실제 크기 보기가 죽는다.</does>
   </term>
-  <term id="QUESTIONS_PER_TERM" kind="concept" module="scripts/term" where="scripts/term/quiz.mjs:12" source="reading">
+  <term id="QUESTIONS_PER_TERM" kind="concept" module="scripts/term" where="scripts/term/quiz.mjs:18" source="reading">
     <means>용어 하나에 내는 문항 수. 5 다.</means>
     <does>5개여야 정답률이 80% 라는 경계에 딱 떨어진다.</does>
   </term>
@@ -226,8 +226,13 @@
   <term id="_written_by_llm" kind="function" module="codegraph" where="codegraph/terms_db.py:260" source="reading">
     <means>이 간선을 LLM 이 썼는지 가른다. 표시가 없으면 정적 도구가 낸 것이다.</means>
   </term>
-  <term id="answers.json" kind="artifact" module="scripts/term" where="scripts/term/quiz.mjs:49" source="reading">
-    <means>사람이 객관식에 답한 결과. 스킬이 만들고 quiz.mjs 가 읽는다.</means>
+  <term id="answer-sheet.json" kind="artifact" module="codegraph" where="codegraph/run_mode1_5.py:130" source="reading">
+    <means>정답을 뺀 기입란. 사람이 UserAns 에 고른 보기 번호를 적는다.</means>
+    <does>실행기가 사람 차례에서 깔아 둔다. 채워서 answers.json 이라는 이름으로 두면 채점부터 이어서 돈다. 옛 이름 answers-template.json 을 물려 쓰지 않는다 — 꼴이 통째로 달라서 지난 실행의 파일이 새 기입란인 척 섞인다.</does>
+  </term>
+  <term id="answers.json" kind="artifact" module="scripts/term" where="scripts/term/quiz.mjs:194" source="reading">
+    <means>사람이 채운 기입란. 고른 보기 번호만 들어 있고 정답은 없다.</means>
+    <does>answer-sheet.json 의 UserAns 를 채워 이 이름으로 둔 것이다. quiz.mjs 가 questions.json 과 함께 읽어 맞힌 수를 센다.</does>
   </term>
   <term id="badges.tsx" kind="file" module="src/components" where="src/components/badges.tsx:1" source="reading">
     <means>확신도 배지와 상태 태그 두 조각이 있는 파일.</means>
@@ -305,6 +310,10 @@
     <uses to="_split_where" kind="dependency" label="calls" where="codegraph/terms_db.py:294"/>
     <uses to="_written_by_llm" kind="dependency" label="calls" where="codegraph/terms_db.py:319"/>
     <uses to="_stem" kind="dependency" label="calls" where="codegraph/terms_db.py:332"/>
+  </term>
+  <term id="choiceNumber" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:69" source="reading">
+    <means>사람이 적은 UserAns 를 보기 번호로 읽는다.</means>
+    <does>숫자와 숫자 문자열을 둘 다 받고, 빈 칸은 null 이다. 안 푼 것을 모르겠다로 메우지 않는다.</does>
   </term>
   <term id="cite" kind="function" module="codegraph" where="codegraph/facts.py:133" source="reading">
     <means>사실 표에 붙일 (경로:줄) 꼴 인용 문자열을 만든다.</means>
@@ -530,6 +539,10 @@
     <means>파일명만 남은 인용을 저장소 기준 전체 경로로 되살리는 도구.</means>
     <does>문서에서 경로 없이 파일명만 적힌 인용을 찾아, 저장소에 그 이름의 파일이 딱 하나일 때만 전체 경로로 바꾼다. 둘 이상이면 손대지 않고 보고한다.</does>
   </term>
+  <term id="flattenQuestions" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:40" source="reading">
+    <means>문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.</means>
+    <does>0부터인 정답 자리를 1부터인 보기 번호로 옮겨 둔다. 기입란의 UserAns 가 1부터라 여기서 자릿수를 맞춘다.</does>
+  </term>
   <term id="flatten_description" kind="function" module="codegraph" where="codegraph/clang_doc.py:63" source="reading">
     <means>저자가 코드에 단 설명 글을 한 줄로 편다.</means>
     <does>설명이 목록 안의 목록으로 겹쳐 있다. 칸 이름을 세지 않고 구조를 훑어 글자만 순서대로 모은다.</does>
@@ -541,14 +554,14 @@
   <term id="git_commit" kind="function" module="codegraph" where="codegraph/normalize.py:54" source="reading">
     <means>대상 저장소의 현재 커밋을 짧은 해시로 읽는다. 실패하면 빈 값이다.</means>
   </term>
-  <term id="gradeAll" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:38" source="reading">
+  <term id="gradeAll" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:178" source="reading">
     <means>답안 전체를 채점한다. 입력이 같으면 출력도 같다.</means>
     <uses to="gradeOne" kind="dependency" label="calls" where="scripts/term/quiz.mjs:42"/>
   </term>
-  <term id="gradeOne" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:25" source="reading">
+  <term id="gradeOne" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:165" source="reading">
     <means>용어 하나의 답안을 채점해 확실 · 애매 · 모름을 매긴다.</means>
     <does>모른다를 세 번 이상 골랐으면 정답률과 무관하게 모름이다. 찍어서 맞힌 것을 안다고 세지 않기 위해서다.</does>
-    <uses to="QUESTIONS_PER_TERM" kind="dependency" label="reads" where="scripts/term/quiz.mjs:26"/>
+    <uses to="QUESTIONS_PER_TERM" kind="dependency" label="reads" where="scripts/term/quiz.mjs:166"/>
   </term>
   <term id="graph-math.ts" kind="file" module="src/runtime" where="src/runtime/graph-math.ts:1" source="reading">
     <means>관계도 런타임이 쓰는 순수 계산만 모아 둔 파일.</means>
@@ -776,10 +789,14 @@
     <means>심볼이 속한 이름 공간을 바깥부터 이어 한 낱말로 만든다.</means>
     <does>도구는 안쪽부터 준다. 뒤집지 않으면 우리 코드인지 가리는 허용목록이 통째로 빗나간다. 전역을 뜻하는 가짜 이름은 빼고 잇는다.</does>
   </term>
+  <term id="questions.json" kind="artifact" module="codegraph" where="codegraph/run_mode1_5.py:129" source="reading">
+    <means>용어마다 3문항 × 5지선다를 담은 문항지. 정답이 들어 있다.</means>
+    <does>출제 세션이 쓰고 validate_questions 가 검사한다. 정답이 들어 있어서 사람에게 그대로 내밀지 않는다 — answer_sheet 가 정답을 뺀 기입란을 따로 만든다.</does>
+  </term>
   <term id="quiz.mjs" kind="file" module="scripts/term" where="scripts/term/quiz.mjs:1" source="reading">
     <means>객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.</means>
-    <does>용어마다 맞힌 개수를 보고 확실 · 애매 · 모름을 매겨 term-grades.json 에 쓴다. 모른다를 세 번 이상 골랐으면 정답률과 무관하게 모름이다.</does>
-    <uses to="term-grades.json" kind="dependency" label="writes" where="scripts/term/quiz.mjs:56"/>
+    <does>채운 기입란과 문항지를 대조해 용어마다 맞힌 개수를 세고, 확실 · 모름을 매겨 term-grades.json 에 쓴다. 모르겠다를 두 번 이상 골랐으면 정답률과 무관하게 모름이다.</does>
+    <uses to="term-grades.json" kind="dependency" label="writes" where="scripts/term/quiz.mjs:212"/>
   </term>
   <term id="ranking.json" kind="artifact" module="codegraph" where="codegraph/facts.py:195" source="reading">
     <means>모듈과 클래스의 중요도 순위. 어디부터 읽을지 정하는 재료다.</means>
@@ -962,83 +979,92 @@
     <means>용어 사전을 만드는 단계의 명령줄을 만든다.</means>
     <does>정적 코드 지도를 위치 인자로 반드시 함께 준다. 읽기 레코드만 주면 그 투영이 코드 지도 파일을 덮어써서 점이 조용히 줄어든다.</does>
   </term>
-  <term id="run_mode1_5._read_json" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:550" source="reading">
+  <term id="run_mode1_5._read_json" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:654" source="reading">
     <means>있으면 읽고 없거나 깨졌으면 아무것도 아닌 값을 낸다.</means>
     <does>실패를 예외가 아니라 빈 값으로 삼킨다.</does>
   </term>
-  <term id="run_mode1_5._term_script" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:330" source="reading">
+  <term id="run_mode1_5._term_script" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:422" source="reading">
     <means>용어 점검 스크립트의 절대 경로를 만든다.</means>
     <does>저장소 뿌리와 파일 이름을 잇는다.</does>
   </term>
-  <term id="run_mode1_5.answers_template" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:273" source="reading">
-    <means>문항지에서 빈 답안 틀을 만든다.</means>
-    <does>뜻은 미리 채우고 숫자 둘만 비운다. 사람이 뜻을 손으로 옮기다 내는 오타가 그대로 용어집이 되는 것을 막는다.</does>
+  <term id="run_mode1_5.answer_sheet" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:323" source="reading">
+    <means>문항지에서 정답을 빼고 사람이 채울 기입란을 만든다.</means>
+    <does>정답을 싣지 않는 것이 요점이다. 사람은 UserAns 에 고른 보기 번호만 적고, 맞힌 수를 세는 일은 quiz.mjs 가 한다.</does>
+    <uses to="run_mode1_5.flatten_questions" kind="dependency" label="calls" where="codegraph/run_mode1_5.py:333"/>
   </term>
-  <term id="run_mode1_5.author_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:372" source="reading">
+  <term id="run_mode1_5.author_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:469" source="reading">
     <means>출제 세션의 헤드리스 명령줄을 만든다.</means>
     <does>작업 폴더·도구 뿌리·계획서 폴더 셋을 겹치지 않게 열어 준다.</does>
   </term>
-  <term id="run_mode1_5.author_prompt" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:390" source="reading">
+  <term id="run_mode1_5.author_prompt" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:487" source="reading">
     <means>한 세션이 할 일 전부를 적은 글.</means>
     <does>용어 보충과 출제를 이어서 시킨다. 쪼개면 두 번째 세션이 처음부터 다시 읽어 토큰이 부푼다.</does>
   </term>
-  <term id="run_mode1_5.collect_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:338" source="reading">
+  <term id="run_mode1_5.choice_number" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:349" source="reading">
+    <means>사람이 적은 UserAns 를 보기 번호로 읽는다.</means>
+    <does>숫자와 숫자 문자열을 둘 다 받고, 빈 칸은 None 이다. 안 푼 것을 모르겠다로 메우지 않는다.</does>
+  </term>
+  <term id="run_mode1_5.collect_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:430" source="reading">
     <means>후보 모으기 명령줄을 만든다.</means>
     <does>사전이 없으면 그 인자를 뺀다.</does>
   </term>
-  <term id="run_mode1_5.emit_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:364" source="reading">
+  <term id="run_mode1_5.emit_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:461" source="reading">
     <means>산출 명령줄을 만든다.</means>
     <does>채점 결과 파일 하나만 넘긴다.</does>
   </term>
-  <term id="run_mode1_5.format_run" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:527" source="reading">
+  <term id="run_mode1_5.flatten_questions" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:304" source="reading">
+    <means>문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.</means>
+    <does>걸러 내지 않고 그대로 편다. quiz.mjs 의 flattenQuestions 와 같은 순서여야 번호가 맞고, 하나라도 걸러 내면 그 자리에서 양쪽이 어긋난다.</does>
+  </term>
+  <term id="run_mode1_5.format_run" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:631" source="reading">
     <means>측정 표에 건너뜀과 사람 차례를 덧붙인다.</means>
     <does>실제로 돌린 단계만 표에 담고 나머지는 표 밖에 글로 적는다.</does>
   </term>
-  <term id="run_mode1_5.gate_notice" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:485" source="reading">
+  <term id="run_mode1_5.gate_notice" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:585" source="reading">
     <means>사람 차례에서 화면에 낼 안내문.</means>
     <does>풀 파일과 채울 파일과 다시 돌리는 법을 알린다. 멈춘 것을 실패라고 부르지 않는다.</does>
   </term>
-  <term id="run_mode1_5.grade_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:356" source="reading">
+  <term id="run_mode1_5.grade_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:448" source="reading">
     <means>채점 명령줄을 만든다.</means>
-    <does>답안 파일 하나만 넘긴다.</does>
+    <does>채운 기입란과 문항지 둘을 넘긴다. 기입란에는 정답이 없어서 둘이 만나야 채점이 된다.</does>
   </term>
-  <term id="run_mode1_5.human_gate_open" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:150" source="reading">
+  <term id="run_mode1_5.human_gate_open" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:179" source="reading">
     <means>사람 차례가 아직 안 끝났는지 답한다.</means>
     <does>답안 파일이 있느냐 하나로만 판정한다.</does>
   </term>
-  <term id="run_mode1_5.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:110" source="reading">
+  <term id="run_mode1_5.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:139" source="reading">
     <means>이 단계가 큰 언어 모형을 부르는 자리인지 답한다.</means>
     <does>출제 하나뿐이다.</does>
   </term>
-  <term id="run_mode1_5.main" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:594" source="reading">
+  <term id="run_mode1_5.main" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:698" source="reading">
     <means>명령줄을 읽고 단계를 돌린 뒤 측정 표와 사람 차례 안내를 낸다.</means>
     <does>답안 틀을 미리 깔아 두고, 답안이 생기면 같은 명령으로 채점부터 이어 간다.</does>
   </term>
-  <term id="run_mode1_5.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:118" source="reading">
+  <term id="run_mode1_5.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:147" source="reading">
     <means>네 단계 중 무엇을 실제로 돌릴지 고른다.</means>
     <does>이미 있는 산출물을 보고 건너뛴다. 답안이 없으면 채점과 산출을 목록에 넣지 않아, 마른 실행만 봐도 어디서 멈출지 보인다.</does>
   </term>
-  <term id="run_mode1_5.run_author" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:576" source="reading">
+  <term id="run_mode1_5.run_author" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:680" source="reading">
     <means>출제 세션을 한 번 부른다.</means>
     <does>시킬 말은 표준 입력으로 준다.</does>
   </term>
-  <term id="run_mode1_5.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:562" source="reading">
+  <term id="run_mode1_5.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:666" source="reading">
     <means>기계 단계 하나를 작업 폴더에서 부른다.</means>
     <does>일하는 폴더를 강제한다 — 그 스크립트들이 지금 폴더에 쓰기 때문이다.</does>
   </term>
-  <term id="run_mode1_5.split_new_concepts" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:162" source="reading">
+  <term id="run_mode1_5.split_new_concepts" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:191" source="reading">
     <means>새로 나온 개념을 출제할 것과 미룰 것으로 가른다.</means>
     <does>뜻이 정해졌으면 출제한다. 뜻이 없으면 미룬다 — 지어내면 채점이 무의미해진다. 헛짚었는지 여부는 따지지 않는다.</does>
   </term>
-  <term id="run_mode1_5.unasked_known" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:251" source="reading">
+  <term id="run_mode1_5.unasked_known" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:282" source="reading">
     <means>출제도 안 되고 뺀 이유도 안 적힌 용어를 낸다.</means>
     <does>조용히 빠지면 좁힌 것인지 잊은 것인지 구별할 수 없다.</does>
   </term>
-  <term id="run_mode1_5.validate_answers" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:293" source="reading">
-    <means>답안이 문항지와 아귀가 맞는지 본다.</means>
-    <does>빠진 답안·없던 용어·문항 수를 넘는 응답·빈 뜻을 잡는다. 채점기는 이것을 보지 않고 조용히 매긴다.</does>
+  <term id="run_mode1_5.validate_answers" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:369" source="reading">
+    <means>채운 기입란이 문항지와 아귀가 맞는지 본다.</means>
+    <does>빠진 답안 · 없던 문항 · 빈 UserAns · 보기 밖 번호 · 용어와 물음 문구의 어긋남을 잡는다. QNum 규칙이 파이썬과 quiz.mjs 두 곳에 살기 때문에 필요한 대조다.</does>
   </term>
-  <term id="run_mode1_5.validate_questions" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:187" source="reading">
+  <term id="run_mode1_5.validate_questions" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:216" source="reading">
     <means>문항지가 채점할 수 있는 꼴인지 본다.</means>
     <does>문항 수·보기 수·모른다 자리·정답 자리·겹친 보기·정답 쏠림을 본다. 문항이 좋은지 나쁜지는 판정하지 않는다.</does>
   </term>
@@ -1168,11 +1194,17 @@
   <term id="tables.tsx" kind="file" module="src/components" where="src/components/tables.tsx:1" source="reading">
     <means>결정 표 · 옵션 표 · 정본 대조 표 세 조각이 있는 파일.</means>
   </term>
+  <term id="tallySheet" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:89" source="reading">
+    <means>채운 기입란을 문항지와 대조해 용어마다 맞힌 수와 모르겠다 수를 센다.</means>
+    <does>사람이 세던 자리를 가져간 함수다. 마지막 보기 번호를 고른 것은 dontKnow 로 센다. 아귀가 안 맞으면 problems 를 채우고, 부르는 쪽은 그때 채점하지 않는다.</does>
+    <uses to="flattenQuestions" kind="dependency" label="calls" where="scripts/term/quiz.mjs:115"/>
+    <uses to="choiceNumber" kind="dependency" label="calls" where="scripts/term/quiz.mjs:133"/>
+  </term>
   <term id="term-candidates.json" kind="artifact" module="scripts/term" where="scripts/term/collect.mjs:75" source="reading">
     <means>이 Plan 을 읽는 데 필요한 용어 후보 목록.</means>
     <does>collect.mjs 가 쓴다. 정답이 이미 있는 known 과 정답이 없는 newConcepts 두 갈래로 나뉜다.</does>
   </term>
-  <term id="term-grades.json" kind="artifact" module="scripts/term" where="scripts/term/quiz.mjs:56" source="reading">
+  <term id="term-grades.json" kind="artifact" module="scripts/term" where="scripts/term/quiz.mjs:212" source="reading">
     <means>용어마다 확실 · 애매 · 모름을 매긴 채점 결과.</means>
     <does>quiz.mjs 가 쓰고 emit.mjs 가 읽는다.</does>
   </term>
