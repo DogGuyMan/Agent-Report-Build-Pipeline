@@ -172,3 +172,46 @@ test("clangUmlConfig 는 글로브를 쓰지 않고 파일을 열거한다 — �
   assert.match(cfg, /- -resource-dir=\/x/);
   assert.match(cfg, /paths: \[app, core\]/);
 });
+
+// ── clang-doc 배선 (2026-08-29)
+//
+// **왜 필요한가.** clang-uml 은 클래스만 보고 자유 함수를 0개 낸다. clang-doc 이 그 층을
+// 채우지만 **PATH 에 없다** — LLVM 번들이라 Homebrew 의 keg 안에 숨어 있다.
+// 경로를 코드에 박으면 그 기계에서만 돈다. 못 찾았을 때 **막히지 않고 건너뛰는 것**도
+// 규칙이다 — clang-doc 이 없는 기계에서도 clang-uml 만으로 옛 수준의 결과는 나와야 한다.
+import { clangDocCandidates } from "../scripts/wiki/clang-doc.mjs";
+
+test("clangDocCandidates 는 환경변수를 맨 앞에 둔다 — 사용자가 고른 것이 이긴다", () => {
+  const c = clangDocCandidates({ CLANG_DOC: "/내가/고른/clang-doc", PATH: "" }, []);
+  assert.equal(c[0], "/내가/고른/clang-doc");
+});
+
+test("clangDocCandidates 는 brew 접두사 다음에 PATH 를 훑는다", () => {
+  const c = clangDocCandidates({ PATH: "/usr/bin:/bin" }, ["/opt/llvm"]);
+  assert.deepEqual(c, ["/opt/llvm/bin/clang-doc", "/usr/bin/clang-doc", "/bin/clang-doc"]);
+});
+
+test("clangDocCandidates 는 경로를 박지 않는다 — 접두사가 없으면 PATH 만 본다", () => {
+  const c = clangDocCandidates({ PATH: "/usr/bin" }, []);
+  assert.deepEqual(c, ["/usr/bin/clang-doc"]);
+  assert.ok(!c.some((p) => p.includes("homebrew")));
+});
+
+test("prepPlan 은 clang-doc 이 있으면 clang-uml 바로 다음에 돈다", () => {
+  const p = prepPlan({ collector: "clang-uml", hasCodegraph: false, hasClangUmlConfig: true,
+                       hasRoslynDump: false, hasClangDoc: true });
+  assert.deepEqual(p.steps, ["clang-uml", "clang-doc", "normalize", "facts", "render-modules"]);
+});
+
+test("prepPlan 은 clang-doc 이 없으면 그 단계만 빼고 계속 간다 — 막히지 않는다", () => {
+  const p = prepPlan({ collector: "clang-uml", hasCodegraph: false, hasClangUmlConfig: true,
+                       hasRoslynDump: false, hasClangDoc: false });
+  assert.deepEqual(p.steps, ["clang-uml", "normalize", "facts", "render-modules"]);
+  assert.equal(p.blocked, null);
+});
+
+test("prepPlan 은 C# 경로에 clang-doc 을 끼우지 않는다", () => {
+  const p = prepPlan({ collector: "roslyn-dump", hasCodegraph: false, hasClangUmlConfig: false,
+                       hasRoslynDump: true, hasClangDoc: true });
+  assert.ok(!p.steps.includes("clang-doc"));
+});
