@@ -6,6 +6,8 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createElement } from "react";
+import { wrapTerms } from "./wrap-terms.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
@@ -21,14 +23,20 @@ function currentBuilderVersion() {
   }
 }
 
-const entry = join(cwd, "report.tsx");
 // tmp 산출물은 report-builder 자신의 node_modules(react, react-dom)를 동적 import 로
 // resolve 할 수 있도록 cwd(보고서가 있는 다른 저장소)가 아니라 ROOT 안에 둔다.
 // cwd 에 두면 그 저장소에 react 가 설치돼 있지 않아 ERR_MODULE_NOT_FOUND 가 난다.
 const tmp = join(ROOT, ".tmp-report.mjs");
 
 await build({
-  entryPoints: [entry],
+  // report.tsx 를 바로 진입점으로 삼지 않고 래퍼를 하나 씌운다 — 같은 번들에서 defineTerms 도 꺼내야
+  // 자동 용어 참조가 보고서와 **같은 TermRef 구현**을 쓴다. 마크업의 출처를 둘로 늘리지 않기 위함이다.
+  stdin: {
+    contents: `export { default, data } from "./report.tsx";\nexport { defineTerms } from "report-builder";`,
+    resolveDir: cwd,
+    loader: "tsx",
+    sourcefile: "report-entry.tsx",
+  },
   bundle: true,
   format: "esm",
   platform: "node",
@@ -54,8 +62,18 @@ try {
 }
 
 const { renderToStaticMarkup } = await import("react-dom/server");
-const body = renderToStaticMarkup(mod.default());
+let body = renderToStaticMarkup(mod.default());
 const data = mod.data;
+
+// 용어 자동 참조 — terms 가 있을 때만. 본문 글자의 모든 등장을 TermRef 마크업으로 감싼다(scripts/wrap-terms.mjs).
+if (Array.isArray(data.terms) && data.terms.length > 0 && typeof mod.defineTerms === "function") {
+  const T = mod.defineTerms(data.terms);
+  const refs = new Map(data.terms.map((t) => [t.id, renderToStaticMarkup(createElement(T, { id: t.id }, t.id))]));
+  const before = (body.match(/class="term-ref"/g) ?? []).length;
+  body = wrapTerms(body, refs);
+  const after = (body.match(/class="term-ref"/g) ?? []).length;
+  console.log(`용어 자동 참조 — term-ref ${before} → ${after} (용어 ${data.terms.length}개)`);
+}
 
 const version = currentBuilderVersion();
 if (data.builderVersion !== version) {

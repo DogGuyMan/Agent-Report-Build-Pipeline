@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote, Glossary } from "../.tmp/lib.mjs";
+import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote, Glossary, defineTerms } from "../.tmp/lib.mjs";
 
 const html = (el) => renderToStaticMarkup(el);
 
@@ -294,4 +294,20 @@ test("Glossary 는 그룹 안에서 terms 배열 순서를 지킨다", () => {
     { id: "a", label: "a", short: "나중 온 것", kind: "concept", mental: "모름" },
   ] }));
   assert.ok(out.indexOf("먼저 온 것") < out.indexOf("나중 온 것"), "정렬하지 않는다");
+});
+
+test("TermRef 카드는 뜻 · 용례(body) · 이해도를 싣고 글자를 children 으로 받는다", () => {
+  const T = defineTerms([{ id: "X", label: "X 라벨", short: "짧은 뜻", body: "용례 설명", kind: "concept", mental: "모름" }]);
+  const out = html(T({ id: "X", children: "X" }));
+  assert.ok(out.startsWith('<span class="term-ref" tabindex="0">X<span class="term-card">'), "children 이 글자");
+  assert.ok(out.includes('class="term-card-body">짧은 뜻'), "뜻");
+  assert.ok(out.includes('class="term-card-more">용례 설명'), "용례");
+  assert.ok(out.includes("mental-모름"), "이해도 배지");
+});
+
+test("TermRef 카드는 body 와 mental 이 없으면 그 칸을 내지 않는다", () => {
+  const T = defineTerms([{ id: "Y", label: "Y", short: "뜻", kind: "tool" }]);
+  const out = html(T({ id: "Y" }));
+  assert.ok(!out.includes("term-card-more") && !out.includes("term-mental"));
+  assert.ok(out.includes('tabindex="0">Y<span class="term-card">'), "children 없으면 label");
 });

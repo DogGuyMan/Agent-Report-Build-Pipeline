@@ -29,8 +29,10 @@ export function defineTerms(terms: Term[]) {
           <span className="term-card-head">
             <span className={`term-kind term-kind-${t.kind}`}>{KIND_LABEL[t.kind]}</span>
             {t.id}
+            {t.mental && <span className={`term-mental mental-${t.mental}`}>{t.mental}</span>}
           </span>
           <span className="term-card-body">{t.short}</span>
+          {t.body && <span className="term-card-more">{t.body}</span>}
         </span>
       </span>
     );
