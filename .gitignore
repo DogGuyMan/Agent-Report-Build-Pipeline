@@ -6,6 +6,7 @@ node_modules/
 
 # 빌드 산출물 — 소스에서 재생성한다 (인계 문서 §B-3 "git에는 소스만 커밋")
 out/
+*out/
 **/specs/*/out/
 
 # Phase 1 검증용 임시 이식본 (scripts/patch-legacy.mjs)
