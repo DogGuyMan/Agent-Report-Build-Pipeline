@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>report-builder · AI 준비도 지도</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #fafafa;
+        --surface: #ffffff;
+        --border: #e5e7eb;
+        --border-strong: #d1d5db;
+        --text: #0f172a;
+        --text-2: #475569;
+        --text-3: #94a3b8;
+        --accent: #2563eb;
+        --accent-soft: #eff6ff;
+        --green: #16a34a;
+        --green-soft: #dcfce7;
+        --amber: #d97706;
+        --amber-soft: #fef3c7;
+        --red: #dc2626;
+        --red-soft: #fee2e2;
+        --grid: #f1f5f9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Inter",
+          -apple-system,
+          system-ui,
+          "Segoe UI",
+          sans-serif;
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 48px 40px 64px;
+      }
+
+      /* ============ HEADER ============ */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 32px;
+      }
+
+      .header .eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-3);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .header h1 {
+        font-size: 30px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+
+      .header .sub {
+        font-size: 14px;
+        color: var(--text-2);
+        margin-top: 4px;
+      }
+
+      .header-meta {
+        text-align: right;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        line-height: 1.7;
+      }
+
+      .header-meta strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      /* ============ SCORE STRIP ============ */
+      .score-strip {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+
+      .score-hero {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 28px 28px 24px;
+      }
+
+      .score-hero .label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .score-hero .value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .score-hero .num {
+        font-size: 64px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        color: var(--text);
+      }
+
+      .score-hero .denom {
+        font-size: 20px;
+        color: var(--text-3);
+        font-weight: 500;
+      }
+
+      .score-hero .grade-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .grade-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      .grade-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--green);
+      }
+
+      .score-hero .desc {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.5;
+        margin-top: 10px;
+      }
+
+      .score-hero hr {
+        border: 0;
+        border-top: 1px solid var(--border);
+        margin: 18px 0 14px;
+      }
+
+      .mini-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .mini-stat .k {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        margin-bottom: 2px;
+      }
+
+      .mini-stat .v {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* ============ 10 RULES BAR CHART ============ */
+      .rules {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px 24px 24px;
+      }
+
+      .rules .rules-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .rules h2 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .legend-inline {
+        display: flex;
+        gap: 14px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-2);
+      }
+
+      .legend-inline span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .legend-inline i {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+      }
+
+      .rule-row {
+        display: grid;
+        grid-template-columns: 28px 1fr 220px 56px;
+        gap: 12px;
+        align-items: center;
+        padding: 7px 0;
+        font-size: 13px;
+      }
+
+      .rule-row + .rule-row {
+        border-top: 1px dashed var(--border);
+      }
+
+      .rule-row .idx {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        font-weight: 500;
+      }
+
+      .rule-row .title {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .rule-row .sub {
+        font-size: 11.5px;
+        color: var(--text-3);
+        margin-top: 1px;
+      }
+
+      .rule-row .bar {
+        height: 8px;
+        border-radius: 3px;
+        background: var(--grid);
+        overflow: hidden;
+      }
+
+      .rule-row .bar > span {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+      }
+
+      .bar-good > span {
+        background: var(--green);
+      }
+      .bar-warn > span {
+        background: var(--amber);
+      }
+      .bar-bad > span {
+        background: var(--red);
+      }
+
+      .rule-row .num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: right;
+        color: var(--text);
+      }
+
+      /* ============ MAP ============ */
+      .map-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 32px;
+        overflow: hidden;
+      }
+
+      .map-head {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .map-head h2 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .map-head .sub {
+        font-size: 12px;
+        color: var(--text-2);
+        margin-top: 2px;
+      }
+
+      .map-legend {
+        display: flex;
+        gap: 18px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-2);
+        align-items: center;
+      }
+
+      .map-legend > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .legend-square {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+
+      .legend-line {
+        width: 24px;
+        height: 0;
+        border-top: 1.5px solid;
+      }
+
+      .map-body {
+        padding: 28px 24px 32px;
+      }
+
+      .map-body svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* ============ FINDINGS ============ */
+      .findings {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .panel-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .panel-head h3 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .panel-head .count {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        margin-left: auto;
+      }
+
+      .panel-strength .panel-head {
+        background: var(--green-soft);
+      }
+      .panel-strength .panel-head h3 {
+        color: var(--green);
+      }
+
+      .panel-risk .panel-head {
+        background: var(--red-soft);
+      }
+      .panel-risk .panel-head h3 {
+        color: var(--red);
+      }
+
+      .panel-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .panel-list li {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .panel-list li:first-child {
+        border-top: 0;
+      }
+
+      .panel-list .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .panel-list .tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px;
+        padding: 2px 7px;
+        border-radius: 3px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+
+      .tag-rule {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .panel-list .note {
+        margin-top: 4px;
+        color: var(--text-2);
+        font-size: 12.5px;
+      }
+
+      .panel-list code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11.5px;
+        background: var(--grid);
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: var(--text);
+      }
+
+      footer {
+        margin-top: 48px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        text-align: center;
+      }
+
+      /* ============ SVG ============ */
+      .grid-bg {
+        stroke: var(--grid);
+        stroke-width: 1;
+      }
+
+      .node-card {
+        fill: var(--surface);
+        stroke: var(--border-strong);
+        stroke-width: 1.2;
+      }
+
+      .node-card.accent {
+        stroke: var(--accent);
+      }
+
+      .node-title {
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        fill: var(--text);
+      }
+
+      .node-meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        fill: var(--text-3);
+      }
+
+      .node-kpi {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .edge {
+        fill: none;
+        stroke: var(--border-strong);
+        stroke-width: 1.3;
+      }
+
+      .edge-dash {
+        stroke-dasharray: 4 3;
+      }
+
+      .edge-warn {
+        stroke: var(--amber);
+      }
+
+      .edge-type {
+        stroke: var(--accent);
+        stroke-width: 1.5;
+      }
+
+      .claude-dot {
+        fill: var(--accent);
+      }
+      .claude-ring {
+        fill: var(--accent-soft);
+      }
+
+      .test-dot {
+        fill: var(--green);
+      }
+
+      .hot {
+        fill: var(--red-soft);
+        stroke: var(--red);
+        stroke-width: 1;
+      }
+
+      .warm {
+        fill: var(--amber-soft);
+        stroke: var(--amber);
+        stroke-width: 1;
+      }
+
+      @media (max-width: 960px) {
+        .score-strip,
+        .findings {
+          grid-template-columns: 1fr;
+        }
+        .rule-row {
+          grid-template-columns: 24px 1fr 140px 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- =========== HEADER =========== -->
+      <header class="header">
+        <div>
+          <div class="eyebrow">레포지토리 감사 · AI 준비도 · v2 루브릭</div>
+          <h1>report-builder — AI 준비도 지도</h1>
+          <div class="sub">
+            7개 카테고리 채점 · 구조 지도 · ROI 우선순위 액션
+          </div>
+        </div>
+        <div class="header-meta">
+          <div>점수 측정 <strong>2026-08-30</strong></div>
+          <div>브랜치 <strong>main</strong></div>
+          <div>모듈 <strong>4</strong> · 컨텍스트 파일 <strong>6</strong></div>
+        </div>
+      </header>
+
+      <!-- =========== SCORE STRIP =========== -->
+      <section class="score-strip">
+        <div class="score-hero">
+          <div class="label">AI 준비도 지수</div>
+          <div class="value">
+            <span class="num">65</span><span class="denom">/ 100</span>
+          </div>
+          <div class="grade-row">
+            <span class="grade-badge" style="background: var(--amber-soft); color: var(--amber)">
+              <span class="grade-dot" style="background: var(--amber)"></span> AI-Assisted · 에이전트 보조 가능
+            </span>
+          </div>
+          <div class="desc">
+            <strong>12 → 65점.</strong> 진단대로 <strong>지식이 없었던 것이 아니라 한 파일에
+            몰려 있었다</strong> — 521줄을 넷으로 쪼개고 결정 기록을 분리하자 A 0→11 · C 0→16 ·
+            D 0→10 이 함께 올랐다. 남은 약점은 <strong>E 검증 (8/15)</strong> 과
+            <strong>B 문서 품질 (11/20)</strong>. 모듈 문서 셋이 아직 100줄을 넘는다.
+          </div>
+          <hr />
+          <div class="mini-stats">
+            <div class="mini-stat">
+              <div class="k">컨텍스트 보유 모듈</div>
+              <div class="v" style="color: var(--green)">3 / 4</div>
+            </div>
+            <div class="mini-stat">
+              <div class="k">인용 L1 실패</div>
+              <div class="v" style="color: var(--green)">0 / 76</div>
+            </div>
+            <div class="mini-stat">
+              <div class="k">300줄 초과 파일</div>
+              <div class="v">12</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories bar chart -->
+        <div class="rules">
+          <div class="rules-head">
+            <div>
+              <h2>7개 카테고리 — 카테고리별 점수</h2>
+            </div>
+            <div class="legend-inline">
+              <span><i style="background: var(--green)"></i> 75% 이상</span>
+              <span><i style="background: var(--amber)"></i> 50–74%</span>
+              <span><i style="background: var(--red)"></i> 50% 미만</span>
+            </div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">A</div>
+            <div>
+              <div class="title">AI 탐색 &amp; 커버리지</div>
+              <div class="sub">
+                <code>codegraph/</code> · <code>scripts/</code> · <code>src/</code> 에 CLAUDE.md 신설 · <code>docs/</code> 만 남음
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 73%"></span></div>
+            <div class="num">11/15</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">B</div>
+            <div>
+              <div class="title">컨텍스트 문서 품질</div>
+              <div class="sub">
+                루트 521 → <strong>239줄</strong>. 모듈 문서 셋도 100줄 초과라 아직 감점
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 55%"></span></div>
+            <div class="num">11/20</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">C</div>
+            <div>
+              <div class="title">암묵지 외부화</div>
+              <div class="sub">
+                <code>docs/decisions/</code> 6건 + 모듈마다 소유·의존·패턴·함정 4절
+              </div>
+            </div>
+            <div class="bar bar-good"><span style="width: 80%"></span></div>
+            <div class="num">16/20</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">D</div>
+            <div>
+              <div class="title">모듈 간 의존성 매핑</div>
+              <div class="sub">
+                <code>ARCHITECTURE.md</code> 400줄 · mermaid 5장 · 인용 76건 전부 L1/L2 통과
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 67%"></span></div>
+            <div class="num">10/15</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">E</div>
+            <div>
+              <div class="title">검증 &amp; 품질 게이트</div>
+              <div class="sub">
+                인용 게이트 가동 · <code>evals/</code> 신설. CODEOWNERS · 프롬프트 시험은 아직 없음
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 53%"></span></div>
+            <div class="num">8/15</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">F</div>
+            <div>
+              <div class="title">신선도 &amp; 자가 유지</div>
+              <div class="sub">
+                <code>npm test</code> 에 인용 게이트 편입. CI·hook 은 아직 없음
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 60%"></span></div>
+            <div class="num">6/10</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">G</div>
+            <div>
+              <div class="title">에이전트 성능 측정</div>
+              <div class="sub">
+                <code>evals/runs/</code> 에 Mode 1 냉시동 실측 보존 · 세 mode 대조표
+              </div>
+            </div>
+            <div class="bar bar-warn"><span style="width: 60%"></span></div>
+            <div class="num">3/5</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========== STRUCTURAL MAP =========== -->
+      <section class="map-section">
+        <div class="map-head">
+          <div>
+            <h2>구조 지도</h2>
+            <div class="sub">
+              노드 = 디렉터리 · 카드 안 수치는 코드 파일 수와 최대 파일 길이 ·
+              세 mode 실행기가 파이프라인을 잇는다
+            </div>
+          </div>
+          <div class="map-legend">
+            <span><span class="legend-dot" style="background: var(--accent)"></span> 자체 CLAUDE.md 보유</span>
+            <span><span class="legend-dot" style="background: var(--red)"></span> 컨텍스트 없음</span>
+            <span><span class="legend-square" style="background: var(--red-soft); border: 1px solid var(--red)"></span> 400줄 초과</span>
+            <span><span class="legend-line" style="border-color: var(--accent)"></span> 파이프라인</span>
+            <span><span class="legend-line" style="border-color: var(--border-strong); border-style: dashed"></span> 참조</span>
+          </div>
+        </div>
+
+        <div class="map-body">
+          <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg">
+            <g class="grid-bg">
+              <path d="M0,80 H1180" /><path d="M0,160 H1180" /><path d="M0,240 H1180" />
+              <path d="M0,320 H1180" /><path d="M0,400 H1180" /><path d="M0,480 H1180" />
+              <path d="M100,0 V560" /><path d="M300,0 V560" /><path d="M500,0 V560" />
+              <path d="M700,0 V560" /><path d="M900,0 V560" /><path d="M1100,0 V560" />
+            </g>
+
+            <text x="180" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">정적 계층 · codegraph</text>
+            <text x="590" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">배선 · scripts + bin</text>
+            <text x="1000" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">렌더 · src</text>
+
+            <!-- codegraph -->
+            <rect x="40" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
+            <circle cx="58" cy="74" r="4" fill="#dc2626"/>
+            <text x="72" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">codegraph/</text>
+            <text x="56" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">코드 파일 30 · 컨텍스트 0</text>
+            <rect x="56" y="114" width="248" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+            <text x="64" y="129" style="font-size:11px;fill:#dc2626;font-family:'JetBrains Mono',monospace;">normalize.py 790줄 · run_mode1_5.py 738줄</text>
+            <text x="56" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">pytest 201 통과 · 19 건너뜀</text>
+
+            <rect x="40" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+            <text x="56" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">세 mode 실행기</text>
+            <text x="56" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode1.py    474줄 · 시험 20</text>
+            <text x="56" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode1_5.py  738줄 · 시험 44</text>
+            <text x="56" y="282" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode2.py    441줄 · 시험 32</text>
+
+            <rect x="40" y="320" width="280" height="84" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+            <text x="56" y="344" style="font-size:13px;font-weight:600;fill:#0f172a;">검증기 (만들어 놓고 안 건다)</text>
+            <text x="56" y="366" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">verify_citations.py · L1/L2/L3</text>
+            <text x="56" y="384" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">xmldoc.py check · terms_db.py</text>
+
+            <!-- scripts / bin -->
+            <rect x="450" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
+            <circle cx="468" cy="74" r="4" fill="#dc2626"/>
+            <text x="482" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">scripts/</text>
+            <text x="466" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">node 테스트 136 통과</text>
+            <text x="466" y="124" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">wiki/ · term/ · build · check</text>
+            <text x="466" y="146" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">직접 실행 가드 규약 준수</text>
+
+            <rect x="450" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+            <text x="466" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">bin/ — 진입점 4개</text>
+            <text x="466" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-wiki  (mode 1)</text>
+            <text x="466" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-term  (mode 1.5)</text>
+            <text x="466" y="282" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-spec  (mode 2) · report</text>
+
+            <!-- src -->
+            <rect x="860" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
+            <circle cx="878" cy="74" r="4" fill="#dc2626"/>
+            <text x="892" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">src/</text>
+            <text x="876" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">코드 파일 12 · 컨텍스트 0</text>
+            <rect x="876" y="114" width="248" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+            <text x="884" y="129" style="font-size:11px;fill:#dc2626;font-family:'JetBrains Mono',monospace;">runtime/term-graph.ts 482줄</text>
+            <text x="876" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">컴포넌트 17개 · tsc 통과</text>
+
+            <rect x="860" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+            <text x="876" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">docs/</text>
+            <text x="876" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">handoffs · superpowers/specs</text>
+            <text x="876" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">codegraph/terms-reading.json 318</text>
+            <text x="876" y="282" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">ARCHITECTURE.md 없음</text>
+
+            <!-- root CLAUDE.md — 지식이 몰려 있는 곳 -->
+            <rect x="330" y="440" width="520" height="88" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+            <circle cx="350" cy="462" r="4" fill="#2563eb"/>
+            <text x="364" y="467" style="font-size:14px;font-weight:600;fill:#0f172a;">CLAUDE.md — 521줄</text>
+            <text x="348" y="492" style="font-size:11px;fill:#475569;">저장소 유일의 컨텍스트 문서. 네 모듈의 규약을 혼자 짊어진다.</text>
+            <text x="348" y="512" style="font-size:11px;fill:#2563eb;">권장 100줄의 5배 — A 와 B 점수가 동시에 여기서 깎인다.</text>
+
+            <!-- edges -->
+            <path class="edge edge-dep" d="M320,116 H450" fill="none" stroke="#d1d5db" stroke-dasharray="4 3"/>
+            <path class="edge edge-dep" d="M730,116 H860" fill="none" stroke="#d1d5db" stroke-dasharray="4 3"/>
+            <path class="edge" d="M180,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
+            <path class="edge" d="M590,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
+            <path class="edge" d="M1000,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
+          </svg>
+        </div>
+      </section>
+
+      <!-- =========== FINDINGS =========== -->
+      <div class="findings">
+        <section class="panel panel-strength">
+          <div class="panel-head">
+            <h3>강점</h3>
+            <span class="count">유지할 것들</span>
+          </div>
+          <ul class="panel-list">
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat E3</span>
+                테스트 337개 · 타입 검사 통과
+              </div>
+              <div class="note">
+                <code>pytest codegraph/</code> 201 통과 · 19 건너뜀,
+                <code>npm test</code> 136 통과 · 0 실패, <code>tsc --noEmit</code> 통과.
+                건너뜀 19개는 골든 저장소 환경변수 부재로 실패가 아니다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat C</span>
+                기계가 검사하는 용어 사전 318개
+              </div>
+              <div class="note">
+                <code>terms-reading.json</code> 의 모든 레코드가 <code>파일:줄</code> 인용을
+                갖고 L1/L2/L3 로 검증된다 — 실패 0 · 근거 없음 1.
+                암묵지 외부화가 <strong>산문이 아니라 검사 가능한 자료구조</strong>로 되어 있다.
+                채점기는 <code>MEMORY.md</code> 라는 파일명만 찾아 이것을 0점 처리했다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat B</span>
+                소스 옆 주석 블록 268개가 자동 동기화된다
+              </div>
+              <div class="note">
+                <code>xmldoc.py inject</code> 가 마커 기준으로 좌표를 재계산해
+                코드가 밀려도 주석이 낡지 않는다. 문서 신선도 문제를
+                <strong>도구로</strong> 풀어 둔 드문 사례다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat G</span>
+                토큰·시간 계측이 이미 파이프라인에 있다
+              </div>
+              <div class="note">
+                세 <code>run_mode*.py</code> 가 단계마다 벽시계·토큰·비용·턴을 잰다.
+                🔵 실측 — Mode 1 냉시동 27분 08초 · 17,925,770 토큰 · $15.4991.
+                <code>evals/</code> 로 승격시킬 재료가 이미 쌓이고 있다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat E1</span>
+                지목된 잘못된 경로 7건은 전부 오탐이었다
+              </div>
+              <div class="note">
+                직접 확인 — <code>out/report.html</code> 은 빌드 산출물(gitignore),
+                <code>measure_citation_origin.py</code> 는 <strong>부재를 근거로 인용</strong>한 것,
+                <code>superpowers/specs/…</code> 는 <code>$GRAPHICS_REPO</code> 기준 상대경로다.
+                실제 깨진 참조는 <strong>0건</strong>.
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section class="panel panel-risk">
+          <div class="panel-head">
+            <h3>최우선 ROI 액션</h3>
+            <span class="count">우선순위 정렬</span>
+          </div>
+          <ul class="panel-list">
+            <li>
+              <div class="head">
+                <span class="tag tag-rule" style="background: var(--red-soft); color: var(--red)">Cat F · S</span>
+                이미 있는 검증기를 자기 문서에 건다
+              </div>
+              <div class="note">
+                <strong>Effort 0.5 hr · Impact 10/10.</strong>
+                <code>verify_citations.py</code> 를 <code>CLAUDE.md</code> 에 돌리면
+                지금 <strong>L1 실패 3건</strong>이 나온다(전부 경로 <em>모양</em>을 설명하는
+                예시 문자열). 예시를 인용에서 빼거나 검증기에 예외를 주고,
+                <code>npm test</code> 의 하위 단계로 넣는다.
+                <strong>이 저장소는 검증기를 만들어 놓고 자기에게 안 걸고 있다.</strong>
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat A+B · M</span>
+                521줄 <code>CLAUDE.md</code> 를 모듈별로 쪼갠다
+              </div>
+              <div class="note">
+                <strong>Effort 3.0 hr · Impact 9/10.</strong>
+                루트는 60줄 나침반으로 줄이고 <code>codegraph/</code>(30파일)
+                · <code>src/</code>(12파일) · <code>scripts/</code> 에 각각 CLAUDE.md.
+                A 0→11점, B 7→14점이 함께 오른다. 에이전트가 매 세션 521줄을
+                통째로 지고 다니지 않아도 된다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat D · M</span>
+                <code>ARCHITECTURE.md</code> — 그림은 이미 만들 수 있다
+              </div>
+              <div class="note">
+                <strong>Effort 1.5 hr · Impact 8/10.</strong>
+                <code>render_modules.py</code> 가 이미 모듈 관계도 SVG 를 낸다.
+                세 mode 파이프라인 그림 + 두 저장소에 걸친 구조를 한 장으로.
+                D 0→10점.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat G · M</span>
+                <code>evals/</code> — 계측값을 버리지 말고 쌓는다
+              </div>
+              <div class="note">
+                <strong>Effort 2.0 hr · Impact 7/10.</strong>
+                <code>run_mode*.py --json</code> 산출물을 <code>evals/</code> 에 날짜별로
+                모으고 회귀표를 만든다. warmup 배선의 절감률을 재는 데
+                <strong>그대로 필요한 인프라</strong>다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat E2 · S</span>
+                CODEOWNERS + PR 템플릿
+              </div>
+              <div class="note">
+                <strong>Effort 0.5 hr · Impact 5/10.</strong>
+                1인 저장소라 리뷰어 배정 가치는 낮으나, PR 템플릿에
+                "검증 명령의 실제 출력을 붙였는가" 를 체크박스로 두면
+                이 저장소의 규율(🔵 는 실제 출력만)이 구조로 강제된다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat B · L</span>
+                790줄 <code>normalize.py</code> 분할
+              </div>
+              <div class="note">
+                <strong>Effort 6.0 hr · Impact 4/10 — 지금은 권하지 않는다.</strong>
+                C++ 경로와 C# 경로가 한 파일에 있고 골든 시험이 231노드/540간선을
+                못박고 있다. <strong>거울 함정 경계</strong> — 소비자가 늘기 전에
+                쪼개면 이 저장소가 잡으려는 과잉 설계를 스스로 하는 것이 된다.
+              </div>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <footer>
+        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30 · 개선 후 재채점
+      </footer>
+    </div>
+  </body>
+</html>

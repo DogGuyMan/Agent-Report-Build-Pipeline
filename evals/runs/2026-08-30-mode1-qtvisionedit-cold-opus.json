@@ -1,0 +1,97 @@
+{
+ "repo": "/Users/escatrgot/DevelopProjects/QT/QTEngineExample/pureimage/opencv/QtVisionEdit",
+ "model": "opus",
+ "stages": [
+  {
+   "stage": "prep",
+   "seconds": 1.269904000000679,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "agent",
+   "seconds": 1613.0594270000001,
+   "usage": {
+    "input": 158,
+    "output": 126781,
+    "cache_read": 17437842,
+    "cache_write": 360989,
+    "cost_usd": 15.499125999999995,
+    "turns": 84,
+    "api_ms": 1578328,
+    "total": 17925770
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "terms",
+   "seconds": 0.06457437499193475,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "build",
+   "seconds": 13.588519958007964,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "check",
+   "seconds": 0.15180991700617597,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  }
+ ],
+ "total": {
+  "input": 158,
+  "output": 126781,
+  "cache_read": 17437842,
+  "cache_write": 360989,
+  "total": 17925770,
+  "turns": 84,
+  "api_ms": 1578328,
+  "cost_usd": 15.499125999999995
+ },
+ "wall_seconds": 1628.1356668330118
+}
