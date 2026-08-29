@@ -441,7 +441,7 @@ test("vitepressConfig 는 제목과 사이드바를 담고 srcDir 를 현재 폴
   assert.match(cfg, /title: "StickRushGame 코드베이스 위키"/);
   assert.match(cfg, /outDir: "\.\.\/wiki-site"/);
   assert.match(cfg, /\{ text: "data", link: "\/data" \}/);
-  assert.match(cfg, /import \{ defineConfig \} from "vitepress"/);
+  assert.doesNotMatch(cfg, /from "vitepress"/);
 });
 
 test("vitepressConfig 는 제목의 따옴표를 이스케이프한다", () => {
@@ -485,10 +485,10 @@ export function sidebarFrom(files) {
 /** VitePress 설정 파일 본문. 제목은 JSON.stringify 로 이스케이프한다. */
 export function vitepressConfig(repoName, sidebar, outDir) {
   const items = sidebar.map((s) => `      { text: ${JSON.stringify(s.text)}, link: ${JSON.stringify(s.link)} }`);
-  return `import { defineConfig } from "vitepress";
-
-// report-wiki build 가 생성한다. 손으로 고치지 말 것 — 다음 빌드에서 덮어쓴다.
-export default defineConfig({
+  return `// report-wiki build 가 생성한다. 손으로 고치지 말 것 — 다음 빌드에서 덮어쓴다.
+// defineConfig 를 import 하지 않는다 — 이 파일은 대상 저장소에 쓰이는데 거기엔
+// node_modules 가 없다. Node 는 import 를 파일 위치 기준으로 푼다.
+export default ({
   title: ${JSON.stringify(`${repoName} 코드베이스 위키`)},
   description: "codegraph 정적 계층 + deep-wiki 산문",
   srcDir: ".",
