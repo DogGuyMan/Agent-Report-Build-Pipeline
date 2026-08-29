@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
   Page, Section, DecisionTable, OptionTable, LockTable, NewStructNote, EvidenceNote, BeforeAfter, VerdictFooter,
-  Glossary, TermGraph, defineTerms,
+  Glossary, TermGraph,
 } from "report-builder";
 import { inlineSvg } from "report-builder/svg";
 import { data, terms } from "./data.js";
@@ -15,7 +15,6 @@ const after = inlineSvg(readFileSync("after.svg", "utf8"), "tdbafter");
 const SPEC = "2026-08-29-mode-1-terms-db-first-design.md";
 
 // 용어 인라인 참조. 정의는 data.ts 의 terms 에만 있다.
-const T = defineTerms(terms);
 
 export default function Report() {
   return (
@@ -49,10 +48,10 @@ export default function Report() {
       <Section title="D1 — terms-db.json 이 원본, codegraph.json 은 투영">
         <EvidenceNote
           measured={[
-            <>지금의 <T id="terms_db.py" /> 는 <T id="means" /> 를 정형문으로 만들고, 간선의 방향 · 종류 · 위치를 <strong>버린다</strong> — 그래서 <T id="codegraph.json" /> 을 되돌릴 수 없다. <span className="mono">{SPEC}:17-18</span></>,
-            <>이 저장소에는 <T id="codegraph.json" /> 이 없다 — <T id="정적 수집기" /> 가 파이썬 · 자바스크립트용으로는 없다. <span className="mono">{SPEC}:27</span></>,
-            <>사용자 확정 — 인공지능 추론은 <strong>한 번</strong>. 그 한 번에 뜻 · 동작 · 관계를 다 얻고 지도는 거기서 <T id="투영" /> 한다. <span className="mono">{SPEC}:42, :952</span></>,
-            <>🔵 드라이런 — 계획서의 코드 5개 Task 분을 스크래치패드에 조립해 실행했다: 신규 테스트 <strong>19개 통과</strong>(<T id="골든 테스트" /> 2개 포함, skip 아님) · 기존 3개 통과 · <T id="StickRush" /> 실물에 기존 호출 꼴로 <span className="mono">용어 241개 / 실패 0 / 근거 없음 0</span> · <span className="mono">투영에 없는 것 0개</span>. 계획서 <span className="mono">{SPEC}:906</span> 의 기대 출력과 글자까지 같다.</>,
+            <>지금의 terms_db.py 는 means 를 정형문으로 만들고, 간선의 방향 · 종류 · 위치를 <strong>버린다</strong> — 그래서 codegraph.json 을 되돌릴 수 없다. <span className="mono">{SPEC}:17-18</span></>,
+            <>이 저장소에는 codegraph.json 이 없다 — 정적 수집기 가 파이썬 · 자바스크립트용으로는 없다. <span className="mono">{SPEC}:27</span></>,
+            <>사용자 확정 — 인공지능 추론은 <strong>한 번</strong>. 그 한 번에 뜻 · 동작 · 관계를 다 얻고 지도는 거기서 투영 한다. <span className="mono">{SPEC}:42, :952</span></>,
+            <>🔵 드라이런 — 계획서의 코드 5개 Task 분을 스크래치패드에 조립해 실행했다: 신규 테스트 <strong>19개 통과</strong>(골든 테스트 2개 포함, skip 아님) · 기존 3개 통과 · StickRush 실물에 기존 호출 꼴로 <span className="mono">용어 241개 / 실패 0 / 근거 없음 0</span> · <span className="mono">투영에 없는 것 0개</span>. 계획서 <span className="mono">{SPEC}:906</span> 의 기대 출력과 글자까지 같다.</>,
           ]}
           judged={[
             <>계획서의 코드가 이미 도는 상태라 남은 위험은 구현이 아니라 <strong>Task 7 의 인공지능 읽기 품질</strong>이다 — 그건 실행해 봐야 안다.</>,
@@ -65,7 +64,7 @@ export default function Report() {
               recommended: false,
               cells: [
                 <>1안</>,
-                <>지금처럼 <T id="codegraph.json" /> 이 원본, <T id="terms-db.json" /> 은 거기서 뽑은 정형문. 뜻은 Mode 1.5 가 그때그때 인공지능으로 채운다</>,
+                <>지금처럼 codegraph.json 이 원본, terms-db.json 은 거기서 뽑은 정형문. 뜻은 Mode 1.5 가 그때그때 인공지능으로 채운다</>,
                 <span className="mono">{SPEC}:17-18</span>,
                 <><strong>기각</strong> — 인공지능 추론이 사전마다 반복되고, 이 저장소는 아예 시작 못 한다</>,
               ],
@@ -74,7 +73,7 @@ export default function Report() {
               recommended: true,
               cells: [
                 <>2안</>,
-                <><T id="terms-db.json" /> 이 원본. 인공지능 <T id="전수조사" /> 1회로 뜻 · 동작 · 관계를 얻고 <T id="codegraph.json" /> 은 <T id="투영" /></>,
+                <>terms-db.json 이 원본. 인공지능 전수조사 1회로 뜻 · 동작 · 관계를 얻고 codegraph.json 은 투영</>,
                 <span className="mono">{SPEC}:42, :952</span>,
                 <><strong>채택</strong> — D1, 사용자 확정</>,
               ],
@@ -86,8 +85,8 @@ export default function Report() {
       <Section title="D2 — 인공지능이 쓴 레코드는 where 필수, L1 · L2 · L3 3값 검사">
         <EvidenceNote
           measured={[
-            <>판정 규칙은 <T id="verify_citations.py" /> 의 것을 그대로 빌린다 — <T id="L1" /> 파일 · <T id="L2" /> 줄은 실패, <T id="L3" /> 이름은 <T id="근거 없음" />. 앞뒤 1줄까지 본다. <span className="mono">{SPEC}:554-556</span></>,
-            <>reading 레코드에 <T id="where" /> 가 없으면 실패 — "인용 없는 뜻은 싣지 않는다". <span className="mono">{SPEC}:605</span></>,
+            <>판정 규칙은 verify_citations.py 의 것을 그대로 빌린다 — L1 파일 · L2 줄은 실패, L3 이름은 근거 없음. 앞뒤 1줄까지 본다. <span className="mono">{SPEC}:554-556</span></>,
+            <>reading 레코드에 where 가 없으면 실패 — "인용 없는 뜻은 싣지 않는다". <span className="mono">{SPEC}:605</span></>,
             <>검사 대상은 인공지능이 쓴 부분뿐이다. 정적 도구가 낸 위치는 재판정하지 않는다 — 합칠 때 인공지능이 보탠 간선에 <span className="mono">source="reading"</span> 표시를 남겨 그것만 본다. <span className="mono">{SPEC}:708</span></>,
             <>코드에 글자로 없는 것(앞선 계획의 결정 코드 · 개념어)은 사전에 넣지 않는다 — Mode 1.5 의 신규 개념으로 남긴다. <span className="mono">{SPEC}:971</span></>,
           ]}
@@ -97,11 +96,11 @@ export default function Report() {
       <Section title="D3 — 구조 필드는 codegraph 가 이긴다">
         <EvidenceNote
           measured={[
-            <>합칠 때 <T id="구조 필드" /> 네 칸은 codegraph 쪽을 지키고, 인공지능은 <T id="means" /> · <T id="does" /> · 새 <T id="uses[]" /> 만 보탠다. 입력은 제자리에서 바꾸지 않는다. <span className="mono">{SPEC}:701, :670</span></>,
+            <>합칠 때 구조 필드 네 칸은 codegraph 쪽을 지키고, 인공지능은 means · does · 새 uses[] 만 보탠다. 입력은 제자리에서 바꾸지 않는다. <span className="mono">{SPEC}:701, :670</span></>,
             <>사용자의 그림은 "인공지능이 한 번 훑어 구조까지 얻는다" 이다. 정적 사실과 <strong>어긋날 때</strong> 어느 쪽을 믿을지가 이 결정이다. <span className="mono">{SPEC}:50</span></>,
           ]}
           judged={[
-            <>정적 쪽을 택한 이유는 하나 — 그래야 <T id="verify_citations.py" /> 의 <T id="L3" /> 가 계속 성립한다. <T id="결정론" /> 은 codegraph 와 투영이 지키고, 인공지능은 인용으로 붙든다. 반례를 아직 못 봤으므로 🟡 75.</>,
+            <>정적 쪽을 택한 이유는 하나 — 그래야 verify_citations.py 의 L3 가 계속 성립한다. 결정론 은 codegraph 와 투영이 지키고, 인공지능은 인용으로 붙든다. 반례를 아직 못 봤으므로 🟡 75.</>,
           ]}
         />
         <OptionTable
@@ -111,7 +110,7 @@ export default function Report() {
               recommended: true,
               cells: [
                 <>1안</>,
-                <>codegraph 가 있으면 <T id="구조 필드" /> 는 codegraph 가 이긴다. 인공지능은 뜻과 새 관계만</>,
+                <>codegraph 가 있으면 구조 필드 는 codegraph 가 이긴다. 인공지능은 뜻과 새 관계만</>,
                 <span className="mono">{SPEC}:44, :701</span>,
                 <><strong>채택</strong> — D3</>,
               ],
@@ -122,7 +121,7 @@ export default function Report() {
                 <>2안</>,
                 <>인공지능 읽기가 이긴다 — 구조도 인공지능이 본 대로 덮는다</>,
                 <><span className="mono">{SPEC}:50</span> (사용자 그림의 문자 그대로 해석)</>,
-                <><strong>기각</strong> — 정적 사실이 인공지능 추정에 덮이면 <T id="L3" /> 판정의 기준이 사라진다</>,
+                <><strong>기각</strong> — 정적 사실이 인공지능 추정에 덮이면 L3 판정의 기준이 사라진다</>,
               ],
             },
             {
@@ -141,7 +140,7 @@ export default function Report() {
       <Section title="D4 — 읽기 원본은 추적하고 파생물은 재생성한다">
         <EvidenceNote
           measured={[
-            <><T id="terms-reading.json" /> 은 <span className="mono">docs/codegraph/</span> 에 두어 git 이 추적한다. <T id="terms-db.json" /> · <T id="codegraph.json" /> 은 <span className="mono">out/codegraph-raw/</span> — gitignore 이며 원본에서 명령 한 줄로 다시 만든다. <span className="mono">{SPEC}:45, :63</span></>,
+            <>terms-reading.json 은 <span className="mono">docs/codegraph/</span> 에 두어 git 이 추적한다. terms-db.json · codegraph.json 은 <span className="mono">out/codegraph-raw/</span> — gitignore 이며 원본에서 명령 한 줄로 다시 만든다. <span className="mono">{SPEC}:45, :63</span></>,
             <>🔵 <span className="mono">.gitignore:8</span> 이 <span className="mono">out/</span> 전체를 무시한다 — 인공지능 산출물을 거기 두면 다른 머신에서 사라진다. <span className="mono">{SPEC}:45</span></>,
           ]}
           judged={[
@@ -228,8 +227,8 @@ export default function Report() {
       <Section title="D7 — C# 저장소의 C1 시험은 이 계획 밖">
         <EvidenceNote
           measured={[
-            <><T id="C1" /> 은 진짜 뜻이 담긴 사전으로만 시험할 수 있고, 그건 <T id="StickRush" /> 241개 레코드를 인공지능이 다시 읽어야 한다. <span className="mono">{SPEC}:1060</span></>,
-            <>되살릴 조건 — <T id="StickRush" /> 용 Plan 이 생겼을 때. <span className="mono">{SPEC}:1060</span></>,
+            <>C1 은 진짜 뜻이 담긴 사전으로만 시험할 수 있고, 그건 StickRush 241개 레코드를 인공지능이 다시 읽어야 한다. <span className="mono">{SPEC}:1060</span></>,
+            <>되살릴 조건 — StickRush 용 Plan 이 생겼을 때. <span className="mono">{SPEC}:1060</span></>,
           ]}
           judged={[
             <>이 계획의 목적은 이 저장소의 사전이다. C# 은 별개 비용이라 미루는 것이 맞다고 보지만, 판단뿐이라 💭 55.</>,
@@ -275,7 +274,7 @@ export default function Report() {
       <Section title="이 보고서가 보유하지 못한 것">
         <EvidenceNote
           measured={[
-            <>Task 7 의 산출물(<T id="terms-reading.json" />)은 아직 없다 — 이 보고서는 <strong>계획</strong> 검토이지 결과 검토가 아니다. 인공지능 읽기의 품질과 "known 8개 이상" 인수 조건(<span className="mono">{SPEC}:1039</span>)은 실행 후에만 잰다.</>,
+            <>Task 7 의 산출물(terms-reading.json)은 아직 없다 — 이 보고서는 <strong>계획</strong> 검토이지 결과 검토가 아니다. 인공지능 읽기의 품질과 "known 8개 이상" 인수 조건(<span className="mono">{SPEC}:1039</span>)은 실행 후에만 잰다.</>,
             <>🟡 3건(D3 · D4 · D5) 옵션표의 "미검토 — 이 보고서가 추가" 행은 계획서에 없다. 대조군이지 검토된 안이 아니다.</>,
             <>D7 은 💭 55 — 근거가 판단뿐이다.</>,
             <>용어 {terms.length}개의 이해도는 <strong>전부 미측정</strong>이다. 이 계획이 바로 그 측정의 재료(정답지)를 만드는 계획이라, 자기 자신을 Mode 1.5 로 먼저 통과시킬 수 없었다.</>,

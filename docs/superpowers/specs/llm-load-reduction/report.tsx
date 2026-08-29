@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
   Page, Section, DecisionTable, OptionTable, EvidenceNote, BeforeAfter, VerdictFooter,
-  Glossary, TermGraph, defineTerms,
+  Glossary, TermGraph,
 } from "report-builder";
 import { inlineSvg } from "report-builder/svg";
 import { data, terms } from "./data.js";
@@ -17,7 +17,6 @@ const after = inlineSvg(readFileSync("after.svg", "utf8"), "llmafter");
 const SPEC = "2026-08-28-llm-load-reduction-design.md";
 
 // 용어 인라인 참조. 정의는 data.ts 의 terms 에만 있다.
-const T = defineTerms(terms);
 
 export default function Report() {
   return (
@@ -65,9 +64,9 @@ export default function Report() {
       <Section title="D2 — calls[] 는 roslyn-dump.json 에만 넣는다 (C-19)">
         <EvidenceNote
           measured={[
-            <>Track C §7 이 금지한 것은 <T id="codegraph.json" /> 의 <T id="calls[]" /> 이고, <T id="roslyn-dump.json" /> 은 자체 형식이다 — <span className="mono">members[]</span>/<span className="mono">methods[]</span> 를 넣을 때와 같은 논거. <span className="mono">{SPEC}:261-262</span></>,
+            <>Track C §7 이 금지한 것은 codegraph.json 의 calls[] 이고, roslyn-dump.json 은 자체 형식이다 — <span className="mono">members[]</span>/<span className="mono">methods[]</span> 를 넣을 때와 같은 논거. <span className="mono">{SPEC}:261-262</span></>,
             <>인계 문서가 <span className="mono">calls[]</span> 를 “나중에 붙일 자리(지금 만들지 말 것)” 로 적어 뒀다. <span className="mono">docs/handoffs/HANDOFF-codebase-wiki.md:900</span></>,
-            <>사용자 확정 U5 — <T id="codegraph.json" /> 스키마 확장 허용, M1 을 근거로 재검토. <span className="mono">{SPEC}:40</span></>,
+            <>사용자 확정 U5 — codegraph.json 스키마 확장 허용, M1 을 근거로 재검토. <span className="mono">{SPEC}:40</span></>,
             <>대상 Task — 2(추출) · 3(검증기 인식) · 4(<span className="mono">facts/calls.md</span> 주입)</>,
           ]}
           judged={[
