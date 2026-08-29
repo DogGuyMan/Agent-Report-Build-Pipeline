@@ -40,8 +40,10 @@ terms-db.json ◀─ 재료
 
 - **사람에게 묻지 않는다.** 이해도는 Mode 1.5 의 일이다
 - **설계를 판정하지 않는다.** 그건 Mode 2 다
-- **`means` 를 풍부하게 쓰려고 하지 않는다.** 결정론이 목적이다 — 같은 입력이면 같은 출력.
-  LLM 을 여기 끼우면 그게 깨진다
+- **`means` 를 인용 없이 쓰지 않는다.** 뜻과 동작은 내가(LLM) 전수조사로 쓴다 — 단 **한 번**, 레코드마다
+  `where`(file:line) 를 붙여서. `terms_db.py` 가 그 인용을 L1/L2/L3 로 기계 검사하고, 정적 수집기가 있는
+  저장소에서는 구조 필드(`id kind module where`)를 codegraph 쪽으로 덮는다. 결정론은 codegraph 와 투영이
+  지키고, 나는 인용으로 붙들린다
 - **Mode 2 의 파일을 건드리지 않는다.** `src/*` · `scripts/build.mjs` · `scripts/check.mjs` 는 내 것이 아니다
 
 ## 소유 파일과 경계
@@ -50,6 +52,8 @@ terms-db.json ◀─ 재료
 |---|---|
 | `codegraph/` 전반 | **소유** |
 | `codegraph/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
+| `docs/codegraph/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
+| `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
 | `codegraph/normalize.py` 의 **출력 키** | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to` · `id`/`depends_on` 를 읽는다 (간접 의존) |
 | `CLAUDE.md` | **Track C 절만** |
 | `scripts/term/*` · `src/*` · `test/*` | 읽기만 |
@@ -57,6 +61,37 @@ terms-db.json ◀─ 재료
 
 `codegraph/normalize.py` 를 고칠 일이 생기면 **출력 키를 바꾸는 변경인지 먼저 확인하고**, 그렇다면
 작업을 멈추고 보고한다. 이 의존은 코드에 명시돼 있지 않은 간접 의존이라 조용히 깨진다.
+
+## 전수조사 절차 — terms-reading.json 을 쓰는 법 (2026-08-29 신설)
+
+LLM 추론은 **한 번**이다. 그 한 번에 뜻 · 동작 · 관계를 다 얻고, `codegraph.json` 은 거기서 투영한다.
+
+1. **대상 파일을 고정한다.** 테스트 · probe · 캐시는 뺀다. 이 명령의 출력이 조사 범위다:
+   ```bash
+   find codegraph scripts src bin -type f \( -name "*.py" -o -name "*.mjs" -o -name "*.ts" -o -name "*.tsx" -o -path "bin/*" \) \
+     -not -name "test_*" -not -name "probe_*" -not -path "*/__pycache__/*" | sort
+   ```
+2. **파일마다 레코드를 쓴다.** 순서는 위 목록 순서, 파일 안은 줄 번호 순서. 종류별 규칙:
+   | 무엇 | `kind` | 키 | `where` |
+   |---|---|---|---|
+   | 소스 파일 | `file` | 파일명 (`normalize.py`, `collect.mjs`) | `경로:1` |
+   | 소스 파일 — **파일명이 다른 디렉토리와 겹치면** (`src/index.ts` · `src/components/index.ts`) | `file` | 저장소 기준 경로 전체. 겹친 전원 | `경로:1` |
+   | 함수 · 클래스 · 컴포넌트 | `function` / `class` | 맨 이름. **다른 파일과 충돌하면 충돌한 전원** `<파일줄기>.<이름>` (`terms_db.main`, `facts.main`) | 선언 줄 |
+   | 산출 파일 (`codegraph.json` `terms-db.json` `report.html`) | `artifact` | 파일명 | 그 파일을 **쓰는** 줄 (`json.dump` · `writeFileSync`) |
+   | 출력 JSON 의 키 (`nodes[]` `edges[]` `calls[]`) | `key` | `이름[]` (배열) 또는 `이름` | 그 키를 **채우는** 줄 |
+   | 코드가 구현하는 개념 (`PageRank` `hotspot` `WarmUp`) | `concept` | 코드에 적힌 그대로 | 그 낱말이 있는 줄 |
+   | 디렉토리 | `module` | 디렉토리 경로 (`codegraph`, `scripts/term`) | 비움 |
+   `module` 필드는 항상 **디렉토리**다. `means` 는 한 문장, `does` 는 무엇을 하는지 한두 문장 — 둘 다 객체지향을 갓 배운 1학년 눈높이.
+   `uses[]` 는 이 레코드가 **부르거나 · import 하거나 · 쓰는** 대상. `kind` 는 `dependency`(호출·import·쓰기) / `inheritance`(상속) / `aggregation`(멤버로 보유) 중 하나, `label` 에 `calls` `imports` `writes` 등 이유, `where` 는 그 자리.
+   **`neighbors` 는 쓰지 않는다** — 기계가 다시 센다.
+3. **코드에 없는 것은 쓰지 않는다.** Plan 이 만든 결정 코드(`C-20`, `U3`)나 개념(`무효화`)이 코드에 글자로 없으면
+   그것은 Mode 1 의 것이 아니다 — Mode 1.5 의 `newConcepts` 로 남긴다. 인용 없는 뜻은 싣지 않는다.
+4. **검사한다.** 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 남겨도 되지만 이유를 보고한다.
+   ```bash
+   .venv/bin/python codegraph/terms_db.py --repo . --reading docs/codegraph/terms-reading.json
+   # -> out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0" 이어야 한다
+   ```
+5. **보고한다.** 레코드 수(종류별) · 실패 0 확인 출력 · 근거 없음 목록과 이유 · 키 충돌로 `<파일줄기>.<이름>` 이 된 것 목록.
 
 ## 전제
 

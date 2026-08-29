@@ -49,13 +49,19 @@ Mode 1 ─────────────▶ Mode 1.5 ───────
 | 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
 
 ### 이 mode 에 새로 붙는 것
-**`terms_db.py` 하나.** `codegraph.json` 에서 이름·종류·위치·이웃을 뽑아 `{ "용어": { kind, module, where, means, neighbors } }` 를 만든다.
-**기계가 아는 사실만 적는다.** 사람이 읽을 설명은 Mode 1.5 가 LLM 으로 채우고 사용자가 검수한다.
+**`terms_db.py` 와 전수조사 절차.** 2026-08-29 부터 `terms-db.json` 이 **원본**이고 `codegraph.json` 은 그 **투영**이다
+(계획서 `2026-08-29-mode-1-terms-db-first.md`). 정적 수집기가 있으면 codegraph 에서 레코드를 먼저 만들고 LLM 이
+뜻 · 동작 · 새 관계를 보탠다(구조 필드는 codegraph 가 이긴다). 없으면(Python/JS) LLM 읽기 레코드만으로 DB 를 만들고
+`codegraph.json` 을 투영한다. **LLM 이 쓴 모든 `where` 는 L1/L2/L3 로 기계 검사한다.** 절차는 에이전트 정의
+`.claude/agents/mode-1-codebase-wiki.md` 의 `## 전수조사 절차` 절에 있다.
 
 ### 나는 무엇이 아닌가
 - **사람에게 묻지 않는다.** 이해도는 Mode 1.5 의 일이다
 - **설계를 판정하지 않는다.** 그건 Mode 2 다
-- **`means` 를 풍부하게 쓰려고 하지 않는다.** 결정론이 목적이다 — 같은 입력이면 같은 출력. LLM 을 여기 끼우면 그게 깨진다
+- **`means` 를 인용 없이 쓰지 않는다.** 뜻과 동작은 내가(LLM) 전수조사로 쓴다 — 단 **한 번**, 레코드마다
+  `where`(file:line) 를 붙여서. `terms_db.py` 가 그 인용을 L1/L2/L3 로 기계 검사하고, 정적 수집기가 있는
+  저장소에서는 구조 필드(`id kind module where`)를 codegraph 쪽으로 덮는다. 결정론은 codegraph 와 투영이
+  지키고, 나는 인용으로 붙들린다
 
 ### 전제
 Mode 1.5 가 시작되기 전에 **이 mode 가 완전히 WarmUp 되어 있어야 한다.** `terms-db.json` 이 없으면 Mode 1.5 는 중단하고 보고한다.
@@ -239,3 +245,4 @@ Mode 1(Track C)이 외부 저장소에서 돌아야 하는데 아직 안 돌았�
   - **Task 6.1 스킬은 이미 완료돼 있었다** — 이 문서가 "슬롯 C 가 쓴다"(미래형)로 적고 있었으나
     `~/.claude/skills/term-benchmark/SKILL.md` 223줄이 커밋 `1c22f65` 로 들어와 있다.
   - `mode-2-spec-report` 가 하네스 에이전트 목록에 안 보인 관측 1건 — **원인 미특정.** `/agents` 로 확인할 것.
+- 2026-08-29 — Mode 1 절: terms-db 우선 구조 반영. "means 를 풍부하게 쓰지 않는다" 를 "인용 없이 쓰지 않는다" 로 개정.
