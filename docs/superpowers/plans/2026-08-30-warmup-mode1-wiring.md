@@ -105,7 +105,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 - Modify: `codegraph/run_mode1.py` (68번 줄 `AGENT_STAGES` 아래에 상수와 함수 추가)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `codegraph/test_run_mode1.py` 의 `# ── 4. 에이전트 호출` 절 **바로 앞**에 새 절을 넣는다:
 
@@ -130,7 +130,7 @@ def test_lang_of_is_none_when_it_cannot_tell():
     assert R.lang_of(None) is None
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 cd /Users/escatrgot/LLM-Tools/report-builder
@@ -139,7 +139,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 
 기대: `AttributeError: module 'run_mode1' has no attribute 'lang_of'` 로 3개 실패.
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 `codegraph/run_mode1.py` 의 `AGENT_STAGES = {"agent"}` 줄 **바로 아래**에 넣는다:
 
@@ -177,7 +177,7 @@ import declmap  # noqa: E402
 import warmup  # noqa: E402
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k lang_of
@@ -185,7 +185,7 @@ import warmup  # noqa: E402
 
 기대: `3 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -193,7 +193,7 @@ import warmup  # noqa: E402
 
 기대: `128 passed, 19 skipped` (기준선 125 + 3).
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -215,7 +215,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 - Modify: `codegraph/run_mode1.py` (Task 1 에서 넣은 `lang_of` 아래)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 Task 1 의 시험들 **아래**에 이어 붙인다:
 
@@ -245,7 +245,7 @@ def test_seed_tolerates_missing_buckets():
     assert R.changed_seed({}) == []
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k seed
@@ -253,7 +253,7 @@ def test_seed_tolerates_missing_buckets():
 
 기대: `AttributeError: module 'run_mode1' has no attribute 'changed_seed'` 로 4개 실패.
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 `lang_of` 아래에 넣는다:
 
@@ -274,7 +274,7 @@ def changed_seed(판정):
     return sorted(set(판정.get("재읽기") or []) | set(판정.get("위치만") or []))
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k seed
@@ -282,7 +282,7 @@ def changed_seed(판정):
 
 기대: `4 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -290,7 +290,7 @@ def changed_seed(판정):
 
 기대: `132 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -312,7 +312,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 - Modify: `codegraph/run_mode1.py` (`changed_seed` 아래)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 ```python
 def test_agent_is_skipped_when_nothing_changed_and_records_exist():
@@ -334,7 +334,7 @@ def test_agent_runs_when_warmup_could_not_judge():
     assert R.should_call_agent(targets=None, has_reading=True) is True
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -343,7 +343,7 @@ def test_agent_runs_when_warmup_could_not_judge():
 기대: `AttributeError: module 'run_mode1' has no attribute 'should_call_agent'` 로 4개 실패,
 나머지 27개 통과 (`4 failed, 27 passed`).
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 ```python
 def should_call_agent(targets, has_reading):
@@ -363,7 +363,7 @@ def should_call_agent(targets, has_reading):
     return bool(targets)
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -371,7 +371,7 @@ def should_call_agent(targets, has_reading):
 
 기대: `31 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -379,7 +379,7 @@ def should_call_agent(targets, has_reading):
 
 기대: `136 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -399,7 +399,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 - Modify: `codegraph/run_mode1.py` (`agent_prompt` 위, 184번 줄 근처)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 ```python
 def test_warmup_section_lists_every_target_and_the_ratio():
@@ -430,7 +430,7 @@ def test_prompt_without_a_scope_is_the_full_survey():
     assert "codebase-terms-survey" in p and "deep-wiki" in p
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -439,7 +439,7 @@ def test_prompt_without_a_scope_is_the_full_survey():
 기대: `4 failed, 31 passed`. `warmup_section` 2개는 `AttributeError`,
 프롬프트 2개는 `TypeError: agent_prompt() got an unexpected keyword argument 'targets'`.
 
-- [ ] **Step 3: `warmup_section` 을 쓴다**
+- [x] **Step 3: `warmup_section` 을 쓴다**
 
 `def agent_prompt(...)` **바로 위**에 넣는다. 저장소 경로를 인자로 받는다 — 이 글은
 `agent_prompt` 안에서 다시 `.format()` 을 타지 않으므로 중괄호 자리표시자를 쓸 수 없다.
@@ -472,7 +472,7 @@ def warmup_section(targets, total, repo=""):
             % (repo, len(targets), total, len(targets), 목록))
 ```
 
-- [ ] **Step 3-2: `agent_prompt` 가 그 절을 받게 고친다**
+- [x] **Step 3-2: `agent_prompt` 가 그 절을 받게 고친다**
 
 `codegraph/run_mode1.py:184` 의 서명을 바꾼다.
 
@@ -502,7 +502,7 @@ def agent_prompt(repo, root, targets=None, total=0):
 """.format(repo=repo, root=root) + warmup_section(targets, total, repo)
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -510,7 +510,7 @@ def agent_prompt(repo, root, targets=None, total=0):
 
 기대: `35 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -518,7 +518,7 @@ def agent_prompt(repo, root, targets=None, total=0):
 
 기대: `140 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -538,7 +538,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 - Modify: `codegraph/run_mode1.py:65` (`STAGES`), `codegraph/run_mode1.py:83` (`plan_stages`)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 기존 시험 `test_plan_runs_everything_on_an_empty_repo` 와
 `test_plan_skips_the_agent_when_its_output_already_exists` 를 아래로 **교체**한다:
@@ -582,7 +582,7 @@ def test_skipping_warmup_restores_the_old_five_stage_flow():
     assert p == ["prep", "agent", "terms", "build", "check"]
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -595,7 +595,7 @@ def test_skipping_warmup_restores_the_old_five_stage_flow():
 - `test_the_save_gate_comes_before_terms` — 같은 꼴
 - `test_skipping_warmup_restores_the_old_five_stage_flow` — `ValueError: 모르는 단계: warmup`
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 `codegraph/run_mode1.py:65` 를 바꾼다.
 
@@ -648,7 +648,7 @@ STAGES = ["prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
     return out
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -656,7 +656,7 @@ STAGES = ["prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
 
 기대: `38 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -664,7 +664,7 @@ STAGES = ["prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
 
 기대: `143 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -684,7 +684,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 - Modify: `codegraph/run_mode1.py:275` 근처 (`format_report`)
 - Test: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `# ── 6. 보고` 절 끝에 더한다:
 
@@ -706,7 +706,7 @@ def test_a_skipped_stage_does_not_break_the_total():
     assert "합계" in R.format_report(rows)
 ```
 
-- [ ] **Step 2: 실패를 눈으로 본다**
+- [x] **Step 2: 실패를 눈으로 본다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k skipped
@@ -714,7 +714,7 @@ def test_a_skipped_stage_does_not_break_the_total():
 
 기대: `AssertionError: assert '건너뜀' in '단계 상태 ...'` — 지금은 "성공" 으로 그린다.
 
-- [ ] **Step 3: 최소 구현을 쓴다**
+- [x] **Step 3: 최소 구현을 쓴다**
 
 `format_report` 안의 상태 칸을 바꾼다.
 
@@ -752,7 +752,7 @@ def test_a_skipped_stage_does_not_break_the_total():
     return "\n".join(out)
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k skipped
@@ -760,7 +760,7 @@ def test_a_skipped_stage_does_not_break_the_total():
 
 기대: `2 passed`.
 
-- [ ] **Step 5: 회귀 전량**
+- [x] **Step 5: 회귀 전량**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -768,7 +768,7 @@ def test_a_skipped_stage_does_not_break_the_total():
 
 기대: `145 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -787,7 +787,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 **Files:**
 - Modify: `codegraph/run_mode1.py:386` 이후 (`main`)
 
-- [ ] **Step 1: `--hops` 를 인자로 더한다**
+- [x] **Step 1: `--hops` 를 인자로 더한다**
 
 `ap.add_argument("--timeout", ...)` 줄 **바로 아래**에 넣는다:
 
@@ -798,7 +798,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
                          "차이가 거의 없다")
 ```
 
-- [ ] **Step 2: 판정 상태를 담을 변수를 만든다**
+- [x] **Step 2: 판정 상태를 담을 변수를 만든다**
 
 `rows, t_all = [], time.monotonic()` 줄을 아래로 **교체**한다:
 
@@ -810,7 +810,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
     rows, t_all = [], time.monotonic()
 ```
 
-- [ ] **Step 3: 단계 갈림길에 두 칸을 더한다**
+- [x] **Step 3: 단계 갈림길에 두 칸을 더한다**
 
 `main` 의 `for stage in stages:` 안, `if stage == "agent":` **바로 앞**에 두 갈래를 넣는다.
 
@@ -849,7 +849,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
                 print(result["result"])
 ```
 
-- [ ] **Step 4: 두 부수효과 함수를 쓴다**
+- [x] **Step 4: 두 부수효과 함수를 쓴다**
 
 `def main(argv=None):` **바로 위**에 넣는다:
 
@@ -921,7 +921,7 @@ def save_warmup(cache_path, entries, rows):
     return True, ""
 ```
 
-- [ ] **Step 5: `run_agent` 가 범위를 넘기게 고친다**
+- [x] **Step 5: `run_agent` 가 범위를 넘기게 고친다**
 
 `codegraph/run_mode1.py` 의 `run_agent` 를 바꾼다.
 
@@ -952,7 +952,7 @@ def run_agent(model, repo, root, targets=None, total=0, timeout=None):
                            capture_output=True, text=True, timeout=timeout)
 ```
 
-- [ ] **Step 6: 회귀 전량이 그대로인지 본다**
+- [x] **Step 6: 회귀 전량이 그대로인지 본다**
 
 ```bash
 cd /Users/escatrgot/LLM-Tools/report-builder
@@ -961,7 +961,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 
 기대: `145 passed, 19 skipped` (Task 6 과 같다 — 이 Task 는 시험을 더하지 않는다).
 
-- [ ] **Step 7: 마른 실행으로 흐름을 눈으로 본다**
+- [x] **Step 7: 마른 실행으로 흐름을 눈으로 본다**
 
 ```bash
 .venv/bin/python codegraph/run_mode1.py \
@@ -975,7 +975,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 이미 있는 것 — 코드지도 True · 읽기레코드 True · 산문 True
 ```
 
-- [ ] **Step 8: warmup 단계만 실제로 돌려 판정을 본다 (토큰 0)**
+- [x] **Step 8: warmup 단계만 실제로 돌려 판정을 본다 (토큰 0)**
 
 ```bash
 .venv/bin/python codegraph/run_mode1.py \
@@ -992,7 +992,7 @@ cpp 파일 77개 — 유효 0 · 재읽기 77 · 위치만 0 · 삭제됨 0
 
 ⚠ `--only warmup` 은 `warmup-save` 를 빼므로 매니페스트가 **안 써진다.** 의도한 동작이다.
 
-- [ ] **Step 9: 매니페스트를 세우고 아무것도 안 고친 채 다시 본다**
+- [x] **Step 9: 매니페스트를 세우고 아무것도 안 고친 채 다시 본다**
 
 ```bash
 .venv/bin/python codegraph/run_mode1.py \
@@ -1008,7 +1008,7 @@ cpp 파일 77개 — 유효 77 · 재읽기 0 · 위치만 0 · 삭제됨 0
 에이전트가 읽을 것 0개 (0.0%) — 씨앗 0개에서 1홉 퍼뜨린 결과
 ```
 
-- [ ] **Step 10: 담아 두고 승인을 기다린다**
+- [x] **Step 10: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py
@@ -1029,7 +1029,7 @@ git add codegraph/run_mode1.py
 - Modify: `docs/codegraph/comments.xml` (도구가 생성한다 — 손으로 고치지 말 것)
 - Modify: `codegraph/run_mode1.py` (도구가 주석 블록을 주입한다)
 
-- [ ] **Step 1: 레코드를 더한다**
+- [x] **Step 1: 레코드를 더한다**
 
 줄 번호를 손으로 옮겨 적지 않는다 — 앞 Task 들이 줄을 밀어 놓았고, 손으로 옮기면 반드시
 어긋난다. 아래 스크립트가 소스에서 `def` 줄을 직접 찾아 `where` 에 넣는다.
@@ -1094,7 +1094,7 @@ PY
 
 기대 출력: `레코드 285개 — run_mode1 새 함수 6개 반영` (착수 시점 279 + 6).
 
-- [ ] **Step 2: 넣은 좌표가 실제 `def` 줄인지 눈으로 확인한다**
+- [x] **Step 2: 넣은 좌표가 실제 `def` 줄인지 눈으로 확인한다**
 
 ```bash
 .venv/bin/python - <<'PY'
@@ -1111,7 +1111,7 @@ PY
 
 기대: 모든 줄이 `def <그 이름>(` 로 시작한다. 하나라도 어긋나면 Step 1 을 다시 돌린다.
 
-- [ ] **Step 3: 주석 블록을 만들고 주입한다**
+- [x] **Step 3: 주석 블록을 만들고 주입한다**
 
 ```bash
 .venv/bin/python codegraph/xmldoc.py emit
@@ -1121,7 +1121,7 @@ PY
 
 기대: `check` 가 `문제 0건`.
 
-- [ ] **Step 4: 인용을 기계로 검사한다**
+- [x] **Step 4: 인용을 기계로 검사한다**
 
 ```bash
 .venv/bin/python codegraph/terms_db.py out/codegraph-raw/codegraph.json \
@@ -1130,7 +1130,7 @@ PY
 
 기대: `실패 0`. `근거 없음` 은 **1** 이어야 한다 — `normalize.main` 의 구조적 1건이 기준선이고, 그보다 늘면 새로 넣은 레코드의 `where` 가 틀린 것이다.
 
-- [ ] **Step 5: 주입으로 줄이 밀렸으니 시험을 다시 돌린다**
+- [x] **Step 5: 주입으로 줄이 밀렸으니 시험을 다시 돌린다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
@@ -1138,7 +1138,7 @@ PY
 
 기대: `145 passed, 19 skipped`.
 
-- [ ] **Step 6: 담아 두고 승인을 기다린다**
+- [x] **Step 6: 담아 두고 승인을 기다린다**
 
 ```bash
 git add codegraph/run_mode1.py docs/codegraph/terms-reading.json docs/codegraph/comments.xml
@@ -1147,6 +1147,54 @@ git add codegraph/run_mode1.py docs/codegraph/terms-reading.json docs/codegraph/
 ```
 [chore] : warmup 배선 함수 6개의 전수조사 레코드와 주석 블록
 ```
+
+---
+
+## 실행 기록 — Task 1~8 (🔵 2026-08-30)
+
+커밋 `1e5d766` (배선 + 레코드) · `da3bf20` (시험 20건). **Task 9 는 사용자 결정으로 실행하지 않았다** —
+아래 체크박스가 비어 있는 이유가 그것이다.
+
+### 계획서가 틀렸던 것
+
+| 계획서 | 실제 |
+|---|---|
+| 착수 기준선 `codegraph/` 전량 **125 passed** | **201 passed, 19 skipped**. 증가분 20건은 그대로 맞았다. 각 Task 의 기대값(128/132/…/145)은 **201 + 누적 증가분**으로 읽어야 한다 |
+| `run_mode1.py` 가 약 570줄이 된다 | **669줄**. 모듈 문서의 "다섯 단계" 표와 사용법을 일곱 단계로 함께 고쳤기 때문이다 |
+| Task 8 Step 4 — `근거 없음` 은 **1** 이어야 한다 | 처음엔 **9** 였다. 늘어난 8건은 새 레코드가 아니라 **기존 `uses[].where`** 가 줄 밀림으로 낡은 것이다(`codegraph/CLAUDE.md` 의 알려진 한계 — `uses` 는 마커가 없어 `inject` 가 재계산하지 않는다). 소스에서 호출 자리를 찾아 고치고 새 호출 간선 6개를 더해 **1** 로 되돌렸다 |
+| 각 Task Step 6 — 담아 두고 승인을 기다린다 | **Task 마다 멈추지 않고 끝에 한 번** 제시했다(사용자 지시). 그래서 계획서의 커밋 8분할 대신 **2개**로 나갔다 — 레코드·주석 블록이 `run_mode1.py` 안의 주입 마커와 짝이라, 떼면 그 커밋에서 `xmldoc.py check` 가 깨진다 |
+
+### 계획서에 없던 작업
+
+- `plan_stages` 의 전수조사 `means` 가 "다섯 단계 중" 으로 남아 주입됐다. 일곱으로 고치고 다시 주입했다.
+- 새 호출 간선 6개를 `uses` 에 더했다 — `main -> {run_warmup, save_warmup, should_call_agent}` ·
+  `agent_prompt -> warmup_section` · `run_warmup -> {lang_of, changed_seed}`.
+
+### 병렬 작업 사고 — 다음 사람이 겪지 않도록
+
+실행 중 **다른 에이전트가 같은 작업 트리에서 Mode 1.5 를 고치고 있었다.** `pytest codegraph/` 가 갑자기
+18건 실패했는데 전부 `test_run_mode1_5.py` 였다. 원인을 가리려고 `git stash` / `git stash pop` 을 돌린 것은
+**잘못이었다** — 남의 미완성 변경까지 통째로 들었다 놓으므로 그 사이 상대가 쓰면 유실된다. 게다가 pop 이
+작업 트리 전체의 mtime 을 새로 찍어 warmup 의 1차 관문을 무의미하게 만든다.
+
+**대신 이렇게 한다** — 게이트를 `--ignore=codegraph/test_<남의파일>.py` 로 좁히고, 되돌릴 지점이 필요하면
+`git stash create` 를 쓴다(커밋 객체만 만들고 작업 트리는 건드리지 않는다). `terms-reading.json` 은
+읽고-전체를-다시-쓰는 파일이라 병렬 편집에 가장 약하니, 수정됨 상태면 상대가 커밋할 때까지 기다린다.
+
+### 눈으로 본 것 (전부 실제 명령 출력)
+
+```
+단계 순서          prep -> warmup -> warmup-save -> terms -> build -> check
+냉시동 판정        cpp 파일 77개 - 유효 0 · 재읽기 77   → 읽을 것 77개 (100.0%)
+매니페스트 뒤      cpp 파일 77개 - 유효 77 · 재읽기 0   → 읽을 것 0개 (0.0%)
+에이전트           건너뜀 (바뀐 파일 0개) · 합계 토큰 0 · $0.0000
+판정 불가          language "unknown" → "전량 조사로 돈다"
+대조군             --skip warmup,warmup-save → 옛 다섯 단계
+게이트             pytest 235 passed · npm test fail 0 · tsc 통과
+                   xmldoc check 문제 0건 · 인용 실패 0 / 근거 없음 1
+```
+
+**"검증됨" 이 아니다.** 증분 실행(국소 변경을 준 뒤)은 아직 돌리지 않았으므로 절감폭은 숫자가 없다.
 
 ---
 
