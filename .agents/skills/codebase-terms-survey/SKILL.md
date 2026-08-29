@@ -108,17 +108,27 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 ## Common pitfalls
 
 - **움직이는 트리에서 조사** — 병렬 세션이 파일을 고치면 줄 번호가 밀린다. 전제 3 을 건너뛰지 않는다
-- **인용 부패** — 코드가 바뀌면 `where` 는 낡는다(L3 근거 없음이 는다). 실패는 아니지만 검사 신호가 약해진다. 재조사하거나 `where` 재계산 도구(`codegraph/xmldoc.py inject`, 2026-08-29 다른 세션 작업 중)를 쓴다
+- **인용 부패** — 코드가 바뀌면 `where` 는 낡는다(L3 근거 없음이 는다). `xmldoc.py inject` 가 마커 기준으로 재계산한다 — 셈으로 추정하는 방식은 앞선 블록의 누적 밀림을 놓친다(2026-08-29 실측: 근거 없음 3 → 242). `uses[].where` 는 재계산되지 않는다
 - **키 충돌을 한쪽만 한정** — `main` 이 9파일이면 9개 전부 `<파일줄기>.main`
 - **파일 레코드의 `where`** 는 `경로:1` — 머리 주석에 파일명이 없으면 근거 없음이 뜬다. 정보성이다. 파일에 머리 주석을 다는 것이 정답이지 규칙을 바꾸는 것이 아니다
 - **범위 밖 파일을 `does` 에서 언급** — 그 파일의 레코드가 없으면 독자가 따라갈 수 없다. 범위에 넣거나 언급을 뺀다
 - **`confidence` 를 전부 HIGH 로** — 그러면 칸이 장식이다. 이름만 보고 쓴 것은 LOW 다
+
+## 개발 규율 — 코드를 만들 때 레코드도 함께 (사용자 의도, 2026-08-29)
+
+이 사전의 목적은 **나중 LLM 이 코드를 다시 추론하는 부담을 줄이는 것**이다. 그래서 전수조사는 한 번이고, 그 뒤로는 **개발하면서** 채운다:
+
+- 새 함수·파일·산출물·키를 만들면 **그 자리에서 레코드를 쓴다** — 뜻 · 동작 · `uses` · `confidence`. 생각한 것(왜 이렇게 했는가)은 `does` 에 한 문장.
+- `codegraph/xmldoc.py emit` → `inject` 로 코드 옆에 **주석 블록**(마커 · 한 줄 뜻 · 의존 줄 "쓰는 것 / 쓰이는 곳")을 박는다. 코드에는 레퍼런스만, 본문은 `comments.xml` 한 곳 — 두 군데 살면 어긋난다.
+- 코드가 움직여 줄 번호가 밀리면 `inject` 가 **마커 기준으로 `where` 를 재계산**한다(2026-08-29 ⑭ 이후). `uses[].where` 는 마커가 없어 L3 경고로만 남는다.
+- 검사 둘을 같이 본다 — `terms_db.py --reading`(L1/L2/L3) · `xmldoc.py check`(마커와 json 이 맞는가).
 
 ## 산출물
 
 | 파일 | 누가 | 어디로 |
 |---|---|---|
 | `<repo>/docs/codegraph/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본 |
+| `<repo>/docs/codegraph/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다 |
 | `<repo>/out/codegraph-raw/terms-db.json` | `terms_db.py` | Mode 1.5 `report-term collect` 의 재료. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
 
