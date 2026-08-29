@@ -148,6 +148,20 @@ footer.page-footer { margin-top: 34px; font-size: 11px; color: var(--text-3); te
 .mental-모름 { background: var(--red-soft); color: var(--red); }
 .mental-미측정 { background: transparent; color: var(--text-3); font-weight: 400; }
 
+/* 용어집 아코디언 — 이해도 그룹. 접기/펼치기는 브라우저 기본 details 요소가 한다 (스크립트 0줄) */
+.term-groups { padding: 0; }
+.term-group { border-top: 1px solid var(--border); }
+.term-group:first-child { border-top: 0; }
+.term-group-head { cursor: pointer; padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+  font-weight: 600; list-style: none; user-select: none; }
+.term-group-head::-webkit-details-marker { display: none; }
+.term-group-head::before { content: "▸"; color: var(--text-3); font-size: 12px; }
+.term-group[open] > .term-group-head::before { content: "▾"; }
+.term-group-count { font-size: 12px; color: var(--text-3); font-weight: 500; }
+.term-group-count::before { content: "("; }
+.term-group-count::after { content: ")"; }
+.term-group .table-wrap { padding: 0 14px 12px; }
+
 /* 본문 인라인 참조 — 커서를 올리면 설명 카드. JavaScript 없이 CSS 만으로 뜬다. */
 .term-ref { position: relative; border-bottom: 1px dashed var(--accent);
   cursor: help; font-weight: 600; }

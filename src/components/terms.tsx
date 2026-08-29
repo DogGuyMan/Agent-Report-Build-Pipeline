@@ -37,35 +37,55 @@ export function defineTerms(terms: Term[]) {
   };
 }
 
-/** 용어집 절. 정의 전량을 한 번에 보인다. */
+const MENTAL_ORDER = ["모름", "애매", "확실", "미측정"] as const;
+
+/**
+ * 용어집 — 이해도 그룹별 아코디언.
+ * 모름 → 애매 → 확실 → 미측정 순. 빈 그룹은 그리지 않는다. 모름 그룹만 열린 채 시작한다.
+ * 접기/펼치기는 브라우저 기본 <details> 다 — 스크립트 0줄 (예산 1개는 용어 그래프가 쓴다).
+ * 그룹 안 순서는 terms 배열 순서 그대로 — 정렬하지 않는다(저자가 정한 순서가 곧 서사다).
+ */
 export function Glossary({ terms }: { terms: Term[] }) {
+  const groups = MENTAL_ORDER
+    .map((m) => ({ mental: m, items: terms.filter((t) => (t.mental ?? "미측정") === m) }))
+    .filter((g) => g.items.length > 0);
   return (
-    <div className="card table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>용어</th>
-            <th>갈래</th>
-            <th>이해도</th>
-            <th>뜻</th>
-          </tr>
-        </thead>
-        <tbody>
-          {terms.map((t) => (
-            <tr key={t.id}>
-              <td className="mono">{t.id}</td>
-              <td><span className={`term-kind term-kind-${t.kind}`}>{KIND_LABEL[t.kind]}</span></td>
-              <td>
-                <span className={`term-mental mental-${t.mental ?? "미측정"}`}>{t.mental ?? "미측정"}</span>
-              </td>
-              <td>
-                <div>{t.short}</div>
-                {t.body && <div className="term-body">{t.body}</div>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="card term-groups">
+      {groups.map((g) => (
+        <details key={g.mental} className="term-group" open={g.mental === "모름"}>
+          <summary className="term-group-head">
+            <span className={`term-mental mental-${g.mental}`}>{g.mental}</span>
+            <span className="term-group-count">{g.items.length}</span>
+          </summary>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>용어</th>
+                  <th>갈래</th>
+                  <th>이해도</th>
+                  <th>뜻</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.items.map((t) => (
+                  <tr key={t.id}>
+                    <td className="mono">{t.id}</td>
+                    <td><span className={`term-kind term-kind-${t.kind}`}>{KIND_LABEL[t.kind]}</span></td>
+                    <td>
+                      <span className={`term-mental mental-${t.mental ?? "미측정"}`}>{t.mental ?? "미측정"}</span>
+                    </td>
+                    <td>
+                      <div>{t.short}</div>
+                      {t.body && <div className="term-body">{t.body}</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      ))}
     </div>
   );
 }

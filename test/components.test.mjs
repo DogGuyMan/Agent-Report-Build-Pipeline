@@ -252,3 +252,46 @@ test("Glossary 는 이해도가 없어도 렌더된다", () => {
   assert.ok(out.includes("<td"), "이해도 없는 용어에서 깨졌다");
   assert.ok(out.includes("mental-미측정"), "이해도 없음이 미측정으로 표시되지 않는다");
 });
+
+test("Glossary 는 이해도 그룹을 모름 → 애매 → 확실 → 미측정 순으로 낸다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "a", label: "a", short: "확실한 것", kind: "concept", mental: "확실" },
+    { id: "b", label: "b", short: "미측정인 것", kind: "concept" },
+    { id: "c", label: "c", short: "모르는 것", kind: "concept", mental: "모름" },
+    { id: "d", label: "d", short: "애매한 것", kind: "concept", mental: "애매" },
+  ] }));
+  const pos = (s) => out.indexOf(s);
+  assert.ok(pos("모르는 것") < pos("애매한 것"), "모름이 애매보다 앞");
+  assert.ok(pos("애매한 것") < pos("확실한 것"), "애매가 확실보다 앞");
+  assert.ok(pos("확실한 것") < pos("미측정인 것"), "확실이 미측정보다 앞");
+});
+
+test("Glossary 는 그룹을 details 로 싸고 모름 그룹만 열어 둔다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "a", label: "a", short: "확실한 것", kind: "concept", mental: "확실" },
+    { id: "c", label: "c", short: "모르는 것", kind: "concept", mental: "모름" },
+  ] }));
+  assert.equal((out.match(/<details/g) ?? []).length, 2, "그룹 하나에 details 하나");
+  assert.equal((out.match(/<details[^>]*\bopen\b/g) ?? []).length, 1, "열린 것은 하나");
+  const openBlock = out.slice(out.search(/<details[^>]*\bopen\b/), out.indexOf("</details>"));
+  assert.ok(openBlock.includes("모르는 것"), "열린 그룹은 모름");
+  assert.equal((out.match(/<script/g) ?? []).length, 0, "스크립트 없음");
+});
+
+test("Glossary 는 빈 그룹을 그리지 않고 제목에 개수를 적는다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "a", label: "a", short: "확실 1", kind: "concept", mental: "확실" },
+    { id: "b", label: "b", short: "확실 2", kind: "concept", mental: "확실" },
+  ] }));
+  assert.equal((out.match(/<details/g) ?? []).length, 1, "확실 그룹 하나뿐");
+  assert.ok(!out.includes("mental-모름") && !out.includes("mental-애매") && !out.includes("mental-미측정"), "빈 그룹 없음");
+  assert.ok(/<summary[^>]*>[\s\S]*?확실[\s\S]*?2[\s\S]*?<\/summary>/.test(out), "제목에 이해도와 개수");
+});
+
+test("Glossary 는 그룹 안에서 terms 배열 순서를 지킨다", () => {
+  const out = html(Glossary({ terms: [
+    { id: "z", label: "z", short: "먼저 온 것", kind: "concept", mental: "모름" },
+    { id: "a", label: "a", short: "나중 온 것", kind: "concept", mental: "모름" },
+  ] }));
+  assert.ok(out.indexOf("먼저 온 것") < out.indexOf("나중 온 것"), "정렬하지 않는다");
+});
