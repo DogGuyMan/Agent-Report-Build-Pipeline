@@ -179,16 +179,24 @@
     <means>다음 단계가 시작되기 전에 앞 단계가 재료를 다 갖춰 놓은 상태.</means>
     <does>코드에서는 기계가 가려낼 수 없는 자연어 용어의 예로 나온다. 이런 낱말은 저자가 용어집에 직접 넣어야 한다.</does>
   </term>
-  <term id="_assemble" kind="function" module="codegraph" where="codegraph/normalize.py:379" source="reading">
+  <term id="_assemble" kind="function" module="codegraph" where="codegraph/normalize.py:466" source="reading">
     <means>두 언어 파서가 함께 쓰는 마무리. 최종 codegraph.json 모양으로 조립한다.</means>
     <does>닿지 않는 외부 노드를 걷어내고, 클래스 간선에서 모듈 사이 의존을 유도해 nodes[] · edges[] · modules[] 세 목록을 낸다.</does>
-    <uses to="nodes[]" kind="dependency" label="fills" where="codegraph/normalize.py:299"/>
-    <uses to="edges[]" kind="dependency" label="fills" where="codegraph/normalize.py:326"/>
-    <uses to="modules[]" kind="dependency" label="fills" where="codegraph/normalize.py:378"/>
-    <uses to="git_commit" kind="dependency" label="calls" where="codegraph/normalize.py:378"/>
+    <uses to="nodes[]" kind="dependency" label="fills" where="codegraph/normalize.py:466"/>
+    <uses to="edges[]" kind="dependency" label="fills" where="codegraph/normalize.py:466"/>
+    <uses to="modules[]" kind="dependency" label="fills" where="codegraph/normalize.py:471"/>
+    <uses to="git_commit" kind="dependency" label="calls" where="codegraph/normalize.py:502"/>
+  </term>
+  <term id="_doc_element" kind="function" module="codegraph" where="codegraph/normalize.py:285" source="reading">
+    <means>clang-doc 심볼을 1차 판정 함수가 읽는 꼴로 옮긴다.</means>
+    <does>판정을 흉내 내지 않고 원래 함수를 그대로 태우려고 꼴만 맞춘다. 우회하면 남의 라이브러리 타입이 우리 코드로 샌다.</does>
   </term>
   <term id="_git_commit" kind="function" module="codegraph" where="codegraph/terms_db.py:383" source="reading">
     <means>저장소 HEAD 해시를 읽는다. git 이 없어도 실패시키지 않는다.</means>
+  </term>
+  <term id="_json_root" kind="function" module="codegraph" where="codegraph/clang_doc.py:132" source="reading">
+    <means>결과가 실제로 놓인 폴더를 고른다.</means>
+    <does>도구는 준 폴더 밑에 한 겹을 더 만든다. 바깥을 줘도 안쪽을 줘도 되게 한다.</does>
   </term>
   <term id="_mmdc" kind="function" module="codegraph" where="codegraph/demermaid.py:56" source="reading">
     <means>Mermaid 원문을 SVG 파일로 굽는 바깥 명령을 부른다.</means>
@@ -205,6 +213,12 @@
     <means>인용 대조에 쓸 이름 조각을 만든다.</means>
     <does>파일 · 산출물 · 키 · 개념 · 모듈은 글자 그대로 쓰고, 나머지는 마지막 조각만 남긴다. codegraph.json 을 점으로 쪼개면 안 되기 때문이다.</does>
     <uses to="verify_citations.short" kind="dependency" label="calls" where="codegraph/terms_db.py:254"/>
+  </term>
+  <term id="_symbol" kind="function" module="codegraph" where="codegraph/clang_doc.py:109" source="reading">
+    <means>도구가 낸 항목 하나를 우리 공통 꼴로 옮긴다.</means>
+    <does>자리(파일과 줄)가 없으면 아무것도 돌려주지 않아 버려지게 한다. 자리 없는 항목을 살려 두면 나중 검사가 통째로 막힌다.</does>
+    <uses to="qualified_namespace" kind="dependency" label="calls" where="codegraph/clang_doc.py:121"/>
+    <uses to="flatten_description" kind="dependency" label="calls" where="codegraph/clang_doc.py:125"/>
   </term>
   <term id="_where" kind="function" module="codegraph" where="codegraph/terms_db.py:50" source="reading">
     <means>노드의 파일과 줄을 합쳐 경로:줄 꼴 위치 문자열로 만든다.</means>
@@ -233,6 +247,10 @@
     <means>노드가 돌아다닐 수 있는 사각형 범위를 잡는다.</means>
     <does>화면 한가운데를 기준으로 가로 · 세로를 배수만큼 늘린 상자를 준다.</does>
   </term>
+  <term id="brewPrefixes" kind="function" module="scripts/wiki" where="scripts/wiki/clang-doc.mjs:47" source="reading">
+    <means>꾸러미 관리자가 아는 LLVM 설치 자리를 묻는다.</means>
+    <does>버전이 붙은 쪽을 먼저 본다. 관리자가 없으면 빈 목록이다.</does>
+  </term>
   <term id="build.currentBuilderVersion" kind="function" module="scripts" where="scripts/build.mjs:23" source="reading">
     <means>report-builder 자신의 최신 git 태그를 읽는다. 없으면 untagged 다.</means>
   </term>
@@ -252,6 +270,10 @@
     <means>코드 지도에서 (파일, 줄) 로 찾는 판정 색인을 만든다.</means>
     <does>한 줄에 이름이 여럿 등록될 수 있어 값을 목록으로 담는다.</does>
     <uses to="verify_citations.short" kind="dependency" label="calls" where="codegraph/verify_citations.py:71"/>
+  </term>
+  <term id="build_parser" kind="function" module="codegraph" where="codegraph/normalize.py:731" source="reading">
+    <means>normalize 도구의 명령줄 규약을 만든다.</means>
+    <does>clang-doc 입력은 배타 그룹에 넣지 않는다. 넣으면 두 수집기를 함께 줄 수 없어 합치기 자체가 불가능해진다.</does>
   </term>
   <term id="build_terms" kind="function" module="codegraph" where="codegraph/terms_db.py:97" source="reading">
     <means>코드 지도에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.</means>
@@ -274,7 +296,7 @@
     <means>구운 보고서가 규칙을 지켰는지 보는 검사 스크립트.</means>
     <does>&lt;script&gt; 개수 · 타입 검사 · 결정과 절의 1:1 대응 · 용어집 대조 · builderVersion 을 차례로 본다. 전부 기계 판정이고 사람 판단이 필요 없다.</does>
   </term>
-  <term id="checkArgs" kind="function" module="scripts/wiki" where="scripts/wiki/check.mjs:19" source="reading">
+  <term id="checkArgs" kind="function" module="scripts/wiki" where="scripts/wiki/check.mjs:21" source="reading">
     <means>검증기에 넘길 인자를 만든다.</means>
   </term>
   <term id="check_terms" kind="function" module="codegraph" where="codegraph/terms_db.py:272" source="reading">
@@ -290,9 +312,28 @@
   <term id="clampBox" kind="function" module="src/runtime" where="src/runtime/graph-math.ts:57" source="reading">
     <means>값 하나를 최소와 최대 사이로 자른다.</means>
   </term>
-  <term id="clangUmlConfig" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:83" source="reading">
+  <term id="clangDocArgs" kind="function" module="scripts/wiki" where="scripts/wiki/clang-doc.mjs:78" source="reading">
+    <means>clang-doc 에 넘길 명령줄 인자를 만든다.</means>
+    <does>번역 단위 전량을 보라는 옵션이 급소다. 기본은 하나만 본다. 저장소 뿌리를 알려야 자리가 상대 경로로 나오고 그 값이 우리 레코드에 그대로 들어간다.</does>
+  </term>
+  <term id="clangDocCandidates" kind="function" module="scripts/wiki" where="scripts/wiki/clang-doc.mjs:33" source="reading">
+    <means>clang-doc 이 있을 만한 자리를 순서대로 늘어놓는다.</means>
+    <does>사용자가 고른 것이 맨 앞, 다음이 꾸러미 관리자가 아는 자리, 마지막이 명령 검색 경로다. 파일도 셸도 보지 않는 순수 함수라 시험이 쉽다.</does>
+  </term>
+  <term id="clangDocPath" kind="function" module="scripts/wiki" where="scripts/wiki/clang-doc.mjs:60" source="reading">
+    <means>실제로 쓸 clang-doc 실행 파일 하나를 고른다.</means>
+    <does>못 찾으면 예외가 아니라 빈 값을 낸다. 부르는 쪽이 그 단계만 건너뛰게 하려는 것이다.</does>
+    <uses to="clangDocCandidates" kind="dependency" label="calls" where="scripts/wiki/clang-doc.mjs:62"/>
+    <uses to="brewPrefixes" kind="dependency" label="calls" where="scripts/wiki/clang-doc.mjs:62"/>
+  </term>
+  <term id="clangUmlConfig" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:91" source="reading">
     <means>정적 수집기 설정 글자를 만든다.</means>
     <does>별표 무늬를 쓰지 않고 파일을 하나씩 적는다. 깊은 폴더에서 그 무늬가 도구를 죽인다.</does>
+  </term>
+  <term id="clang_doc.py" kind="file" module="codegraph" where="codegraph/clang_doc.py:1" source="reading">
+    <means>clang-doc 가 여러 파일로 흩뿌린 결과를 심볼 목록 하나로 모으는 도구.</means>
+    <does>C++ 쪽 다른 수집기는 클래스만 본다. 이 파일이 자유 함수 층을 채운다. 관계는 만들지 않는다 — 심볼과 그 좌표만 낸다.</does>
+    <uses to="load_clang_doc" kind="dependency" label="defines" where="codegraph/clang_doc.py:141"/>
   </term>
   <term id="clangd" kind="external" module="codegraph" where="codegraph/clangd_refs.py:5" source="reading">
     <means>C++ 코드를 색인해 정의와 참조를 알려 주는 바깥 언어 서버.</means>
@@ -305,13 +346,29 @@
   <term id="codegraph" kind="module" module="codegraph" source="reading">
     <means>코드를 읽어 지도와 사실을 뽑는 파이썬 도구가 사는 폴더. Mode 1 의 본체다.</means>
   </term>
-  <term id="codegraph.json" kind="artifact" module="codegraph" where="codegraph/normalize.py:642" source="reading">
+  <term id="codegraph.json" kind="artifact" module="codegraph" where="codegraph/normalize.py:744" source="reading">
     <means>코드 지도. 점(클래스)과 선(관계)과 모듈을 담은 JSON 한 개.</means>
     <does>normalize.py 가 쓰고 facts.py · render_*.py · verify_citations.py 가 읽는다. 언어가 달라도 모양이 같아 소비자는 하나면 된다.</does>
   </term>
   <term id="codegraph/declmap.py" kind="file" module="codegraph" where="codegraph/declmap.py:1" source="reading">
     <means>선언과 그 위의 문서 주석만 뽑아 한 장으로 만드는 파일.</means>
     <does>소스를 전부 읽지 않고도 무엇이 있는지 보게 한다. 읽을 자리를 좁혀 준다.</does>
+  </term>
+  <term id="codegraph/run_mode1.py" kind="file" module="codegraph" where="codegraph/run_mode1.py:1" source="reading">
+    <means>Mode 1 파이프라인을 한 번에 돌리면서 단계마다 걸린 시간과 쓴 토큰을 재는 파일.</means>
+    <does>자동화가 목적이 아니라 재는 것이 목적이다. 큰 언어 모형을 부르는 단계는 다섯 중 하나뿐이고, 그 하나가 전수조사와 산문을 이어서 한다.</does>
+  </term>
+  <term id="codegraph/run_mode1_5.py" kind="file" module="codegraph" where="codegraph/run_mode1_5.py:1" source="reading">
+    <means>용어 이해도 점검 흐름을 돌리다 사람 차례에서 멈추는 실행기.</means>
+    <does>묻고 답을 받는 일은 기계가 대신할 수 없다. 답안 파일이 없으면 채점과 산출을 아예 계획에 넣지 않는다.</does>
+  </term>
+  <term id="codegraph/run_mode2.py" kind="file" module="codegraph" where="codegraph/run_mode2.py:1" source="reading">
+    <means>설계 검토 보고서를 짓는 흐름을 한 번에 돌리며 시간과 토큰을 재는 파일.</means>
+    <does>명령마다 일하는 폴더가 다르다 — 뼈대 만들기와 원고 쓰기는 프로젝트 뿌리에서, 짓기와 검사는 보고서 폴더에서 돈다.</does>
+  </term>
+  <term id="codegraph/warmup.py" kind="file" module="codegraph" where="codegraph/warmup.py:1" source="reading">
+    <means>전수조사를 매번 전량 다시 하지 않게 하는 캐시와 무효화의 파일.</means>
+    <does>어떤 파일을 다시 읽어야 하는지만 가려낸다. 요약을 만들지는 않는다 — 그것은 큰 언어 모형의 몫이다.</does>
   </term>
   <term id="collect.mjs" kind="file" module="scripts/term" where="scripts/term/collect.mjs:1" source="reading">
     <means>이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.</means>
@@ -324,7 +381,7 @@
     <uses to="hotspot" kind="dependency" label="computes" where="codegraph/facts.py:48"/>
     <uses to="sh" kind="dependency" label="calls" where="codegraph/facts.py:50"/>
   </term>
-  <term id="collectorFor" kind="function" module="scripts/wiki" where="scripts/wiki/paths.mjs:35" source="reading">
+  <term id="collectorFor" kind="function" module="scripts/wiki" where="scripts/wiki/paths.mjs:39" source="reading">
     <means>저장소 최상위를 보고 어느 정적 수집기를 쓸지 고른다.</means>
     <does>C# 을 먼저 본다. 유니티 저장소는 네이티브 플러그인 때문에 CMake 파일을 함께 가질 수 있다.</does>
   </term>
@@ -346,13 +403,13 @@
   <term id="countScripts" kind="function" module="scripts" where="scripts/check.mjs:17" source="reading">
     <means>산출물 HTML 의 &lt;script&gt; 개수를 센다. 1개까지만 허용된다.</means>
   </term>
-  <term id="cs_asm2pkg" kind="function" module="codegraph" where="codegraph/normalize.py:471" source="reading">
+  <term id="cs_asm2pkg" kind="function" module="codegraph" where="codegraph/normalize.py:558" source="reading">
     <means>어셈블리 이름을 유니티 패키지 이름으로 바꿔 줄 사전을 만든다.</means>
   </term>
-  <term id="cs_external_group" kind="function" module="codegraph" where="codegraph/normalize.py:494" source="reading">
+  <term id="cs_external_group" kind="function" module="codegraph" where="codegraph/normalize.py:581" source="reading">
     <means>C# 외부 타입을 패키지 이름 하나로 접는다.</means>
   </term>
-  <term id="cs_module_of" kind="function" module="codegraph" where="codegraph/normalize.py:456" source="reading">
+  <term id="cs_module_of" kind="function" module="codegraph" where="codegraph/normalize.py:543" source="reading">
     <means>C# 파일 경로에서 모듈 이름을 정한다. 여기서도 경계는 폴더 트리다.</means>
   </term>
   <term id="d3-force" kind="external" module="src/runtime" where="src/runtime/term-graph.ts:11" source="reading">
@@ -362,12 +419,12 @@
     <means>보고서의 결정 데이터. 표와 배지에 들어갈 값만 담는다.</means>
     <does>init.mjs 가 뼈대를 만들고 사람이 채운다. 용어집 정의도 이 파일의 terms 배열 한 곳에만 쓴다.</does>
   </term>
-  <term id="declmap.scan" kind="function" module="codegraph" where="codegraph/declmap.py:103" source="reading">
+  <term id="declmap.scan" kind="function" module="codegraph" where="codegraph/declmap.py:110" source="reading">
     <means>파일을 돌며 선언과 문서 주석을 모은다.</means>
-    <uses to="doc_above" kind="dependency" label="calls" where="codegraph/declmap.py:82"/>
-    <uses to="declmap.tracked_files" kind="dependency" label="calls" where="codegraph/declmap.py:63"/>
+    <uses to="doc_above" kind="dependency" label="calls" where="codegraph/declmap.py:127"/>
+    <uses to="declmap.tracked_files" kind="dependency" label="calls" where="codegraph/declmap.py:113"/>
   </term>
-  <term id="declmap.tracked_files" kind="function" module="codegraph" where="codegraph/declmap.py:65" source="reading">
+  <term id="declmap.tracked_files" kind="function" module="codegraph" where="codegraph/declmap.py:68" source="reading">
     <means>조사 대상 파일 목록을 고른다.</means>
     <does>판 관리가 아는 파일만 본다. 빌드가 만든 것과 남의 꾸러미를 거르는 가장 싼 방법이다.</does>
   </term>
@@ -376,7 +433,7 @@
     <does>전역 변수도 React 컨텍스트도 쓰지 않는 함수 호출 하나다. 정의가 없는 id 를 쓰면 화면에 드러내 저자가 고치게 한다.</does>
     <uses to="Term" kind="dependency" label="takes" where="src/components/terms.tsx:25"/>
   </term>
-  <term id="defines_at" kind="function" module="codegraph" where="codegraph/normalize.py:100" source="reading">
+  <term id="defines_at" kind="function" module="codegraph" where="codegraph/normalize.py:103" source="reading">
     <means>그 줄이 이 타입을 실제로 정의하는지 본다.</means>
     <does>미리 알림만 하는 줄과 그냥 쓰는 줄을 가려낸다. 이것이 없으면 남의 타입이 우리 것으로 섞인다.</does>
   </term>
@@ -388,18 +445,22 @@
     <means>위키에 남은 Mermaid 그림을 미리 그린 SVG 로 바꿔치기하는 도구.</means>
     <does>Mermaid 블록을 찾아, 대응하는 Graphviz 그림이 있으면 그것으로 바꾸고 없으면 mmdc 로 SVG 를 굽는다. 원본은 고치지 않고 사본을 낸다.</does>
   </term>
-  <term id="depends_on" kind="key" module="codegraph" where="codegraph/normalize.py:384" source="reading">
+  <term id="depends_on" kind="key" module="codegraph" where="codegraph/normalize.py:505" source="reading">
     <means>모듈 하나가 기대는 다른 모듈의 이름 목록.</means>
   </term>
   <term id="dispatch.mjs" kind="file" module="scripts" where="scripts/dispatch.mjs:1" source="reading">
     <means>bin 진입점들이 같이 쓰는 명령 갈림길.</means>
     <does>명령 이름을 스크립트 경로로 바꿔 자식 프로세스로 띄운다. 표는 각 진입점이 따로 갖는다.</does>
   </term>
-  <term id="doc_above" kind="function" module="codegraph" where="codegraph/declmap.py:84" source="reading">
+  <term id="doc_above" kind="function" module="codegraph" where="codegraph/declmap.py:89" source="reading">
     <means>선언 바로 위에 붙은 문서 주석을 모은다.</means>
     <does>빈 줄과 특성 줄은 건너뛴다. 주석이 아닌 코드를 만나면 멈춰, 위쪽 딴 함수의 주석을 끌어오지 않는다.</does>
   </term>
-  <term id="edges[]" kind="key" module="codegraph" where="codegraph/normalize.py:326" source="reading">
+  <term id="doc_qualified_name" kind="function" module="codegraph" where="codegraph/normalize.py:272" source="reading">
+    <means>clang-doc 심볼의 완전한 이름을 만든다.</means>
+    <does>다른 수집기가 쓰는 이름과 같은 축이어야 두 목록을 겹쳐 세지 않는다.</does>
+  </term>
+  <term id="edges[]" kind="key" module="codegraph" where="codegraph/normalize.py:452" source="reading">
     <means>코드 지도의 선 목록. 어느 점에서 어느 점으로 어떤 종류의 관계인지 담는다.</means>
   </term>
   <term id="el" kind="function" module="src/runtime" where="src/runtime/term-graph.ts:242" source="reading">
@@ -427,7 +488,7 @@
     <means>경로 앞머리의 물결표와 달러 변수를 실제 폴더 이름으로 편다.</means>
     <does>값이 없는 변수는 빈 글자로 바꾼다. 그러면 그 경로는 폴더가 아니게 되어 뒤에서 걸러진다.</does>
   </term>
-  <term id="external_group" kind="function" module="codegraph" where="codegraph/normalize.py:193" source="reading">
+  <term id="external_group" kind="function" module="codegraph" where="codegraph/normalize.py:201" source="reading">
     <means>외부 타입을 라이브러리 이름 하나로 접는다. 외부 하나에 노드 하나다.</means>
   </term>
   <term id="facts.build" kind="function" module="codegraph" where="codegraph/facts.py:85" source="reading">
@@ -448,7 +509,7 @@
     <uses to="ranking.json" kind="dependency" label="writes" where="codegraph/facts.py:195"/>
     <uses to="networkx" kind="dependency" label="imports" where="codegraph/facts.py:31"/>
   </term>
-  <term id="findCompdbs" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:24" source="reading">
+  <term id="findCompdbs" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:26" source="reading">
     <means>저장소 안의 컴파일 명령 파일을 전부 찾는다.</means>
     <does>도구가 만든 축약본은 원본이 있으면 버린다. 같은 것을 두 번 세지 않는다.</does>
   </term>
@@ -469,7 +530,15 @@
     <means>파일명만 남은 인용을 저장소 기준 전체 경로로 되살리는 도구.</means>
     <does>문서에서 경로 없이 파일명만 적힌 인용을 찾아, 저장소에 그 이름의 파일이 딱 하나일 때만 전체 경로로 바꾼다. 둘 이상이면 손대지 않고 보고한다.</does>
   </term>
-  <term id="git_commit" kind="function" module="codegraph" where="codegraph/normalize.py:52" source="reading">
+  <term id="flatten_description" kind="function" module="codegraph" where="codegraph/clang_doc.py:63" source="reading">
+    <means>저자가 코드에 단 설명 글을 한 줄로 편다.</means>
+    <does>설명이 목록 안의 목록으로 겹쳐 있다. 칸 이름을 세지 않고 구조를 훑어 글자만 순서대로 모은다.</does>
+  </term>
+  <term id="function_signature" kind="function" module="codegraph" where="codegraph/clang_doc.py:90" source="reading">
+    <means>함수가 무엇을 받고 무엇을 돌려주는지 한 줄로 적는다.</means>
+    <does>돌려주는 것 · 이름 · 받는 것들을 잇는다. 다른 수집기에는 아예 없는 정보다.</does>
+  </term>
+  <term id="git_commit" kind="function" module="codegraph" where="codegraph/normalize.py:54" source="reading">
     <means>대상 저장소의 현재 커밋을 짧은 해시로 읽는다. 실패하면 빈 값이다.</means>
   </term>
   <term id="gradeAll" kind="function" module="scripts/term" where="scripts/term/quiz.mjs:38" source="reading">
@@ -505,10 +574,10 @@
     <means>Graphviz SVG 를 HTML 안에 그대로 넣을 수 있게 다듬고 원본 크기를 함께 돌려준다.</means>
     <does>id 정의와 그 참조 세 곳을 함께 바꾼다. 하나라도 빠지면 잘라내기 모양과 화살촉이 깨진다.</does>
   </term>
-  <term id="is_first_party" kind="function" module="codegraph" where="codegraph/normalize.py:150" source="reading">
+  <term id="is_first_party" kind="function" module="codegraph" where="codegraph/normalize.py:157" source="reading">
     <means>이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.</means>
   </term>
-  <term id="is_transparent_wrapper" kind="function" module="codegraph" where="codegraph/normalize.py:224" source="reading">
+  <term id="is_transparent_wrapper" kind="function" module="codegraph" where="codegraph/normalize.py:232" source="reading">
     <means>vector 나 unique_ptr 같은 담는 그릇인지 본다. 그릇은 노드로 만들지 않고 통과시킨다.</means>
     <does>이 규칙을 빼면 우리 클래스끼리의 소유 관계가 그릇에 가려 보이지 않는다.</does>
   </term>
@@ -534,7 +603,14 @@
   <term id="load" kind="function" module="codegraph" where="codegraph/render_modules.py:59" source="reading">
     <means>codegraph.json 을 읽는다. 스키마 판이 다르면 경고만 하고 계속한다.</means>
   </term>
-  <term id="load_clang_uml" kind="function" module="codegraph" where="codegraph/normalize.py:81" source="reading">
+  <term id="load_clang_doc" kind="function" module="codegraph" where="codegraph/clang_doc.py:141" source="reading">
+    <means>흩어진 결과를 모아 평평한 심볼 목록으로 만든다.</means>
+    <does>목차 파일에는 함수와 열거형이 자리까지 들어 있지만 클래스는 이름뿐인 참조라 자리가 없다. 그래서 이름이 뭉개진 개별 파일도 함께 훑는다. 파일 이름이 아니라 내용의 종류 칸으로 가른다. 자리와 이름으로 정렬해 몇 번을 읽어도 순서가 같다.</does>
+    <uses to="_json_root" kind="dependency" label="calls" where="codegraph/clang_doc.py:153"/>
+    <uses to="_symbol" kind="dependency" label="calls" where="codegraph/clang_doc.py:160"/>
+    <uses to="function_signature" kind="dependency" label="calls" where="codegraph/clang_doc.py:180"/>
+  </term>
+  <term id="load_clang_uml" kind="function" module="codegraph" where="codegraph/normalize.py:83" source="reading">
     <means>clang-uml 이 낸 JSON 을 열어 elements · relationships · metadata 로 나눠 준다.</means>
   </term>
   <term id="load_detail" kind="function" module="codegraph" where="codegraph/render_classes.py:77" source="reading">
@@ -550,27 +626,35 @@
     <does>정해진 폴더들을 앞에서부터 차례로 뒤진다. 그래도 없으면 이름 색인에서 딱 하나로 좁혀질 때만 답한다. 못 찾으면 아무것도 주지 않는다.</does>
     <uses to="expandRoot" kind="dependency" label="expands" where="scripts/link-paths.mjs:99"/>
   </term>
-  <term id="member_location" kind="function" module="codegraph" where="codegraph/normalize.py:236" source="reading">
+  <term id="member_location" kind="function" module="codegraph" where="codegraph/normalize.py:244" source="reading">
     <means>간선의 근거가 되는 멤버 선언 줄을 찾는다.</means>
     <does>멤버 이름으로 members[] 를 조회한다. 문자열 탐색이 아니라 구조 조회라서 애매한 경우가 없다.</does>
-    <uses to="members[]" kind="dependency" label="reads" where="codegraph/normalize.py:235"/>
+    <uses to="members[]" kind="dependency" label="reads" where="codegraph/normalize.py:245"/>
   </term>
-  <term id="members[]" kind="key" module="codegraph" where="codegraph/normalize.py:235" source="reading">
+  <term id="members[]" kind="key" module="codegraph" where="codegraph/normalize.py:254" source="reading">
     <means>원시 분석 파일이 갖는 멤버 변수 목록. 코드 지도에는 없다.</means>
     <does>간선의 근거 줄을 찾을 때 멤버 이름으로 여기를 조회한다.</does>
   </term>
-  <term id="mergeEntries" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:51" source="reading">
+  <term id="mergeEntries" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:55" source="reading">
     <means>여러 목록을 합치고 중복과 남의 코드를 걷어 낸다.</means>
+  </term>
+  <term id="merge_clang_doc" kind="function" module="codegraph" where="codegraph/normalize.py:298" source="reading">
+    <means>clang-doc 이 찾은 심볼을 clang-uml 이 만든 노드 표에 합친다.</means>
+    <does>노드는 합집합이고, 같은 이름이면 자리만 clang-doc 것으로 간다. 간선은 손대지 않는다 — 관계의 종류를 아는 쪽은 clang-uml 뿐이다. 1차가 아닌 심볼은 외부로 접지 않고 버린다.</does>
+    <uses to="is_first_party" kind="dependency" label="calls" where="codegraph/normalize.py:316"/>
+    <uses to="doc_qualified_name" kind="dependency" label="calls" where="codegraph/normalize.py:319"/>
+    <uses to="_doc_element" kind="dependency" label="calls" where="codegraph/normalize.py:316"/>
+    <uses to="module_of" kind="dependency" label="calls" where="codegraph/normalize.py:324"/>
   </term>
   <term id="merge_terms" kind="function" module="codegraph" where="codegraph/terms_db.py:348" source="reading">
     <means>LLM 이 읽은 것을 코드 지도가 만든 사전에 합친다.</means>
     <does>뜻과 동작은 LLM 이 덮어쓰지만 id · kind · module · where 같은 구조 필드는 코드 지도가 이긴다. 새로 보탠 간선에는 reading 표시를 남겨 검사 대상으로 삼는다.</does>
     <uses to="_recompute_neighbors" kind="dependency" label="calls" where="codegraph/terms_db.py:376"/>
   </term>
-  <term id="module_of" kind="function" module="codegraph" where="codegraph/normalize.py:63" source="reading">
+  <term id="module_of" kind="function" module="codegraph" where="codegraph/normalize.py:65" source="reading">
     <means>C++ 파일 경로에서 모듈 이름을 정한다. 모듈 경계는 폴더 트리다.</means>
   </term>
-  <term id="modules[]" kind="key" module="codegraph" where="codegraph/normalize.py:378" source="reading">
+  <term id="modules[]" kind="key" module="codegraph" where="codegraph/normalize.py:505" source="reading">
     <means>모듈 목록과 모듈 사이 의존. 모듈 경계는 폴더 트리다.</means>
     <does>클래스 간선에서 유도한다. 링크 의존이 아니라 타입 의존이므로 빌드 설정의 의존과 같은 것으로 읽으면 안 된다.</does>
   </term>
@@ -596,43 +680,43 @@
     <means>모듈 상자 안에 넣을 이름 · 클래스 수 · 대표 이름 세 줄을 만든다.</means>
     <uses to="render_modules.esch" kind="dependency" label="calls" where="codegraph/render_modules.py:117"/>
   </term>
-  <term id="node_name" kind="function" module="codegraph" where="codegraph/normalize.py:256" source="reading">
+  <term id="node_name" kind="function" module="codegraph" where="codegraph/normalize.py:264" source="reading">
     <means>노드에 쓸 이름을 고른다. 중첩 타입은 구분자가 :: 가 아니라 ## 이다.</means>
   </term>
   <term id="nodes[]" kind="key" module="codegraph" where="codegraph/normalize.py:299" source="reading">
     <means>코드 지도의 점 목록. 클래스 하나가 점 하나다.</means>
   </term>
-  <term id="normalize.main" kind="function" module="codegraph" where="codegraph/normalize.py:644" source="reading">
+  <term id="normalize.main" kind="function" module="codegraph" where="codegraph/normalize.py:751" source="reading">
     <means>normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.</means>
-    <uses to="load_clang_uml" kind="dependency" label="calls" where="codegraph/normalize.py:643"/>
-    <uses to="normalize_cpp" kind="dependency" label="calls" where="codegraph/normalize.py:643"/>
-    <uses to="normalize_csharp" kind="dependency" label="calls" where="codegraph/normalize.py:519"/>
-    <uses to="codegraph.json" kind="dependency" label="writes" where="codegraph/normalize.py:642"/>
+    <uses to="load_clang_uml" kind="dependency" label="calls" where="codegraph/normalize.py:756"/>
+    <uses to="normalize_cpp" kind="dependency" label="calls" where="codegraph/normalize.py:761"/>
+    <uses to="normalize_csharp" kind="dependency" label="calls" where="codegraph/normalize.py:764"/>
+    <uses to="codegraph.json" kind="dependency" label="writes" where="codegraph/normalize.py:765"/>
   </term>
   <term id="normalize.py" kind="file" module="codegraph" where="codegraph/normalize.py:1" source="reading">
     <means>언어별 분석 도구의 원시 출력을 공통 형식 codegraph.json 으로 바꾸는 도구.</means>
     <does>C++ 은 clang-uml 의 JSON, C# 은 roslyn-dump.json 을 받아 접기 규칙을 적용하고 노드 · 간선 · 모듈 세 목록으로 조립한다. 정책은 전부 이 파일에만 있다.</does>
-    <uses to="codegraph.json" kind="dependency" label="writes" where="codegraph/normalize.py:642"/>
-    <uses to="roslyn-dump.json" kind="dependency" label="reads" where="codegraph/normalize.py:648"/>
+    <uses to="codegraph.json" kind="dependency" label="writes" where="codegraph/normalize.py:5"/>
+    <uses to="roslyn-dump.json" kind="dependency" label="reads" where="codegraph/normalize.py:5"/>
   </term>
-  <term id="normalize_cpp" kind="function" module="codegraph" where="codegraph/normalize.py:264" source="reading">
+  <term id="normalize_cpp" kind="function" module="codegraph" where="codegraph/normalize.py:346" source="reading">
     <means>C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.</means>
     <does>먼저 노드를 정하고(그릇과 원시 타입은 뺀다), 그다음 관계를 훑어 간선을 만든다. clang-uml 의 낱말을 우리 낱말로 갈아 끼우는 대응표가 여기 걸린다.</does>
-    <uses to="is_transparent_wrapper" kind="dependency" label="calls" where="codegraph/normalize.py:221"/>
-    <uses to="node_name" kind="dependency" label="calls" where="codegraph/normalize.py:253"/>
-    <uses to="is_first_party" kind="dependency" label="calls" where="codegraph/normalize.py:149"/>
-    <uses to="module_of" kind="dependency" label="calls" where="codegraph/normalize.py:263"/>
-    <uses to="external_group" kind="dependency" label="calls" where="codegraph/normalize.py:193"/>
-    <uses to="member_location" kind="dependency" label="calls" where="codegraph/normalize.py:236"/>
-    <uses to="_assemble" kind="dependency" label="calls" where="codegraph/normalize.py:373"/>
+    <uses to="is_transparent_wrapper" kind="dependency" label="calls" where="codegraph/normalize.py:360"/>
+    <uses to="node_name" kind="dependency" label="calls" where="codegraph/normalize.py:363"/>
+    <uses to="is_first_party" kind="dependency" label="calls" where="codegraph/normalize.py:366"/>
+    <uses to="module_of" kind="dependency" label="calls" where="codegraph/normalize.py:372"/>
+    <uses to="external_group" kind="dependency" label="calls" where="codegraph/normalize.py:378"/>
+    <uses to="member_location" kind="dependency" label="calls" where="codegraph/normalize.py:435"/>
+    <uses to="_assemble" kind="dependency" label="calls" where="codegraph/normalize.py:460"/>
   </term>
-  <term id="normalize_csharp" kind="function" module="codegraph" where="codegraph/normalize.py:519" source="reading">
+  <term id="normalize_csharp" kind="function" module="codegraph" where="codegraph/normalize.py:606" source="reading">
     <means>C# 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.</means>
     <does>참조 집합이 틀리면 결과가 통째로 쓰레기가 되므로, 컴파일 오류나 못 푼 타입이 있으면 시작하자마자 거절한다.</does>
-    <uses to="cs_asm2pkg" kind="dependency" label="calls" where="codegraph/normalize.py:468"/>
-    <uses to="cs_module_of" kind="dependency" label="calls" where="codegraph/normalize.py:456"/>
-    <uses to="cs_external_group" kind="dependency" label="calls" where="codegraph/normalize.py:491"/>
-    <uses to="_assemble" kind="dependency" label="calls" where="codegraph/normalize.py:518"/>
+    <uses to="cs_asm2pkg" kind="dependency" label="calls" where="codegraph/normalize.py:615"/>
+    <uses to="cs_module_of" kind="dependency" label="calls" where="codegraph/normalize.py:658"/>
+    <uses to="cs_external_group" kind="dependency" label="calls" where="codegraph/normalize.py:676"/>
+    <uses to="_assemble" kind="dependency" label="calls" where="codegraph/normalize.py:724"/>
   </term>
   <term id="page.tsx" kind="file" module="src" where="src/page.tsx:1" source="reading">
     <means>보고서의 뼈대(머리말 · 본문 자리 · 꼬리말)를 만드는 파일.</means>
@@ -661,11 +745,11 @@
     <means>그림에 실을 만한 메서드만 고른다.</means>
     <does>생성자 · 소멸자 · 연산자와 인자 없는 Get·Is 접근자는 뺀다. 구조를 말해 주지 않기 때문이다.</does>
   </term>
-  <term id="prepPlan" kind="function" module="scripts/wiki" where="scripts/wiki/prep.mjs:21" source="reading">
+  <term id="prepPlan" kind="function" module="scripts/wiki" where="scripts/wiki/prep.mjs:24" source="reading">
     <means>무엇을 어떤 순서로 돌릴지 정한다.</means>
     <does>파일을 뒤지지 않는 순수 함수라 시험하기 쉽다. 막히면 사람이 읽을 사유를 남긴다.</does>
   </term>
-  <term id="probe" kind="function" module="scripts" where="scripts/doctor.mjs:22" source="reading">
+  <term id="probe" kind="function" module="scripts" where="scripts/doctor.mjs:24" source="reading">
     <means>바깥 명령 하나를 돌려 첫 줄을 얻는다.</means>
     <does>못 돌리거나 실패하면 아무것도 주지 않는다. 그것이 곧 없다는 뜻이다.</does>
   </term>
@@ -679,14 +763,18 @@
     <does>파일 · 산출물 · 키 · 개념처럼 지도에 자리가 없는 용어는 노드가 되지 않고, 그런 용어로 가는 간선도 지도에 실리지 않는다.</does>
     <uses to="_split_where" kind="dependency" label="calls" where="codegraph/terms_db.py:201"/>
   </term>
-  <term id="pythonCandidates" kind="function" module="scripts" where="scripts/python.mjs:20" source="reading">
+  <term id="pythonCandidates" kind="function" module="scripts" where="scripts/python.mjs:22" source="reading">
     <means>쓸 만한 파이썬 해석기 후보를 순서대로 늘어놓는다.</means>
     <does>윈도우와 그 밖의 운영체제가 가상환경을 다른 폴더에 두므로 갈래를 나눈다. 파일을 뒤지지 않아 시험하기 쉽다.</does>
   </term>
-  <term id="pythonPath" kind="function" module="scripts" where="scripts/python.mjs:39" source="reading">
+  <term id="pythonPath" kind="function" module="scripts" where="scripts/python.mjs:43" source="reading">
     <means>후보 중에서 실제로 쓸 해석기 하나를 고른다.</means>
     <does>폴더가 적힌 후보는 있을 때만, 이름뿐인 후보는 그대로 준다. 이름은 PATH 가 푼다.</does>
     <uses to="pythonCandidates" kind="dependency" label="asks" where="scripts/python.mjs:39"/>
+  </term>
+  <term id="qualified_namespace" kind="function" module="codegraph" where="codegraph/clang_doc.py:49" source="reading">
+    <means>심볼이 속한 이름 공간을 바깥부터 이어 한 낱말로 만든다.</means>
+    <does>도구는 안쪽부터 준다. 뒤집지 않으면 우리 코드인지 가리는 허용목록이 통째로 빗나간다. 전역을 뜻하는 가짜 이름은 빼고 잇는다.</does>
   </term>
   <term id="quiz.mjs" kind="file" module="scripts/term" where="scripts/term/quiz.mjs:1" source="reading">
     <means>객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.</means>
@@ -700,7 +788,7 @@
   <term id="react" kind="external" module="scripts" where="scripts/build.mjs:12" source="reading">
     <means>마크업을 함수로 조립하게 해 주는 바깥 라이브러리. 빌드할 때만 쓰이고 산출물에는 없다.</means>
   </term>
-  <term id="readAuthorConfig" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:105" source="reading">
+  <term id="readAuthorConfig" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:115" source="reading">
     <means>저자가 쓴 설정에서 컴파일 깃발과 포함 경로만 읽어 온다.</means>
     <does>그 두 값은 기계마다 달라 도구가 지어낼 수 없다.</does>
   </term>
@@ -709,7 +797,7 @@
     <does>가로와 세로 중 겹침이 작은 쪽으로 민다. 그쪽이 더 짧게 움직여도 빠져나올 수 있어서다. 안 겹치면 아무것도 주지 않는다.</does>
     <uses to="Rect" kind="dependency" label="takes" where="src/runtime/graph-math.ts:66"/>
   </term>
-  <term id="relativeFiles" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:69" source="reading">
+  <term id="relativeFiles" kind="function" module="scripts/wiki" where="scripts/wiki/compdb.mjs:75" source="reading">
     <means>합친 목록에서 저장소 기준 상대 경로만 뽑아 정렬한다.</means>
   </term>
   <term id="render_classes.esc" kind="function" module="codegraph" where="codegraph/render_classes.py:59" source="reading">
@@ -797,7 +885,7 @@
     <does>clangd 를 띄우고 색인이 다 찰 때까지 기다린 뒤, 심볼마다 역참조를 물어 저장소 상대경로 형태로 저장한다.</does>
     <uses to="Clangd" kind="dependency" label="uses" where="codegraph/reverse_refs.py:36"/>
   </term>
-  <term id="roslyn-dump.json" kind="artifact" module="codegraph" where="codegraph/normalize.py:648" source="reading">
+  <term id="roslyn-dump.json" kind="artifact" module="codegraph" where="codegraph/normalize.py:740" source="reading">
     <means>C# 쪽 원시 분석 결과. 형식만 정해져 있고 만드는 도구는 아직 없다.</means>
     <does>normalize.py 가 이것을 받아 codegraph.json 으로 바꾼다. 진입점 재료처럼 지도에 없는 살은 여기에만 있다.</does>
   </term>
@@ -806,7 +894,203 @@
     <does>프로세스를 띄우고 끝내는 부수효과는 이 함수 안에만 둔다. 다른 곳에서 가져다 쓸 때는 순수 함수만 보이게 하려는 규약이다.</does>
     <uses to="resolveScript" kind="dependency" label="calls" where="scripts/dispatch.mjs:27"/>
   </term>
-  <term id="schema_version" kind="key" module="codegraph" where="codegraph/normalize.py:411" source="reading">
+  <term id="run_mode1._Heartbeat" kind="function" module="codegraph" where="codegraph/run_mode1.py:329" source="reading">
+    <means>오래 도는 단계 옆에서 경과 시간을 알리는 조각.</means>
+    <does>모형 호출은 끝나야 한 덩이로 답이 나온다. 그동안 아무것도 안 찍히면 사람이 멈춘 줄 안다.</does>
+  </term>
+  <term id="run_mode1._hms" kind="function" module="codegraph" where="codegraph/run_mode1.py:276" source="reading">
+    <means>초를 사람이 읽는 시간 꼴로 바꾼다.</means>
+    <does>재는 것이 목적이라 소수 첫째 자리까지 남긴다.</does>
+  </term>
+  <term id="run_mode1.agent_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:184" source="reading">
+    <means>한 세션이 할 일 전부를 적은 글.</means>
+    <does>전수조사와 위키 산문을 한 번에 시킨다. 둘로 쪼개면 두 번째 세션이 저장소를 처음부터 다시 읽어 토큰이 부푼다.</does>
+  </term>
+  <term id="run_mode1.agent_verdict" kind="function" module="codegraph" where="codegraph/run_mode1.py:148" source="reading">
+    <means>큰 언어 모형 단계가 정말 해냈는지 판정한다.</means>
+    <does>종료 코드만 보지 않는다. 최대 왕복 수에 걸리거나 권한에 막혀도 종료 코드가 영으로 나올 수 있어서, 결과 안의 오류 표시와 갈래 이름을 함께 본다.</does>
+  </term>
+  <term id="run_mode1.claude_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:168" source="reading">
+    <means>헤드리스 모형 호출의 명령줄을 만든다.</means>
+    <does>시킬 말은 명령줄에 싣지 않고 표준 입력으로 준다. 대상 저장소와 도구 저장소를 둘 다 열어 주어야 재료와 규약을 함께 본다.</does>
+  </term>
+  <term id="run_mode1.format_report" kind="function" module="codegraph" where="codegraph/run_mode1.py:287" source="reading">
+    <means>단계별 측정값을 표 한 장으로 만든다.</means>
+    <does>이 실행기의 산출물 본체다. 한글은 글자 폭이 두 칸이라 글자 수가 아니라 표시 폭으로 자리를 맞춘다.</does>
+    <uses to="run_mode1.sum_usage" kind="dependency" label="calls" where="codegraph/run_mode1.py:301"/>
+    <uses to="run_mode1._hms" kind="dependency" label="calls" where="codegraph/run_mode1.py:296"/>
+  </term>
+  <term id="run_mode1.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1.py:75" source="reading">
+    <means>이 단계가 큰 언어 모형을 부르는 자리인지 답한다.</means>
+    <does>토큰이 잡히는 곳은 여기뿐이라, 이 함수가 참을 내는 단계가 둘이 되면 측정의 뜻이 달라진다.</does>
+  </term>
+  <term id="run_mode1.main" kind="function" module="codegraph" where="codegraph/run_mode1.py:386" source="reading">
+    <means>명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.</means>
+    <does>한 단계가 실패하면 거기서 멈춘다. 뒤 단계가 앞 단계의 산출물에 기대기 때문이다.</does>
+    <uses to="run_mode1.plan_stages" kind="dependency" label="calls" where="codegraph/run_mode1.py:411"/>
+    <uses to="run_mode1.run_agent" kind="dependency" label="calls" where="codegraph/run_mode1.py:433"/>
+    <uses to="run_mode1.terms_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:441"/>
+    <uses to="run_mode1.format_report" kind="dependency" label="calls" where="codegraph/run_mode1.py:460"/>
+  </term>
+  <term id="run_mode1.node_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:247" source="reading">
+    <means>위키 기계 단계 하나를 부르는 명령줄을 만든다.</means>
+    <does>실행 파일 경로를 박지 않는다. 찾아 쓰는 자리에 맡긴다.</does>
+  </term>
+  <term id="run_mode1.normalize_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:111" source="reading">
+    <means>모형이 낸 사용량 보고에서 잴 값만 뽑아 평평하게 만든다.</means>
+    <does>캐시 읽기와 캐시 생성을 반드시 더한다. 실측에서 그 둘이 전체의 아흔아홉 푼을 넘는 일이 흔해, 빼면 한 자릿수만 센 것이 된다.</does>
+  </term>
+  <term id="run_mode1.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1.py:83" source="reading">
+    <means>다섯 단계 중 무엇을 실제로 돌릴지 고른다.</means>
+    <does>파일 시스템을 보지 않는 순수 함수다. 준비 단계는 늘 남기고, 큰 언어 모형 단계만 산출물이 둘 다 있을 때 뺀다.</does>
+  </term>
+  <term id="run_mode1.run_agent" kind="function" module="codegraph" where="codegraph/run_mode1.py:358" source="reading">
+    <means>모형을 한 번 부르고 그 결과 기록을 돌려준다.</means>
+    <does>결과를 읽지 못하면 표준 오류의 끝부분을 보여 준다. 조용히 실패하면 다음 단계가 빈 재료를 읽는다.</does>
+    <uses to="run_mode1.claude_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:360"/>
+    <uses to="run_mode1.agent_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:362"/>
+  </term>
+  <term id="run_mode1.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1.py:376" source="reading">
+    <means>기계 단계 하나를 부른다.</means>
+    <does>출력을 가로채지 않고 그대로 흘려보낸다. 그 명령의 출력이 곧 진행 상황이다.</does>
+  </term>
+  <term id="run_mode1.sum_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:136" source="reading">
+    <means>단계별 사용량을 하나로 합친다.</means>
+    <does>표 맨 아래 합계 줄이 이 함수의 결과다.</does>
+  </term>
+  <term id="run_mode1.terms_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:255" source="reading">
+    <means>용어 사전을 만드는 단계의 명령줄을 만든다.</means>
+    <does>정적 코드 지도를 위치 인자로 반드시 함께 준다. 읽기 레코드만 주면 그 투영이 코드 지도 파일을 덮어써서 점이 조용히 줄어든다.</does>
+  </term>
+  <term id="run_mode1_5._read_json" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:550" source="reading">
+    <means>있으면 읽고 없거나 깨졌으면 아무것도 아닌 값을 낸다.</means>
+    <does>실패를 예외가 아니라 빈 값으로 삼킨다.</does>
+  </term>
+  <term id="run_mode1_5._term_script" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:330" source="reading">
+    <means>용어 점검 스크립트의 절대 경로를 만든다.</means>
+    <does>저장소 뿌리와 파일 이름을 잇는다.</does>
+  </term>
+  <term id="run_mode1_5.answers_template" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:273" source="reading">
+    <means>문항지에서 빈 답안 틀을 만든다.</means>
+    <does>뜻은 미리 채우고 숫자 둘만 비운다. 사람이 뜻을 손으로 옮기다 내는 오타가 그대로 용어집이 되는 것을 막는다.</does>
+  </term>
+  <term id="run_mode1_5.author_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:372" source="reading">
+    <means>출제 세션의 헤드리스 명령줄을 만든다.</means>
+    <does>작업 폴더·도구 뿌리·계획서 폴더 셋을 겹치지 않게 열어 준다.</does>
+  </term>
+  <term id="run_mode1_5.author_prompt" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:390" source="reading">
+    <means>한 세션이 할 일 전부를 적은 글.</means>
+    <does>용어 보충과 출제를 이어서 시킨다. 쪼개면 두 번째 세션이 처음부터 다시 읽어 토큰이 부푼다.</does>
+  </term>
+  <term id="run_mode1_5.collect_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:338" source="reading">
+    <means>후보 모으기 명령줄을 만든다.</means>
+    <does>사전이 없으면 그 인자를 뺀다.</does>
+  </term>
+  <term id="run_mode1_5.emit_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:364" source="reading">
+    <means>산출 명령줄을 만든다.</means>
+    <does>채점 결과 파일 하나만 넘긴다.</does>
+  </term>
+  <term id="run_mode1_5.format_run" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:527" source="reading">
+    <means>측정 표에 건너뜀과 사람 차례를 덧붙인다.</means>
+    <does>실제로 돌린 단계만 표에 담고 나머지는 표 밖에 글로 적는다.</does>
+  </term>
+  <term id="run_mode1_5.gate_notice" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:485" source="reading">
+    <means>사람 차례에서 화면에 낼 안내문.</means>
+    <does>풀 파일과 채울 파일과 다시 돌리는 법을 알린다. 멈춘 것을 실패라고 부르지 않는다.</does>
+  </term>
+  <term id="run_mode1_5.grade_argv" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:356" source="reading">
+    <means>채점 명령줄을 만든다.</means>
+    <does>답안 파일 하나만 넘긴다.</does>
+  </term>
+  <term id="run_mode1_5.human_gate_open" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:150" source="reading">
+    <means>사람 차례가 아직 안 끝났는지 답한다.</means>
+    <does>답안 파일이 있느냐 하나로만 판정한다.</does>
+  </term>
+  <term id="run_mode1_5.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:110" source="reading">
+    <means>이 단계가 큰 언어 모형을 부르는 자리인지 답한다.</means>
+    <does>출제 하나뿐이다.</does>
+  </term>
+  <term id="run_mode1_5.main" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:594" source="reading">
+    <means>명령줄을 읽고 단계를 돌린 뒤 측정 표와 사람 차례 안내를 낸다.</means>
+    <does>답안 틀을 미리 깔아 두고, 답안이 생기면 같은 명령으로 채점부터 이어 간다.</does>
+  </term>
+  <term id="run_mode1_5.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:118" source="reading">
+    <means>네 단계 중 무엇을 실제로 돌릴지 고른다.</means>
+    <does>이미 있는 산출물을 보고 건너뛴다. 답안이 없으면 채점과 산출을 목록에 넣지 않아, 마른 실행만 봐도 어디서 멈출지 보인다.</does>
+  </term>
+  <term id="run_mode1_5.run_author" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:576" source="reading">
+    <means>출제 세션을 한 번 부른다.</means>
+    <does>시킬 말은 표준 입력으로 준다.</does>
+  </term>
+  <term id="run_mode1_5.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:562" source="reading">
+    <means>기계 단계 하나를 작업 폴더에서 부른다.</means>
+    <does>일하는 폴더를 강제한다 — 그 스크립트들이 지금 폴더에 쓰기 때문이다.</does>
+  </term>
+  <term id="run_mode1_5.split_new_concepts" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:162" source="reading">
+    <means>새로 나온 개념을 출제할 것과 미룰 것으로 가른다.</means>
+    <does>뜻이 정해졌으면 출제한다. 뜻이 없으면 미룬다 — 지어내면 채점이 무의미해진다. 헛짚었는지 여부는 따지지 않는다.</does>
+  </term>
+  <term id="run_mode1_5.unasked_known" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:251" source="reading">
+    <means>출제도 안 되고 뺀 이유도 안 적힌 용어를 낸다.</means>
+    <does>조용히 빠지면 좁힌 것인지 잊은 것인지 구별할 수 없다.</does>
+  </term>
+  <term id="run_mode1_5.validate_answers" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:293" source="reading">
+    <means>답안이 문항지와 아귀가 맞는지 본다.</means>
+    <does>빠진 답안·없던 용어·문항 수를 넘는 응답·빈 뜻을 잡는다. 채점기는 이것을 보지 않고 조용히 매긴다.</does>
+  </term>
+  <term id="run_mode1_5.validate_questions" kind="function" module="codegraph" where="codegraph/run_mode1_5.py:187" source="reading">
+    <means>문항지가 채점할 수 있는 꼴인지 본다.</means>
+    <does>문항 수·보기 수·모른다 자리·정답 자리·겹친 보기·정답 쏠림을 본다. 문항이 좋은지 나쁜지는 판정하지 않는다.</does>
+  </term>
+  <term id="run_mode2._read" kind="function" module="codegraph" where="codegraph/run_mode2.py:324" source="reading">
+    <means>파일을 읽어 글자로 준다.</means>
+    <does>없으면 아무것도 아닌 값을 낸다 — 존재 여부를 순수 함수에 떠넘기지 않는다.</does>
+  </term>
+  <term id="run_mode2.agent_prompt" kind="function" module="codegraph" where="codegraph/run_mode2.py:207" source="reading">
+    <means>원고를 쓰는 한 세션이 할 일 전부를 적은 글.</means>
+    <does>기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다. 판정 금지와 보류된 축을 넣지 말라는 것이 뒤쪽이다.</does>
+  </term>
+  <term id="run_mode2.find_spec" kind="function" module="codegraph" where="codegraph/run_mode2.py:174" source="reading">
+    <means>설계 문서 목록에서 이 이름표의 것을 찾는다.</means>
+    <does>정확히 일치하는 것만 문다. 일부만 맞아도 물면 다른 계획의 결정 표가 실린다.</does>
+  </term>
+  <term id="run_mode2.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode2.py:121" source="reading">
+    <means>이 단계가 큰 언어 모형을 부르는 자리인지 답한다.</means>
+    <does>토큰이 잡히는 곳은 여기뿐이다.</does>
+  </term>
+  <term id="run_mode2.main" kind="function" module="codegraph" where="codegraph/run_mode2.py:336" source="reading">
+    <means>명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.</means>
+    <does>한 단계가 실패하면 거기서 멈춘다. 뒤 단계가 앞 단계의 산출물에 기댄다.</does>
+  </term>
+  <term id="run_mode2.manuscript_is_written" kind="function" module="codegraph" where="codegraph/run_mode2.py:157" source="reading">
+    <means>원고가 이미 채워졌는지 글자로 가른다.</means>
+    <does>결정 목록이 비지 않았고 본문에 그 결정의 절이 있을 때만 참이다. 한쪽만 보면 반쯤 쓰다 만 원고를 완성으로 착각한다.</does>
+  </term>
+  <term id="run_mode2.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode2.py:130" source="reading">
+    <means>네 단계 중 무엇을 실제로 돌릴지 고른다.</means>
+    <does>뼈대 만들기는 늘 남긴다 — 건너뛸지는 그 스크립트 자신이 정한다. 원고가 채워졌으면 모형을 부르지 않는다.</does>
+  </term>
+  <term id="run_mode2.report_dir" kind="function" module="codegraph" where="codegraph/run_mode2.py:97" source="reading">
+    <means>보고서가 사는 폴더를 답한다.</means>
+    <does>프로젝트 뿌리와 이름표를 이어 붙인다.</does>
+  </term>
+  <term id="run_mode2.run_agent" kind="function" module="codegraph" where="codegraph/run_mode2.py:291" source="reading">
+    <means>모형을 한 번 부르고 결과 기록을 돌려준다.</means>
+    <does>시킬 말은 표준 입력으로 준다.</does>
+  </term>
+  <term id="run_mode2.run_machine" kind="function" module="codegraph" where="codegraph/run_mode2.py:314" source="reading">
+    <means>기계 단계 하나를 정해진 폴더에서 부른다.</means>
+    <does>출력을 가로채지 않는다. 그 명령의 출력이 곧 진행 상황이다.</does>
+  </term>
+  <term id="run_mode2.script_argv" kind="function" module="codegraph" where="codegraph/run_mode2.py:191" source="reading">
+    <means>기계 단계 하나를 부르는 명령줄을 만든다.</means>
+    <does>이름표는 뼈대 만들기에만 붙인다. 나머지는 일하는 폴더로 대상을 알기 때문에 인자를 주면 오해한다.</does>
+  </term>
+  <term id="run_mode2.stage_cwd" kind="function" module="codegraph" where="codegraph/run_mode2.py:105" source="reading">
+    <means>단계 하나를 어느 폴더에서 돌릴지 답한다.</means>
+    <does>여기서 틀리면 파일이 조용히 엉뚱한 곳에 생긴다. 모르는 단계는 거부한다.</does>
+  </term>
+  <term id="schema_version" kind="key" module="codegraph" where="codegraph/normalize.py:498" source="reading">
     <means>코드 지도 형식의 판 번호. 지금은 2 다.</means>
     <does>렌더러가 2 가 아니면 경고를 내고 계속한다.</does>
   </term>
@@ -816,7 +1100,7 @@
   <term id="scripts/doctor.mjs" kind="file" module="scripts" where="scripts/doctor.mjs:1" source="reading">
     <means>이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.</means>
     <does>파이프라인 한복판에서 드러날 실패를 앞으로 당긴다. 꼭 있어야 할 것이 없으면 잘못됐다고 알린다.</does>
-    <uses to="pythonPath" kind="dependency" label="asks" where="scripts/doctor.mjs:15"/>
+    <uses to="pythonPath" kind="dependency" label="asks" where="scripts/doctor.mjs:16"/>
   </term>
   <term id="scripts/link-paths.mjs" kind="file" module="scripts" where="scripts/link-paths.mjs:1" source="reading">
     <means>본문에 글자로 적힌 파일 경로를 그 파일을 여는 링크로 바꾸는 스크립트.</means>
@@ -834,6 +1118,11 @@
   </term>
   <term id="scripts/wiki/check.mjs" kind="file" module="scripts/wiki" where="scripts/wiki/check.mjs:1" source="reading">
     <means>위키 산문의 인용을 검증하는 파일.</means>
+  </term>
+  <term id="scripts/wiki/clang-doc.mjs" kind="file" module="scripts/wiki" where="scripts/wiki/clang-doc.mjs:1" source="reading">
+    <means>clang-doc 실행 파일을 기계에 상관없이 찾는 파일.</means>
+    <does>그 도구는 명령 검색 경로에 없다. 경로를 코드에 박으면 그 기계에서만 돈다. 못 찾아도 막지 않는다 — 없는 기계에서는 다른 수집기만으로 옛 수준의 결과가 나온다.</does>
+    <uses to="clangDocPath" kind="dependency" label="defines" where="scripts/wiki/clang-doc.mjs:61"/>
   </term>
   <term id="scripts/wiki/compdb.mjs" kind="file" module="scripts/wiki" where="scripts/wiki/compdb.mjs:1" source="reading">
     <means>C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.</means>
@@ -853,7 +1142,7 @@
   <term id="sh" kind="function" module="codegraph" where="codegraph/facts.py:39" source="reading">
     <means>바깥 명령을 돌리고 성공했을 때만 출력을 돌려준다.</means>
   </term>
-  <term id="sidebarFrom" kind="function" module="scripts/wiki" where="scripts/wiki/build.mjs:19" source="reading">
+  <term id="sidebarFrom" kind="function" module="scripts/wiki" where="scripts/wiki/build.mjs:21" source="reading">
     <means>마크다운 파일 목록을 옆 차림표 항목으로 바꾼다.</means>
   </term>
   <term id="src" kind="module" module="src" source="reading">
@@ -956,7 +1245,7 @@
     <means>언어 서버가 준 파일 주소를 저장소 기준 상대경로로 바꾼다.</means>
     <does>file:// 주소에서 경로만 꺼내 퍼센트 인코딩을 풀고 저장소 뿌리 기준으로 상대화한다.</does>
   </term>
-  <term id="tracked_set" kind="function" module="codegraph" where="codegraph/normalize.py:141" source="reading">
+  <term id="tracked_set" kind="function" module="codegraph" where="codegraph/normalize.py:146" source="reading">
     <means>판 관리가 아는 파일 집합을 얻는다.</means>
     <does>우리 코드인지 가르는 데 쓴다. 남의 헤더는 여기 없다.</does>
   </term>
@@ -989,16 +1278,64 @@
     <means>data.ts 의 builderVersion 이 지금 버전과 같은지 본다. 달라도 경고까지다.</means>
     <uses to="builderVersion" kind="dependency" label="reads" where="scripts/check.mjs:76"/>
   </term>
-  <term id="vitepressConfig" kind="function" module="scripts/wiki" where="scripts/wiki/build.mjs:36" source="reading">
+  <term id="vitepressConfig" kind="function" module="scripts/wiki" where="scripts/wiki/build.mjs:40" source="reading">
     <means>사이트 설정 파일의 글자를 만든다.</means>
     <does>설정 도우미를 불러오지 않는다. 이 파일은 남의 저장소에 쓰이는데 거기엔 꾸러미가 없다.</does>
   </term>
-  <term id="wikiPaths" kind="function" module="scripts/wiki" where="scripts/wiki/paths.mjs:15" source="reading">
+  <term id="warmup.blast_radius" kind="function" module="codegraph" where="codegraph/warmup.py:181" source="reading">
+    <means>바뀐 파일 때문에 서술이 틀려질 수 있는 이웃 파일까지 넓힌다.</means>
+    <does>코드 지도의 이음줄을 양쪽으로 탄다. 파일 하나만 보는 기록으로는 볼 수 없는 것을 여기서 잡는다.</does>
+  </term>
+  <term id="warmup.decl_hash" kind="function" module="codegraph" where="codegraph/warmup.py:73" source="reading">
+    <means>한 파일의 선언 목록을 한 줄의 지문으로 줄인다.</means>
+    <does>줄 번호와 문서 주석은 일부러 뺀다. 주석 한 줄만 고쳐도 둘은 바뀌는데 그때 다시 헤아릴 뜻은 없기 때문이다.</does>
+    <uses to="declmap.scan" kind="dependency" label="받는다" where="codegraph/warmup.py:74"/>
+  </term>
+  <term id="warmup.file_hash" kind="function" module="codegraph" where="codegraph/warmup.py:54" source="reading">
+    <means>파일 내용을 한 줄의 지문으로 줄인다.</means>
+    <does>바이트를 그대로 읽어 지문을 낸다. 판 관리에 올렸는지 여부와 무관하다 — 올리지 않은 고침도 잡아내려면 이래야 한다.</does>
+  </term>
+  <term id="warmup.json" kind="artifact" module="codegraph" where="codegraph/warmup.py:48" source="reading">
+    <means>어떤 파일을 언제 어떤 내용으로 보았는지 적어 둔 기록 파일.</means>
+    <does>내용을 담지 않는다. 지문과 고친 시각과 크기만 담는 색인이라 파일 두 개에 오백 바이트 남짓이다. 다시 만들 수 있으므로 판 관리에 올리지 않는 자리에 둔다.</does>
+  </term>
+  <term id="warmup.load" kind="function" module="codegraph" where="codegraph/warmup.py:92" source="reading">
+    <means>지난번 훑기의 기록을 읽는다.</means>
+    <does>없거나 깨졌으면 빈 것으로 친다. 그러면 전량 다시 읽기가 되어 안전한 쪽으로 기운다.</does>
+  </term>
+  <term id="warmup.main" kind="function" module="codegraph" where="codegraph/warmup.py:212" source="reading">
+    <means>명령줄에서 판정과 파급을 부르고 결과를 사람이 읽게 찍는다.</means>
+    <does>기록 갱신은 깃발을 줄 때만 한다. 기본이 읽기만인 것은 판정과 확정을 갈라 놓기 위해서다.</does>
+    <uses to="declmap.tracked_files" kind="dependency" label="부른다" where="codegraph/warmup.py:228"/>
+    <uses to="declmap.scan" kind="dependency" label="부른다" where="codegraph/warmup.py:232"/>
+    <uses to="warmup.status" kind="dependency" label="부른다" where="codegraph/warmup.py:234"/>
+    <uses to="warmup.blast_radius" kind="dependency" label="부른다" where="codegraph/warmup.py:251"/>
+    <uses to="warmup.save" kind="dependency" label="부른다" where="codegraph/warmup.py:260"/>
+  </term>
+  <term id="warmup.save" kind="function" module="codegraph" where="codegraph/warmup.py:105" source="reading">
+    <means>이번 훑기의 결과를 기록으로 남긴다.</means>
+    <does>판정과 따로 있는 것이 요점이다. 큰 언어 모형이 실제로 다시 읽은 뒤에만 불러야 한다 — 먼저 부르면 실패한 실행도 유효로 남아 낡은 요약이 살아남는다.</does>
+  </term>
+  <term id="warmup.status" kind="function" module="codegraph" where="codegraph/warmup.py:116" source="reading">
+    <means>파일마다 무엇을 해야 하는지를 네 갈래로 가른다.</means>
+    <does>유효·위치만·재읽기·삭제됨. 고친 시각과 크기가 같으면 지문조차 내지 않고 넘어간다.</does>
+    <uses to="warmup.file_hash" kind="dependency" label="부른다" where="codegraph/warmup.py:150"/>
+    <uses to="warmup.decl_hash" kind="dependency" label="부른다" where="codegraph/warmup.py:142"/>
+  </term>
+  <term id="wikiPaths" kind="function" module="scripts/wiki" where="scripts/wiki/paths.mjs:17" source="reading">
     <means>대상 저장소 하나의 여러 경로를 한 덩이로 만든다.</means>
   </term>
   <term id="wrapTerms" kind="function" module="scripts" where="scripts/wrap-terms.mjs:63" source="reading">
     <means>HTML 글자에 나오는 용어를 전부 용어 참조 마크업으로 바꾼다.</means>
     <does>태그를 하나씩 훑으며 지금 어떤 요소 안인지 쌓아 두고, 건너뛸 요소 안이 아닐 때만 글자를 바꾼다. 한 번만 지나가므로 감싼 결과를 다시 감싸지 않는다.</does>
     <uses to="termPattern" kind="dependency" label="calls" where="scripts/wrap-terms.mjs:58"/>
+  </term>
+  <term id="위치만" kind="key" module="codegraph" where="codegraph/warmup.py:158" source="reading">
+    <means>내용은 달라졌으나 선언 목록은 그대로라는 판정.</means>
+    <does>주석을 고치거나 줄이 밀렸을 때 여기로 온다. 다만 선언 지문이 이름만 보기 때문에 함수 본문을 통째로 다시 쓴 변경도 여기로 온다 — 그것까지 건너뛰면 동작 서술이 낡는다.</does>
+  </term>
+  <term id="재읽기" kind="key" module="codegraph" where="codegraph/warmup.py:154" source="reading">
+    <means>그 파일을 큰 언어 모형이 다시 읽어야 한다는 판정.</means>
+    <does>처음 보는 파일이거나, 내용도 선언 목록도 달라졌을 때 여기로 온다. 네 갈래 중 값이 비싼 쪽이라 이 수를 줄이는 것이 증분 캐시의 목적이다.</does>
   </term>
 </terms>

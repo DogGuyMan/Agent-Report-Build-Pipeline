@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='scripts/wiki/build.mjs']"/>
-// scripts/wiki/build.mjs
+// 산문을 사전 렌더 그림으로 바꾸고 정적 사이트를 짓는 파일.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // report-wiki build <저장소> — 산문 후처리.
 //   1) demermaid.py 가 Mermaid 를 사전 렌더 SVG 로 바꾼다 (결정 C-18)
 //   2) 그 결과 폴더에 VitePress 설정을 만들고 정적 사이트를 낸다
@@ -13,8 +14,10 @@ import { pythonPath } from "../python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
-/** 마크다운 파일 목록 -> VitePress 사이드바 항목. index 는 뺀다(홈이 따로 링크한다). */
 // <include file="docs/codegraph/comments.xml" path="//term[@id='sidebarFrom']"/>
+// 마크다운 파일 목록을 옆 차림표 항목으로 바꾼다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
+/** 마크다운 파일 목록 -> VitePress 사이드바 항목. index 는 뺀다(홈이 따로 링크한다). */
 export function sidebarFrom(files) {
   return files
     .filter((f) => f.endsWith(".md") && f !== "index.md")
@@ -23,6 +26,9 @@ export function sidebarFrom(files) {
     .map((name) => ({ text: name, link: `/${name}` }));
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='vitepressConfig']"/>
+// 사이트 설정 파일의 글자를 만든다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * VitePress 설정 파일 본문. 제목은 JSON.stringify 로 이스케이프한다.
  *
@@ -31,7 +37,6 @@ export function sidebarFrom(files) {
  * `Cannot find package 'vitepress'` 로 즉사한다(🔵 2026-08-29 QtVisionEdit 에서 겪었다).
  * `defineConfig` 는 타입만 붙여 주는 항등 함수라 평범한 객체를 내보내면 동작이 같다.
  */
-// <include file="docs/codegraph/comments.xml" path="//term[@id='vitepressConfig']"/>
 export function vitepressConfig(repoName, sidebar, outDir) {
   const items = sidebar.map((s) => `      { text: ${JSON.stringify(s.text)}, link: ${JSON.stringify(s.link)} }`);
   return `// report-wiki build 가 생성한다. 손으로 고치지 말 것 — 다음 빌드에서 덮어쓴다.

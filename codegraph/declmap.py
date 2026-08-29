@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='codegraph/declmap.py']"/>
+# 선언과 그 위의 문서 주석만 뽑아 한 장으로 만드는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """declmap.py — 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다.
 
 **왜 있나.** 전수조사(Mode 1)에서 LLM 이 소스를 전부 정독하면 비싸다.
@@ -61,6 +63,8 @@ DOC_MAX_LINES = 14   # 선언 위로 이만큼만 거슬러 올라간다
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='declmap.tracked_files']"/>
+# 조사 대상 파일 목록을 고른다.
+# 쓰는 것: 없음 · 쓰이는 곳: declmap.scan, warmup.main
 def tracked_files(repo, lang, includes):
     """git 이 아는 파일만 본다 — 빌드 산출물과 캐시를 걸러 내는 가장 싼 방법이다."""
     r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
@@ -80,6 +84,8 @@ def tracked_files(repo, lang, includes):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='doc_above']"/>
+# 선언 바로 위에 붙은 문서 주석을 모은다.
+# 쓰는 것: 없음 · 쓰이는 곳: declmap.scan
 def doc_above(lines, i, rule):
     """선언 위에 붙은 문서 주석을 모은다. 빈 줄과 특성(attribute) 줄은 건너뛴다."""
     got, j = [], i - 1
@@ -99,6 +105,8 @@ def doc_above(lines, i, rule):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='declmap.scan']"/>
+# 파일을 돌며 선언과 문서 주석을 모은다.
+# 쓰는 것: doc_above, declmap.tracked_files · 쓰이는 곳: warmup.decl_hash, warmup.main
 def scan(repo, lang, includes, doc_chars):
     rule = LANGS[lang]
     result, counts = {}, {"파일": 0, "선언": 0, "문서 주석 있음": 0}

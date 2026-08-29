@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='scripts/wiki/check.mjs']"/>
-// scripts/wiki/check.mjs
+// 위키 산문의 인용을 검증하는 파일.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // report-wiki check <저장소> — 위키 산문의 인용을 검증한다.
 // verify_citations.py 의 3값 판정을 그대로 쓴다:
 //   L1 파일이 있나 · L2 그 줄이 있나 · L3 그 줄 근처에 그 이름이 있나
@@ -13,8 +14,10 @@ import { pythonPath } from "../python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
-/** verify_citations.py 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다. */
 // <include file="docs/codegraph/comments.xml" path="//term[@id='checkArgs']"/>
+// 검증기에 넘길 인자를 만든다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
+/** verify_citations.py 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다. */
 export function checkArgs({ repo, codegraph, detail, docs }) {
   const out = ["--repo", repo, "--codegraph", codegraph];
   if (detail) out.push("--detail", detail);

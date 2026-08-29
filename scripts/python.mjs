@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='scripts/python.mjs']"/>
-// scripts/python.mjs
+// 파이썬 해석기를 기계에 상관없이 찾아 주는 파일.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // 파이썬 해석기를 **기계에 상관없이** 찾는다.
 //
 // **왜 필요한가.** 이 저장소의 파이프라인은 절반이 파이썬이다(`codegraph/*.py`).
@@ -11,11 +12,13 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='pythonCandidates']"/>
+// 쓸 만한 파이썬 해석기 후보를 순서대로 늘어놓는다.
+// 쓰는 것: 없음 · 쓰이는 곳: pythonPath
 /**
  * 후보 목록을 순서대로 만든다. 파일 시스템을 보지 않는 순수 함수라 테스트가 쉽다.
  * PATH 로 넘길 이름(`python3`)도 후보에 섞이므로, 존재 검사는 부르는 쪽이 한다.
  */
-// <include file="docs/codegraph/comments.xml" path="//term[@id='pythonCandidates']"/>
 export function pythonCandidates(root, platform = process.platform, env = process.env) {
   const out = [];
   if (env.REPORT_PYTHON) out.push(env.REPORT_PYTHON);
@@ -30,11 +33,13 @@ export function pythonCandidates(root, platform = process.platform, env = proces
   return out;
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='pythonPath']"/>
+// 후보 중에서 실제로 쓸 해석기 하나를 고른다.
+// 쓰는 것: pythonCandidates · 쓰이는 곳: scripts/doctor.mjs
 /**
  * 실제로 쓸 해석기 하나를 고른다.
  * 절대경로 후보는 존재할 때만, 이름 후보(`python3`)는 그대로 돌려준다 — PATH 가 푼다.
  */
-// <include file="docs/codegraph/comments.xml" path="//term[@id='pythonPath']"/>
 export function pythonPath(root, platform = process.platform, env = process.env) {
   for (const c of pythonCandidates(root, platform, env)) {
     if (c.includes("/") || c.includes("\\")) {
