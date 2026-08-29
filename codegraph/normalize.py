@@ -17,6 +17,8 @@ Track C 의 정규화 계층이다. 접기 규칙(C-9 R1~R7)과 kind enum 사상
 import argparse, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 
+from clang_doc import load_clang_doc
+
 # ── C++ 1차 코드로 볼 네임스페이스. 경로가 아니라 네임스페이스가 기준이다.
 #    근거: std:: 타입 83건의 source_location 이 표준 헤더가 아니라 이 저장소의
 #    첫 사용 지점을 가리킨다(관찰 보고서 F-1). 경로로 거르면 1st-party 로 오인한다.
@@ -59,7 +61,7 @@ def git_commit(repo):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='module_of']"/>
 # C++ 파일 경로에서 모듈 이름을 정한다. 모듈 경계는 폴더 트리다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_cpp
+# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc, normalize_cpp
 def module_of(path):
     """모듈 경계 = 폴더 트리. C# 쪽 결정(폴더 트리 9개)과 축을 맞춘다.
 
@@ -96,6 +98,8 @@ DEFINES_RE_CACHE = {}
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='defines_at']"/>
+# 그 줄이 이 타입을 실제로 정의하는지 본다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def defines_at(repo, rel_file, line_no, name):
     """`source_location` 이 가리키는 줄이 실제로 그 타입을 정의하는지 본다.
 
@@ -137,6 +141,8 @@ def defines_at(repo, rel_file, line_no, name):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='tracked_set']"/>
+# 판 관리가 아는 파일 집합을 얻는다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def tracked_set(repo):
     """git 이 추적하는 파일 집합. 1차 판정의 급소다 — 남의 헤더는 추적되지 않는다."""
     r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
@@ -146,6 +152,8 @@ def tracked_set(repo):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='is_first_party']"/>
+# 이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.
+# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc, normalize_cpp
 def is_first_party(el, repo=None, ns=CPP_FIRST_PARTY_NS, tracked=None):
     """1차 코드 판정. 두 갈래다.
 
@@ -258,10 +266,84 @@ def node_name(el):
     return el.get("display_name") or el.get("name")
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='doc_qualified_name']"/>
+# clang-doc 심볼의 완전한 이름을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc
+def doc_qualified_name(sym):
+    """clang-doc 심볼의 완전 수식 이름. clang-uml 의 `display_name` 과 같은 축으로 맞춘다.
+
+    두 수집기의 노드를 겹쳐 세지 않으려면 신원이 같은 낱말이어야 한다.
+    🔵 2026-08-29 QtVisionEdit 실측 — 이 축으로 맞추면 clang-uml 1차 30개와
+    clang-doc 1차 레코드 30개 중 24개가 같은 이름으로 만난다.
+    """
+    return f"{sym['namespace']}::{sym['name']}" if sym["namespace"] else sym["name"]
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='_doc_element']"/>
+# clang-doc 심볼을 1차 판정 함수가 읽는 꼴로 옮긴다.
+# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc
+def _doc_element(sym):
+    """clang-doc 심볼을 `is_first_party` 가 읽는 꼴로 옮긴다.
+
+    **판정을 흉내 내지 않고 그대로 태운다.** 세 겹 거름망(네임스페이스 허용목록 -> git 추적
+    -> `defines_at`)을 우회하면 Qt 의 QWidget 과 OpenCV 의 cv::Mat 이 1차로 샌다.
+    """
+    return {"namespace": sym["namespace"], "name": sym["name"],
+            "source_location": {"file": sym["file"], "line": sym["line"]}}
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='merge_clang_doc']"/>
+# clang-doc 이 찾은 심볼을 clang-uml 이 만든 노드 표에 합친다.
+# 쓰는 것: is_first_party, doc_qualified_name, _doc_element, module_of · 쓰이는 곳: 없음
+def merge_clang_doc(nodes, doc_symbols, repo, tracked, stats):
+    """clang-doc 의 심볼을 clang-uml 이 만든 노드 표에 합친다.
+
+    **역할 분담이 규칙의 전부다.** clang-uml 은 관계의 종류(합성/집약/의존)를 알고
+    clang-doc 은 심볼 전량(자유 함수·시그니처·저자 주석)을 안다. 그래서
+
+      · 노드는 **합집합** — clang-uml 이 0개를 내던 자유 함수가 여기서 들어온다.
+      · 같은 이름이면 노드를 늘리지 않고 **`where` 만 clang-doc 것으로 간다.**
+        시그니처까지 아는 쪽이 정확하고, clang-uml 의 `source_location` 은 남의 헤더가
+        아니라 이 저장소의 첫 사용 지점을 가리키는 버릇이 있다(관찰 보고서 F-1).
+      · **간선은 손대지 않는다.** clang-doc 에는 관계 분류가 없다.
+
+    ⚠ 1차가 아닌 심볼은 외부 노드로 접지 않고 **버린다.** clang-doc 이 간선을 만들지
+    않으므로 외부 노드로 접어 봐야 `_assemble` 의 R1(전이 확장 금지)이 곧바로 지운다.
+    접으면 `collapsed_from` 만 부풀어 facts/external.md 가 시끄러워진다.
+    """
+    by_name = {n["name"]: nid for nid, n in nodes.items() if n["kind"] != "external"}
+    for sym in doc_symbols or ():
+        if not is_first_party(_doc_element(sym), repo, tracked=tracked):
+            stats["clang-doc 1차 아님(버림)"] += 1
+            continue
+        qname = doc_qualified_name(sym)
+        hit = by_name.get(qname)
+        if hit is not None:
+            node = nodes[hit]
+            node["file"], node["line"] = sym["file"], sym["line"]
+            node["module"] = module_of(sym["file"])
+            stats["clang-doc 로 위치 갱신"] += 1
+        else:
+            nid = "C%d" % (len(nodes) + 1)
+            node = nodes[nid] = {
+                "id": nid, "name": qname, "kind": sym["kind"],
+                "module": module_of(sym["file"]),
+                "file": sym["file"], "line": sym["line"],
+            }
+            by_name[qname] = nid
+            stats["clang-doc 신규 노드 " + sym["kind"]] += 1
+        # 빈 값은 키 자체를 만들지 않는다 — clang-doc 을 안 쓰는 저장소의 산출물이
+        # 빈 문자열 두 개 때문에 통째로 달라지면 골든 대조가 무의미해진다.
+        if sym["signature"]:
+            node["signature"] = sym["signature"]
+        if sym["doc"]:
+            node["doc"] = sym["doc"]
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='normalize_cpp']"/>
 # C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
 # 쓰는 것: is_transparent_wrapper, node_name, is_first_party, module_of, external_group (+2) · 쓰이는 곳: normalize.main
-def normalize_cpp(elements, relationships, repo, source_tool):
+def normalize_cpp(elements, relationships, repo, source_tool, doc_symbols=()):
     tracked = tracked_set(repo)
     by_id = {e["id"]: e for e in elements}
     by_display = {e.get("display_name"): e for e in elements}
@@ -302,6 +384,11 @@ def normalize_cpp(elements, relationships, repo, source_tool):
             node_id[e["id"]] = nid
             collapsed[nid].append(node_name(e))
             stats["외부 원본 타입"] += 1
+
+    # ── 1.5패스: clang-doc 합치기. 노드만 늘리고 간선은 손대지 않는다.
+    #    간선 패스보다 **먼저** 와야 한다 — 뒤에 오면 위치 갱신이 `_assemble` 의
+    #    모듈 유도(C-15)에 반영되지 않아 모듈 목록이 옛 위치 기준으로 굳는다.
+    merge_clang_doc(nodes, doc_symbols, repo, tracked, stats)
 
     # ── R5 투과 해소. 래퍼로 가는 간선은 래퍼의 템플릿 인자로 갈아탄다.
     def resolve(eid, depth=0):
@@ -638,22 +725,40 @@ def normalize_csharp(dump, repo):
                      language="csharp", source_tool=dump.get("tool", "roslyn-dump ?"), repo=repo)
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize.main']"/>
-# normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.
-# 쓰는 것: load_clang_uml, normalize_cpp, normalize_csharp, codegraph.json · 쓰이는 곳: 없음
-def main():
+# <include file="docs/codegraph/comments.xml" path="//term[@id='build_parser']"/>
+# normalize 도구의 명령줄 규약을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def build_parser():
+    """명령줄 규약. **`--clang-doc` 은 배타 그룹에 넣지 않는다.**
+
+    수집기 둘은 고르는 관계가 아니라 **합치는 관계**다. 배타 그룹에 넣으면
+    `--clang-uml` 과 함께 줄 수 없어 합치기 자체가 불가능해진다.
+    """
     ap = argparse.ArgumentParser(description=__doc__)
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--clang-uml", help="C++ — clang-uml -g json 산출물")
     src.add_argument("--roslyn-dump", help="C# — roslyn-dump.json (codegraph/roslyn-dump 가 만든 것)")
+    ap.add_argument("--clang-doc",
+                    help="C++ — clang-doc --format=json 출력 디렉토리. --clang-uml 과 **함께** 쓴다")
     ap.add_argument("--repo", default=".", help="대상 저장소 (repo_commit, asm->pkg 사전용)")
     ap.add_argument("-o", "--out", default="codegraph.json")
-    a = ap.parse_args()
+    return ap
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize.main']"/>
+# normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.
+# 쓰는 것: load_clang_uml, normalize_cpp, normalize_csharp, codegraph.json · 쓰이는 곳: 없음
+def main():
+    a = build_parser().parse_args()
+    syms = []
 
     if a.clang_uml:
         els, rels, meta = load_clang_uml(a.clang_uml)
         tool = "clang-uml " + str(meta.get("clang_uml_version", "?"))
-        g, stats = normalize_cpp(els, rels, a.repo, tool)
+        if a.clang_doc:
+            syms = load_clang_doc(a.clang_doc)
+            tool += f" + clang-doc({len(syms)} 심볼)"
+        g, stats = normalize_cpp(els, rels, a.repo, tool, doc_symbols=syms)
     else:
         dump = json.load(open(a.roslyn_dump, encoding="utf-8"))
         g, stats = normalize_csharp(dump, a.repo)
@@ -661,7 +766,8 @@ def main():
 
     print(f"{a.out} — 노드 {len(g['nodes'])} / 간선 {len(g['edges'])} / 모듈 {len(g['modules'])}")
     if a.clang_uml:
-        print(f"입력: elements {len(els)} / relationships {len(rels)}")
+        print(f"입력: elements {len(els)} / relationships {len(rels)}"
+              + (f" / clang-doc 심볼 {len(syms)}" if a.clang_doc else ""))
     else:
         print(f"입력: types {len(dump['types'])} / relations {len(dump['relations'])}")
     for k, v in stats.most_common():

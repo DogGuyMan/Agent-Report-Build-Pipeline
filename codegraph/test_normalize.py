@@ -404,3 +404,108 @@ def test_first_party_without_repo_keeps_old_behavior():
     el = {"namespace": "", "name": "MainWindow",
           "source_location": {"file": "app/src/view/mainwindow.h"}}
     assert N.is_first_party(el) is False
+
+
+# ── 7. clang-doc 합치기 — 두 수집기의 역할 분담을 고정한다 (2026-08-29 신설)
+#
+# **왜 필요한가.** clang-uml 은 클래스 관계를 알고 clang-doc 은 심볼 전량을 안다.
+# 합치는 규칙 넷이 전부 **틀려도 오류가 나지 않는** 자리다:
+#   ① 노드는 합집합   ② 같은 타입의 where 는 clang-doc 이 이긴다
+#   ③ 간선의 kind 는 clang-uml 만 낸다 (clang-doc 은 관계를 분류하지 않는다)
+#   ④ 1차 판정은 기존 is_first_party 를 그대로 태운다 — 우회하면 Qt·OpenCV 가 샌다
+
+_UML_SESSION = {
+    "id": "u1", "name": "Session", "display_name": "SJH::Session",
+    "namespace": "SJH", "type": "class",
+    "source_location": {"file": "server/session.h", "line": 10},
+}
+
+
+def _doc(name, kind, namespace, file, line, signature="", doc=""):
+    """clang_doc.load_clang_doc 이 내는 꼴 하나."""
+    return {"name": name, "kind": kind, "namespace": namespace,
+            "file": file, "line": line, "signature": signature, "doc": doc}
+
+
+def test_clang_doc_adds_function_nodes(tmp_path):
+    """①의 핵심 — clang-uml 이 0개를 내는 자유 함수가 여기서 들어온다."""
+    g, _ = N.normalize_cpp([], [], str(tmp_path), "t", doc_symbols=[
+        _doc("ComputePanorama", "function", "SJH::Core::Panorama",
+             "core/panorama/panorama.cpp", 129, signature="bool ComputePanorama()"),
+    ])
+    fns = [n for n in g["nodes"] if n["kind"] == "function"]
+    assert len(fns) == 1
+    # 이름은 clang-uml 의 display_name 과 같은 축이어야 한다 — 완전 수식 이름
+    assert fns[0]["name"] == "SJH::Core::Panorama::ComputePanorama"
+    assert (fns[0]["file"], fns[0]["line"]) == ("core/panorama/panorama.cpp", 129)
+    assert fns[0]["module"] == "core"
+
+
+def test_clang_doc_wins_on_where_for_a_shared_type(tmp_path):
+    """② — 같은 타입이면 노드를 늘리지 않고 위치만 clang-doc 것으로 갈아 끼운다."""
+    g, _ = N.normalize_cpp([_UML_SESSION], [], str(tmp_path), "t", doc_symbols=[
+        _doc("Session", "class", "SJH", "server/session.h", 42),
+    ])
+    first = [n for n in g["nodes"] if n["kind"] != "external"]
+    assert len(first) == 1                       # 중복 노드가 생기면 안 된다
+    assert first[0]["line"] == 42                # clang-uml 의 10 이 아니다
+
+
+def test_clang_doc_does_not_add_edges(tmp_path):
+    """③ — clang-doc 은 관계를 분류하지 않는다. 간선 수가 늘면 안 된다."""
+    els = [_UML_SESSION, {
+        "id": "u2", "name": "Store", "display_name": "SJH::Store",
+        "namespace": "SJH", "type": "class",
+        "source_location": {"file": "server/store.h", "line": 5},
+    }]
+    rels = [{"type": "aggregation", "source": "u1", "destination": "u2", "label": "mStore"}]
+    bare, _ = N.normalize_cpp(els, rels, str(tmp_path), "t")
+    merged, _ = N.normalize_cpp(els, rels, str(tmp_path), "t", doc_symbols=[
+        _doc("Session", "class", "SJH", "server/session.h", 42),
+        _doc("Handle", "function", "SJH", "server/session.cpp", 88),
+    ])
+    assert len(merged["edges"]) == len(bare["edges"]) == 1
+    assert merged["edges"][0]["kind"] == "composition"   # 대응표는 그대로다
+
+
+def test_clang_doc_symbols_go_through_is_first_party(tmp_path):
+    """④ — 세 겹 거름망을 우회하지 않는다. std 는 노드가 되지 않는다."""
+    g, _ = N.normalize_cpp([], [], str(tmp_path), "t", doc_symbols=[
+        _doc("sort", "function", "std", "algorithm", 1),
+        _doc("Mat", "class", "cv", "/밖/opencv/mat.hpp", 7),
+    ])
+    assert [n for n in g["nodes"] if n["kind"] != "external"] == []
+
+
+def test_clang_doc_carries_signature_and_author_comment(tmp_path):
+    """clang-uml 이 못 주던 둘 — 시그니처와 저자 문서 주석이 노드에 실린다."""
+    g, _ = N.normalize_cpp([], [], str(tmp_path), "t", doc_symbols=[
+        _doc("BroadcastChannels", "function", "SJH::Core::Utils",
+             "core/utils/channelutils.cpp", 8,
+             signature="void BroadcastChannels(const cv::Mat & src)",
+             doc="1채널을 3채널로 편다"),
+    ])
+    n = g["nodes"][0]
+    assert n["signature"] == "void BroadcastChannels(const cv::Mat & src)"
+    assert n["doc"] == "1채널을 3채널로 편다"
+
+
+def test_uml_only_nodes_keep_their_shape(tmp_path):
+    """골든 보호 — clang-doc 을 안 주면 노드의 키 구성이 예전 그대로여야 한다.
+    빈 signature/doc 키가 생기기만 해도 골든 저장소의 산출물이 통째로 달라진다."""
+    g, _ = N.normalize_cpp([_UML_SESSION], [], str(tmp_path), "t")
+    n = [x for x in g["nodes"] if x["kind"] != "external"][0]
+    assert set(n) == {"id", "name", "kind", "module", "file", "line"}
+
+
+def test_cli_accepts_clang_uml_and_clang_doc_together():
+    """--clang-doc 은 --clang-uml 과 **배타가 아니다**. 배타 그룹에 들어가면 합치기가 불가능해진다."""
+    a = N.build_parser().parse_args(
+        ["--clang-uml", "full_class.json", "--clang-doc", "clangdoc/json", "--repo", "."])
+    assert a.clang_uml == "full_class.json"
+    assert a.clang_doc == "clangdoc/json"
+
+
+def test_cli_clang_doc_is_optional():
+    """안 주면 None 이고 예전 동작 그대로다."""
+    assert N.build_parser().parse_args(["--clang-uml", "f.json"]).clang_doc is None
