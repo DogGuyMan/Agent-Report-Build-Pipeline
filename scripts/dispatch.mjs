@@ -19,7 +19,7 @@ export function resolveScript(table, cmd) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='runDispatch']"/>
 // 명령을 찾아 자식 프로세스로 실행하는 갈림길 함수.
-// 쓰는 것: resolveScript · 쓰이는 곳: report-spec, report-term
+// 쓰는 것: resolveScript · 쓰이는 곳: report-spec, report-term, report-wiki
 // 부수효과(process.exit · spawnSync)는 이 함수 안에만 둔다.
 // import 시에는 순수 함수만 노출한다(scripts/*.mjs 규약).
 export function runDispatch({ root, table, argv, usage }) {

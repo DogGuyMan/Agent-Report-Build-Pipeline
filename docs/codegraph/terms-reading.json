@@ -1951,9 +1951,16 @@
     "kind": "file",
     "module": "bin",
     "where": "bin/report-wiki:1",
-    "means": "Mode 1 의 진입점. 아직 비어 있는 자리 표시자다.",
-    "does": "실제 파이프라인이 파이썬이라, 무엇을 어떤 순서로 돌려야 하는지 안내문만 찍고 끝난다.",
-    "uses": [],
+    "means": "코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.",
+    "does": "준비와 뒷정리만 맡는다. 글은 쓰지 않는다 — 그건 사람과 스킬의 몫이다.",
+    "uses": [
+      {
+        "to": "runDispatch",
+        "kind": "dependency",
+        "label": "dispatches",
+        "where": "bin/report-wiki:14"
+      }
+    ],
     "source": "reading"
   },
   "report.html": {

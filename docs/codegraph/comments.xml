@@ -720,8 +720,9 @@
     <uses to="runDispatch" kind="dependency" label="calls" where="bin/report-term:16"/>
   </term>
   <term id="report-wiki" kind="file" module="bin" where="bin/report-wiki:1" source="reading">
-    <means>Mode 1 의 진입점. 아직 비어 있는 자리 표시자다.</means>
-    <does>실제 파이프라인이 파이썬이라, 무엇을 어떤 순서로 돌려야 하는지 안내문만 찍고 끝난다.</does>
+    <means>코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.</means>
+    <does>준비와 뒷정리만 맡는다. 글은 쓰지 않는다 — 그건 사람과 스킬의 몫이다.</does>
+    <uses to="runDispatch" kind="dependency" label="dispatches" where="bin/report-wiki:14"/>
   </term>
   <term id="report.html" kind="artifact" module="scripts" where="scripts/build.mjs:152" source="reading">
     <means>최종 산출물. 그림과 스타일까지 다 들어간 파일 한 개.</means>
