@@ -79,7 +79,7 @@ tr.row-recommended td:first-child { border-left: 3px solid var(--accent); }
 .zoom-toggle:checked ~ .diagram-grid .svg-wrap svg { width: var(--svg-w, 100%); height: auto; }
 
 .diagram-legend { display: flex; gap: 16px; font-size: 11px; color: var(--text-2); margin-top: 10px; flex-wrap: wrap; }
-.diagram-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.diagram-legend > span { display: inline-flex; align-items: center; gap: 5px; } /* 직계 자식만 — 자손까지 걸면 자동 참조의 .term-card(display:none) 를 이겨 카드가 항상 켜진다 (2026-08-29) */
 .diagram-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
 /* (e) Lock 정합표 */
