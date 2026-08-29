@@ -32,7 +32,9 @@
 
 ## 사람 차례가 요구하는 것 둘
 
-  1. `answers.json` — 문항지를 풀고 용어마다 맞힌 수와 "모른다" 수를 센 것. **필수.**
+  1. `answers.json` — 실행기가 깔아 준 기입란(`answer-sheet.json`)의 `UserAns` 칸을
+     전부 채워 이 이름으로 둔 것. **필수.** 맞고 틀림은 사람이 세지 않는다 —
+     `quiz.mjs` 가 문항지와 대조해 센다.
   2. `term-answer-key.json` — Plan 이 새로 만든 개념의 **뜻**. 선택.
      뜻이 없는 개념은 출제되지 않는다(채점할 수 없으므로). 사람이 여기에 뜻을 적고
      실행기를 다시 돌리면 그때 출제된다.
@@ -57,9 +59,30 @@
 | `terms[].source` | 문자열 | 이 뜻의 출처(`파일:줄`). 지어낸 것과 구별하려고 적는다 |
 | `terms[].questions[]` | 배열 | **정확히 3개.** `quiz.mjs` 의 채점 구간이 그 수를 전제한다 |
 | `terms[].questions[].ask` | 문자열 | 물음 한 줄. 한 문항은 한 가지만 묻는다 |
-| `terms[].questions[].choices[]` | 배열 | 보기 3~4개 + **마지막에 항상 "모른다"** |
+| `terms[].questions[].choices[]` | 배열 | **정확히 5개.** 실제 뜻 4개 + **마지막에 항상 "모르겠다"** |
 | `terms[].questions[].answer` | 정수 | 정답 보기의 자리(0부터). 마지막 칸을 가리키면 안 된다 |
 | `excluded[]` | 배열 | 출제하지 못한 개념과 그 사유. 사람이 읽는 보고다 |
+
+## `answer-sheet.json` — 사람이 채우는 기입란
+
+**정답이 든 `questions.json` 을 사람에게 그대로 내밀 수 없다.** 그래서 실행기가 그것을
+용어 순 · 문항 순으로 펴고 정답을 뺀 기입란을 따로 깐다. 사람은 `UserAns` 에 고른 보기
+번호만 적는다 — 맞고 틀림을 세는 일은 기계가 한다.
+
+    { "plan": "…/plan.md",
+      "questions": [
+        { "QNum": 1,
+          "Term": "PageRank",
+          "Question": "PageRank 가 하는 일은?",
+          "AnsChoices": {"1": "…", "2": "…", "3": "…", "4": "…", "5": "모르겠다"},
+          "UserAns": "" } ] }
+
+`Term` 을 싣는 이유는 **채점 단위가 문항이 아니라 용어**이기 때문이다(3문항을 묶어
+확실/모름을 매긴다). 없으면 채점할 때 되짚을 수가 없다.
+
+**QNum 은 두 언어에 같은 규칙으로 산다** — 여기(`flatten_questions`)와 `scripts/term/quiz.mjs`
+양쪽이 같은 순서로 펴야 번호가 맞는다. 그 규칙이 어긋나면 조용히 남의 답을 채점하게 되므로,
+채점 직전에 `Term` 과 물음 문구를 문항지와 대조해 **다르면 멈춘다.**
 
 ## 쓰는 법
 
@@ -91,14 +114,20 @@ AGENT_STAGES = {"author"}
 # 한쪽만 고치면 채점 구간(맞힌 수 2 이상 -> 확실)이 조용히 뜻을 잃는다.
 QUESTIONS_PER_TERM = 3
 
-# "모른다" 는 자리도 문구도 고정이다. 흔들리면 그것을 고르는 비용이 문항마다 달라진다.
-DONT_KNOW = "모른다"
+# "모르겠다" 는 자리도 문구도 고정이다. 흔들리면 그것을 고르는 비용이 문항마다 달라진다.
+DONT_KNOW = "모르겠다"
+
+# 한 문항의 보기 수. 실제 뜻 넷에 "모르겠다" 를 더해 다섯이다. 문항마다 다르면
+# 찍어서 맞을 확률이 문항마다 달라지고, 그러면 정답률을 문항끼리 견줄 수 없다.
+CHOICES_PER_QUESTION = 5
 
 # 파일 이름은 한곳에 모은다. 스킬 문서와 어긋나면 사람이 엉뚱한 파일을 찾는다.
+# `answers-template.json`(옛 이름)을 물려 쓰지 않는다 — 꼴이 통째로 달라져서, 이름을
+# 물려 쓰면 지난 실행이 남긴 카운트 파일이 새 기입란인 척 조용히 섞인다.
 CANDIDATES = "term-candidates.json"
 ANSWER_KEY = "term-answer-key.json"
 QUESTIONS = "questions.json"
-TEMPLATE = "answers-template.json"
+SHEET = "answer-sheet.json"
 ANSWERS = "answers.json"
 GRADES = "term-grades.json"
 
@@ -218,9 +247,11 @@ def validate_questions(doc):
             if not str((q or {}).get("ask") or "").strip():
                 out.append("%s — 물음(`ask`)이 비었다" % tag)
             choices = (q or {}).get("choices")
-            if not isinstance(choices, list) or len(choices) < 4 or len(choices) > 5:
-                out.append("%s — 보기는 3~4개에 \"%s\" 를 더해 넷에서 다섯이어야 한다"
-                           % (tag, DONT_KNOW))
+            if not isinstance(choices, list) or len(choices) != CHOICES_PER_QUESTION:
+                out.append("%s — 보기는 실제 뜻 %d개에 \"%s\" 를 더해 정확히 %d개여야 하는데 %s개다"
+                           % (tag, CHOICES_PER_QUESTION - 1, DONT_KNOW,
+                              CHOICES_PER_QUESTION,
+                              len(choices) if isinstance(choices, list) else "0"))
                 continue
             if choices[-1] != DONT_KNOW:
                 out.append("%s — \"%s\" 가 **마지막** 보기가 아니다 (지금 마지막은 %r)"
@@ -266,60 +297,121 @@ def unasked_known(candidates, doc):
     return sorted(t for t in known if t not in asked and t not in noted)
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.answers_template']"/>
-# 문항지에서 빈 답안 틀을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
-# ── 4. 문항지에서 답안지로 곧장 잇기 ────────────────────────────────────
-def answers_template(doc):
-    """`questions.json` 에서 빈 `answers.json` 을 만든다.
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.flatten_questions']"/>
+# 문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1_5.answer_sheet
+# ── 4. 문항지에서 기입란으로 곧장 잇기 ──────────────────────────────────
+def flatten_questions(doc):
+    """중첩된 문항지를 한 줄로 펴고 `QNum` 을 1부터 매긴다. `(번호, 용어, 문항)` 목록.
 
-    사람(또는 `term-benchmark` 스킬)은 숫자 둘만 채우면 된다. 뜻을 손으로 옮기면
-    거기서 오타가 나고, 그 오타가 그대로 용어집의 `TermMeans` 가 된다 — 그 자리를 없앤다.
-
-    열쇠 셋은 `scripts/term/quiz.mjs` 의 `gradeAll` 이 읽는 이름 그대로다.
+    **`scripts/term/quiz.mjs` 의 `flattenQuestions` 와 같은 순서여야 한다.** 번호 규칙이
+    두 언어에 살고 있어서, 한쪽만 고치면 채점이 남의 답을 본다. 그래서 걸러 내지 않는다 —
+    이름이 빈 용어도 자리를 차지한 채 그대로 센다. 걸러 내면 그 순간 양쪽 번호가 어긋난다.
+    (이름이 비었다는 것 자체는 `validate_questions` 가 따로 잡는다.)
     """
-    out = {}
+    out = []
     for entry in (doc or {}).get("terms") or []:
-        name = str((entry or {}).get("term") or "").strip()
-        if name:
-            out[name] = {"correct": 0, "dontKnow": 0,
-                         "means": str((entry or {}).get("means") or "")}
+        term = str((entry or {}).get("term") or "").strip()
+        for q in (entry or {}).get("questions") or []:
+            out.append((len(out) + 1, term, q or {}))
     return out
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.validate_answers']"/>
-# 답안이 문항지와 아귀가 맞는지 본다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
-def validate_answers(answers, doc):
-    """답안이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록).
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.answer_sheet']"/>
+# 문항지에서 정답을 빼고 사람이 채울 기입란을 만든다.
+# 쓰는 것: run_mode1_5.flatten_questions · 쓰이는 곳: 없음
+def answer_sheet(doc):
+    """`questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다.
 
-    `quiz.mjs` 는 이것도 검사하지 않는다. 맞힌 수 5 를 주면 정답률 167% 가 나오고
-    그대로 "확실" 로 실린다.
+    **정답(`answer`)을 싣지 않는 것이 이 함수의 요점이다.** 풀기 전에 정답이 보이면
+    이 시험이 재는 것은 이해도가 아니라 눈이 된다.
+
+    사람은 `UserAns` 에 고른 보기 번호만 적는다. 맞힌 수를 손으로 세던 자리를 없앤 것이라,
+    "세다 틀려서 정답률 167%" 같은 것이 아예 생기지 않는다.
+    """
+    questions = []
+    for qnum, term, q in flatten_questions(doc):
+        choices = q.get("choices")
+        choices = choices if isinstance(choices, list) else []
+        questions.append({
+            "QNum": qnum,
+            "Term": term,
+            "Question": str(q.get("ask") or ""),
+            "AnsChoices": {str(i + 1): c for i, c in enumerate(choices)},
+            "UserAns": "",
+        })
+    return {"plan": str((doc or {}).get("plan") or ""), "questions": questions}
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.choice_number']"/>
+# 사람이 적은 UserAns 를 보기 번호로 읽는다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def choice_number(value):
+    """`UserAns` 를 보기 번호로 읽는다. 못 읽으면 `None`.
+
+    사람이 손으로 채우는 칸이라 `3` 과 `"3"` 이 섞인다. 둘 다 받는다.
+
+    **빈 칸은 `None` 이고, "모르겠다" 로 대신 채우지 않는다.** 안 푼 것과 모르는 것은
+    다르다. 자동으로 메우면 그 차이가 점수에 조용히 섞이고, 시험을 덜 푼 사람이
+    "모르는 것이 많은 사람" 으로 기록된다.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    text = str(value if value is not None else "").strip()
+    return int(text) if text.isdigit() else None
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.validate_answers']"/>
+# 채운 기입란이 문항지와 아귀가 맞는지 본다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def validate_answers(sheet, doc):
+    """채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록).
+
+    `quiz.mjs` 도 채점 직전에 같은 대조를 한다. 중복이 아니다 — 번호 규칙이 두 언어에
+    살기 때문에, 한쪽에서만 보면 다른 쪽으로 들어온 파일이 그대로 채점된다.
+
+    빈 칸을 오류로 잡는 것이 여기서 가장 중요한 일이다. 넘어가면 안 푼 문항이
+    "틀린 문항" 으로 세어져 점수가 조용히 낮아진다.
     """
     out = []
-    asked = [str((e or {}).get("term") or "").strip()
-             for e in (doc or {}).get("terms") or []]
-    asked = [t for t in asked if t]
-    given = set((answers or {}).keys())
+    want = flatten_questions(doc)
+    got = (sheet or {}).get("questions")
+    if not isinstance(got, list):
+        return ["기입란 파일이 아니다 — `questions` 배열이 없다"]
 
-    for t in asked:
-        if t not in given:
-            out.append("%s — 문항은 냈는데 답안이 없다" % t)
-    for t in sorted(given - set(asked)):
-        out.append("%s — 내지 않은 용어의 답안이 있다" % t)
-
-    for t, rec in (answers or {}).items():
-        correct = (rec or {}).get("correct")
-        dont = (rec or {}).get("dontKnow")
-        if not isinstance(correct, int) or not isinstance(dont, int) \
-                or correct < 0 or dont < 0:
-            out.append("%s — `correct` 와 `dontKnow` 는 0 이상의 정수여야 한다" % t)
+    seen = {}
+    for i, rec in enumerate(got):
+        rec = rec or {}
+        num = rec.get("QNum")
+        if not isinstance(num, int) or isinstance(num, bool):
+            out.append("%d번째 칸 — `QNum` 이 정수가 아니다: %r" % (i + 1, rec.get("QNum")))
             continue
-        if correct + dont > QUESTIONS_PER_TERM:
-            out.append("%s — 맞힌 수 %d + 모른다 %d 가 %d문항을 넘는다"
-                       % (t, correct, dont, QUESTIONS_PER_TERM))
-        if not str((rec or {}).get("means") or "").strip():
-            out.append("%s — `means`(뜻)가 비었다. `emit` 이 그대로 용어집으로 넘긴다" % t)
+        if num in seen:
+            out.append("%d번 문항의 답안이 둘 이상이다" % num)
+        seen[num] = rec
+
+    for num, term, q in want:
+        rec = seen.pop(num, None)
+        if rec is None:
+            out.append("%d번(%s) — 문항은 냈는데 답안이 없다" % (num, term))
+            continue
+        if str(rec.get("Term") or "") != term:
+            out.append("%d번 — 용어가 어긋난다. 문항지는 %r 인데 답안은 %r 이다"
+                       % (num, term, rec.get("Term")))
+        if str(rec.get("Question") or "") != str(q.get("ask") or ""):
+            out.append("%d번(%s) — 물음 문구가 문항지와 다르다" % (num, term))
+        ans = choice_number(rec.get("UserAns"))
+        if ans is None:
+            out.append("%d번(%s) — `UserAns` 가 비었다. 안 푼 것을 \"%s\" 로 세지 않는다: %r"
+                       % (num, term, DONT_KNOW, rec.get("UserAns")))
+        elif not 1 <= ans <= CHOICES_PER_QUESTION:
+            out.append("%d번(%s) — `UserAns` 가 보기 밖이다(1~%d): %r"
+                       % (num, term, CHOICES_PER_QUESTION, ans))
+
+    for num in sorted(seen):
+        out.append("%d번 — 내지 않은 문항의 답안이 있다" % num)
     return out
 
 
@@ -353,9 +445,14 @@ def collect_argv(root, plan, terms_db):
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.grade_argv']"/>
 # 채점 명령줄을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-def grade_argv(root, answers):
-    """`quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다."""
-    return ["node", _term_script(root, "quiz.mjs"), answers]
+def grade_argv(root, answers, questions):
+    """`quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다.
+
+    **두 파일을 다 넘긴다.** 채운 기입란에는 정답이 없고 문항지에만 있어서, 둘이 만나야
+    채점이 된다. 정답을 기입란에 실었다면 인자가 하나로 줄었겠지만 그러면 사람이
+    풀기 전에 정답을 본다.
+    """
+    return ["node", _term_script(root, "quiz.mjs"), answers, questions]
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.emit_argv']"/>
@@ -434,7 +531,9 @@ def author_prompt(workdir, root, plan):
 - **보기 순서를 섞는다.** 정답이 늘 첫 번째에 오면 사람이 위치로 맞힌다.
 - **정답지에 없는 것을 묻지 않는다.** `known` 과 **뜻이 정해진** 신규 개념 밖으로 나가지 않는다.
 - **한 문항은 한 가지만 묻는다.** 두 조건을 겹치면 어느 쪽을 몰라서 틀렸는지 알 수 없다.
-- **"{dont_know}" 는 항상 마지막 보기로, 항상 이 문구 그대로.** 보기는 3~4개에 그것을 더해 넷에서 다섯이다.
+- **"{dont_know}" 는 항상 마지막 보기로, 항상 이 문구 그대로.** 보기는 실제 뜻 {real_choices}개에
+  그것을 더해 **정확히 {choices}개**다. 문항마다 개수가 다르면 찍어서 맞을 확률이 달라져
+  정답률을 문항끼리 견줄 수 없다.
 - 읽는 사람은 배경 지식이 없다(객체지향을 갓 배운 대학 1학년 눈높이). 용어를 설명하려고
   다른 어려운 용어를 쓰지 않는다.
 
@@ -455,15 +554,15 @@ def author_prompt(workdir, root, plan):
         "source": "{plan}:412",
         "questions": [
           {{ "ask": "PageRank 가 하는 일은?",
-             "choices": ["보기 가", "보기 나", "보기 다", "{dont_know}"],
+             "choices": ["보기 가", "보기 나", "보기 다", "보기 라", "{dont_know}"],
              "answer": 0 }}
         ] }}
    ],
    "excluded": [ {{ "term": "E402", "why": "계획서에 정의가 없다 — 사람이 뜻을 줘야 한다" }} ] }}
 ```
 
-- `terms[].questions` 는 **정확히 3개**. `answer` 는 정답 보기의 자리(0부터)이고
-  **마지막 칸("{dont_know}")을 가리키면 안 된다.**
+- `terms[].questions` 는 **정확히 3개**이고 `choices` 는 **정확히 {choices}개**다.
+  `answer` 는 정답 보기의 자리(0부터)이고 **마지막 칸("{dont_know}")을 가리키면 안 된다.**
 - `excluded` 에는 뜻을 못 구한 것을 전부 남긴다. 조용히 버리지 마라.
 
 ## 규율
@@ -475,14 +574,15 @@ def author_prompt(workdir, root, plan):
 
 끝나면 출제한 용어 수 · 문항 수 · 출제에서 뺀 개념 목록을 한 표로 보고한다.
 """.format(plan=plan, workdir=workdir, root=root, candidates=CANDIDATES,
-           answer_key=ANSWER_KEY, questions=QUESTIONS, dont_know=DONT_KNOW)
+           answer_key=ANSWER_KEY, questions=QUESTIONS, dont_know=DONT_KNOW,
+           choices=CHOICES_PER_QUESTION, real_choices=CHOICES_PER_QUESTION - 1)
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1_5.gate_notice']"/>
 # 사람 차례에서 화면에 낼 안내문.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 6. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
-def gate_notice(questions, template, answers, held, answer_key, unasked=()):
+def gate_notice(questions, sheet, answers, held, answer_key, unasked=()):
     """사람 차례에서 화면에 낼 안내문.
 
     **이 글이 이 실행기의 산출물 절반이다.** 멈춘 화면만 보고 무엇을 해야 하는지
@@ -492,14 +592,18 @@ def gate_notice(questions, template, answers, held, answer_key, unasked=()):
         "",
         "사람 차례 — 여기서 멈춘다. 아래는 기계가 대신할 수 없는 일이다.",
         "",
-        "  1. 문항지를 푼다              %s" % questions,
-        "  2. 답안 틀에 숫자를 채운다     %s" % template,
-        "     (용어마다 맞힌 수 `correct` 와 \"%s\" 를 고른 수 `dontKnow`)" % DONT_KNOW,
+        "  1. 기입란을 연다              %s" % sheet,
+        "  2. 칸마다 고른 보기 번호를 `UserAns` 에 적는다 (1~%d. %d 는 \"%s\")"
+        % (CHOICES_PER_QUESTION, CHOICES_PER_QUESTION, DONT_KNOW),
+        "     빈 칸이 하나라도 남으면 채점하지 않고 멈춘다 — 안 푼 것과 모르는 것은 다르다.",
         "  3. 채운 파일을 이 이름으로 둔다 %s" % answers,
         "  4. 이 실행기를 **같은 인자로 다시** 돌린다 — 채점부터 이어서 한다",
         "",
+        "%s 에는 정답이 들어 있다 — 풀기 전에 열지 않는다." % os.path.basename(questions),
+        "맞고 틀림은 세지 않아도 된다. `quiz.mjs` 가 문항지와 대조해 센다.",
+        "",
         "묻고 답을 받는 절차 자체는 `term-benchmark` 스킬이 맡는다.",
-        "그 스킬은 사람에게 한 용어씩 물어 답안을 대신 세어 준다.",
+        "그 스킬은 사람에게 한 용어씩 물어 기입란을 대신 채워 준다.",
     ]
     if held:
         lines += [
@@ -624,7 +728,7 @@ def main(argv=None):
     p_cand = os.path.join(workdir, CANDIDATES)
     p_key = os.path.join(workdir, ANSWER_KEY)
     p_ques = os.path.join(workdir, QUESTIONS)
-    p_tmpl = os.path.join(workdir, TEMPLATE)
+    p_sheet = os.path.join(workdir, SHEET)
     p_ans = os.path.join(workdir, ANSWERS)
     p_grades = os.path.join(workdir, GRADES)
 
@@ -681,7 +785,7 @@ def main(argv=None):
             if stage == "collect":
                 cmd = collect_argv(ROOT, plan, terms_db)
             elif stage == "grade":
-                # 답안이 문항지와 아귀가 맞는지 채점 **전에** 본다
+                # 채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다
                 doc, ans = _read_json(p_ques), _read_json(p_ans)
                 complaints = validate_answers(ans or {}, doc or {}) if doc else []
                 if complaints:
@@ -690,7 +794,7 @@ def main(argv=None):
                     rows.append({"stage": stage, "seconds": time.monotonic() - t0,
                                  "usage": usage, "ok": False, "why": "답안이 문항지와 맞지 않는다"})
                     break
-                cmd = grade_argv(ROOT, p_ans)
+                cmd = grade_argv(ROOT, p_ans, p_ques)
             else:
                 cmd = emit_argv(ROOT, p_grades)
             rc = run_machine(cmd, stage, cwd=workdir)
@@ -702,18 +806,18 @@ def main(argv=None):
             print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
             break
 
-    # 사람 차례 — 답안이 없고 문항지가 생겼으면 답안 틀을 깔아 두고 안내한다
+    # 사람 차례 — 답안이 없고 문항지가 생겼으면 기입란을 깔아 두고 안내한다
     gate = None
     if human_gate_open(os.path.exists(p_ans)) and all(r["ok"] for r in rows):
         doc = _read_json(p_ques)
         if doc:
-            with open(p_tmpl, "w", encoding="utf-8") as f:
-                json.dump(answers_template(doc), f, ensure_ascii=False, indent=2)
+            with open(p_sheet, "w", encoding="utf-8") as f:
+                json.dump(answer_sheet(doc), f, ensure_ascii=False, indent=2)
                 f.write("\n")
             cand = _read_json(p_cand) or {}
             _, held = split_new_concepts(cand.get("newConcepts") or [],
                                          _read_json(p_key) or {})
-            gate = gate_notice(p_ques, p_tmpl, p_ans, held, p_key,
+            gate = gate_notice(p_ques, p_sheet, p_ans, held, p_key,
                                unasked=unasked_known(cand, doc))
 
     print("\n" + "=" * 72)
