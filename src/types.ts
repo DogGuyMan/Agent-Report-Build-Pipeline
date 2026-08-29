@@ -60,6 +60,11 @@ export interface ReportData {
   decisions: Decision[];
   /** 용어집. 없으면 용어 기능이 통째로 빠진다 */
   terms?: Term[];
+  /**
+   * 경로 링크가 파일을 찾을 때 더 뒤지는 절대 경로 폴더. 외부 저장소의 산출물(예: 대상 저장소의
+   * out/codegraph-raw)을 가리킬 때 쓴다. 없으면 보고서 폴더 · specs/ · 저장소 루트 · out/codegraph-raw 만 본다
+   */
+  linkRoots?: string[];
 }
 
 /** scripts/svg.mjs 의 반환 형태. */

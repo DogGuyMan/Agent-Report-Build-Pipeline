@@ -119,6 +119,7 @@ export const data: ReportData = {
   date: "2026-08-28",
   branch: "feat/report-builder",
   terms,
+  linkRoots: ["$CSHARP_REPO/out/codegraph-raw"],
   decisions: [
     {
       id: "D1",

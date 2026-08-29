@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createElement } from "react";
 import { wrapTerms } from "./wrap-terms.mjs";
+import { linkPaths, makeResolver, buildIndex } from "./link-paths.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
@@ -73,6 +74,28 @@ if (Array.isArray(data.terms) && data.terms.length > 0 && typeof mod.defineTerms
   body = wrapTerms(body, refs);
   const after = (body.match(/class="term-ref"/g) ?? []).length;
   console.log(`용어 자동 참조 — term-ref ${before} → ${after} (용어 ${data.terms.length}개)`);
+}
+
+// 경로 링크 — 본문의 경로 꼴 낱말을 실제 로컬 파일 · 폴더의 file:// 로. 없는 파일은 그대로 둔다(scripts/link-paths.mjs).
+{
+  let repoRoot = cwd;
+  try {
+    repoRoot = execFileSync("git", ["-C", cwd, "rev-parse", "--show-toplevel"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    }).toString().trim();
+  } catch { /* git 밖이면 cwd 를 루트로 본다 */ }
+  const bases = [cwd, dirname(cwd),
+    // 저자가 명시한 외부 폴더(linkRoots)가 저장소 기본 폴더보다 먼저다 — 사용자 확정 2026-08-29.
+    ...(Array.isArray(data.linkRoots) ? data.linkRoots : []),
+    repoRoot, join(repoRoot, "out/codegraph-raw")];
+  const resolve = makeResolver({ bases, repoRoot, index: buildIndex(repoRoot) });
+  const missed = new Set();
+  body = linkPaths(body, resolve, (p) => missed.add(p));
+  const n = (body.match(/class="path-link"/g) ?? []).length;
+  console.log(
+    `경로 링크 — ${n}개` +
+      (missed.size ? ` (못 찾은 경로 ${missed.size}종: ${[...missed].slice(0, 6).join(", ")}${missed.size > 6 ? " …" : ""})` : ""),
+  );
 }
 
 const version = currentBuilderVersion();
