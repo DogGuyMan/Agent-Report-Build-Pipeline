@@ -8,42 +8,93 @@
 
 ---
 
-## TL;DR + 바로 다음 한 걸음 (2026-08-29 18:15 갱신)
+## TL;DR + 바로 다음 한 걸음 (2026-08-29 17:40 갱신)
 
-**어디까지 왔나** — 세 mode 가 **이 저장소 안에서 한 바퀴 돌았다.**
-Mode 1(terms-db 우선 파이프라인, 자기 전수조사 191개) → Mode 1.5(첫 시험 20개: 확실 6 · 애매 3 · 모름 11, 이후 3문항 규칙) →
-Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용자 지시로 Mode 2 프론트가 다섯 번 진화했다 —
-**용어집 아코디언 · 본문 용어 자동 참조 · 경로 `file://` 링크 · 관계도 물리(슬라이더로 확정) · 카드 위치/범례 수정.** 오늘 커밋 60건.
+**어디까지 왔나** — 세 mode 가 이 저장소 안에서 한 바퀴 돌았다: Mode 1(전수조사 191개 → `terms-db.json` → `codegraph.json` 투영) →
+Mode 1.5(첫 시험 20개, 이후 3문항 규칙) → Mode 2(이해도가 실측된 보고서 2건). 그 위에 Mode 2 프론트가 다섯 번,
+Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했다. **오늘 커밋 68건.**
 
-**서브에이전트 3개**(`.claude/agents/`)는 커밋됐고(`2aca41a`) 각각 실전에 1회 이상 투입돼 경계를 지켰다 — Mode 1 ⑤⑥, Mode 1.5 ⑦, Mode 2 ⑧⑨⑩⑪⑫.
-하네스의 "이 보고를 믿지 말고 재검증하라" 한 줄이 오늘 내 오류 **7건**을 잡았다(§5).
+⚠️ **작업 트리에 41건이 미커밋이다 — ⑭ 가 방금 착지했고 커밋 승인 대기 중이다.** 재개하는 세션은 **§0 을 먼저 읽어라.**
+38개는 `xmldoc inject` 가 넣은 **주석 블록만** 바뀐 것이다(코드 줄 변경 0, 재검증됨). 커밋 계획은 §0.1.
 
-**바로 다음 한 걸음** — 이 저장소 안에서 할 일은 **없다.** 남은 것은 전부 **사용자 결정**이다(§6):
-> (가) 도구를 **다른 실제 프로젝트**에 써 본다 — CLAUDE.md `## ⚠ 방향`. StickRush 는 DB 는 있으나 Plan 이 없다.
-> (나) 보류 항목 R3~R8 중 무엇을 열지.
+**바로 다음 한 걸음** — 순서가 정해져 있다:
+> **1. §0.1 의 커밋 5건**을 사용자 승인 후 올린다 (재검증은 끝났다 — §0 표).
+> **2. R11 을 사용자와 정한다** — `codegraph.json` 스키마에 `loc`(경로:줄 한 문자열) · `url`(원격 커밋 링크) 을 더할지. 사용자가 17:35 에 물었고 ⑭ 충돌 때문에 미뤘다. §6 참조.
+> **3. 그다음은 사용자 결정** — R9(도구를 쓸 다음 실제 프로젝트)가 가장 크다.
 
 ---
 
-## 1. 세계의 상태 — 2026-08-29 18:15 재측정
+## 0. 방금 착지한 것 — 서브에이전트 ⑭ (2026-08-29 17:50, 미커밋)
+
+**무엇** — `codegraph/xmldoc.py` 의 `where` 를 **마커 기준 재계산**으로 바꾸고, 주입 주석 블록에 **의존 줄**을 더하고,
+보류됐던 재조사 증분(새 레코드 22 · uses 9)을 합쳤다. 프롬프트 전문: `HANDOFF-2026-08-29-mode-1-xmldoc-relocate.md`.
+
+**사용자 의도(왜 이 파이프라인이 있나)** — *"개발하면서 내 생각과 기능 설명을 코드 옆에 미리 남겨, 나중 LLM 이 코드를 다시 추론하는 부담을 줄인다."*
+뜻은 `terms-reading.json`(정본) → `comments.xml`(파생) 한 곳에 두고, 코드에는 **3줄 블록**만 박는다:
+마커 `<include … @id='X'/>` · 한 줄 뜻 · **의존 줄** `// 쓰는 것: a, b · 쓰이는 곳: x`.
+
+### 🔴 정정 — 근본 원인이 내 진단과 달랐다
+
+내가 §0 초판에 적은 진단은 *"`plan_file` 이 `where` 를 셈으로 내며 누적 밀림을 빠뜨렸다"* 였다. **그건 절반이다.**
+🔵 ⑭ 의 실측과 오케스트레이터 재검증: 주입 커밋 `77b95de` 는 **소스의 블록만 커밋하고 그때 다시 쓴 `terms-reading.json` 은 커밋하지 않았다.**
+그래서 커밋된 json 은 *블록 없던 좌표*인데 파일에는 블록이 있었다. 근거 없음 242 중 대부분이 여기서 나왔다(블록을 걷어내면 26 으로 복귀).
+검증: 38개 파일 전부 `strip_blocks(현재 소스) == acf88e1 의 소스` — 같음 38 · 다름 0.
+**교훈 — 코드와 그 좌표를 적은 데이터는 같은 커밋에 들어가야 한다.** 따로 가면 검사기가 즉시 거짓말을 시작한다.
+
+### 오케스트레이터가 직접 재검증한 결과 (전부 통과)
+
+| 항목 | 값 |
+|---|---|
+| pytest | **62** (51 + `test_xmldoc.py` 11) |
+| `npm test` · typecheck | **95** · 통과 |
+| `xmldoc.py check` | **레퍼런스 166건 · 문제 0** |
+| `terms_db.py --reading` | **용어 213 / 실패 0 / 근거 없음 0** · 투영 노드 134 간선 87 모듈 6 |
+| 코드 줄 무변경 | **0** (주석 블록만 바뀌었다) |
+| `means`/`does` 삭제 | **0** (Mode 1.5 정답지 보존) |
+| 멱등 | 다시 `inject --dry-run` → 고칠 파일 0 · where 갱신 0 |
+| 블록 | 3줄 · 마커 166 : 의존 줄 166 |
+| `collect` 필수 8 | 8/8 · 두 보고서 `report-spec check` 5/5, `<script>` 1 |
+
+근거 없음이 목표(원래 3건)보다 나은 **0** 인 이유 — 파일 레코드의 `:1` 이 이제 마커 줄이고 그 안에 파일명이 있어 L3 가 통과한다.
+
+### ⑭ 가 계획서와 달리 한 것 (전부 타당, 재검증됨)
+
+1. **`uses[].where` 도 옮겼다** — 계획서는 "안 다룬다" 였다. `carry_lines` 가 *이번에 민 만큼만* 따라 옮기고, 남은 어긋남 10건은 호출 자리를 직접 찾아 고쳤다. 그래서 `uses->` 근거 없음도 0 이다.
+2. **낡은 `where` 20건을 고쳤다** — 조사 원본의 선언 레코드 11 · 증분 새 레코드 5 · 산출물·외부 4. 구조 칸만 손댔다.
+3. **블록을 한 번 걷어내고 다시 넣었다** — 위 정정 때문이다. 코드 줄 결과 무변경 0 으로 확인.
+
+### 미커밋 상태 — 커밋 계획은 아래 §0.1
+
+⑭ 는 커밋하지 않았다(규약). `bin/report-wiki` 는 여전히 자리 표시자다. `xmldoc.py` 에 `strip` 명령은 만들지 않았다(이행기 1회용).
+
+## 0.1 커밋 계획 — 사용자 승인 후, 경로를 좁혀 5건 (`-A` 금지)
+
+| # | 메시지 | 경로 |
+|---|---|---|
+| 1 | `[fix] : xmldoc 의 where 를 마커 기준으로 재계산하고 의존 줄 추가` | `codegraph/xmldoc.py` `codegraph/test_xmldoc.py` |
+| 2 | `[chore] : 주석 블록 재주입 - 마커 기준 where 와 의존 줄 반영` | 소스 38개 (`bin/*` `codegraph/*.py` `scripts/**` `src/**`, 주석만) |
+| 3 | `[feat] : 전수조사 증분 합치기 - 새 레코드 22개와 낡은 인용 정정` | `docs/codegraph/terms-reading.json` `docs/codegraph/comments.xml` |
+| 4 | `[docs] : 전수조사 스킬에 개발 규율과 xmldoc 산출물 반영` | `.agents/skills/codebase-terms-survey/SKILL.md` |
+| 5 | `[docs] : 재개 문서 전면 갱신 - xmldoc 착지, R11 카토그래피, 인용 규율` | `docs/handoffs/RESUME-…` `HANDOFF-…-resurvey.md` `HANDOFF-…-xmldoc-relocate.md` |
+
+## 1. 세계의 상태 — 2026-08-29 17:40 재측정
 
 | 항목 | 값 |
 |---|---|
 | 저장소 | `$REPO_ROOT` (`~/report-builder` 는 **존재하지 않는다**) |
 | 브랜치 | `feat/report-builder` |
-| HEAD | `988d6ca [docs] : 재개 문서 이력 - 카드 위치와 범례 카드 결함 2건` |
-| 커밋 | `95910ef` 이후 **48개**, 2026-08-29 하루 **60개** |
-| 미커밋 | `docs/prompt/checklist.yaml` 하나 (사용자 메모, 의도적 미추적) |
-| Node 테스트 | **95 통과** (`npm test` — 파일 8개: check · components · dispatch · init · svg · term · wrap-terms · link-paths · graph-math) |
-| Python 테스트 | **51 통과** (`.venv/bin/python -m pytest codegraph/ -q`) |
-| 타입 검사 | 통과 (`npm run typecheck`) |
-| 보고서 2건 | `llm-load-reduction` · `mode-1-terms-db-first` — 둘 다 `report-spec check` **5/5**, `<script>` 1개, 용어집 경고 0 |
-| 태그 | `v1` 그대로 — 컴포넌트 API 는 추가만 했다(`Term.mental` · `TermGraph.tune` · `ReportData.linkRoots`) |
+| HEAD | `e1e0bfa [docs] : 전수조사 절차를 codebase-terms-survey 스킬로 - 정의 파일과 핸드오프는 포인터만` |
+| 커밋 | `95910ef` 이후 **56개**, 2026-08-29 하루 **68개** |
+| 미커밋 | **41건 — ⑭ 착지, 커밋 승인 대기(§0.1).** 그 밖에 `docs/prompt/checklist.yaml`(사용자 메모) · `HANDOFF-…-xmldoc-relocate.md`(이 세션의 기록) |
+| Node 테스트 | **95 통과** (`npm test` — 인자 없이) |
+| Python 테스트 | **62 통과** (⑭ 가 `test_xmldoc.py` 11개 추가. 착수 전 51) |
+| 타입 검사 | 통과 |
+| 보고서 2건 | `llm-load-reduction` · `mode-1-terms-db-first` — 둘 다 check **5/5**, `<script>` 1개 |
+| 태그 | `v1` — 컴포넌트 API 는 추가만(`Term.mental` · `TermGraph.tune` · `ReportData.linkRoots`) |
 | 런타임 번들 | 69.4KB (d3-force/zoom/drag/selection + 덩어리 물리 + 조정 슬라이더 + 카드 위치) |
-| 스킬 | `spec-review-dashboard` · `term-benchmark` — `~/.claude/skills/` 원본과 `.claude/skills/` 사본 **동일**(`diff -q`) |
-| 서브에이전트 정의 | `.claude/agents/mode-{1-codebase-wiki,1-5-term-benchmark,2-spec-report}.md` 커밋됨. 이 세션의 하네스가 셋 다 이름으로 부른다 |
-| 외부 저장소 | 새 산출물 없음(재측정). StickRush `out/codegraph-raw/` 에 `codegraph.json` · `roslyn-dump.json` · `facts/` (Track C 산출) |
-
-**저장소 밖 자산** — 스킬 원본 2종(위). **저장소 밖이 원본, 안은 사본**이다. 고치면 둘 다 갱신한다.
+| 스킬 3종 | `spec-review-dashboard` · `term-benchmark` (원본 `~/.claude/skills/`, 사본 `.claude/skills/`) · **`codebase-terms-survey`** (원본은 저장소 `.agents/skills/`, `.claude/skills/` 는 심볼릭 링크 — 사용자가 Antigravity 범용성 위해 이전 `c6aec64`) |
+| 서브에이전트 정의 3종 | `.claude/agents/mode-{1-codebase-wiki,1-5-term-benchmark,2-spec-report}.md` — 커밋됨, 각각 실전 1회 이상 |
+| 외부 저장소 | StickRush(C#) `out/codegraph-raw/codegraph.json` 노드 231 · Graphics(C++) 노드 191. 둘 다 Track C 산출, gitignore |
 
 ---
 
@@ -69,6 +120,9 @@ Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용
 | 1~5 | `terms_db.py` — `uses[]` 보존 · 투영 · 인용 3값 검사 · 합치기 · `--reading` CLI + 테스트 20 | `1ad879a` | `mode-1-codebase-wiki` — **계획서 결함 1건(C++ 간선 어휘) 실측 정정** |
 | 6 | 전수조사 절차를 에이전트 정의 + HANDOFF ③ 에 | `b2e1c78` | `mode-1-codebase-wiki` |
 | 7 | 이 저장소 전수조사 `terms-reading.json` 191개 | `a9b9080` | `mode-1-codebase-wiki` (LLM 읽기) |
+
+**Mode 1 두 번째 진화(오후)** — `codebase-terms-survey` 스킬 신설 `259ad15` · `.agents/skills` 이전 `c6aec64`(사용자) · 절차를 스킬로 일원화 `e1e0bfa` ·
+`xmldoc.py`+`comments.xml` 신설 `acf88e1` · 주석 주입 `77b95de` · **⑭ 진행 중**(§0).
 
 **Mode 1.5 첫 시험과 규칙 변경** — 시험 `041d4be`(이해도 반영) · 3문항 규칙 `71a3386`. **Mode 2 프론트(사용자 지시)** — 아코디언 `596dec9` · 자동 참조 `70e4f39` · 경로 링크 `f92cb7d` · 관계도 물리 `6ef58b3` · 카드 위치 `a4d526c` · 범례 카드 `d42d3b3`.
 
@@ -102,7 +156,7 @@ Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용
 
 ---
 
-## 4. 서브에이전트 소유 매트릭스 — 2026-08-29 18:15 실측
+## 4. 서브에이전트 소유 매트릭스 — 2026-08-29 17:40 실측
 
 **슬롯(별도 세션) 구도는 끝났다.** 정의 파일 3개는 한 세션이 만들었고(03:1x, §9 정정), 실작업은 전부 **이 오케스트레이터 세션이 `Agent` 도구로**
 띄운 서브에이전트가 했다. 각 정의의 `## 소유 파일과 경계` 절이 곧 매트릭스이고, 오늘 그 경계가 실전에서 지켜졌다(소유 밖 변경 0건, 전부 커밋 안 함).
@@ -110,7 +164,9 @@ Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용
 | 파일 | 오케스트레이터 | `mode-1-codebase-wiki` | `mode-1-5-term-benchmark` | `mode-2-spec-report` |
 |---|---|---|---|---|
 | `codegraph/*` (`terms_db.py` 포함 — ⑤ 이후) | 검토·커밋 | **소유** (⑤⑥ 투입) | 읽기 | 읽기 |
-| `docs/codegraph/terms-reading.json` | 검토 | **소유** (전수조사 원본) | 읽기 | 읽기 |
+| `docs/codegraph/terms-reading.json` · `comments.xml` | 검토 | **소유** (전수조사 원본과 파생 XML) | 읽기 | 읽기 |
+| `codegraph/xmldoc.py` · `test_xmldoc.py` | 검토·커밋 | **소유** (⑭ 투입 중) | — | — |
+| 소스의 **주석 블록**(`<include …/>`) | 검토 | `xmldoc inject` 로만 바꾼다 — 손으로 고치지 않는다 | — | — |
 | `normalize.py` 출력 키 | — | **바꾸지 말 것** | — | — |
 | `scripts/term/*` · `test/term.test.mjs` | 검토 | 읽기 | **소유** (⑦ 투입) | 읽기 |
 | `scripts/dispatch.mjs` · `bin/*` | **소유** | 읽기 | 읽기 | 읽기 |
@@ -137,52 +193,92 @@ Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용
 | 금지 단어 | "검증됨" "입증" "증명" (보고 문장에서. 상태 태그 `[검증됨]` 은 별개) |
 | 옛 산출물 | 기준이 아니다. `CLAUDE.md` `## ⚠ 방향` 절 |
 | 도구는 판정하지 않는다 | CLI 는 사람에게 묻지 않는다. 묻는 건 스킬 |
+| **`codegraph/*.py` 인용** | **줄 번호로 인용하지 않는다** — `xmldoc inject` 가 주석 블록을 넣고 빼며 줄을 민다. `normalize.py::normalize_cpp` 처럼 **함수 이름**으로 (2026-08-29 17:40 신설, 아래 실측) |
+| 소스의 주석 블록 | 손으로 고치지 않는다. 뜻은 `terms-reading.json` 이 정본, `xmldoc emit`→`inject` 가 코드에 반영 |
 
 **하네스 7블록** (서브에이전트 프롬프트에 빠뜨리지 않을 것) — `[ROLE]` `[HARD RULES]` `[BOUNDARIES]` `[VERIFIED FACTS]` `[STEP n]` `[SELF-REVIEW]` `[REPORT]`.
-`[VERIFIED FACTS]` 에는 반드시 **"이 보고를 믿지 말고 재검증하라"** 를 넣는다. 오늘 그 한 줄이 내 오류 **7건**을 잡았다 — 계획서 키 2 · 테스트 절 번호 · 디스패처 인자 · C++ 간선 어휘(드라이런이 골든 하나만 돌림) · 테스트 단언 패턴 · `edges[]` 뒤쪽 경계. **드라이런은 골든 재료 전부에 돌린다.**
+`[VERIFIED FACTS]` 에는 반드시 **"이 보고를 믿지 말고 재검증하라"** 를 넣는다. 오늘 그 한 줄이 내 오류 **8건**을 잡았다 — 계획서 키 2 · 테스트 절 번호 · 디스패처 인자 · C++ 간선 어휘(드라이런이 골든 하나만 돌림) ·
+테스트 단언 패턴 · `edges[]` 뒤쪽 경계 · `xmldoc.py` 의 `uses[].where` 미갱신. **드라이런은 골든 재료 전부에 돌린다.**
+
+**핸드오프를 쓸 때도 같은 규율이 걸린다** — 🔵 17:40: 이 문서에 적은 `normalize.py:178` 인용이 **쓰는 사이에** 어긋났다(⑭ 가 주석을 재주입 중이라 줄이 밀렸다).
+원칙 2(믿지 말고 검증하라)로 문서의 인용을 하나씩 다시 돌려 보고 잡았다. **문서에 적은 검증 명령은 적은 자리에서 실제로 실행해 볼 것** — 이 문서 §0 의 두 명령은 그렇게 확인했다(둘 다 0).
 
 ---
 
-## 6. 열린 결정 — 사용자 몫 (2026-08-29 18:15)
+## 6. 열린 결정 — 사용자 몫 (2026-08-29 17:40)
 
 | # | 무엇 | 상태 | 막고 있는 것 |
 |---|---|---|---|
-| R1 | 시험 재료 | **해소** — Mode 1 을 terms-db 우선으로 뒤집어 이 저장소 자신의 DB 를 만들었다(계획서 7/7) | — |
-| R2 | `.claude/agents/*.md` 커밋 | **해소** `2aca41a` | — |
+| R1 · R2 | 시험 재료 · 에이전트 정의 커밋 | **해소** | — |
 | R3 | C++ 용어 키가 네임스페이스 포함 (`SJH::Material`) | 보류 | Mode 1.5 를 C++ 저장소에 쓸 때 |
-| R4 | `collect.mjs` 코드 펜스 처리 (`a.json` 오탐) | 보류 — "지금은 결정 안 한다" | 실사용 오탐 비율 |
+| R4 · R6 | `collect` 낱말 오탐 (`a.json` · `Data` `bin` `load` `report` `src`) | 보류 — "지금은 결정 안 한다" | 실사용 오탐 비율 |
 | R5 | 외부 노드(`(STL) std`)를 용어 DB 에서 뺄지 | 보류 | R3 과 같은 시점 |
-| R6 | `pickTerms` 낱말 오탐 — `Data` `Interface` `bin` `load` `report` `src` (짧은 영어 낱말이 Plan 본문 아무 데나 걸린다) | 보류 — R4 와 같은 갈래 | 실사용 오탐 비율 |
-| R7 | C# 저장소(StickRush)에 읽기 단계를 얹어 **C1(오답 보기 품질)** 시험 (terms-db 계획 D7) | 보류 | StickRush 용 Plan 이 생길 때 |
-| R8 | `facts/*.md` 처럼 **SVG 다이어그램 글자 안**의 경로까지 링크할지 | 보류 — 지금은 SVG 안을 건너뛴다 | 필요가 생길 때 |
-| **R10** | **인용 부패** — `terms-reading.json` 의 `where`(file:line)는 코드가 바뀌면 낡는다. 🔵 18:15 실측: Task 7 직후 근거 없음 3 → 오늘 `term-graph.ts` `build.mjs` `terms.tsx` `quiz.mjs` 를 고친 뒤 **26**. 실패(L1/L2)는 아니라 파이프라인은 돌지만 L3 가 약해진다. 대책 후보 — (가) 이름 조각으로 줄을 다시 찾아 `where` 를 고치는 `--relocate` 옵션 (나) 커밋 훅으로 검사 (다) 그냥 재조사 | **진행 중 — 다른 세션**이 `codegraph/xmldoc.py`(미추적)로 풀고 있다: 뜻을 `comments.xml` 한 곳에 두고 코드엔 include 한 줄, `inject` 가 `where` 재계산. 이 세션의 재조사(⑬)는 그 뒤에 얹는다(addendum `.tmp/terms-reading.addendum-2026-08-29.json`). **xmldoc 결함 1건 전달 필요** — `run_inject` 가 `uses[].where` 를 재계산하지 않는다 | xmldoc 착지 |
-| **R9** | **도구를 써 볼 다음 실제 프로젝트** | **열림 — 가장 급하다.** CLAUDE.md `## ⚠ 방향` 의 목적. StickRush 는 DB 있음 · Plan 없음 | 사용자 |
+| R7 | C# 저장소에 읽기 단계를 얹어 **C1(오답 보기 품질)** 시험 | 보류 | StickRush 용 Plan 이 생길 때 |
+| R8 | SVG 다이어그램 글자 안의 경로까지 링크할지 | 보류 | 필요가 생길 때 |
+| R10 | 인용 부패 | **해소** — ⑭ 가 마커 기준 재계산 + `carry_lines`. 근거 없음 0 (§0). 남은 규율: 코드와 좌표 데이터를 **같은 커밋에** | — |
+| **R11** | **`codegraph.json` 스키마 확장 — 카토그래피 여지** (사용자 17:35 제안) | **열림. ⑭ 착지 후 바로** | 아래 |
+| **R9** | **도구를 써 볼 다음 실제 프로젝트** | **열림 — 가장 크다.** CLAUDE.md `## ⚠ 방향` 의 목적 | 사용자 |
+| R12 | `wiki-architect` 의 부록 용어집(40+ terms)을 `terms-db.json` 에서 결정론으로 뽑을지 | 기록만 | Mode 1 안에서 두 LLM 이 같은 코드를 따로 읽는 자리 |
+
+### R11 상세 — 사용자 제안과 조사 결과 (⑭ 착지 후 착수)
+
+사용자 말: *"codegraph 의 스키마를 확장해서 정확히 어느 코드라인이며, 상대 경로를 넣는 URL 필드를 넣음으로 LLM 이 바로 추적할 수 있도록 카토그래피 여지를 만들고 싶다."*
+
+🔵 **정적 수집기 실측 — 세 갈래, 산출 형식은 이미 같다** (`schema_version: 2`):
+
+| 언어 | 수집기 | 실행 | 위치 출처 | 실물 |
+|---|---|---|---|---|
+| C++ | **clang-uml 0.6.3** (외부 도구) | `clang-uml -c .clang-uml -n full_class_all -g json --paths-relative-to-pwd` | `elements[].source_location {file,line}` → `normalize.py::normalize_cpp` | `SJH::MouseInput` → `src/input/mouse_input.h:42` |
+| C# | **roslyn-dump 0.1** (**우리 도구**, `Microsoft.CodeAnalysis.CSharp 5.9.0`) | `dotnet run --project codegraph/roslyn-dump -- <저장소>` | `types[].{file,line}` → `normalize.py::normalize_csharp` | `AddressableRenamer` → `Assets/@Editors/AddressableRenamer.cs:9` |
+| Python · JS/TS | **없음** — LLM 전수조사 → `terms_db.py::project_codegraph` 투영 | `codebase-terms-survey` 스킬 | 레코드 `where` 를 쪼갬 | `BeforeAfter` → `src/components/BeforeAfter.tsx:20`, `source_tool: "terms-db"` |
+
+**이미 있는 것**: `nodes[]`/`edges[]` 의 `file`(저장소 루트 기준 **상대** 경로) + `line`. `verify_citations.py::build_index` 가 `(file,line)` 쌍을 색인 키로 쓴다.
+**없는 것**: LLM 이 한 번에 붙여 넣어 뛸 수 있는 **한 문자열**.
+
+| 안 | 값 | 평가 |
+|---|---|---|
+| ① `loc` | `"src/input/mouse_input.h:42"` | **권장.** 기계 독립 · git 안전 · `verify_citations` 인용 형식·`terms-reading.json` 의 `where` 와 **글자까지 같다** |
+| ② `url` = `file:///…` 절대경로 | 클릭 가능 | **저장하지 않는다** — 기계 종속(다른 머신에서 죽은 링크). 보고서 빌드 때 `scripts/link-paths.mjs` 가 이미 만든다 |
+| ③ `url` = `https://github.com/<org>/<repo>/blob/<commit>/…#L42` | 원격 + 줄 앵커 | **옵션으로.** `repo_commit` 이 이미 있어 커밋 고정 가능. 원격 없으면 생략. `wiki-researcher` 인용 형식과 같다 |
+
+**손대는 곳**: `normalize.py::_assemble`(두 갈래 공통 출구) + `terms_db.py::project_codegraph`(투영) 두 군데, `schema_version: 2 → 3`.
+소비자(`verify_citations.py` · `facts.py` · `render_*.py`)는 `file`/`line` 을 계속 읽으므로 **추가만** 이라 안 깨진다.
+✅ **⑭ 가 착지했으므로 이제 착수할 수 있다** (커밋 5건 뒤).
+
+💡 **이 문서가 `codegraph/*.py` 를 인용할 때 줄 번호를 쓰지 않는 이유** — `xmldoc inject` 가 주석 블록을 넣고 뺄 때마다 줄이 밀린다.
+🔵 17:40 실측: 5분 전에 맞던 `normalize.py:178` 인용이 그 사이 어긋났다. **함수 이름으로 인용한다**(`normalize.py::normalize_cpp`).
+이것이 R10 이 실재하는 증거이고, ⑭ 의 마커 기준 재계산이 필요한 이유다.
 
 ---
 
-## 7. 포인터 (2026-08-29 18:15)
+## 7. 포인터 (2026-08-29 17:40)
 
 | 문서 | 역할 | 상태 |
 |---|---|---|
-| `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` | Mode 1.5 계획. 실측 정정 주석 4건(키 2 · 디스패처 · 3문항) | 10/10 완료 |
-| `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` | Mode 1 terms-db 우선 계획. 결정 D1~D7, 정정 주석 1건(간선 어휘) | 7/7 완료 |
-| `docs/superpowers/specs/llm-load-reduction/` | Mode 2 보고서 — **이해도 실측 반영**(확실 6 · 애매 3 · 모름 11 · 미측정 4), `linkRoots` → StickRush | check 5/5 |
-| `docs/superpowers/specs/mode-1-terms-db-first/` | terms-db 계획의 검토 보고서 — 결정 7건, 용어 30개(미측정) | check 5/5 |
+| `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` | Mode 1.5 계획. 실측 정정 주석 4건 | 10/10 완료 |
+| `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` | Mode 1 terms-db 우선 계획. 결정 D1~D7 | 7/7 완료 |
+| `docs/superpowers/specs/llm-load-reduction/` | Mode 2 보고서 — 이해도 실측(확실 6 · 애매 3 · 모름 11 · 미측정 4), `linkRoots` → StickRush | check 5/5 |
+| `docs/superpowers/specs/mode-1-terms-db-first/` | terms-db 계획의 검토 보고서 — 결정 7건, 용어 30개 | check 5/5 |
 | `docs/superpowers/specs/llm-load-reduction/term-quiz.md` (+ `out/quiz_to_answers.py` · `out/term-quiz.key.json`, gitignore) | 첫 시험지 100문항과 채점 헬퍼 | 기록 |
-| `docs/codegraph/terms-reading.json` | 이 저장소의 LLM 전수조사 원본(191). 파생물은 `out/codegraph-raw/` — `terms_db.py --reading` 한 줄로 재생성 | 커밋됨 |
-| HANDOFF ① `…-mode-1-5-orchestration.md` | Mode 1.5 위상 정렬 §3 · 하네스 §5 · 규약 §7 | 🟡 부분 대체 — §0 슬롯 분배도 낡음(아래 배너) |
-| HANDOFF ③ `…-mode-1-5-agents.md` | Mode 1/1.5/2 역할 서술 **원본** — `.claude/agents/` 가 실행본. 둘을 같이 고친다 | 활성 |
-| HANDOFF ② ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑫ | 서브에이전트 프롬프트 기록(빌드 타깃 · 스킬 · terms-db 1~5 · 6~7 · 3문항 · 아코디언 · 자동 참조 · 경로 링크 · 물리 · 슬라이더) | 🔴 전부 완료 |
-| `docs/handoffs/RESUME-2026-08-28-track-c.md` | Track C(Mode 1) 재개 — **별개 갈래**. terms-db 우선 파이프라인 반영 배너 있음 | 🟡 부분 대체 |
-| `CLAUDE.md` | 저장소 규약. `## ⚠ 방향` 부터. 렌더 경로(자동 참조 · 경로 링크) · 용어집 절(아코디언 · `KNOBS` · 카드 위치) 갱신됨 | 갱신됨 |
-| `~/.claude/skills/{spec-review-dashboard,term-benchmark}/SKILL.md` | 스킬 원본(사본 `.claude/skills/`) — 3문항 · 자동 참조 · 경로 링크 반영 | 동일 |
-| `.agents/skills/codebase-terms-survey/SKILL.md` | **Mode 1 전수조사 스킬** (2026-08-29 신설, `259ad15` · 사용자가 `.agents/` 로 이전 `c6aec64`). 에이전트 정의의 절차 절은 요약+포인터로 축소 | 활성 |
+| `docs/codegraph/terms-reading.json` · `comments.xml` | 전수조사 원본(213)과 XML 파생물. `out/codegraph-raw/` 는 CLI 한 줄로 재생성 | 미커밋 — §0.1 |
+| **`.agents/skills/codebase-terms-survey/SKILL.md`** | **Mode 1 전수조사 스킬** (신설 `259ad15`, 이전 `c6aec64`). `wiki-researcher` 의 증거 규율 이식 — 금지 표 · 증거 기준표 · `confidence` 3등급 · 탐색 안 한 것 목록. 개발 규율 절(코드 만들 때 레코드도 함께) 포함 | 활성 · `.claude/skills/` 는 심볼릭 링크 |
+| `docs/handoffs/HANDOFF-2026-08-29-mode-1-xmldoc-relocate.md` ⑭ | xmldoc 재계산 프롬프트 전문 | 🔴 완료(미커밋) |
+| `docs/handoffs/HANDOFF-2026-08-29-mode-1-resurvey.md` ⑬ | 재조사 — ⑭ 안에서 소화된다 | 🟡 보류 |
+| HANDOFF ① `…-mode-1-5-orchestration.md` | 위상 정렬 §3 · 하네스 §5 · 규약 §7 (Mode 1.5 계획의 기록) | 🟡 부분 대체 |
+| HANDOFF ③ `…-mode-1-5-agents.md` | Mode 1/1.5/2 역할 서술 **원본** — `.claude/agents/` 가 실행본. 둘을 같이 고친다 | 🟢 활성 |
+| HANDOFF ② ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑫ | 서브에이전트 프롬프트 기록 | 🔴 전부 완료 |
+| `docs/handoffs/RESUME-2026-08-28-track-c.md` | Track C(Mode 1) 재개 — 별개 갈래 | 🟡 부분 대체 |
+| `CLAUDE.md` | 저장소 규약. `## ⚠ 방향` 부터 | 갱신됨 |
+| `docs/prompt/checklist.yaml` | 사용자 메모(작업 단계 의존 그래프) | 커밋됨 `6676827` |
 
-**gitignore 된 것** — `out/` (보고서 산출물 · `out/codegraph-raw/` 파생물 · 시험 정답지/답안) · `.tmp/` · `.tmp-report-tsconfig.json` · `__pycache__/`.
+**gitignore** — `out/`(보고서 산출물 · `out/codegraph-raw/` 파생물 · 시험 정답지) · `.tmp/`(**⑬ 의 addendum 이 여기 있다 — 다른 머신으로 안 간다**) · `__pycache__/`.
 
 ---
 
 ## 8. 재현 — 산출물이 사라졌을 때 (전부 결정론, 수 초)
+
+> ⚠ 아래 기대값은 **⑭ 착지 전(HEAD `e1e0bfa`)** 기준이다. ⑭ 가 착지하면 용어 191 → **213**, pytest 51 → **61**,
+> 근거 없음은 (원래 3건 + `uses[].where` 부패분)이 된다. **착지 후 이 절의 숫자를 한 번 고칠 것.**
 
 ```bash
 cd $REPO_ROOT
@@ -190,7 +286,8 @@ npm test && .venv/bin/python -m pytest codegraph/ -q && npm run typecheck       
 
 # Mode 1 — 이 저장소 자신의 terms-db.json 과 codegraph.json(투영). 원본은 docs/codegraph/terms-reading.json
 .venv/bin/python codegraph/terms_db.py --repo . --reading docs/codegraph/terms-reading.json
-#   기대: 용어 191개 / 실패 0 · codegraph.json 노드 119 간선 76 모듈 6.  근거 없음은 3 → 26(18:15 실측) — 코드 편집으로 줄 번호가 밀린 것(R10)
+#   기대: 용어 191개 / 실패 0 · codegraph.json 노드 119 간선 76 모듈 6
+.venv/bin/python codegraph/xmldoc.py check     # 코드 주석 블록이 json 과 맞는가 — 문제 0건 (R10 은 ⑭ 가 풀었다)
 # 정적 수집기가 있는 저장소(StickRush)의 기존 호출 꼴 — 투영이 상위집합인지 대조
 .venv/bin/python codegraph/terms_db.py $CSHARP_REPO/out/codegraph-raw/codegraph.json --repo $CSHARP_REPO -o /tmp/rb-cs
 #   기대: 용어 241개 / 실패 0 · 투영에 없는 것 0개
@@ -228,3 +325,5 @@ cd ../mode-1-terms-db-first && report-spec build && report-spec check           
 - 2026-08-29 18:15 — **핸드오프 전면 갱신(사용자 지시).** TL;DR · §1 · §4 · §6 · §7 · §8 을 재측정으로 다시 썼다. HANDOFF ① 배너에 §0 도 낡았음을 적고, ③ 의 '아직 안 된 것' 을 전부 완료로, Mode 2 절과 정의 파일에 오늘의 프론트 변경 5건을 반영, Track C RESUME 에 terms-db 우선 파이프라인 배너, CLAUDE.md 상태 표 수치 갱신.
 - 2026-08-29 18:55 — R10 재조사(⑬) 서브에이전트 완료(증분 22+17)했으나 **보류** — 다른 세션의 `xmldoc.py inject` 와 `terms-reading.json` 을 놓고 충돌. 사용자 결정: xmldoc 먼저. 증분은 `.tmp/` addendum 으로 분리, 정본은 HEAD 로 복원. 작업 트리의 38개 소스 변경과 `codegraph/xmldoc.py` · `docs/codegraph/comments.xml` 은 **다른 세션 것 — 이 세션은 건드리지 않는다.**
 - 2026-08-29 19:00 — **전수조사 절차를 스킬로 분리** (`codebase-terms-survey`, 사용자 결정 C 착수). `wiki-researcher` 는 통째로 부르지 않고 규율만 이식 — 금지 표 · 증거 기준표 · `confidence` 3등급 · 탐색 안 한 것 목록 · (선택) 모듈당 구조 렌즈 1회. "빠진 간선" 측정 도구는 스킬 안에 착수 조건으로 남김. 정의 파일 절차 절은 요약+포인터로. 사용자가 xmldoc(`acf88e1` `77b95de`)과 스킬을 커밋했다.
+- 2026-08-29 17:40 — **/lossless-handoff 재실행.** ⑭(xmldoc where 마커 재계산 + 의존 줄 + 증분)이 **진행 중인 상태로** 문서화 — §0 신설(진척 · 재검증 명령 · 커밋 계획 · 실패 시 복구). `codebase-terms-survey` 스킬 신설과 `.agents/` 이전 반영. R11(codegraph 스키마 `loc`/`url` 확장) 신설 — 정적 수집기 3갈래 실측 표 포함. deep-wiki 조사: `wiki-researcher` 를 통째로 부르지 않고 규율만 이식(R12 로 기록).
+- 2026-08-29 17:50 — ⑭ **착지.** 재검증 전부 통과(pytest 62 · xmldoc check 0 · terms_db 213/실패 0/**근거 없음 0** · 코드 줄 무변경 0 · 멱등). 🔴 **내 진단 정정** — 근본 원인은 셈 오류만이 아니라 `77b95de` 가 소스 블록만 커밋하고 `terms-reading.json` 을 빠뜨린 것이었다(38파일 `strip == acf88e1` 로 확인). R10 해소. §0 을 착지 기록으로, §0.1 에 커밋 5건.
