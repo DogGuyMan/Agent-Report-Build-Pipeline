@@ -73,15 +73,15 @@ import warmup  # noqa: E402
 # 이 파일은 <ROOT>/codegraph/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 단계는 일곱 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
-#
 # warmup 이 **둘**인 것이 이 흐름의 급소다. 앞(warmup)은 판정만 하고, 뒤(warmup-save)가
-# 매니페스트를 갱신한다. 한 칸으로 합치면 에이전트가 실패했을 때도 그 파일이 "유효" 로
-# 기록되어, 다음 실행이 읽지 않은 파일을 읽은 것으로 친다.
-STAGES = ["prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
+# 확정한다 — 에이전트가 실패했는데 확정하면 읽지 않은 파일이 '유효' 로 남는다.
+# 확정은 **레코드를 만드는 `survey` 바로 뒤**다. `wiki` 뒤에 두면 산문 실패가
+# 다음 실행의 전량 재조사를 부른다(J6).
+# 단계는 여덟 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
+STAGES = ["prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
 
-# LLM 을 부르는 단계. **하나뿐이라는 것이 이 실행기의 전제**다.
-AGENT_STAGES = {"agent"}
+# 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
+AGENT_STAGES = {"survey", "wiki"}
 
 # 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 두 줄짜리 표다 —
 # 수집기 판별을 여기서 다시 하지 않는다. 그러면 판별 규칙이 두 곳에 생겨 조용히 어긋난다.
@@ -165,8 +165,8 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     `prep` 은 늘 남긴다 — 이미 코드 지도가 있으면 건너뛸지를 `prepPlan` 자신이 정한다
     (`scripts/wiki/prep.mjs` 의 `hasCodegraph`). 여기서 미리 빼면 그 판단을 뺏는 것이다.
 
-    `agent` 만은 산출물이 **둘 다** 있을 때 뺀다. 한쪽만 있으면 여전히 부른다 —
-    한 세션 안에서 남은 쪽만 하면 되고, 그 판단은 에이전트가 재료를 보고 한다.
+    LLM 단계 둘은 **각자 자기 산출물로 걸린다.** `survey` 는 읽기 레코드가 있으면,
+    `wiki` 는 산문이 있으면 빠진다. 한쪽만 있으면 그쪽만 건너뛴다.
     """
     for name in list(only or []) + list(skip or []):
         if name not in STAGES:
@@ -177,10 +177,10 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     for s in STAGES:
         if s in set(skip or []):
             continue
-        # warmup 두 칸은 빼지 않는다. 에이전트를 건너뛸 때도 판정은 해 봐야 하고
-        # (정말 건너뛰어도 되는지 아는 유일한 방법이다), 매니페스트는 갱신해 둬야
-        # 다음 실행이 옳게 판정한다.
-        if s == "agent" and has_reading and has_prose:
+        # warmup 두 칸은 빼지 않는다(warmup 배선의 규칙 그대로).
+        if s == "survey" and has_reading:
+            continue
+        if s == "wiki" and has_prose:
             continue
         out.append(s)
     return out

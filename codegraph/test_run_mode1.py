@@ -27,33 +27,62 @@ import run_mode1 as R  # noqa: E402
 
 
 # ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
-def test_plan_runs_everything_on_an_empty_repo():
-    """아무것도 없으면 일곱 단계를 순서대로 돈다. LLM 단계(agent)는 그중 하나뿐이다."""
-    assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
+def test_빈_저장소면_여덟_단계를_순서대로_돈다():
+    """예전 이름은 `test_plan_runs_everything_on_an_empty_repo` 였다.
 
-
-def test_only_one_stage_calls_the_model():
-    """에이전트는 **하나**다. 전수조사와 산문을 한 세션에서 이어 한다."""
-    stages = R.plan_stages(False, False, False)
-    assert [s for s in stages if R.is_agent_stage(s)] == ["agent"]
-
-
-def test_plan_skips_the_agent_when_its_output_already_exists():
-    """조사 결과와 산문이 이미 있으면 에이전트를 부르지 않는다.
-
-    **그래도 warmup 두 칸은 남는다.** 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
-    매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다.
+    warmup 배선까지는 일곱이었다(prep warmup agent warmup-save terms build check).
+    2026-08-30 사용자 결정으로 `agent` 가 `survey` 와 `wiki` 로 갈렸고, `terms` 가 그 둘 사이로 왔다.
+    `terms` 를 가운데 둔 이유는 산문 세션이 **인용 검사를 통과한** terms-db.json 을
+    재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
     """
-    p = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
-    assert "agent" not in p
-    assert p == ["prep", "warmup", "warmup-save", "terms", "build", "check"]
+    assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
+        "prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
 
 
-def test_the_two_warmup_gates_straddle_the_agent():
-    """판정은 앞, 확정은 뒤. 이 순서가 뒤집히면 실패한 에이전트가 '유효' 로 기록된다."""
+def test_warmup_관문이_survey_를_감싼다():
+    """예전 이름은 `test_the_two_warmup_gates_straddle_the_agent` 였다.
+
+    관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `survey` 가 레코드를 만들고
+    `wiki` 는 산문을 쓴다. `wiki` 뒤에 확정을 두면 산문 실패가 다음 실행의 전량 재조사를
+    부른다 — 레코드는 멀쩡한데 27분을 다시 쓰는 비용 회귀다 (J6).
+    """
     p = R.plan_stages(False, False, False)
-    assert p.index("warmup") < p.index("agent") < p.index("warmup-save")
+    assert p.index("warmup") < p.index("survey") < p.index("warmup-save")
+    assert p.index("warmup-save") < p.index("wiki")
+
+
+def test_두_단계가_모형을_부른다():
+    """예전 이름은 `test_only_one_stage_calls_the_model` 였다. 예전에는 `agent` 한 칸이었고
+    그것이 **이 설계의 급소**라고 적혀 있었다.
+
+    이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
+    측정값이 파이프라인 비용이 아니라 세션 수의 함수가 된다.
+    **2026-08-30 사용자가 그 결정을 뒤집었다.** 층 오름차순 병렬이 세션 분리를 전제하기 때문이다.
+    캐시가 나빠지는 대신 배치마다 읽는 양이 크게 준다 — 어느 쪽이 큰지는 **아직 재지 않았다.**
+    """
+    stages = R.plan_stages(False, False, False)
+    assert [s for s in stages if R.is_agent_stage(s)] == ["survey", "wiki"]
+
+
+def test_산출물이_있는_LLM_단계만_각자_빠진다():
+    """예전 이름은 `test_plan_skips_the_agent_when_its_output_already_exists` 와
+    `test_plan_keeps_the_agent_when_only_half_its_work_is_done` 둘이었다.
+    둘을 하나로 합쳤다 — 둘 다 "산출물 유무로 각 LLM 단계가 걸리는가" 라는 같은 성질을 본다.
+
+    예전에는 `agent` 하나를 `has_reading and has_prose` 로 걸렀다.
+    이제 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다. 이건 **개선**이지 회귀가 아니다.
+    """
+    both = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
+    assert "survey" not in both and "wiki" not in both
+    # warmup 두 칸은 남는다 — 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
+    # 매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다(warmup 배선의 규칙 그대로).
+    assert both == ["prep", "warmup", "warmup-save", "terms", "build", "check"]
+
+    only_reading = R.plan_stages(True, True, False)
+    assert "survey" not in only_reading and "wiki" in only_reading
+
+    only_prose = R.plan_stages(True, False, True)
+    assert "survey" in only_prose and "wiki" not in only_prose
 
 
 def test_the_save_gate_comes_before_terms():
@@ -62,16 +91,21 @@ def test_the_save_gate_comes_before_terms():
     assert p.index("warmup-save") < p.index("terms")
 
 
-def test_skipping_warmup_restores_the_old_five_stage_flow():
-    """warmup 을 빼면 2026-08-30 에 실측한 그 흐름 그대로여야 한다 — 대조군을 만들 수 있게."""
+def test_skip_은_새_여덟_흐름_기준으로_걸러낸다():
+    """예전 이름은 `test_skipping_warmup_restores_the_old_five_stage_flow` 였다.
+
+    옛 시험은 `skip=["warmup", "warmup-save"]` 가 **다섯 단계 시절의 대조군**
+    (`["prep", "agent", "terms", "build", "check"]`)을 되살린다고 단언했다. 이 계획이
+    `agent` 를 지웠으므로 그 값 자체가 더는 나올 수 없다 — `STAGES` 에 `agent` 가 없다.
+
+    **다섯 단계 대조군은 이 코드로 만드는 것이 아니다.** 계획 맨 위 "🔴🔴 서브에이전트 모델"
+    절이 이미 정한 대로, 옛 코드가 필요한 대조군은 `git worktree add /tmp/rb-old 9223143`
+    로 커밋 `9223143` 을 통째로 떼어 돌린다. `--skip warmup,warmup-save` 는 그 대조군을
+    만드는 경로가 **아니다** — 이 시험은 그저 `skip` 이 새 여덟 단계 목록에서도 여전히
+    걸러내는 필터로 옳게 동작하는지만 본다.
+    """
     p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
-    assert p == ["prep", "agent", "terms", "build", "check"]
-
-
-def test_plan_keeps_the_agent_when_only_half_its_work_is_done():
-    """한쪽만 있으면 여전히 부른다. 에이전트가 자기 안에서 남은 쪽만 한다."""
-    assert "agent" in R.plan_stages(True, True, False)
-    assert "agent" in R.plan_stages(True, False, True)
+    assert p == ["prep", "survey", "terms", "wiki", "build", "check"]
 
 
 def test_plan_keeps_prep_even_when_codegraph_exists():
