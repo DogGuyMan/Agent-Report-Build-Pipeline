@@ -1,104 +1,49 @@
-# Mode 1 terms-db 우선 파이프라인 Implementation Plan
+# HANDOFF ⑤ — Mode 1 terms-db 우선 파이프라인 Task 1~5 (mode-1-codebase-wiki 용 프롬프트)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 🔴 **완료됨 (2026-08-29 06:20). 이 프롬프트를 다시 실행하지 말 것.**
+> `mode-1-codebase-wiki` 가 Task 1~5 를 TDD 로 마쳤고 오케스트레이터가 직접 재검증(pytest 51/51 · StickRush·Graphics CLI 실패 0)한 뒤
+> `1ad879a` 로 커밋했다. **DONE_WITH_CONCERNS** — 계획서에 없던 결함 1건(정적 도구 간선 어휘 `instantiation`·`friendship` 재판정)을
+> 서브에이전트가 Graphics 저장소 실측으로 잡아 고쳤다. 정정 주석은 계획서 Task 3 머리에 있다. 이 문서는 **기록용**이다.
+> 진입점은 `RESUME-2026-08-29-mode-1-5-orchestrator.md` 다.
+> 정본 참조(읽지 않아도 됨): `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` Task 1~5 — 아래 `[STEP]` 이 그 절의 사본이다.
 
-**Goal:** LLM 이 코드베이스를 **한 번** 전수조사해 `terms-db.json` 을 만들고, `codegraph.json` 은 그것의 **투영(look-up)** 으로 파생되게 한다. 첫 대상은 report-builder 자신이다.
-
-**Architecture:** `terms-db.json` 이 원본 레코드다 — 용어마다 뜻(`means`) · 동작(`does`) · 위치(`where`) · 방향 있는 관계(`uses[]`) 를 갖는다. 정적 수집기(roslyn/clang-uml)가 있는 코드베이스는 `codegraph.json` 에서 레코드를 **먼저** 만들고 LLM 이 뜻만 보태며(구조 필드는 codegraph 가 이긴다), 수집기가 없는 코드베이스(Python/JS 인 이 저장소)는 LLM 의 읽기 레코드만으로 DB 를 만들고 `codegraph.json` 을 거기서 투영한다. LLM 이 쓴 모든 인용(`where`)은 `verify_citations.py` 와 같은 3값(실패 / 근거 없음 / 통과)으로 기계 검사한다.
-
-**Tech Stack:** Python 3.14 표준 라이브러리만 (`codegraph/terms_db.py` 확장) · pytest · 기존 `verify_citations.short` 재사용. LLM 단계는 코드가 아니라 `mode-1-codebase-wiki` 에이전트의 절차다.
-
----
-
-## 착수 전 실측 근거 (2026-08-29, HEAD `a49e285`)
-
-| 사실 | 근거 |
-|---|---|
-| `terms_db.py` 의 `means` 는 정형문이다 — `"{module} 모듈의 {kind}. A, B 와(과) 이어져 있다."` | 🔵 `codegraph/terms_db.py:56-58` |
-| 간선의 방향·종류·위치를 **버린다** — `neighbors` 는 이름 집합뿐 | 🔵 `terms_db.py:41-47` (`from`/`to` 양방향을 집합에 넣음) |
-| 그래서 지금의 terms-db 로는 codegraph 를 되돌릴 수 없다 — 부분집합 관계가 성립하지 않는다 | 위 두 줄의 귀결 |
-| `codegraph.json` 출력 키 — `schema_version` `language` `platform` `source_tool` `repo_commit` `nodes[]` `edges[]` `modules[]` | 🔵 `normalize.py:280-288` |
-| 노드 키 `id name kind module file line` · 간선 키 `from to kind label file line` (+ `occurrences` `constraint`) · 모듈 키 `id depends_on` | 🔵 `normalize.py:160-174, 237-240, 287` |
-| 간선 접기 키는 `(from, to, kind)` | 🔵 `normalize.py:231` |
-| 모듈 의존은 서로 다른 모듈의 노드 간 간선에서 파생한다. 외부 노드는 제외 | 🔵 `normalize.py:268-276` |
-| 인용 3값 판정 — L1 파일 · L2 줄 · L3 그 위치에 그 심볼. **근거 없음은 실패가 아니다** | 🔵 `verify_citations.py:8-19` |
-| 이름 대조는 **인접 줄까지** 본다 (앞 1줄 + 이 줄 + 뒤 1줄) | 🔵 `verify_citations.py:116-118` |
-| 마지막 조각 대조 규칙 `short()` — `##` `::` `.` 로 쪼개 마지막만, `<` 앞까지 | 🔵 `verify_citations.py:41-45` |
-| 이 저장소에는 `codegraph.json` 이 **없다** — Python/JS 라 roslyn/clang-uml 입력이 없다 | 🔵 `ls out/` 부재, RESUME §6 R1 |
-| 외부 저장소 둘(StickRush C# · Graphics C++)에는 `codegraph.json` 이 있다 — 골든 테스트 재료 | 🔵 `find $DEV_ROOT -name codegraph.json` 2건 |
-| `terms_db.py` 를 StickRush 에 돌리면 241개 (노드 231 + 모듈 10). 이름 충돌 0 | 🔵 실측 `--- 용어 241개` |
-| Plan `llm-load-reduction` 의 용어 24개 중 이 저장소 **코드에 글자로 나타나는 것 13개** | 🔵 `grep -rlF` 전수 (`codegraph.json` 8파일, `PageRank` 3, `calls[]` 3, `WarmUp` 2 …) |
-| Python 쪽 docstring 밀도 — `normalize.py` 19함수 중 17 · `facts.py` 5 중 4 | 🔵 `grep -c` |
-| 전수조사 대상 파일 35개 · `def`/`class`/`export` 104개 (테스트·probe 제외) | 🔵 `find` + `grep -c` |
-| `pickTerms` 는 낱말 경계 정규식으로 DB 키를 Plan 본문에서 찾는다 | 🔵 `scripts/term/collect.mjs:17-27` |
-| Python 테스트 기준선 31개 통과 | 🔵 `.venv/bin/python -m pytest codegraph/ -q` |
-
----
-
-## 결정 목록 (Mode 2 보고서의 행이 된다)
-
-| # | 결정 | 상태 | 신뢰도 | 출처 |
-|---|---|---|---|---|
-| D1 | `terms-db.json` 이 원본, `codegraph.json` 은 그 투영. LLM 전수조사는 **1회** | `[제안됨]` — 사용자 확정 2026-08-29 | 🔵 실측 (부분집합 불성립 지점 `terms_db.py:41-47`) | 사용자 |
-| D2 | LLM 이 쓴 레코드(`source: "reading"`)는 `where` 가 **필수**이고 L1/L2/L3 3값으로 기계 검사한다. 인용 없는 뜻은 싣지 않는다 | `[제안됨]` — 사용자 확정 | 🔵 `verify_citations.py` 규칙 재사용 | 사용자 |
-| D3 | 정적 수집기가 있으면 **구조 필드(`id kind module where`)는 codegraph 가 이긴다.** LLM 은 `means` `does` 와 새 `uses` 만 보탠다 | `[제안됨]` — 사용자 확정 2026-08-29 (1안) | 🟡 75 — 결정론을 지키는 유일한 방법이라 봄. 반례 미관측 | 오케스트레이터 |
-| D4 | 이 저장소의 읽기 원본은 **`docs/codegraph/terms-reading.json`(추적)**, 파생물 `terms-db.json` · `codegraph.json` 은 `out/codegraph-raw/`(무시, 원본에서 재생성) | `[제안됨]` — 사용자 확정 2026-08-29 (1안) | 🟡 70 — `out/` 이 gitignore 라 LLM 산출물을 거기 두면 사라진다. 위치 이름은 취향 | 오케스트레이터 |
-| D5 | 키 규칙 — 소스 파일은 `kind: "file"` 로 파일명 키(`normalize.py`), 함수·클래스는 맨 이름, **충돌 시 전원 `<파일줄기>.<이름>`**(`terms_db.main`), `module` 은 디렉토리 | `[제안됨]` — 사용자 확정 2026-08-29 (1안) | 🟡 70 — Plan 이 파일명으로 부른다는 관찰에 근거. `main` 5건 충돌 실측 | 오케스트레이터 |
-| D6 | 전수조사 주체는 `mode-1-codebase-wiki` 에이전트. 오케스트레이터는 검토·커밋만 | `[제안됨]` — 사용자 확정 | 🔵 | 사용자 |
-| D7 | C#/C++ 저장소(StickRush)에 읽기 단계를 적용해 **C1(오답 보기 품질)** 을 시험하는 것은 이 계획 **밖** | `[제안됨]` — 기록만 | 💭 | 오케스트레이터 |
-
-**D3 에 대한 우려 한 줄.** 사용자의 그림은 "LLM 이 한 번 훑어 구조까지 얻는다" 이다. 정적 수집기가 있는 저장소에서 LLM 추정이 정적 사실과 **어긋날 때** 어느 쪽을 믿을지가 D3 이다. 정적 쪽을 택했다 — 그래야 `verify_citations.py` 의 L3 가 계속 성립한다. 이 선택이 틀렸다고 보면 D3 만 뒤집으면 되고 나머지는 그대로다.
-
-🔵 2026-08-29 05:50 — 검토 보고서의 옵션표를 놓고 사용자가 D3 · D4 · D5 를 **전부 1안**으로 확정했다.
-
----
-
-## File Structure
-
-| 파일 | 역할 | 변경 |
-|---|---|---|
-| `codegraph/terms_db.py` | 레코드 생성(`build_terms`) · 합치기(`merge_terms`) · 인용 검사(`check_terms`) · 투영(`project_codegraph`) · CLI | **수정** — 함수 4개 추가, CLI 인자 확장. 기존 호출 꼴 유지 |
-| `codegraph/test_terms_db.py` | 위 네 함수와 CLI 의 회귀 테스트. 골든은 실제 저장소 산출물 | **신규** |
-| `codegraph/test_normalize.py` §8 | 기존 terms_db 테스트 3개 | 건드리지 않는다 — 그대로 통과해야 한다 |
-| `.claude/agents/mode-1-codebase-wiki.md` | 전수조사 절차 절 + "means 를 풍부하게 쓰지 않는다" 규율 개정 | **수정** (Mode 1 에이전트 소유) |
-| `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md` Mode 1 절 | 위와 **같이** 고친다 (역할 서술 원본) | **수정** |
-| `docs/codegraph/terms-reading.json` | 이 저장소의 LLM 전수조사 원본 | **신규** (Task 7, LLM 산출물) |
-| `out/codegraph-raw/terms-db.json` · `codegraph.json` | 파생물 — gitignore. CLI 한 줄로 재생성 | 생성 |
-
-**건드리지 않는 파일** — `codegraph/normalize.py`(출력 키 불변) · `codegraph/verify_citations.py`(import 만) · `scripts/term/*` · `src/*` · `CLAUDE.md`(오케스트레이터가 커밋 시 한 줄 보탠다).
-
-**레코드 꼴 (schema 는 파일로 두지 않는다 — 여기와 docstring 이 정본)**
-
-```json
-{
-  "build_terms": {
-    "id": "build_terms",
-    "kind": "function",
-    "module": "codegraph",
-    "where": "codegraph/terms_db.py:31",
-    "means": "codegraph.json 에서 용어 사전을 만드는 함수.",
-    "does": "노드와 모듈을 돌며 이름 · 종류 · 위치 · 관계를 뽑는다. 입력이 같으면 출력도 같다.",
-    "uses": [
-      { "to": "_where", "kind": "dependency", "label": "calls", "where": "codegraph/terms_db.py:62" }
-    ],
-    "neighbors": ["_where"],
-    "source": "reading"
-  }
-}
 ```
+[ROLE]
+당신은 $REPO_ROOT (브랜치 feat/report-builder) 의 Mode 1 에이전트 mode-1-codebase-wiki 다.
+목표: codegraph/terms_db.py 를 "terms-db 우선" 구조로 확장한다 — 레코드가 간선을 잃지 않고(Task 1), terms-db 에서
+codegraph.json 을 투영하고(Task 2), LLM 이 쓴 인용을 3값으로 판정하고(Task 3), LLM 읽기를 합치되 구조는 codegraph 가
+이기고(Task 4), CLI 가 codegraph 없이도 돈다(Task 5). 다섯 Task 를 순서대로, 한 세션에서 한다.
+Task 6(문서) · 7(전수조사 실행)은 이번 지시에 없다 — 하지 않는다.
 
-| 필드 | 값 | 누가 채우나 |
-|---|---|---|
-| `id` | 투영 시 노드 id. 없으면 키 | codegraph 면 노드 id, reading 이면 키 |
-| `kind` | `class struct enum interface delegate record external function` (지도의 노드가 됨) · `file module artifact key concept` (노드가 되지 **않음**) | |
-| `module` | codegraph 면 노드의 `module`, reading 이면 **디렉토리** (`codegraph`, `scripts/term`) | |
-| `where` | `file:line`. reading 은 `module`·`external` 빼고 **필수** | |
-| `means` / `does` | 무엇인가 / 무엇을 하는가. `does` 는 선택 | reading 만 |
-| `uses[]` | `{to: 용어 키, kind: 간선 종류, label, where}`. `kind` ∈ `inheritance realization composition aggregation association dependency` | 양쪽 |
-| `neighbors` | `uses` 양방향에서 **재계산**. 손으로 쓰지 않는다 | 기계 |
-| `source` | `codegraph` · `reading` · `codegraph+reading`(합쳐진 것) | 기계 |
+[HARD RULES]
+- 커밋하지 않는다. git add 도 하지 않는다. 각 Task 의 "Step 5: 커밋" 은 건너뛴다 — 오케스트레이터가 사용자 승인 후 한다.
+- TDD 순서를 지킨다: 실패 테스트 작성 → 실패 확인 → 최소 구현 → 통과 확인. 실패를 실제로 보지 않고 구현으로 넘어가지 않는다.
+- 주석 · docstring 은 한국어. "검증됨" "입증" "증명" 이라는 낱말을 쓰지 않는다.
+- Python 3.14 표준 라이브러리만. 새 의존성을 넣지 않는다.
+- 테스트 명령: .venv/bin/python -m pytest codegraph/ -q  (시스템 python 이 아니라 .venv 다)
+- 골든 테스트 2개(StickRush · Graphics)는 이 머신에 산출물이 있으므로 skip 이 아니라 pass 여야 한다. skip 이 뜨면 경로 문제이니 멈추고 보고한다.
 
----
+[BOUNDARIES]
+- 당신이 소유하는 파일 = 정확히 2개: codegraph/terms_db.py (수정), codegraph/test_terms_db.py (신규).
+- codegraph/normalize.py 를 건드리지 않는다 — 출력 키를 읽기만 한다.
+- codegraph/test_normalize.py 를 건드리지 않는다 — §8 의 기존 terms_db 테스트 3개가 그대로 통과해야 한다.
+- codegraph/verify_citations.py 는 import 만 한다 (from verify_citations import short).
+- scripts/ · src/ · test/ · docs/ · CLAUDE.md · .claude/ 를 건드리지 않는다.
+
+[VERIFIED FACTS — 2026-08-29 실측. 이 보고를 믿지 말고 시작 전에 재확인하라]
+- HEAD 는 74c4268 이어야 한다 (git log --oneline -1). 작업 트리는 docs/prompt/checklist.yaml 하나만 미추적이다.
+- Python 테스트 기준선: 31 passed (.venv/bin/python -m pytest codegraph/ -q).
+- codegraph.json 출력 키 — normalize.py:280-288: schema_version · language · platform · source_tool · repo_commit · nodes[] · edges[] · modules[].
+  노드 id/name/kind/module/file/line (normalize.py:160-174), 간선 from/to/kind/label/file/line (normalize.py:237-240), 모듈 id/depends_on (normalize.py:287).
+  간선 접기 키 (from, to, kind) — normalize.py:231. 모듈 의존은 서로 다른 모듈의 노드 간 간선에서 파생 — normalize.py:268-276.
+- verify_citations.short() 는 verify_citations.py:41-45 — "##" "::" "." 로 쪼개 마지막 조각, "<" 앞까지.
+- 골든 재료: $CSHARP_REPO/out/codegraph-raw/codegraph.json (노드 231) ·
+  $GRAPHICS_REPO/out/codegraph-raw/codegraph.json (노드 191). 둘 다 존재.
+- 아래 STEP 의 코드는 오케스트레이터가 스크래치패드에서 조립해 돌려 봤다: 신규 19개 통과 · 기존 §8 3개 통과 ·
+  StickRush 실물 CLI 출력 "용어 241개 / 실패 0 / 근거 없음 0" · "투영에 없는 것 0개". 그래도 당신이 TDD 순서로 다시 확인한다.
+
+========================================================================
+[STEP — 계획서 Task 1~5 를 그대로 옮김. 각 Task 의 Step 1~4 를 순서대로. Step 5(커밋)는 건너뛴다]
 
 ## Task 1: `build_terms` 가 간선을 잃지 않게 한다 — `id` 와 방향 있는 `uses[]`
 
@@ -451,15 +396,6 @@ git commit -m "[feat] : terms-db 에서 codegraph.json 을 투영하는 project_
 ---
 
 ## Task 3: `check_terms` — LLM 이 쓴 인용을 3값으로 판정한다
-
-> 🔵 **실측 정정 (2026-08-29, Task 3 실행 중 — `mode-1-codebase-wiki` 가 발견).** 아래 Step 3 코드의 `uses` 검사 루프가
-> `if src == "codegraph": continue` **위에** 있어 정적 도구가 낸 간선까지 `EDGE_KINDS` 로 재판정했다. Task 2 의
-> `EDGE_KINDS` 주석 "normalize.py 의 어휘 그대로" 는 **틀렸다** — `normalize.py:25-29` 는 `instantiation` · `friendship`
-> 도 낸다(Graphics 저장소 간선 417개 중 13 + 3 = 16건). 계획서 코드 그대로면 C++ 저장소가 `실패 16` 으로 exit 1.
-> 오케스트레이터의 드라이런은 StickRush(C#)에만 CLI 를 돌려 이것을 놓쳤다 — **골든 저장소 둘 다에 돌렸어야 했다.**
-> 구현은 `_written_by_llm(rec_source, use)` 헬퍼로 판정 대상을 LLM 이 쓴 간선으로 좁혔고 `EDGE_KINDS` 는 넓히지 않았다
-> (LLM 이 `instantiation` 을 쓰면 여전히 실패). 고정 테스트 1개 추가 — 그래서 최종 테스트 수는 50 이 아니라 **51** 이다.
-> 이 문서의 Task 3 · 5 코드 블록은 고치지 않았다. **구현(`codegraph/terms_db.py`)이 정본이다.**
 
 **Files:**
 - Modify: `codegraph/terms_db.py` (함수 2개 추가, `from verify_citations import short`)
@@ -925,169 +861,20 @@ git commit -m "[feat] : terms_db CLI 가 codegraph 없이 --reading 만으로 DB
 
 ---
 
-## Task 6: 전수조사 절차 — 에이전트 정의와 역할 문서를 같이 고친다
+========================================================================
+[SELF-REVIEW — 보고 전에 확인]
+- [ ] 다섯 Task 모두 실패 테스트를 먼저 썼고 실패를 실제로 봤는가
+- [ ] .venv/bin/python -m pytest codegraph/ -q 가 50 passed 인가 (기존 31 + 신규 19). skip 0
+- [ ] StickRush 실물에 기존 호출 꼴을 돌려 "용어 241개 / 실패 0 / 근거 없음 0" 과 "투영에 없는 것 0개" 가 나오는가
+- [ ] git status --porcelain 에 codegraph/terms_db.py · codegraph/test_terms_db.py 외에 당신이 만든 변경이 없는가
+- [ ] "검증됨" "입증" "증명" 이 두 파일에 없는가 (grep)
+- [ ] 커밋하지 않았는가
 
-코드가 아니라 **LLM 이 따를 절차**다. 두 문서를 같이 고친다 — "한쪽만 고치면 조용히 어긋난다"(HANDOFF ③ 머리말).
-
-**Files:**
-- Modify: `.claude/agents/mode-1-codebase-wiki.md` — `## 나는 무엇이 아닌가` 의 셋째 항목 교체, `## 소유 파일과 경계` 표에 두 행 추가, `## 전수조사 절차` 절 신설 (`## 전제` 앞에)
-- Modify: `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md` — `## Mode 1 에이전트` 절의 `### 이 mode 에 새로 붙는 것` 과 `### 나는 무엇이 아닌가` 셋째 항목을 같은 내용으로
-
-- [ ] **Step 1: `.claude/agents/mode-1-codebase-wiki.md` 의 셋째 규율을 교체**
-
-찾을 것:
+[REPORT — 이 형식으로, 한국어]
+상태: DONE | DONE_WITH_CONCERNS | BLOCKED
+변경 파일: (경로 나열)
+검증 출력: (pytest 마지막 3줄 · StickRush CLI 마지막 2줄 · git status --porcelain 전체)
+계획서와 달리 한 것: (있으면 무엇을 왜. 없으면 "없음")
+미룬 것 / 우려: (없으면 "없음")
+커밋: 하지 않았다 (확인)
 ```
-- **`means` 를 풍부하게 쓰려고 하지 않는다.** 결정론이 목적이다 — 같은 입력이면 같은 출력.
-  LLM 을 여기 끼우면 그게 깨진다
-```
-바꿀 것:
-```
-- **`means` 를 인용 없이 쓰지 않는다.** 뜻과 동작은 내가(LLM) 전수조사로 쓴다 — 단 **한 번**, 레코드마다
-  `where`(file:line) 를 붙여서. `terms_db.py` 가 그 인용을 L1/L2/L3 로 기계 검사하고, 정적 수집기가 있는
-  저장소에서는 구조 필드(`id kind module where`)를 codegraph 쪽으로 덮는다. 결정론은 codegraph 와 투영이
-  지키고, 나는 인용으로 붙들린다
-```
-
-- [ ] **Step 2: 같은 파일 `## 소유 파일과 경계` 표에 두 행 추가 (`codegraph/terms_db.py` 행 아래)**
-
-```
-| `docs/codegraph/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
-| `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
-```
-
-- [ ] **Step 3: 같은 파일에 `## 전수조사 절차` 절을 `## 전제` 바로 앞에 신설**
-
-````markdown
-## 전수조사 절차 — terms-reading.json 을 쓰는 법 (2026-08-29 신설)
-
-LLM 추론은 **한 번**이다. 그 한 번에 뜻 · 동작 · 관계를 다 얻고, `codegraph.json` 은 거기서 투영한다.
-
-1. **대상 파일을 고정한다.** 테스트 · probe · 캐시는 뺀다. 이 명령의 출력이 조사 범위다:
-   ```bash
-   find codegraph scripts src bin -type f \( -name "*.py" -o -name "*.mjs" -o -name "*.ts" -o -name "*.tsx" -o -path "bin/*" \) \
-     -not -name "test_*" -not -name "probe_*" -not -path "*/__pycache__/*" | sort
-   ```
-2. **파일마다 레코드를 쓴다.** 순서는 위 목록 순서, 파일 안은 줄 번호 순서. 종류별 규칙:
-   | 무엇 | `kind` | 키 | `where` |
-   |---|---|---|---|
-   | 소스 파일 | `file` | 파일명 (`normalize.py`, `collect.mjs`) | `경로:1` |
-   | 함수 · 클래스 · 컴포넌트 | `function` / `class` | 맨 이름. **다른 파일과 충돌하면 충돌한 전원** `<파일줄기>.<이름>` (`terms_db.main`, `facts.main`) | 선언 줄 |
-   | 산출 파일 (`codegraph.json` `terms-db.json` `report.html`) | `artifact` | 파일명 | 그 파일을 **쓰는** 줄 (`json.dump` · `writeFileSync`) |
-   | 출력 JSON 의 키 (`nodes[]` `edges[]` `calls[]`) | `key` | `이름[]` (배열) 또는 `이름` | 그 키를 **채우는** 줄 |
-   | 코드가 구현하는 개념 (`PageRank` `hotspot` `WarmUp`) | `concept` | 코드에 적힌 그대로 | 그 낱말이 있는 줄 |
-   | 디렉토리 | `module` | 디렉토리 경로 (`codegraph`, `scripts/term`) | 비움 |
-   `module` 필드는 항상 **디렉토리**다. `means` 는 한 문장, `does` 는 무엇을 하는지 한두 문장 — 둘 다 객체지향을 갓 배운 1학년 눈높이.
-   `uses[]` 는 이 레코드가 **부르거나 · import 하거나 · 쓰는** 대상. `kind` 는 `dependency`(호출·import·쓰기) / `inheritance`(상속) / `aggregation`(멤버로 보유) 중 하나, `label` 에 `calls` `imports` `writes` 등 이유, `where` 는 그 자리.
-   **`neighbors` 는 쓰지 않는다** — 기계가 다시 센다.
-3. **코드에 없는 것은 쓰지 않는다.** Plan 이 만든 결정 코드(`C-20`, `U3`)나 개념(`무효화`)이 코드에 글자로 없으면
-   그것은 Mode 1 의 것이 아니다 — Mode 1.5 의 `newConcepts` 로 남긴다. 인용 없는 뜻은 싣지 않는다.
-4. **검사한다.** 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 남겨도 되지만 이유를 보고한다.
-   ```bash
-   .venv/bin/python codegraph/terms_db.py --repo . --reading docs/codegraph/terms-reading.json
-   # -> out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0" 이어야 한다
-   ```
-5. **보고한다.** 레코드 수(종류별) · 실패 0 확인 출력 · 근거 없음 목록과 이유 · 키 충돌로 `<파일줄기>.<이름>` 이 된 것 목록.
-````
-
-- [ ] **Step 4: `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md` 를 같이 고친다**
-
-`### 이 mode 에 새로 붙는 것` 절을 이렇게 교체:
-```markdown
-### 이 mode 에 새로 붙는 것
-**`terms_db.py` 와 전수조사 절차.** 2026-08-29 부터 `terms-db.json` 이 **원본**이고 `codegraph.json` 은 그 **투영**이다
-(계획서 `2026-08-29-mode-1-terms-db-first.md`). 정적 수집기가 있으면 codegraph 에서 레코드를 먼저 만들고 LLM 이
-뜻 · 동작 · 새 관계를 보탠다(구조 필드는 codegraph 가 이긴다). 없으면(Python/JS) LLM 읽기 레코드만으로 DB 를 만들고
-`codegraph.json` 을 투영한다. **LLM 이 쓴 모든 `where` 는 L1/L2/L3 로 기계 검사한다.** 절차는 에이전트 정의
-`.claude/agents/mode-1-codebase-wiki.md` 의 `## 전수조사 절차` 절에 있다.
-```
-`### 나는 무엇이 아닌가` 의 셋째 항목을 Step 1 과 **같은 문장**으로 교체.
-`## 변경 이력` 에 한 줄 추가: `- 2026-08-29 — Mode 1 절: terms-db 우선 구조 반영. "means 를 풍부하게 쓰지 않는다" 를 "인용 없이 쓰지 않는다" 로 개정.`
-
-- [ ] **Step 5: 두 문서가 같은 말을 하는지 확인**
-
-Run: `grep -c "인용 없이 쓰지 않는다" .claude/agents/mode-1-codebase-wiki.md docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md`
-Expected: 두 파일 다 `1` 이상
-
-- [ ] **Step 6: 커밋 — 오케스트레이터가 사용자 승인 후. `.claude/agents/` 는 아직 미추적이라 이 커밋이 첫 추적이다 (RESUME R2 와 합친다)**
-
-```bash
-git add .claude/agents/mode-1-codebase-wiki.md docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md
-git commit -m "[docs] : Mode 1 전수조사 절차와 terms-db 우선 규율을 에이전트 정의와 역할 문서에"
-```
-
----
-
-## Task 7: 전수조사 실행 — report-builder 자신 (LLM 단계, `mode-1-codebase-wiki` 가 한다)
-
-이 Task 의 산출물은 코드가 아니라 **데이터**다. 결정론이 없으므로 TDD 대신 **인수 조건**으로 붙든다.
-
-**Files:**
-- Create: `docs/codegraph/terms-reading.json`
-- Generate (gitignore): `out/codegraph-raw/terms-db.json` · `out/codegraph-raw/codegraph.json`
-
-- [ ] **Step 1: 대상 파일 35개를 Task 6 §1 의 `find` 로 고정하고, 목록을 보고에 그대로 붙인다**
-
-- [ ] **Step 2: Task 6 §2 규칙대로 레코드를 쓴다.** 예상 규모 — 파일 35 · 함수/클래스 104 · 산출물 약 12 · 키 약 10 · 개념 약 10 · 디렉토리 7 = **약 180개**. 반드시 들어가야 하는 키(Plan `llm-load-reduction` 이 쓰고 코드에 글자로 있는 것 — 🔵 실측):
-
-| 키 | `kind` | 어디서 찾나 (시작점) |
-|---|---|---|
-| `codegraph.json` | `artifact` | `normalize.py` 의 `json.dump` 줄 |
-| `roslyn-dump.json` | `artifact` | `normalize.py` C# 절 |
-| `calls[]` `edges[]` `members[]` `nodes[]` `modules[]` | `key` | `normalize.py:285-287` 부근과 `verify_citations.py` |
-| `PageRank` `hotspot` | `concept` | `facts.py` |
-| `WarmUp` | `concept` | `grep -rn WarmUp codegraph scripts src` 로 2파일 |
-| `normalize.py` `facts.py` `verify_citations.py` `terms_db.py` `collect.mjs` `quiz.mjs` `emit.mjs` | `file` | 각 파일 1줄 |
-| `build_terms` `project_codegraph` `check_terms` `merge_terms` `pickTerms` `findNewConcepts` `gradeOne` `resolveScript` `runDispatch` | `function` | 선언 줄 |
-
-- [ ] **Step 3: 검사가 실패 0 이 될 때까지 고친다**
-
-Run: `.venv/bin/python codegraph/terms_db.py --repo . --reading docs/codegraph/terms-reading.json`
-Expected: 마지막 줄 `... — 용어 N개 / 실패 0 / 근거 없음 M` (M 은 보고에 목록과 이유를 붙인다) 그리고 `out/codegraph-raw/codegraph.json — 노드 …` 한 줄. 종료 코드 0.
-
-- [ ] **Step 4: Mode 1.5 와 이어지는지 — 이 계획의 목적**
-
-Run: `mkdir -p /tmp/rb-t7 && cd /tmp/rb-t7 && report-term collect $REPO_ROOT/docs/superpowers/plans/2026-08-28-llm-load-reduction.md $REPO_ROOT/out/codegraph-raw/terms-db.json && python3 -c "import json;d=json.load(open('term-candidates.json'));print(len(d['known']),sorted(d['known']));print(len(d['newConcepts']))"`
-Expected: `known` 이 **8개 이상**이고 `codegraph.json` `roslyn-dump.json` `calls[]` `edges[]` `PageRank` `hotspot` `WarmUp` `members[]` 를 포함한다. `newConcepts` 는 34 미만으로 준다(`codegraph.json` `calls[]` 등이 known 으로 옮겨가므로).
-`known` 에 `main` `check` 같은 낱말이 섞이면 그것은 R6(낱말 오탐)이지 이 Task 의 실패가 아니다 — 목록만 보고한다.
-
-- [ ] **Step 5: 위키 인용 검증기가 투영을 읽는지 — 기존 도구와의 접점 한 번**
-
-Run: `.venv/bin/python codegraph/verify_citations.py docs/superpowers/plans/2026-08-28-llm-load-reduction.md --repo . --codegraph out/codegraph-raw/codegraph.json | tail -3`
-Expected: 오류 없이 3값 집계가 나온다 (숫자는 보고에 붙인다. 기대값 없음 — 첫 관측이다)
-
-- [ ] **Step 6: 커밋 — 오케스트레이터가 사용자 승인 후. 원본만 추적한다**
-
-```bash
-git add docs/codegraph/terms-reading.json
-git commit -m "[feat] : report-builder 자신의 전수조사 원본 terms-reading.json"
-```
-
----
-
-## 조사만 하고 구현하지 않는 것 — 기록만
-
-| 항목 | 왜 안 하나 | 되살릴 조건 |
-|---|---|---|
-| StickRush(C#) 에 읽기 단계 적용 → C1(오답 보기 품질) 시험 (D7) | 이 계획의 목적은 이 저장소의 DB 다. C# 은 파일 241개 레코드를 LLM 이 다시 읽는 비용이 크다 | StickRush 용 Plan 이 생겼을 때 |
-| `verify_citations.py` 가 `terms-db.json` 의 `where` 를 직접 읽게 통합 | `check_terms` 가 같은 규칙을 이미 쓴다. 도구 둘이 한 규칙을 공유하는 상태면 충분하다 — 합치면 거울 함정 | 규칙이 갈라지는 것이 관측될 때 |
-| 스키마 파일(JSON Schema) | 소비자가 `check_terms` 하나다. 구현자 1 · 소비자 1 | 소비자가 둘 이상 될 때 |
-| `pickTerms` 낱말 오탐(R6 — `Data` `Interface` `main`) | 별개 결정(RESUME R4 와 같은 갈래, "지금은 결정 안 한다") | 실사용에서 오탐 비율이 드러날 때 |
-| `bin/report-wiki` 에 Node 파이프라인 | 실제 파이프라인은 Python 이다. 자리 표시자 유지 | 지시가 있을 때 |
-
-## 순서와 배분
-
-```
-Task 1 → 2 → 3 → 4 → 5     직렬 (한 파일 terms_db.py · 한 테스트 파일 append 순서)   — mode-1-codebase-wiki
-Task 6                     Task 5 와 병렬 가능 (문서만)                             — mode-1-codebase-wiki
-Task 7                     Task 5 · 6 이후                                          — mode-1-codebase-wiki (LLM 읽기)
-```
-
-Task 1~5 는 서브에이전트 한 번에 맡겨도 된다 — 파일이 둘뿐이고 앞 Task 의 함수를 뒤가 부른다. 커밋은 Task 마다 오케스트레이터가 사용자 승인 후 경로를 좁혀 한다.
-
-## Self-Review
-
-- [x] 사용자 확정 3건(D1 · D2 · D6)이 Task 에 대응된다 — D1: Task 1·2·5, D2: Task 3, D6: 배분 절
-- [x] 자리 표시자 없음 — 모든 코드 단계에 코드가 있다. Task 7 은 데이터라 코드 대신 인수 조건
-- [x] 이름 일치 — `_split_where` `_recompute_neighbors` `project_codegraph` `check_terms` `merge_terms` `_stem` `_git_commit` `NON_NODE_KINDS` `KINDS` `EDGE_KINDS` `SOURCES` `STRUCTURE_FIELDS` 가 Task 간에 같다. `STRUCTURE_FIELDS` 는 선언만 하고 코드가 직접 쓰지 않는다 — `merge_terms` 가 그 필드를 **안 건드리는 것**으로 규칙을 구현하므로, 읽는 사람을 위한 문서 상수다
-- [x] 금지 단어("검증됨" "입증" "증명") 없음 — `grep` 으로 확인할 것
-- [x] `normalize.py` 출력 키를 바꾸지 않는다 — 읽기만 한다
