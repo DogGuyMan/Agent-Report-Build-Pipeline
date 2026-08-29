@@ -11,11 +11,13 @@
                  특히 문항을 다시 내면 사람이 이미 푼 시험과 어긋난다.
   3. 정답 미정   뜻이 정해지지 않은 개념을 출제하면 채점이 불가능하다.
                  기계 규칙은 하나뿐이다 — **정답 문구가 있느냐.**
-  4. 문항 검사   "모른다" 가 마지막에 없거나 문항 수가 셋이 아니면 `quiz.mjs` 의
-                 채점 구간(맞힌 수 2 이상 -> 확실)이 뜻을 잃는다. 그런데 `quiz.mjs` 는
-                 그것을 검사하지 않고 조용히 채점한다.
-  5. 이어짐      `questions.json` 에서 `answers.json` 으로 바로 이어지지 않으면
-                 사람이 손으로 형식을 옮기다 틀린다.
+  4. 문항 검사   "모르겠다" 가 마지막에 없거나 보기 수가 다섯이 아니거나 문항 수가
+                 셋이 아니면 채점 구간(맞힌 수 2 이상 -> 확실)이 뜻을 잃는다.
+  5. 이어짐      `questions.json` 에서 기입란으로 바로 이어지지 않으면 사람이 손으로
+                 형식을 옮기다 틀린다. 그리고 **기입란에 정답이 실리면 안 된다** —
+                 풀기 전에 정답이 보이면 재는 것이 이해도가 아니라 눈이 된다.
+  6. 번호 규칙   `QNum` 은 파이썬과 `quiz.mjs` 두 곳에서 매겨진다. 어긋나면 남의 답을
+                 채점하고도 오류가 나지 않는다.
 
   .venv/bin/python -m pytest codegraph/test_run_mode1_5.py -q
 """
@@ -35,7 +37,8 @@ def one_question(ask="PageRank 는 무엇을 하는가?", answer=0):
             "choices": ["그래프에서 중요한 점을 매긴다",
                         "파일을 줄 단위로 센다",
                         "주석을 소스에 심는다",
-                        "모른다"],
+                        "선언을 훑어 목록으로 만든다",
+                        "모르겠다"],
             "answer": answer}
 
 
@@ -101,13 +104,14 @@ def test_the_gate_is_open_until_a_human_writes_answers():
 def test_the_gate_notice_tells_the_human_exactly_which_files_to_touch():
     """멈췄을 때 사람이 무엇을 해야 하는지 화면만 보고 알 수 있어야 한다."""
     text = R.gate_notice(questions="/작업/questions.json",
-                         template="/작업/answers-template.json",
+                         sheet="/작업/answer-sheet.json",
                          answers="/작업/answers.json",
                          held=["E402", "mode1-nochange.json"],
                          answer_key="/작업/term-answer-key.json")
-    assert "/작업/questions.json" in text
+    assert "/작업/answer-sheet.json" in text
     assert "/작업/answers.json" in text
-    assert "/작업/answers-template.json" in text
+    assert "UserAns" in text                  # 무엇을 채우는지 이름으로 말한다
+    assert "열지 않는다" in text               # 정답이 든 문항지는 열지 말라고 알린다
     # 출제에서 빠진 개념과 그것을 되살리는 방법을 함께 알린다
     assert "E402" in text and "/작업/term-answer-key.json" in text
     assert "term-benchmark" in text          # 묻는 절차는 스킬의 일이다
@@ -116,7 +120,7 @@ def test_the_gate_notice_tells_the_human_exactly_which_files_to_touch():
 
 def test_the_gate_notice_stays_quiet_when_nothing_was_held_back():
     text = R.gate_notice(questions="/작업/questions.json",
-                         template="/작업/answers-template.json",
+                         sheet="/작업/answer-sheet.json",
                          answers="/작업/answers.json",
                          held=[], answer_key="/작업/term-answer-key.json")
     assert "/작업/answers.json" in text
@@ -164,13 +168,14 @@ def test_dont_know_must_be_the_last_choice_and_always_the_same_words():
     """자리와 문구가 흔들리면 그것을 고르는 비용이 문항마다 달라진다."""
     doc = good_doc()
     doc["terms"][0]["questions"][0]["choices"] = [
-        "모른다", "그래프에서 중요한 점을 매긴다", "파일을 줄 단위로 센다", "잘 모르겠다"]
-    assert any("모른다" in c for c in R.validate_questions(doc))
+        "모르겠다", "그래프에서 중요한 점을 매긴다", "파일을 줄 단위로 센다",
+        "주석을 소스에 심는다", "잘 모르겠는데요"]
+    assert any("모르겠다" in c for c in R.validate_questions(doc))
 
 
 def test_the_answer_may_not_point_at_dont_know():
     doc = good_doc()
-    doc["terms"][0]["questions"][0]["answer"] = 3     # 마지막 = "모른다"
+    doc["terms"][0]["questions"][0]["answer"] = 4     # 마지막 = "모르겠다"
     assert any("정답" in c for c in R.validate_questions(doc))
 
 
@@ -184,14 +189,27 @@ def test_duplicate_choices_are_caught():
     """같은 보기가 둘이면 정답이 둘이 되거나 보기 수가 준다."""
     doc = good_doc()
     q = doc["terms"][0]["questions"][0]
-    q["choices"] = ["같은 말", "같은 말", "다른 말", "모른다"]
+    q["choices"] = ["같은 말", "같은 말", "다른 말", "또 다른 말", "모르겠다"]
     assert any("겹친" in c for c in R.validate_questions(doc))
 
 
-def test_too_few_choices_are_caught():
-    """보기 3~4개 + 모른다 = 넷에서 다섯. 둘뿐이면 찍어서 맞힐 확률이 절반이다."""
+def test_the_number_of_choices_is_fixed_at_five():
+    """실제 뜻 4개 + "모르겠다" = 다섯 고정.
+
+    문항마다 개수가 다르면 찍어서 맞을 확률이 문항마다 달라지고, 그러면 정답률을
+    문항끼리 견줄 수 없다. 둘뿐이면 절반은 찍어서 맞는다.
+    """
     doc = good_doc()
-    doc["terms"][0]["questions"][0]["choices"] = ["그래프 어쩌고", "모른다"]
+    doc["terms"][0]["questions"][0]["choices"] = ["그래프 어쩌고", "모르겠다"]
+    assert any("보기" in c for c in R.validate_questions(doc))
+
+
+def test_four_choices_are_no_longer_enough():
+    """옛 규칙(넷에서 다섯)으로 낸 문항지는 이제 걸린다."""
+    doc = good_doc()
+    doc["terms"][0]["questions"][0]["choices"] = [
+        "그래프에서 중요한 점을 매긴다", "파일을 줄 단위로 센다",
+        "주석을 소스에 심는다", "모르겠다"]
     assert any("보기" in c for c in R.validate_questions(doc))
 
 
@@ -206,38 +224,135 @@ def test_a_sheet_with_no_terms_is_caught():
     assert R.validate_questions({"terms": []}) != []
 
 
-# ── 5. questions.json 에서 answers.json 으로 바로 이어진다 ──────────────
-def test_the_answer_template_keeps_the_meaning_and_zeroes_the_counts():
-    """사람은 숫자 두 개만 채우면 된다. 뜻을 손으로 옮기다 틀리는 자리를 없앤다."""
-    t = R.answers_template(good_doc())
-    assert t == {"PageRank": {"correct": 0, "dontKnow": 0,
-                              "means": "그래프에서 중요한 점을 매기는 방법"}}
+# ── 5. questions.json 에서 기입란으로 바로 이어진다 ─────────────────────
+def filled_sheet(doc=None, picks=(1, 2, 3)):
+    """기입란을 만들고 `UserAns` 를 채운 것. `picks` 는 문항 차례대로 고른 보기 번호.
+
+    `good_doc()` 의 정답은 문항 차례대로 1 · 2 · 3번 보기다(`answer` 가 0부터라 하나 크다).
+    그래서 `picks=(1, 2, 3)` 이면 세 문항 다 맞힌 답안이다.
+    """
+    sheet = R.answer_sheet(doc or good_doc())
+    for rec, pick in zip(sheet["questions"], picks):
+        rec["UserAns"] = pick
+    return sheet
 
 
-def test_the_template_matches_the_shape_quiz_mjs_reads():
-    """`scripts/term/quiz.mjs` 의 `gradeAll` 이 읽는 세 열쇠 그대로여야 한다."""
-    for rec in R.answers_template(good_doc()).values():
-        assert set(rec) == {"correct", "dontKnow", "means"}
+def test_the_answer_sheet_never_carries_the_answer():
+    """**이 시험이 기입란의 존재 이유다.** 풀기 전에 정답이 보이면 이해도가 아니라 눈을 잰다."""
+    text = repr(R.answer_sheet(good_doc()))
+    assert "answer" not in text.lower()
 
 
-def test_answers_may_not_count_more_responses_than_there_were_questions():
-    """맞힌 수 + 모른다 가 3을 넘으면 사람이 세다 틀린 것이다. 채점 전에 잡는다."""
-    bad = {"PageRank": {"correct": 3, "dontKnow": 2, "means": "뜻"}}
-    assert any("3" in c for c in R.validate_answers(bad, good_doc()))
+def test_the_answer_sheet_numbers_every_question_from_one():
+    """`QNum` 은 용어를 건너뛰며 이어진다 — 용어마다 1로 되돌아가지 않는다."""
+    doc = good_doc()
+    doc["terms"].append({"term": "declmap.scan", "means": "선언을 훑는다",
+                         "questions": [one_question(ask="둘째 %d" % i, answer=i % 3)
+                                       for i in range(3)]})
+    nums = [q["QNum"] for q in R.answer_sheet(doc)["questions"]]
+    assert nums == [1, 2, 3, 4, 5, 6]
 
 
-def test_answers_about_a_term_that_was_never_asked_are_caught():
-    bad = {"없던용어": {"correct": 1, "dontKnow": 0, "means": "뜻"}}
-    assert any("없던용어" in c for c in R.validate_answers(bad, good_doc()))
+def test_the_answer_sheet_carries_the_term_on_every_question():
+    """채점 단위가 문항이 아니라 **용어**다. `Term` 이 없으면 되짚을 수가 없다."""
+    for rec in R.answer_sheet(good_doc())["questions"]:
+        assert rec["Term"] == "PageRank"
+
+
+def test_the_answer_sheet_numbers_the_choices_from_one_and_ends_with_dont_know():
+    """사람이 적는 번호는 1부터다. 문항지의 `answer` 는 0부터라 자리가 하나 어긋난다."""
+    rec = R.answer_sheet(good_doc())["questions"][0]
+    assert list(rec["AnsChoices"]) == ["1", "2", "3", "4", "5"]
+    assert rec["AnsChoices"]["5"] == R.DONT_KNOW
+
+
+def test_the_answer_sheet_leaves_the_user_column_empty():
+    """사람이 채울 자리는 비워서 낸다. 미리 채우면 안 푼 것이 답으로 실린다."""
+    assert all(rec["UserAns"] == "" for rec in R.answer_sheet(good_doc())["questions"])
+
+
+def test_the_answer_sheet_matches_the_shape_quiz_mjs_reads():
+    """`scripts/term/quiz.mjs` 의 `tallySheet` 가 읽는 열쇠 그대로여야 한다."""
+    for rec in R.answer_sheet(good_doc())["questions"]:
+        assert set(rec) == {"QNum", "Term", "Question", "AnsChoices", "UserAns"}
+
+
+def test_flatten_keeps_the_order_the_sheet_was_built_in():
+    """번호 규칙이 파이썬과 `quiz.mjs` 두 곳에 산다. 여기서 한 번 못 박아 둔다."""
+    flat = R.flatten_questions(good_doc())
+    assert [n for n, _, _ in flat] == [1, 2, 3]
+    assert [t for _, t, _ in flat] == ["PageRank"] * 3
+    assert [q["ask"] for _, _, q in flat] == ["문항 0", "문항 1", "문항 2"]
+
+
+# ── 5-2. 채운 기입란 검사 — quiz.mjs 도 같은 대조를 한다 ────────────────
+def test_a_fully_filled_sheet_has_no_complaints():
+    assert R.validate_answers(filled_sheet(), good_doc()) == []
+
+
+def test_choosing_dont_know_is_a_valid_answer():
+    """"모르겠다" 는 답을 안 쓴 것이 아니라 고른 것이다."""
+    assert R.validate_answers(filled_sheet(picks=(5, 5, 5)), good_doc()) == []
+
+
+def test_a_blank_user_answer_is_caught():
+    """**안 푼 것과 모르는 것은 다르다.** 자동으로 "모르겠다" 로 메우지 않는다."""
+    sheet = filled_sheet()
+    sheet["questions"][1]["UserAns"] = ""
+    assert any("UserAns" in c and "2번" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_a_user_answer_outside_the_choices_is_caught():
+    sheet = filled_sheet()
+    sheet["questions"][0]["UserAns"] = 9
+    assert any("보기 밖" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_a_number_written_as_text_is_accepted():
+    """사람이 손으로 채우는 칸이라 `3` 과 `"3"` 이 섞인다. 둘 다 받는다."""
+    assert R.validate_answers(filled_sheet(picks=("1", "2", "3")), good_doc()) == []
 
 
 def test_a_missing_answer_is_caught():
-    assert any("PageRank" in c for c in R.validate_answers({}, good_doc()))
+    sheet = filled_sheet()
+    del sheet["questions"][2]
+    assert any("3번" in c for c in R.validate_answers(sheet, good_doc()))
 
 
-def test_well_formed_answers_have_no_complaints():
-    ok = {"PageRank": {"correct": 2, "dontKnow": 1, "means": "그래프 중요도"}}
-    assert R.validate_answers(ok, good_doc()) == []
+def test_an_answer_to_a_question_that_was_never_asked_is_caught():
+    sheet = filled_sheet()
+    sheet["questions"].append({"QNum": 99, "Term": "PageRank",
+                               "Question": "없던 물음", "AnsChoices": {}, "UserAns": 1})
+    assert any("99번" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_the_same_question_answered_twice_is_caught():
+    sheet = filled_sheet()
+    sheet["questions"].append(dict(sheet["questions"][0]))
+    assert any("둘 이상" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_a_sheet_whose_terms_drifted_is_caught():
+    """**번호 규칙이 두 언어에 살아서 필요한 검사다.**
+
+    순서가 어긋나면 남의 답을 채점하고도 오류가 나지 않는다. 그래서 번호만 믿지 않고
+    용어와 물음 문구를 같이 대조한다.
+    """
+    sheet = filled_sheet()
+    sheet["questions"][0]["Term"] = "declmap.scan"
+    assert any("어긋난다" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_a_sheet_whose_question_text_drifted_is_caught():
+    sheet = filled_sheet()
+    sheet["questions"][0]["Question"] = "다른 물음이 되어 버렸다"
+    assert any("물음 문구" in c for c in R.validate_answers(sheet, good_doc()))
+
+
+def test_the_old_count_shaped_answers_file_is_rejected():
+    """옛 꼴(`{용어: {correct, dontKnow}}`)을 주면 조용히 0점이 아니라 거부한다."""
+    old = {"PageRank": {"correct": 2, "dontKnow": 1, "means": "그래프 중요도"}}
+    assert any("기입란" in c for c in R.validate_answers(old, good_doc()))
 
 
 # ── 6. 에이전트 호출 — 한 번, 그리고 필요한 폴더를 다 열어 준다 ─────────
@@ -265,7 +380,8 @@ def test_the_prompt_carries_the_two_jobs_and_the_whole_question_discipline():
     p = R.author_prompt(workdir="/작업", root="/도구/뿌리", plan="/계획/plan.md")
     assert "/작업" in p and "/계획/plan.md" in p
     assert "term-candidates.json" in p and "questions.json" in p
-    assert "3문항" in p and "모른다" in p
+    assert "3문항" in p and "모르겠다" in p
+    assert "5개" in p                            # 보기 수를 다섯으로 못 박는다
     assert "kind" in p and "module" in p        # 오답 보기를 어디서 가져오는가
     assert "섞" in p                             # 보기 순서를 섞는다
     assert "지어내" in p                          # 뜻을 지어내지 않는다
@@ -293,8 +409,15 @@ def test_collect_argv_works_without_a_term_database():
 
 
 def test_grade_and_emit_argv_point_at_the_right_scripts():
-    assert R.grade_argv("/r", "/작업/answers.json")[1].endswith("quiz.mjs")
+    argv = R.grade_argv("/r", "/작업/answers.json", "/작업/questions.json")
+    assert argv[1].endswith("quiz.mjs")
     assert R.emit_argv("/r", "/작업/term-grades.json")[1].endswith("emit.mjs")
+
+
+def test_grade_argv_hands_over_both_files():
+    """채운 기입란에는 정답이 없다. 문항지가 같이 가야 채점이 된다."""
+    argv = R.grade_argv("/r", "/작업/answers.json", "/작업/questions.json")
+    assert argv[2:] == ["/작업/answers.json", "/작업/questions.json"]
 
 
 # ── 8. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
@@ -373,7 +496,7 @@ def test_nothing_is_reported_when_every_known_term_is_accounted_for():
 
 
 def test_the_gate_notice_lists_the_silently_dropped_terms():
-    text = R.gate_notice(questions="/작업/questions.json", template="/작업/t.json",
+    text = R.gate_notice(questions="/작업/questions.json", sheet="/작업/t.json",
                          answers="/작업/answers.json", held=[],
                          answer_key="/작업/key.json", unasked=["warmup.save"])
     assert "warmup.save" in text
