@@ -10,15 +10,17 @@
 목적은 파이프라인을 자동화하는 것이 아니라 **단계마다 벽시계 시간과 토큰을 붙들어
 표로 내는 것**이다. 자동화는 그것을 재기 위한 수단이다.
 
-## 다섯 단계 — LLM 은 그중 **하나**뿐이다
+## 일곱 단계 — LLM 은 그중 **하나**뿐이다
 
-    prep ──▶ agent ──▶ terms ──▶ build ──▶ check
-    기계      LLM 1개    기계      기계      기계
+    prep ──▶ warmup ──▶ agent ──▶ warmup-save ──▶ terms ──▶ build ──▶ check
+    기계      기계        LLM 1개   기계            기계      기계      기계
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `scripts/wiki/prep.mjs` |
+| `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `codegraph/warmup.py` |
 | `agent` | **전수조사와 위키 산문을 한 세션에서 이어 한다** | `claude -p` 1회 |
+| `warmup-save` | 에이전트가 해낸 뒤에만 매니페스트를 **확정**한다 | `codegraph/warmup.py` |
 | `terms` | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `codegraph/terms_db.py` |
 | `build` | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `scripts/wiki/build.mjs` |
 | `check` | 산문의 인용을 저장소 실물과 대조한다 | `scripts/wiki/check.mjs` |
@@ -49,6 +51,10 @@
 
     .venv/bin/python codegraph/run_mode1.py <저장소> [--model opus] [--only prep,check]
                                             [--skip agent] [--json 측정.json] [--dry-run]
+                                            [--hops 1]
+
+**증분 조사를 끄려면** `--skip warmup,warmup-save` 를 준다. 그러면 2026-08-30 에 잰
+다섯 단계 흐름 그대로 돌아 대조군이 된다.
 """
 import argparse
 import json
@@ -58,14 +64,87 @@ import sys
 import threading
 import time
 
+# warmup 과 declmap 은 같은 폴더에 있다. 이 파일이 CLI 로 돌 때는 sys.path[0] 이 그 폴더이고,
+# 시험이 import 할 때는 시험 파일이 넣어 준다. 어느 쪽이든 확실하도록 여기서도 넣는다.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import declmap  # noqa: E402
+import warmup  # noqa: E402
+
 # 이 파일은 <ROOT>/codegraph/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 단계는 다섯 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
-STAGES = ["prep", "agent", "terms", "build", "check"]
+# 단계는 일곱 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
+#
+# warmup 이 **둘**인 것이 이 흐름의 급소다. 앞(warmup)은 판정만 하고, 뒤(warmup-save)가
+# 매니페스트를 갱신한다. 한 칸으로 합치면 에이전트가 실패했을 때도 그 파일이 "유효" 로
+# 기록되어, 다음 실행이 읽지 않은 파일을 읽은 것으로 친다.
+STAGES = ["prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
 
 # LLM 을 부르는 단계. **하나뿐이라는 것이 이 실행기의 전제**다.
 AGENT_STAGES = {"agent"}
+
+# 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 두 줄짜리 표다 —
+# 수집기 판별을 여기서 다시 하지 않는다. 그러면 판별 규칙이 두 곳에 생겨 조용히 어긋난다.
+LANG_ALIAS = {"csharp": "cs"}
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.lang_of']"/>
+# 코드 지도가 적어 둔 언어를 선언 훑기가 아는 이름으로 바꾼다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
+def lang_of(codegraph_path):
+    """코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다.
+
+    모르면 `None` 이다 — 예외가 아니다. 부르는 쪽이 warmup 단계만 건너뛰고
+    나머지는 그대로 돈다. 새 언어가 들어와도 파이프라인이 죽지 않아야 한다.
+    """
+    if not codegraph_path:
+        return None
+    try:
+        with open(codegraph_path, encoding="utf-8") as f:
+            name = json.load(f).get("language")
+    except (OSError, ValueError):
+        return None
+    name = LANG_ALIAS.get(name, name)
+    return name if name in declmap.LANGS else None
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.changed_seed']"/>
+# 다시 읽어야 할 파일의 씨앗을 고른다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
+def changed_seed(판정):
+    """다시 읽어야 할 파일의 씨앗. **`위치만` 을 반드시 포함한다.**
+
+    `warmup.py` 의 문서는 `위치만` 을 "주석만 고치거나 줄만 밀린 변경" 이라 부르지만,
+    구현은 그것과 **본문 재작성**을 구별하지 못한다 — `decl_hash` 가 선언의 이름만
+    해싱하기 때문이다(`codegraph/warmup.py` 의 `decl_hash`). 🔵 2026-08-30 실측으로
+    `return x + 1` → `return x + 100` 이 `위치만` 으로 판정되는 것을 확인했다.
+
+    레코드의 `does`(동작)와 위키 산문의 행동 서술은 본문에 달려 있으므로 이 갈래를
+    빼면 그 서술이 조용히 낡는다. `warmup.py` 의 CLI 도 같은 합집합을 쓴다.
+
+    `유효` 는 읽을 것이 없고, `삭제됨` 은 읽을 파일 자체가 없다.
+    """
+    return sorted(set(판정.get("재읽기") or []) | set(판정.get("위치만") or []))
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.should_call_agent']"/>
+# 큰 언어 모형을 부를지 말지 정한다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+def should_call_agent(targets, has_reading):
+    """에이전트를 부를 것인가.
+
+    `targets` 가 `None` 이면 warmup 이 판정을 못 했다는 뜻이다(언어를 모르거나 코드
+    지도가 없거나 단계를 건너뛴 경우). 그때는 **옛 동작인 전량 조사**로 돌아간다 —
+    모르는 상태에서 건너뛰면 조용히 아무 일도 안 하게 된다.
+
+    빈 목록(`[]`)은 "정말로 바뀐 것이 없다" 는 판정이다. 그때만, 그리고 지난 조사
+    결과가 있을 때만 건너뛴다.
+    """
+    if targets is None:
+        return True
+    if not has_reading:
+        return True
+    return bool(targets)
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.is_agent_stage']"/>
@@ -78,7 +157,7 @@ def is_agent_stage(stage):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.plan_stages']"/>
-# 다섯 단계 중 무엇을 실제로 돌릴지 고른다.
+# 일곱 단계 중 무엇을 실제로 돌릴지 고른다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
 def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     """무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수라 시험이 쉽다.
@@ -98,6 +177,9 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     for s in STAGES:
         if s in set(skip or []):
             continue
+        # warmup 두 칸은 빼지 않는다. 에이전트를 건너뛸 때도 판정은 해 봐야 하고
+        # (정말 건너뛰어도 되는지 아는 유일한 방법이다), 매니페스트는 갱신해 둬야
+        # 다음 실행이 옳게 판정한다.
         if s == "agent" and has_reading and has_prose:
             continue
         out.append(s)
@@ -178,10 +260,40 @@ def claude_argv(model, repo, extra_dirs):
     return argv
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.warmup_section']"/>
+# 다시 읽을 범위를 알리는 지시문을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.agent_prompt
+def warmup_section(targets, total, repo=""):
+    """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
+
+    **목록만 주면 부족하다.** 에이전트는 맥락이 모자라다고 느끼면 옆 파일을 더 읽는다.
+    그것이 이 배선이 줄이려는 바로 그 비용이므로, 목록 밖을 읽지 말라고 분명히 쓴다.
+    대신 이미 있는 레코드를 근거로 쓰라고 알려 준다 — 금지만 하면 막힌다.
+
+    이 글은 `agent_prompt` 가 이미 `.format()` 을 돌린 **뒤에** 이어 붙는다. 그래서
+    중괄호 자리표시자를 남기면 안 되고, 저장소 경로를 `repo` 로 받아 여기서 박아 넣는다.
+    """
+    if not targets:
+        return ""
+    목록 = "\n".join("  " + t for t in targets)
+    return ("\n## 범위 — 증분 조사다. 저장소 전량을 읽지 마라\n"
+            "\n"
+            "지난 조사 결과가 %s/docs/codegraph/terms-reading.json 에 이미 있다. 그중\n"
+            "**아래 %d개 파일에 걸린 레코드만** 다시 만든다. 추적 파일 %d개 중 %d개다.\n"
+            "\n%s\n"
+            "\n"
+            "- **이 목록에 없는 파일은 읽지 마라.** 나머지 레코드는 그대로 살아 있고, 손대면 안 된다.\n"
+            "- 목록 밖의 이름이 필요하면 소스가 아니라 **기존 terms-reading.json 과 codegraph.json**\n"
+            "  을 근거로 쓴다.\n"
+            "- 산문도 마찬가지다. 이 파일들을 다루는 페이지만 고치고 나머지 docs/wiki/*.md 는 둔다.\n"
+            "- 목록의 파일이 사라졌거나 읽을 수 없으면 **지어내지 말고** 보고에 적는다.\n"
+            % (repo, len(targets), total, len(targets), 목록))
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.agent_prompt']"/>
 # 한 세션이 할 일 전부를 적은 글.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_agent
-def agent_prompt(repo, root):
+# 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_agent
+def agent_prompt(repo, root, targets=None, total=0):
     """한 세션이 할 일 전부. **전수조사와 산문을 둘 다** 여기서 시킨다.
 
     쪼개지 않는 이유는 캐시다 — 두 세션으로 나누면 두 번째가 저장소를 처음부터
@@ -237,7 +349,7 @@ def agent_prompt(repo, root):
 - 코드에 글자로 없는 것은 쓰지 않는다. "~일 것이다" 대신 읽고 말한다.
 
 끝나면 만든 파일 목록과 각 파일의 레코드 수 / 페이지 줄 수를 한 표로 보고한다.
-""".format(repo=repo, root=root)
+""".format(repo=repo, root=root) + warmup_section(targets, total, repo)
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.node_argv']"/>
@@ -292,7 +404,7 @@ def format_report(rows):
         u = r["usage"]
         body.append([
             r["stage"],
-            "성공" if r.get("ok") else "실패",
+            "건너뜀" if r.get("skipped") else ("성공" if r.get("ok") else "실패"),
             _hms(r["seconds"]),
             "{:,}".format(u["input"]), "{:,}".format(u["output"]),
             "{:,}".format(u["cache_read"]), "{:,}".format(u["cache_write"]),
@@ -317,7 +429,9 @@ def format_report(rows):
     out += [line(r) for r in body[:-1]]
     out += ["  ".join("-" * c for c in cols), line(body[-1])]
     for r in rows:
-        if not r.get("ok"):
+        if r.get("skipped"):
+            out.append("건너뜀 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
+        elif not r.get("ok"):
             out.append("실패 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
     return "\n".join(out)
 
@@ -355,11 +469,16 @@ class _Heartbeat:
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_agent']"/>
 # 모형을 한 번 부르고 그 결과 기록을 돌려준다.
 # 쓰는 것: run_mode1.claude_argv, run_mode1.agent_prompt · 쓰이는 곳: run_mode1.main
-def run_agent(model, repo, root, timeout=None):
-    """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`."""
+def run_agent(model, repo, root, targets=None, total=0, timeout=None):
+    """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`.
+
+    `targets` 가 있으면 프롬프트에 범위 지시문이 붙어 증분 조사가 된다.
+    `None` 이면 옛 동작 그대로 전량 조사다.
+    """
     argv = claude_argv(model=model, repo=repo, extra_dirs=[root])
+    prompt = agent_prompt(repo, root, targets=targets, total=total)
     with _Heartbeat("agent"):
-        p = subprocess.run(argv, input=agent_prompt(repo, root), cwd=repo,
+        p = subprocess.run(argv, input=prompt, cwd=repo,
                            capture_output=True, text=True, timeout=timeout)
     try:
         return p.returncode, json.loads(p.stdout)
@@ -380,9 +499,82 @@ def run_machine(argv, label):
     return p.returncode
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_warmup']"/>
+# 무엇을 다시 읽어야 하는지 판정하는 앞 관문.
+# 쓰는 것: run_mode1.lang_of, run_mode1.changed_seed · 쓰이는 곳: run_mode1.main
+def run_warmup(repo, codegraph, hops):
+    """관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.**
+
+    쓰기를 여기서 하면 에이전트가 실패했을 때도 "유효" 로 기록되어, 다음 실행이
+    읽지 않은 파일을 읽은 것으로 친다. 그래서 갱신은 `save_warmup` 이 따로 한다.
+
+    판정할 수 없으면 `targets` 를 `None` 으로 낸다 — 실패가 아니다. 그러면
+    `should_call_agent` 가 옛 동작(전량 조사)으로 돌아간다.
+
+    반환 (targets, entries, cache_path, 추적파일수, 성공인가, 사유)
+    """
+    lang = lang_of(codegraph if os.path.exists(codegraph) else None)
+    if lang is None:
+        print("알림 — 언어를 몰라 증분 판정을 건너뛴다. 전량 조사로 돈다.", file=sys.stderr)
+        return None, None, None, 0, True, ""
+
+    cache = os.path.join(repo, warmup.DEFAULT_CACHE)
+    files = declmap.tracked_files(repo, lang, [])
+    if not files:
+        print("알림 — git 이 아는 %s 소스가 0개다. 전량 조사로 돈다." % lang, file=sys.stderr)
+        return None, None, None, 0, True, ""
+
+    decls, _ = declmap.scan(repo, lang, [], 0)
+    판정, entries = warmup.status(cache, repo, files, decls)
+    seed = changed_seed(판정)
+
+    # 파급까지 넓힌다. 코드 지도가 없으면 씨앗 그대로다 — 파급은 안전망이지 필수가 아니다.
+    if seed and os.path.exists(codegraph):
+        targets = warmup.blast_radius(codegraph, seed, hops)
+    else:
+        targets = seed
+
+    print("%s 파일 %d개 — 유효 %d · 재읽기 %d · 위치만 %d · 삭제됨 %d"
+          % (lang, len(files), len(판정["유효"]), len(판정["재읽기"]),
+             len(판정["위치만"]), len(판정["삭제됨"])))
+    print("에이전트가 읽을 것 %d개 (%.1f%%) — 씨앗 %d개에서 %d홉 퍼뜨린 결과"
+          % (len(targets), len(targets) / len(files) * 100, len(seed), hops))
+    for p in targets[:15]:
+        print("  " + p)
+    if len(targets) > 15:
+        print("  … 그 밖 %d개" % (len(targets) - 15))
+    if 판정["삭제됨"]:
+        print("사람이 볼 것 — 삭제된 파일 %d개의 레코드를 지울지 정해야 한다:"
+              % len(판정["삭제됨"]), file=sys.stderr)
+        for p in 판정["삭제됨"][:10]:
+            print("  " + p, file=sys.stderr)
+    return targets, entries, cache, len(files), True, ""
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.save_warmup']"/>
+# 판정 기록을 확정하는 뒤 관문.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+def save_warmup(cache_path, entries, rows):
+    """관문 ② — 에이전트가 실제로 해낸 뒤에만 매니페스트를 갱신한다.
+
+    앞칸이 판정을 못 했거나(`entries is None`) 에이전트가 실패했으면 **쓰지 않는다.**
+    쓰지 않는 것이 안전한 쪽이다 — 다음 실행이 전량을 다시 읽을 뿐 틀리지는 않는다.
+    """
+    if entries is None or not cache_path:
+        return True, ""
+    실패한_에이전트 = [r for r in rows if r["stage"] == "agent" and not r.get("ok")]
+    if 실패한_에이전트:
+        print("매니페스트를 갱신하지 않는다 — 에이전트가 실패했다. "
+              "지금 갱신하면 읽지 않은 파일이 '유효' 로 남는다.", file=sys.stderr)
+        return True, ""
+    warmup.save(cache_path, entries)
+    print("매니페스트 갱신 — %s (%d개 파일)" % (cache_path, len(entries)))
+    return True, ""
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.main']"/>
 # 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
-# 쓰는 것: run_mode1.plan_stages, run_mode1.run_agent, run_mode1.terms_argv, run_mode1.format_report · 쓰이는 곳: 없음
+# 쓰는 것: run_mode1.plan_stages, run_mode1.run_agent, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup (+2) · 쓰이는 곳: 없음
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
@@ -394,6 +586,10 @@ def main(argv=None):
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
     ap.add_argument("--dry-run", action="store_true", help="무엇을 돌릴지만 보이고 끝낸다")
     ap.add_argument("--timeout", type=float, default=None, help="에이전트 단계의 제한 시간(초)")
+    ap.add_argument("--hops", type=int, default=1,
+                    help="바뀐 파일에서 파급을 몇 홉 퍼뜨릴지 (기본: 1). "
+                         "🔵 2026-08-30 QtVisionEdit 실측 — 1홉 평균 1.5파일, 2홉 2.1파일로 "
+                         "차이가 거의 없다")
     a = ap.parse_args(argv)
 
     repo = os.path.abspath(os.path.expanduser(a.repo))
@@ -425,12 +621,29 @@ def main(argv=None):
     if a.dry_run:
         return 0
 
+    # warmup 이 앞칸에서 담아 두고 뒤칸이 꺼내 쓴다. 같은 프로세스 안이라 파일로 넘길 이유가 없다.
+    #   targets  에이전트가 읽을 파일 목록. None 이면 판정을 못 했다는 뜻이다(= 전량 조사)
+    #   entries  갱신될 매니페스트. 에이전트가 성공한 뒤에만 쓴다
+    targets, entries, warmup_cache, tracked_n = None, None, None, 0
     rows, t_all = [], time.monotonic()
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
-        if stage == "agent":
-            rc, result = run_agent(a.model, repo, ROOT, timeout=a.timeout)
+        if stage == "warmup":
+            targets, entries, warmup_cache, tracked_n, ok, why = run_warmup(repo, codegraph, a.hops)
+            usage = normalize_usage(None)
+        elif stage == "warmup-save":
+            ok, why = save_warmup(warmup_cache, entries, rows)
+            usage = normalize_usage(None)
+        elif stage == "agent":
+            if not should_call_agent(targets, os.path.exists(reading)):
+                ok, why, usage = True, "바뀐 파일 0개 — 지난 조사 결과를 그대로 쓴다", normalize_usage(None)
+                rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                             "usage": usage, "ok": ok, "why": why, "skipped": True})
+                print("%s — 건너뜀 (%s)" % (stage, why), flush=True)
+                continue
+            rc, result = run_agent(a.model, repo, ROOT, targets=targets,
+                                   total=tracked_n, timeout=a.timeout)
             ok, why = agent_verdict(rc, result)
             usage = normalize_usage(result)
             if result and result.get("result"):
