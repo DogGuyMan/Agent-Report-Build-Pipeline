@@ -1994,13 +1994,13 @@
         "to": "Clangd",
         "kind": "dependency",
         "label": "instantiates",
-        "where": "codegraph/reverse_refs.py:32"
+        "where": "codegraph/reverse_refs.py:36"
       },
       {
         "to": "to_repo_relative",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/reverse_refs.py:58"
+        "where": "codegraph/reverse_refs.py:62"
       }
     ],
     "source": "reading"
@@ -2016,7 +2016,7 @@
         "to": "Clangd",
         "kind": "dependency",
         "label": "uses",
-        "where": "codegraph/reverse_refs.py:32"
+        "where": "codegraph/reverse_refs.py:36"
       }
     ],
     "source": "reading"
@@ -2488,7 +2488,7 @@
   "buildIndex": {
     "kind": "function",
     "module": "scripts",
-    "where": "scripts/link-paths.mjs:42",
+    "where": "scripts/link-paths.mjs:43",
     "means": "저장소가 추적하는 파일들의 이름 색인을 만든다.",
     "does": "git 에게 파일 목록을 물어 파일 이름마다 그 이름을 가진 경로들을 모아 둔다. git 저장소 밖이면 빈 색인을 준다.",
     "uses": [],
@@ -2561,7 +2561,7 @@
   "linkPaths": {
     "kind": "function",
     "module": "scripts",
-    "where": "scripts/link-paths.mjs:120",
+    "where": "scripts/link-paths.mjs:138",
     "means": "HTML 글자의 경로 낱말 중 실제로 있는 파일만 골라 링크로 감싼다.",
     "does": "wrapTerms 와 같은 방식으로 태그를 훑어 건너뛸 요소를 가려낸다. 링크 안에 링크가 생기지 않도록 a 요소 안은 건드리지 않는다. 글자 자체는 줄 번호까지 그대로 남는다.",
     "uses": [
@@ -2569,7 +2569,7 @@
         "to": "pathPattern",
         "kind": "dependency",
         "label": "calls",
-        "where": "scripts/link-paths.mjs:121"
+        "where": "scripts/link-paths.mjs:139"
       },
       {
         "to": "path-link",
@@ -2592,10 +2592,17 @@
   "makeResolver": {
     "kind": "function",
     "module": "scripts",
-    "where": "scripts/link-paths.mjs:80",
+    "where": "scripts/link-paths.mjs:98",
     "means": "경로 낱말 하나를 받아 실제 파일 주소를 돌려주는 함수를 만든다.",
     "does": "정해진 폴더들을 앞에서부터 차례로 뒤진다. 그래도 없으면 이름 색인에서 딱 하나로 좁혀질 때만 답한다. 못 찾으면 아무것도 주지 않는다.",
-    "uses": [],
+    "uses": [
+      {
+        "to": "expandRoot",
+        "kind": "dependency",
+        "label": "expands",
+        "where": "scripts/link-paths.mjs:99"
+      }
+    ],
     "source": "reading"
   },
   "mountTermCards": {
@@ -2635,7 +2642,7 @@
   "pathPattern": {
     "kind": "function",
     "module": "scripts",
-    "where": "scripts/link-paths.mjs:31",
+    "where": "scripts/link-paths.mjs:32",
     "means": "본문에서 경로처럼 생긴 낱말을 찾아낼 정규식을 만든다.",
     "does": "정해 둔 확장자로 끝나는 낱말만 잡고 뒤에 붙은 줄 번호도 함께 딴다. 앞 글자가 슬래시나 점이면 잡지 않아 웹 주소가 걸리지 않는다.",
     "uses": [],
@@ -2705,6 +2712,74 @@
         "kind": "dependency",
         "label": "calls",
         "where": "scripts/wrap-terms.mjs:58"
+      }
+    ],
+    "source": "reading"
+  },
+  "expandRoot": {
+    "kind": "function",
+    "module": "scripts",
+    "where": "scripts/link-paths.mjs:84",
+    "means": "경로 앞머리의 물결표와 달러 변수를 실제 폴더 이름으로 편다.",
+    "does": "값이 없는 변수는 빈 글자로 바꾼다. 그러면 그 경로는 폴더가 아니게 되어 뒤에서 걸러진다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "pythonCandidates": {
+    "kind": "function",
+    "module": "scripts",
+    "where": "scripts/python.mjs:20",
+    "means": "쓸 만한 파이썬 해석기 후보를 순서대로 늘어놓는다.",
+    "does": "윈도우와 그 밖의 운영체제가 가상환경을 다른 폴더에 두므로 갈래를 나눈다. 파일을 뒤지지 않아 시험하기 쉽다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "pythonPath": {
+    "kind": "function",
+    "module": "scripts",
+    "where": "scripts/python.mjs:39",
+    "means": "후보 중에서 실제로 쓸 해석기 하나를 고른다.",
+    "does": "폴더가 적힌 후보는 있을 때만, 이름뿐인 후보는 그대로 준다. 이름은 PATH 가 푼다.",
+    "uses": [
+      {
+        "to": "pythonCandidates",
+        "kind": "dependency",
+        "label": "asks",
+        "where": "scripts/python.mjs:39"
+      }
+    ],
+    "source": "reading"
+  },
+  "probe": {
+    "kind": "function",
+    "module": "scripts",
+    "where": "scripts/doctor.mjs:22",
+    "means": "바깥 명령 하나를 돌려 첫 줄을 얻는다.",
+    "does": "못 돌리거나 실패하면 아무것도 주지 않는다. 그것이 곧 없다는 뜻이다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "scripts/python.mjs": {
+    "kind": "file",
+    "module": "scripts",
+    "where": "scripts/python.mjs:1",
+    "means": "파이썬 해석기를 기계에 상관없이 찾아 주는 파일.",
+    "does": "경로를 코드에 박지 않는다. 환경변수, 저장소 안 가상환경, PATH 순으로 본다.",
+    "uses": [],
+    "source": "reading"
+  },
+  "scripts/doctor.mjs": {
+    "kind": "file",
+    "module": "scripts",
+    "where": "scripts/doctor.mjs:1",
+    "means": "이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.",
+    "does": "파이프라인 한복판에서 드러날 실패를 앞으로 당긴다. 꼭 있어야 할 것이 없으면 잘못됐다고 알린다.",
+    "uses": [
+      {
+        "to": "pythonPath",
+        "kind": "dependency",
+        "label": "asks",
+        "where": "scripts/doctor.mjs:15"
       }
     ],
     "source": "reading"

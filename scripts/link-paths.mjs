@@ -72,7 +72,7 @@ const isDir = (p) => {
 };
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='expandRoot']"/>
-// data.ts 의 linkRoots 에 적힌 $VAR 와 ~ 를 실제 경로로 편다.
+// 경로 앞머리의 물결표와 달러 변수를 실제 폴더 이름으로 편다.
 // 쓰는 것: 없음 · 쓰이는 곳: makeResolver
 /**
  * 경로 앞머리의 `~` 와 `$VAR` / `${VAR}` 를 편다.
@@ -90,7 +90,7 @@ export function expandRoot(base) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='makeResolver']"/>
 // 경로 낱말 하나를 받아 실제 파일 주소를 돌려주는 함수를 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
+// 쓰는 것: expandRoot · 쓰이는 곳: 없음
 /**
  * 해석기. token(줄 번호 뗀 경로) -> { href, kind: "file"|"dir" } | null.
  * 순서: bases 를 차례로(보고서 폴더 → specs/ → 저장소 루트 → out/codegraph-raw → linkRoots) → 이름만이면 index 에서 유일할 때.

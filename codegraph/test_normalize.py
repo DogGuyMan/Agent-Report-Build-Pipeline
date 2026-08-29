@@ -12,7 +12,7 @@
 합성 데이터만으로 검증하지 않는다 — 아래 골든 테스트는 **실제 저장소 산출물**을 쓴다
 (있을 때만 돌고, 없으면 skip).
 
-  .venv/bin/pytest codegraph/test_normalize.py -q
+  python -m pytest codegraph/test_normalize.py -q      # .venv 를 켠 뒤
 """
 import json
 import os

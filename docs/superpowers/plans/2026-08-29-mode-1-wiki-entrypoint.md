@@ -232,9 +232,10 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { wikiPaths, collectorFor } from "./paths.mjs";
+import { pythonPath } from "../python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const PY = join(ROOT, ".venv", "bin", "python");
+const PY = pythonPath(ROOT);   // 기계마다 다르다 — scripts/python.mjs 가 찾는다
 
 /**
  * 무엇을 어떤 순서로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수라 테스트가 쉽다.
@@ -467,9 +468,10 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { wikiPaths } from "./paths.mjs";
+import { pythonPath } from "../python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const PY = join(ROOT, ".venv", "bin", "python");
+const PY = pythonPath(ROOT);   // 기계마다 다르다 — scripts/python.mjs 가 찾는다
 
 /** 마크다운 파일 목록 -> VitePress 사이드바 항목. index 는 뺀다(홈이 따로 링크한다). */
 export function sidebarFrom(files) {
@@ -616,9 +618,10 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { wikiPaths } from "./paths.mjs";
+import { pythonPath } from "../python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const PY = join(ROOT, ".venv", "bin", "python");
+const PY = pythonPath(ROOT);   // 기계마다 다르다 — scripts/python.mjs 가 찾는다
 
 /** verify_citations.py 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다. */
 export function checkArgs({ repo, codegraph, detail, docs }) {
@@ -706,18 +709,29 @@ Expected: 루트 compdb 는 **33**. app compdb 는 존재하며 0 보다 크다.
 
 `$Q/.clang-uml` 에 그대로 넣는다. `compilation_database_dir` 와 `relative_to` 는 **설정 파일 위치 기준 상대경로**로 해석된다 — 설정이 저장소 루트에 있으므로 아래가 맞다.
 
+**두 경로는 기계마다 다르다 — 물어서 넣는다. 박지 말 것.**
+
+```bash
+RESDIR=$(brew --prefix llvm@22 2>/dev/null)/lib/clang/22   # 또는: clang -print-resource-dir
+SYSROOT=$(xcrun --show-sdk-path)
+echo "$RESDIR"; echo "$SYSROOT"
+```
+
+Expected: 둘 다 존재하는 폴더. 리눅스라면 `add_compile_flags` 두 줄이 아예 필요 없을 수 있다 —
+`clang-uml` 과 compdb 의 컴파일러가 같은 clang 이면 그렇다. 먼저 빼고 돌려 보고, 죽으면 넣는다.
+
 ```yaml
 # report-wiki prep 이 읽는 clang-uml 설정.
-# add_compile_flags 가 왜 필요한가 — compile_commands.json 의 컴파일러는 /usr/bin/c++
-# (AppleClang 21) 인데 clang-uml 은 Homebrew libclang 22 로 읽는다. resource-dir 를
-# 명시하지 않으면 표준 헤더를 못 찾아 죽는다. 🔵 2026-08-29 이 저장소에서 확인.
+# add_compile_flags 가 왜 필요한가 — compile_commands.json 의 컴파일러는 AppleClang 인데
+# clang-uml 은 Homebrew libclang 으로 읽는다. resource-dir 를 명시하지 않으면 표준 헤더를
+# 못 찾아 죽는다. 🔵 2026-08-29 macOS 에서 확인. 아래 두 경로는 위 명령의 출력으로 채운다.
 compilation_database_dir: build/macos
 relative_to: .
 output_directory: out/codegraph-raw
 add_compile_flags:
-  - -resource-dir=/opt/homebrew/opt/llvm@22/lib/clang/22
+  - -resource-dir=<위 RESDIR>
   - -isysroot
-  - /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+  - <위 SYSROOT>
 diagrams:
   full_class:
     type: class

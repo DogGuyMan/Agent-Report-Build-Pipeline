@@ -22,7 +22,11 @@ FIRST_PARTY_PREFIXES = ("SJH", "MyApp")
 # <include file="docs/codegraph/comments.xml" path="//term[@id='reverse_refs.main']"/>
 # 1차 심볼 전수 역참조를 뽑는 진입점.
 # 쓰는 것: Clangd, to_repo_relative · 쓰이는 곳: 없음
-def main(root, compdb, uml_path, out_path, binary="/usr/bin/clangd"):
+def main(root, compdb, uml_path, out_path, binary=None):
+    # 경로를 박지 않는다 — 기계마다 다르다. PATH 에서 찾고, 없으면 그 사실을 말한다.
+    binary = binary or shutil.which("clangd")
+    if not binary:
+        raise SystemExit("clangd 를 PATH 에서 찾지 못했다. 설치하거나 네 번째 인자로 경로를 줘라.")
     uml = json.load(open(uml_path))
     targets = [e for e in uml["elements"]
                if (e.get("namespace", "") or "").startswith(FIRST_PARTY_PREFIXES)

@@ -14,6 +14,8 @@ console.log(`Mode 1 — 코드베이스 위키
   3) 위키 작성   deep-wiki 스킬 (wiki-architect · wiki-researcher · wiki-page-writer)
 
 용어 DB 만 필요하면:
-  .venv/bin/python codegraph/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
+  python codegraph/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
+
+환경이 갖춰졌는지 보려면:  npm run doctor
 `);
 process.exit(0);

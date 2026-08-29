@@ -244,7 +244,7 @@
     <uses to="wrapTerms" kind="dependency" label="imports" where="scripts/build.mjs:13"/>
     <uses to="linkPaths" kind="dependency" label="imports" where="scripts/build.mjs:14"/>
   </term>
-  <term id="buildIndex" kind="function" module="scripts" where="scripts/link-paths.mjs:42" source="reading">
+  <term id="buildIndex" kind="function" module="scripts" where="scripts/link-paths.mjs:43" source="reading">
     <means>저장소가 추적하는 파일들의 이름 색인을 만든다.</means>
     <does>git 에게 파일 목록을 물어 파일 이름마다 그 이름을 가진 경로들을 모아 둔다. git 저장소 밖이면 빈 색인을 준다.</does>
   </term>
@@ -391,6 +391,10 @@
   <term id="escapeRe" kind="function" module="scripts/term" where="scripts/term/collect.mjs:18" source="reading">
     <means>이름에 든 정규식 특수문자를 막는다. calls[] 같은 이름이 그대로 들어오기 때문이다.</means>
   </term>
+  <term id="expandRoot" kind="function" module="scripts" where="scripts/link-paths.mjs:84" source="reading">
+    <means>경로 앞머리의 물결표와 달러 변수를 실제 폴더 이름으로 편다.</means>
+    <does>값이 없는 변수는 빈 글자로 바꾼다. 그러면 그 경로는 폴더가 아니게 되어 뒤에서 걸러진다.</does>
+  </term>
   <term id="external_group" kind="function" module="codegraph" where="codegraph/normalize.py:96" source="reading">
     <means>외부 타입을 라이브러리 이름 하나로 접는다. 외부 하나에 노드 하나다.</means>
   </term>
@@ -481,10 +485,10 @@
     <means>결정 표의 항목과 본문 절이 1:1 인지 본다.</means>
     <does>표에는 있는데 절이 없거나, 절은 있는데 표에 없는 것을 각각 모아 돌려준다.</does>
   </term>
-  <term id="linkPaths" kind="function" module="scripts" where="scripts/link-paths.mjs:120" source="reading">
+  <term id="linkPaths" kind="function" module="scripts" where="scripts/link-paths.mjs:138" source="reading">
     <means>HTML 글자의 경로 낱말 중 실제로 있는 파일만 골라 링크로 감싼다.</means>
     <does>wrapTerms 와 같은 방식으로 태그를 훑어 건너뛸 요소를 가려낸다. 링크 안에 링크가 생기지 않도록 a 요소 안은 건드리지 않는다. 글자 자체는 줄 번호까지 그대로 남는다.</does>
-    <uses to="pathPattern" kind="dependency" label="calls" where="scripts/link-paths.mjs:121"/>
+    <uses to="pathPattern" kind="dependency" label="calls" where="scripts/link-paths.mjs:139"/>
     <uses to="path-link" kind="dependency" label="emits" where="scripts/link-paths.mjs:135"/>
   </term>
   <term id="linkRoots" kind="key" module="src" where="src/types.ts:91" source="reading">
@@ -505,9 +509,10 @@
     <means>원시 분석 파일에서 멤버와 메서드의 선언 줄 색인을 만든다.</means>
     <uses to="members[]" kind="dependency" label="reads" where="codegraph/verify_citations.py:84"/>
   </term>
-  <term id="makeResolver" kind="function" module="scripts" where="scripts/link-paths.mjs:80" source="reading">
+  <term id="makeResolver" kind="function" module="scripts" where="scripts/link-paths.mjs:98" source="reading">
     <means>경로 낱말 하나를 받아 실제 파일 주소를 돌려주는 함수를 만든다.</means>
     <does>정해진 폴더들을 앞에서부터 차례로 뒤진다. 그래도 없으면 이름 색인에서 딱 하나로 좁혀질 때만 답한다. 못 찾으면 아무것도 주지 않는다.</does>
+    <uses to="expandRoot" kind="dependency" label="expands" where="scripts/link-paths.mjs:99"/>
   </term>
   <term id="member_location" kind="function" module="codegraph" where="codegraph/normalize.py:139" source="reading">
     <means>간선의 근거가 되는 멤버 선언 줄을 찾는다.</means>
@@ -604,7 +609,7 @@
     <means>본문 속 파일 경로에 붙는 표시. 이 표시가 붙은 글자는 눌러서 그 파일을 열 수 있다.</means>
     <does>link-paths.mjs 가 감싼 a 요소에 붙인다. build.mjs 는 이 표시가 몇 개 생겼는지 세어 알린다.</does>
   </term>
-  <term id="pathPattern" kind="function" module="scripts" where="scripts/link-paths.mjs:31" source="reading">
+  <term id="pathPattern" kind="function" module="scripts" where="scripts/link-paths.mjs:32" source="reading">
     <means>본문에서 경로처럼 생긴 낱말을 찾아낼 정규식을 만든다.</means>
     <does>정해 둔 확장자로 끝나는 낱말만 잡고 뒤에 붙은 줄 번호도 함께 딴다. 앞 글자가 슬래시나 점이면 잡지 않아 웹 주소가 걸리지 않는다.</does>
   </term>
@@ -617,6 +622,10 @@
     <means>그림에 실을 만한 메서드만 고른다.</means>
     <does>생성자 · 소멸자 · 연산자와 인자 없는 Get·Is 접근자는 뺀다. 구조를 말해 주지 않기 때문이다.</does>
   </term>
+  <term id="probe" kind="function" module="scripts" where="scripts/doctor.mjs:22" source="reading">
+    <means>바깥 명령 하나를 돌려 첫 줄을 얻는다.</means>
+    <does>못 돌리거나 실패하면 아무것도 주지 않는다. 그것이 곧 없다는 뜻이다.</does>
+  </term>
   <term id="process" kind="function" module="codegraph" where="codegraph/demermaid.py:98" source="reading">
     <means>문서 하나를 훑어 Mermaid 블록을 그림으로 바꾼 사본을 만든다.</means>
     <does>앞줄에 graphviz 표식이 있으면 이미 그려 둔 SVG 로 갈아 끼우고, 없으면 새로 굽는다.</does>
@@ -626,6 +635,15 @@
     <means>용어 사전에서 codegraph.json 을 되돌려 만든다.</means>
     <does>파일 · 산출물 · 키 · 개념처럼 지도에 자리가 없는 용어는 노드가 되지 않고, 그런 용어로 가는 간선도 지도에 실리지 않는다.</does>
     <uses to="_split_where" kind="dependency" label="calls" where="codegraph/terms_db.py:201"/>
+  </term>
+  <term id="pythonCandidates" kind="function" module="scripts" where="scripts/python.mjs:20" source="reading">
+    <means>쓸 만한 파이썬 해석기 후보를 순서대로 늘어놓는다.</means>
+    <does>윈도우와 그 밖의 운영체제가 가상환경을 다른 폴더에 두므로 갈래를 나눈다. 파일을 뒤지지 않아 시험하기 쉽다.</does>
+  </term>
+  <term id="pythonPath" kind="function" module="scripts" where="scripts/python.mjs:39" source="reading">
+    <means>후보 중에서 실제로 쓸 해석기 하나를 고른다.</means>
+    <does>폴더가 적힌 후보는 있을 때만, 이름뿐인 후보는 그대로 준다. 이름은 PATH 가 푼다.</does>
+    <uses to="pythonCandidates" kind="dependency" label="asks" where="scripts/python.mjs:39"/>
   </term>
   <term id="quiz.mjs" kind="file" module="scripts/term" where="scripts/term/quiz.mjs:1" source="reading">
     <means>객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.</means>
@@ -720,13 +738,13 @@
   <term id="reverse_refs.main" kind="function" module="codegraph" where="codegraph/reverse_refs.py:25" source="reading">
     <means>1차 심볼 전수 역참조를 뽑는 진입점.</means>
     <does>clangd 색인이 다 찰 때까지 기다린 뒤에만 묻는다. 덜 찬 상태에서는 부분 결과가 조용히 돌아오기 때문이다.</does>
-    <uses to="Clangd" kind="dependency" label="instantiates" where="codegraph/reverse_refs.py:32"/>
-    <uses to="to_repo_relative" kind="dependency" label="calls" where="codegraph/reverse_refs.py:58"/>
+    <uses to="Clangd" kind="dependency" label="instantiates" where="codegraph/reverse_refs.py:36"/>
+    <uses to="to_repo_relative" kind="dependency" label="calls" where="codegraph/reverse_refs.py:62"/>
   </term>
   <term id="reverse_refs.py" kind="file" module="codegraph" where="codegraph/reverse_refs.py:1" source="reading">
     <means>1차 심볼을 누가 쓰고 있는지 전수로 뽑는 도구.</means>
     <does>clangd 를 띄우고 색인이 다 찰 때까지 기다린 뒤, 심볼마다 역참조를 물어 저장소 상대경로 형태로 저장한다.</does>
-    <uses to="Clangd" kind="dependency" label="uses" where="codegraph/reverse_refs.py:32"/>
+    <uses to="Clangd" kind="dependency" label="uses" where="codegraph/reverse_refs.py:36"/>
   </term>
   <term id="roslyn-dump.json" kind="artifact" module="codegraph" where="codegraph/normalize.py:550" source="reading">
     <means>C# 쪽 원시 분석 결과. 형식만 정해져 있고 만드는 도구는 아직 없다.</means>
@@ -744,9 +762,18 @@
   <term id="scripts" kind="module" module="scripts" source="reading">
     <means>Mode 2(설계 검토 보고서)의 빌드·검사·초기화 스크립트가 사는 폴더.</means>
   </term>
+  <term id="scripts/doctor.mjs" kind="file" module="scripts" where="scripts/doctor.mjs:1" source="reading">
+    <means>이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.</means>
+    <does>파이프라인 한복판에서 드러날 실패를 앞으로 당긴다. 꼭 있어야 할 것이 없으면 잘못됐다고 알린다.</does>
+    <uses to="pythonPath" kind="dependency" label="asks" where="scripts/doctor.mjs:15"/>
+  </term>
   <term id="scripts/link-paths.mjs" kind="file" module="scripts" where="scripts/link-paths.mjs:1" source="reading">
     <means>본문에 글자로 적힌 파일 경로를 그 파일을 여는 링크로 바꾸는 스크립트.</means>
     <does>wrap-terms.mjs 와 같은 자리에서 돈다. 경로 꼴 낱말을 찾아 그 파일이 실제로 있는지 확인하고, 있을 때만 file:// 링크로 감싼다. 계획에만 있고 아직 없는 파일이 링크되면 읽는 사람이 속기 때문이다.</does>
+  </term>
+  <term id="scripts/python.mjs" kind="file" module="scripts" where="scripts/python.mjs:1" source="reading">
+    <means>파이썬 해석기를 기계에 상관없이 찾아 주는 파일.</means>
+    <does>경로를 코드에 박지 않는다. 환경변수, 저장소 안 가상환경, PATH 순으로 본다.</does>
   </term>
   <term id="scripts/term" kind="module" module="scripts/term" source="reading">
     <means>Mode 1.5(용어 이해도 점검)의 세 단계 스크립트가 사는 폴더.</means>

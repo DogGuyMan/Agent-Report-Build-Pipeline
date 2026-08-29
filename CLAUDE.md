@@ -58,6 +58,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 명령
 
 ```bash
+npm run doctor           # 이 컴퓨터에 무엇이 있고 무엇이 없는지. 필수가 없으면 exit 1
 npm test                 # pretest 가 scripts/lib.mjs 로 src/ 를 .tmp/lib.mjs 로 번들한 뒤 node --test
 npm run typecheck        # tsc --noEmit (이 저장소의 src/ 만)
 node --test test/svg.test.mjs                                # 단일 파일
@@ -111,6 +112,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 
 | 변수 | 가리키는 곳 | 값이 없으면 |
 |---|---|---|
+| `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 (`scripts/python.mjs`) |
 | `$REPO_ROOT` | 이 저장소 | 문서 표기 전용 — 동작에 영향 없음 |
 | `$TOOLS_ROOT` · `$DEV_ROOT` | 개인 작업 폴더 두 곳 | 같음 |
 | `$GRAPHICS_REPO` | C++ 골든 저장소 (clang-uml 표본) | **골든 테스트 15개가 건너뛴다.** 실패가 아니다 |
@@ -133,6 +135,12 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 `$VAR` 와 `~` 를 편다. 변수가 없는 독자에게는 그 링크만 조용히 안 걸린다.
 
 **새 문서에도 이 규약을 쓴다** — 홈 아래 경로를 적을 일이 생기면 위 변수 중 하나로 적는다.
+
+**코드에도 경로를 박지 않는다.** 파이썬 해석기는 `scripts/python.mjs` 의 `pythonPath()` 로 찾고,
+바깥 명령(`git` · `dot` · `clang-uml` · `dotnet` · `clangd` · `mmdc`)은 PATH 로 부른다.
+새 기계에서 무엇이 빠졌는지는 **`npm run doctor`** 가 한 화면으로 말한다 — 필수가 없으면 exit 1.
+파이썬 의존성은 `requirements.txt` 에 있다(🔵 실측 — `networkx` `numpy` `scipy` `pytest` 넷이면 전량이 돈다).
+설치 절차는 `README.md` 에 있다.
 
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
 

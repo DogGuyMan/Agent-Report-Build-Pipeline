@@ -1,0 +1,12 @@
+# codegraph/*.py 가 쓰는 서드파티. 표준 라이브러리는 적지 않는다.
+#
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt        # 윈도우는 .venv\Scripts\pip
+#
+# 🔵 2026-08-29 실측 — 깨끗한 가상환경에 이 넷만 넣고 파이프라인 전량이 돌았다
+# (pytest 62 통과 · facts.py · render_modules.py · render_classes.py · terms_db.py · xmldoc.py).
+# pydot 와 lxml 은 예전 .gitignore 주석이 적어 두었으나 **아무 데서도 import 하지 않는다.**
+networkx        # facts.py · render_classes.py · render_modules.py 의 그래프 계산
+numpy           # networkx 의 PageRank 가 탄다 (facts.py). 직접 import 하지는 않는다
+scipy           # 같음 — 없으면 facts.py 가 ModuleNotFoundError 로 죽는다
+pytest          # codegraph/test_*.py

@@ -11,7 +11,7 @@
   2. 블록은 **항상 세 줄**              마커 · 뜻 · 의존. 의존이 없어도 "없음" 으로 세 줄.
   3. **다시 돌려도 같다**               덧붙지 않고 갈린다. 두 번 돌린 결과가 한 번과 같다.
 
-  .venv/bin/python -m pytest codegraph/test_xmldoc.py -q
+  python -m pytest codegraph/test_xmldoc.py -q         # .venv 를 켠 뒤
 """
 import json
 import os

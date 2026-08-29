@@ -11,7 +11,8 @@
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
     "typecheck": "tsc --noEmit",
-    "pretest": "node scripts/lib.mjs"
+    "pretest": "node scripts/lib.mjs",
+    "doctor": "node scripts/doctor.mjs"
   },
   "keywords": [],
   "author": "",
