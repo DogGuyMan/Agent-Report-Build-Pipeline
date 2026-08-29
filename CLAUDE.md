@@ -77,7 +77,7 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 
 | 진입점 | Mode | 명령 | 하는 일 |
 |---|---|---|---|
-| `report-wiki` | 1 | (없음) | 코드베이스 위키. **아직 Node 파이프라인이 없어 길잡이만 낸다.** 실제 흐름은 `codegraph/*.py` + deep-wiki 스킬 |
+| `report-wiki` | 1 | (없음) | 코드베이스 위키. **아직 Node 파이프라인이 없어 길잡이만 낸다.** 실제 흐름은 `codegraph/*.py` + **`codebase-terms-survey` 스킬(전수조사 → `terms-reading.json`)** + deep-wiki 스킬(위키 산문) |
 | `report-term` | 1.5 | `collect` · `grade` · `emit` | 용어 이해도 점검. Plan 이 요구하는 용어를 모으고, 객관식 답안을 채점해, 학습 노트와 용어집 DB 를 낸다 |
 | `report-spec` | 2 | `init` · `build` · `check` | 설계 검토 보고서 |
 | `report` | — | (`report-spec` 과 같음) | **옛 이름.** `report-spec` 으로 위임하고 stderr 에 알림 한 줄을 낸다. stdout 은 동일 |
@@ -373,7 +373,7 @@ $GRAPHICS_REPO/doc/
 배제한다.** 그래도 **지금 두 번째 mode 를 추가하지 말 것** — 실제로 그 장르의 보고서를 쓸 일이
 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다. 컴포넌트 후보로 횟수와 함께 기록만 한다.
 
-스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`. Track A 대상은 `confidence-and-sourcing`,
+스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전). Track A 대상은 `confidence-and-sourcing`,
 `design-decision-discipline`, `architecture-design-workflow` 이고, Track B 는 `graphviz-class-diagram` 과
 `spec-review-dashboard` 를 참조한다. ~~B2 는 `spec-review-dashboard` 의 개정이 된다.~~ **B2 기각으로 이 개정 계획도 함께 소멸했다** — 다만 그 스킬은 2026-08-28 에 report-builder 파이프라인 기준으로 따로 포팅됐다.
 

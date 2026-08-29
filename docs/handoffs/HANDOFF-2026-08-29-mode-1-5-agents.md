@@ -53,7 +53,7 @@ Mode 1 ─────────────▶ Mode 1.5 ───────
 (계획서 `2026-08-29-mode-1-terms-db-first.md`). 정적 수집기가 있으면 codegraph 에서 레코드를 먼저 만들고 LLM 이
 뜻 · 동작 · 새 관계를 보탠다(구조 필드는 codegraph 가 이긴다). 없으면(Python/JS) LLM 읽기 레코드만으로 DB 를 만들고
 `codegraph.json` 을 투영한다. **LLM 이 쓴 모든 `where` 는 L1/L2/L3 로 기계 검사한다.** 절차는 에이전트 정의
-`.claude/agents/mode-1-codebase-wiki.md` 의 `## 전수조사 절차` 절에 있다.
+**`codebase-terms-survey` 스킬**(`.agents/skills/codebase-terms-survey/SKILL.md`, 2026-08-29 신설)에 있다 — 에이전트 정의는 요약과 포인터만 둔다. 스킬은 `wiki-researcher` 의 증거 규율(금지 표 · 증거 기준표 · `confidence` 3등급 · 탐색 안 한 것 목록)을 이식했다.
 
 ### 나는 무엇이 아닌가
 - **사람에게 묻지 않는다.** 이해도는 Mode 1.5 의 일이다

@@ -176,6 +176,7 @@ Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용
 | `docs/handoffs/RESUME-2026-08-28-track-c.md` | Track C(Mode 1) 재개 — **별개 갈래**. terms-db 우선 파이프라인 반영 배너 있음 | 🟡 부분 대체 |
 | `CLAUDE.md` | 저장소 규약. `## ⚠ 방향` 부터. 렌더 경로(자동 참조 · 경로 링크) · 용어집 절(아코디언 · `KNOBS` · 카드 위치) 갱신됨 | 갱신됨 |
 | `~/.claude/skills/{spec-review-dashboard,term-benchmark}/SKILL.md` | 스킬 원본(사본 `.claude/skills/`) — 3문항 · 자동 참조 · 경로 링크 반영 | 동일 |
+| `.agents/skills/codebase-terms-survey/SKILL.md` | **Mode 1 전수조사 스킬** (2026-08-29 신설, `259ad15` · 사용자가 `.agents/` 로 이전 `c6aec64`). 에이전트 정의의 절차 절은 요약+포인터로 축소 | 활성 |
 
 **gitignore 된 것** — `out/` (보고서 산출물 · `out/codegraph-raw/` 파생물 · 시험 정답지/답안) · `.tmp/` · `.tmp-report-tsconfig.json` · `__pycache__/`.
 
@@ -226,3 +227,4 @@ cd ../mode-1-terms-db-first && report-spec build && report-spec check           
 - 2026-08-29 18:05 — **카드 결함 2건 (사용자 관측, 오케스트레이터 직접).** ① 표 안 카드가 `.table-wrap`(overflow-x)·`.card`(overflow hidden)에 잘림 → 런타임이 뜰 때 위치만 `position: fixed` 로(`a4d526c`, CLAUDE.md 의 'CSS 만으로' 문장 개정). ② 범례 안 카드가 항상 켜짐 — `.diagram-legend span` 이 자손 전체에 걸려 `.term-card` 의 display:none 을 이김 → 직계 자식 `>` 로(`d42d3b3`). 자동 참조가 새 자리에 term-ref 를 넣으면서 드러난 기존 CSS 의 함정. 같은 꼴의 자손 요소 선택자는 theme.css 에 더 없음(grep).
 - 2026-08-29 18:15 — **핸드오프 전면 갱신(사용자 지시).** TL;DR · §1 · §4 · §6 · §7 · §8 을 재측정으로 다시 썼다. HANDOFF ① 배너에 §0 도 낡았음을 적고, ③ 의 '아직 안 된 것' 을 전부 완료로, Mode 2 절과 정의 파일에 오늘의 프론트 변경 5건을 반영, Track C RESUME 에 terms-db 우선 파이프라인 배너, CLAUDE.md 상태 표 수치 갱신.
 - 2026-08-29 18:55 — R10 재조사(⑬) 서브에이전트 완료(증분 22+17)했으나 **보류** — 다른 세션의 `xmldoc.py inject` 와 `terms-reading.json` 을 놓고 충돌. 사용자 결정: xmldoc 먼저. 증분은 `.tmp/` addendum 으로 분리, 정본은 HEAD 로 복원. 작업 트리의 38개 소스 변경과 `codegraph/xmldoc.py` · `docs/codegraph/comments.xml` 은 **다른 세션 것 — 이 세션은 건드리지 않는다.**
+- 2026-08-29 19:00 — **전수조사 절차를 스킬로 분리** (`codebase-terms-survey`, 사용자 결정 C 착수). `wiki-researcher` 는 통째로 부르지 않고 규율만 이식 — 금지 표 · 증거 기준표 · `confidence` 3등급 · 탐색 안 한 것 목록 · (선택) 모듈당 구조 렌즈 1회. "빠진 간선" 측정 도구는 스킬 안에 착수 조건으로 남김. 정의 파일 절차 절은 요약+포인터로. 사용자가 xmldoc(`acf88e1` `77b95de`)과 스킬을 커밋했다.
