@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='reverse_refs.py']"/>
 # 1차 심볼을 누가 쓰고 있는지 전수로 뽑는 도구.
+# 쓰는 것: Clangd · 쓰이는 곳: 없음
 """1차 심볼 전수 역참조를 뽑는다 (E6 + 전수 확정).
 
 산출물은 엔진 중립이다 (E7 제약) — LSP 의 uri/range 를 내보내지 않고
@@ -20,6 +21,7 @@ FIRST_PARTY_PREFIXES = ("SJH", "MyApp")
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='reverse_refs.main']"/>
 # 1차 심볼 전수 역참조를 뽑는 진입점.
+# 쓰는 것: Clangd, to_repo_relative · 쓰이는 곳: 없음
 def main(root, compdb, uml_path, out_path, binary="/usr/bin/clangd"):
     uml = json.load(open(uml_path))
     targets = [e for e in uml["elements"]

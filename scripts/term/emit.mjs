@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='emit.mjs']"/>
 // 채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.
+// 쓰는 것: terms.json, term-study-note.md · 쓰이는 곳: 없음
 // scripts/term/emit.mjs — Mode 1.5 4단계. 두 갈래 산출물을 낸다.
 //   (1) 학습 노트 .md   — 사람이 읽고 공부하는 것. 모름·애매만 싣는다
 //   (2) 용어집 DB .json — Mode 2 의 terms 가 되는 것. **전부 싣고 표시를 달리 한다**
@@ -8,6 +9,7 @@ import { join } from "node:path";
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='toTermsDb']"/>
 // Mode 2 로 넘길 용어집을 만든다. 객관적 정답과 주관적 이해도를 필드로 가른다.
+// 쓰는 것: TermMeans, UserMentalValue · 쓰이는 곳: 없음
 /**
  * Mode 2 로 넘길 용어집. 객관적 정답과 주관적 이해도를 필드로 가른다.
  * 필드명 TermMeans · UserMentalValue 는 사용자가 확정한 이름이다. 바꾸지 말 것.
@@ -26,6 +28,7 @@ export function toTermsDb(graded) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='toStudyNote']"/>
 // 사람이 읽는 학습 노트를 만든다. 이미 아는 것은 싣지 않는다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 사람이 읽는 학습 노트. 이미 아는 것을 다시 싣지 않는다. 정답률 낮은 것부터. */
 export function toStudyNote(graded) {
   const rows = Object.entries(graded)

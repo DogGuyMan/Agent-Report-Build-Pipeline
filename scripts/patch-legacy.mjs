@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='patch-legacy.mjs']"/>
 // 옛 HTML 보고서에 새 스타일과 확대 토글을 덧대 보던 일회용 스크립트.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // scripts/patch-legacy.mjs
 // Phase 1 검증 전용 — 기존 정본 HTML의 <style> 블록을 src/theme.css 로 교체하고
 // .diagram-grid 앞에 zoom 토글 마크업을 삽입한다.

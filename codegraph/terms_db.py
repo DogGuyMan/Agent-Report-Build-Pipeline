@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='terms_db.py']"/>
 # 코드베이스의 용어를 한 곳에 모은 사전을 만드는 도구. Mode 1.5 의 재료가 여기서 나온다.
+# 쓰는 것: terms-db.json, terms-reading.json · 쓰이는 곳: 없음
 """terms_db.py — 코드베이스 용어 전수 수집.
 
 **왜 필요한가.** Mode 1.5(용어 이해도 점검)가 사람에게 문제를 내려면 정답지가 있어야 한다.
@@ -45,6 +46,7 @@ SOURCES = frozenset({"codegraph", "reading", "codegraph+reading"})
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_where']"/>
 # 노드의 파일과 줄을 합쳐 경로:줄 꼴 위치 문자열로 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: build_terms
 def _where(node):
     """`file:line` 위치 문자열. 파일이 없으면(외부 노드) 빈 문자열."""
     f = node.get("file") or ""
@@ -56,6 +58,7 @@ def _where(node):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_split_where']"/>
 # 경로:줄 문자열을 다시 파일과 줄 번호로 가른다.
+# 쓰는 것: 없음 · 쓰이는 곳: check_terms, project_codegraph
 def _split_where(where):
     """`file:line` -> (file, line). 빈 문자열이면 (None, None). 줄 번호가 없으면 (file, None)."""
     if not where:
@@ -68,6 +71,7 @@ def _split_where(where):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_recompute_neighbors']"/>
 # 방향이 있는 uses 에서 방향 없는 이웃 목록을 다시 센다.
+# 쓰는 것: 없음 · 쓰이는 곳: build_terms, merge_terms
 def _recompute_neighbors(db):
     """uses(방향 있음)에서 neighbors(방향 없음)를 다시 센다.
 
@@ -89,6 +93,7 @@ def _recompute_neighbors(db):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='build_terms']"/>
 # 코드 지도에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
+# 쓰는 것: _where, _recompute_neighbors · 쓰이는 곳: terms_db.main
 def build_terms(graph, facts, hotspot):
     """codegraph.json 에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
 
@@ -180,6 +185,7 @@ def build_terms(graph, facts, hotspot):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='project_codegraph']"/>
 # 용어 사전에서 codegraph.json 을 되돌려 만든다.
+# 쓰는 것: _split_where · 쓰이는 곳: terms_db.main
 def project_codegraph(db, language="unknown", repo_commit=""):
     """terms-db -> codegraph.json (schema_version 2). codegraph 는 terms-db 의 부분집합이다.
 
@@ -238,6 +244,7 @@ def project_codegraph(db, language="unknown", repo_commit=""):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_stem']"/>
 # 인용 대조에 쓸 이름 조각을 만든다.
+# 쓰는 것: verify_citations.short · 쓰이는 곳: check_terms
 def _stem(key, kind):
     """L3 대조용 이름 조각. `calls[]` -> `calls`, `Outer::Inner` -> `Inner`, `terms_db.main` -> `main`.
     파일 · 산출물 · 키 · 개념 · 모듈은 글자 그대로 (`codegraph.json` 을 `.` 로 쪼개면 안 된다)."""
@@ -249,6 +256,7 @@ def _stem(key, kind):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_written_by_llm']"/>
 # 이 간선을 LLM 이 썼는지 가른다. 표시가 없으면 정적 도구가 낸 것이다.
+# 쓰는 것: 없음 · 쓰이는 곳: check_terms
 def _written_by_llm(rec_source, use):
     """이 간선을 LLM 이 썼는가. 표시가 없는 간선은 정적 도구가 낸 것이다.
 
@@ -260,6 +268,7 @@ def _written_by_llm(rec_source, use):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='check_terms']"/>
 # LLM 이 쓴 인용을 3값으로 판정한다. 실패 · 근거 없음 · (아무 말 없으면) 통과다.
+# 쓰는 것: _split_where, _written_by_llm, _stem · 쓰이는 곳: terms_db.main
 def check_terms(db, repo):
     """3값 판정 목록 [(등급, 용어, 사유)]. 등급은 "실패" | "근거 없음". 비어 있으면 전부 통과.
 
@@ -335,6 +344,7 @@ STRUCTURE_FIELDS = ("id", "kind", "module", "where")
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='merge_terms']"/>
 # LLM 이 읽은 것을 코드 지도가 만든 사전에 합친다.
+# 쓰는 것: _recompute_neighbors · 쓰이는 곳: terms_db.main
 def merge_terms(base, reading):
     """reading(LLM 이 쓴 것)을 base(codegraph 가 만든 것)에 합친다. 구조 필드는 codegraph 가 이긴다.
 
@@ -369,6 +379,7 @@ def merge_terms(base, reading):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_git_commit']"/>
 # 저장소 HEAD 해시를 읽는다. git 이 없어도 실패시키지 않는다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def _git_commit(repo):
     """저장소 HEAD. git 이 없거나 저장소가 아니면 빈 문자열 — 실패시키지 않는다."""
     try:
@@ -380,6 +391,7 @@ def _git_commit(repo):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='terms_db.main']"/>
 # 용어 사전 도구의 명령줄 진입점.
+# 쓰는 것: build_terms, merge_terms, check_terms, terms-db.json, project_codegraph · 쓰이는 곳: 없음
 # 직접 실행됐을 때만 CLI 를 수행한다(scripts/*.mjs 와 같은 규약).
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

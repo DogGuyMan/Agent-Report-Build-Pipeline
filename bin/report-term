@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // <include file="docs/codegraph/comments.xml" path="//term[@id='report-term']"/>
 // Mode 1.5 의 진입점. 용어를 얼마나 아는지 점검한다.
+// 쓰는 것: runDispatch · 쓰이는 곳: 없음
 // bin/report-term — Mode 1.5. 용어 이해도 점검.
 //   collect : 이 Plan 을 이해하는 데 필요한 용어를 모은다
 //   grade   : 답안을 채점해 확실/애매/모름을 매긴다

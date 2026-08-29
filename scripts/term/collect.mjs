@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='collect.mjs']"/>
 // 이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.
+// 쓰는 것: term-candidates.json · 쓰이는 곳: 없음
 // scripts/term/collect.mjs — Mode 1.5 1단계. 이 Plan 을 이해하는 데 필요한 용어를 모은다.
 //
 // 두 갈래에서 모은다.
@@ -12,6 +13,7 @@ import { join } from "node:path";
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='escapeRe']"/>
 // 이름에 든 정규식 특수문자를 막는다. calls[] 같은 이름이 그대로 들어오기 때문이다.
+// 쓰는 것: 없음 · 쓰이는 곳: pickTerms
 /** 정규식 특수문자를 막는다. calls[] 같은 이름이 그대로 들어온다. */
 function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -19,6 +21,7 @@ function escapeRe(s) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='pickTerms']"/>
 // 코드베이스 용어 중 Plan 본문에 실제로 나오는 것만 고른다.
+// 쓰는 것: escapeRe · 쓰이는 곳: 없음
 /** 코드베이스 용어 DB 중 Plan 본문에 실제로 등장하는 것만 고른다. */
 export function pickTerms(db, planText) {
   const out = {};
@@ -33,6 +36,7 @@ export function pickTerms(db, planText) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='findNewConcepts']"/>
 // Plan 이 새로 만든 개념을 찾는다. 정답이 없으므로 저자가 써야 한다.
+// 쓰는 것: WarmUp · 쓰이는 곳: 없음
 /**
  * Plan 이 새로 만든 개념을 찾는다. `scripts/check.mjs` 의 undefinedTerms 와 같은 세 꼴을 쓴다.
  * 두 곳이 어긋나면 안 된다 — 한쪽을 고치면 다른 쪽도 같이 고친다.

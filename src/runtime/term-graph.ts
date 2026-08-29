@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='term-graph.ts']"/>
 // 용어 관계 그물을 브라우저에서 그리는 코드. src 에서 유일하게 산출물에 실린다.
+// 쓰는 것: d3-force · 쓰이는 곳: 없음
 // src/runtime/term-graph.ts — 용어 관계 그물 그래프의 런타임.
 //
 // **이 파일만이 산출물에 실려 브라우저에서 실행된다.** 나머지 src/ 는 전부 빌드 시점 전용이다.
@@ -65,6 +66,7 @@ type RepelForce = ((alpha: number) => void) & { initialize?: (nodes: Node[]) => 
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='componentRepulsion']"/>
 // 노드끼리 서로 밀어내는 힘. 같은 무리인지 아닌지에 따라 세기를 달리한다.
+// 쓰는 것: KNOBS · 쓰이는 곳: term-graph.build
 /**
  * d3 forceManyBody 를 대신하는 쌍 전수 척력.
  * 같은 덩어리는 REPEL_IN, 다른 덩어리는 REPEL_OUT, REPEL_MAX_DIST 밖은 0.
@@ -106,6 +108,7 @@ function componentRepulsion(comp: Map<string, number>): RepelForce {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='componentCollide']"/>
 // 무리끼리 겹치지 않게 통째로 밀어내는 힘.
+// 쓰는 것: rectOverlap, KNOBS · 쓰이는 곳: term-graph.build
 /**
  * 덩어리(연결 성분)의 경계 사각형이 여백을 두고 겹치면 양쪽 덩어리를 통째로 밀어낸다.
  * d3-force 에는 그룹 단위 충돌 힘이 없어 직접 만든다. forceCollide 와 같은 꼴로 속도(vx/vy)를 고쳐 푼다.
@@ -157,6 +160,7 @@ function componentCollide(comp: Map<string, number>): RepelForce {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='mountTune']"/>
 // 힘 세기를 눈으로 맞춰 보는 임시 슬라이더 판을 그래프 아래에 깐다.
+// 쓰는 것: KNOBS · 쓰이는 곳: term-graph.build
 /**
  * 임시 조정 패널 — 그래프 **아래**에 슬라이더를 깐다. `data-tune` 이 붙은 그래프에만 생긴다.
  * 눈으로 값을 찾기 위한 임시물이다. 값이 정해지면 KNOBS 기본값에 박고 tune 을 뗀다.
@@ -234,6 +238,7 @@ function mountTune(container: HTMLElement, hooks: { apply: (k: Knob) => void; sh
 const SVG_NS = "http://www.w3.org/2000/svg";
 // <include file="docs/codegraph/comments.xml" path="//term[@id='el']"/>
 // SVG 요소 하나를 만드는 짧은 도우미.
+// 쓰는 것: 없음 · 쓰이는 곳: term-graph.build
 const el = (name: string, cls?: string) => {
   const n = document.createElementNS(SVG_NS, name);
   if (cls) n.setAttribute("class", cls);
@@ -242,6 +247,7 @@ const el = (name: string, cls?: string) => {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='term-graph.build']"/>
 // 용어 그래프 하나를 실제로 그린다.
+// 쓰는 것: el, components, bounds, clampBox, componentRepulsion (+2) · 쓰이는 곳: boot
 function build(container: HTMLElement) {
   const raw = container.getAttribute("data-terms");
   if (!raw) return;
@@ -420,6 +426,7 @@ function build(container: HTMLElement) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='mountTermCards']"/>
 // 본문 용어에 커서를 올렸을 때 뜨는 뜻 카드의 자리를 잡아 준다.
+// 쓰는 것: 없음 · 쓰이는 곳: boot
 // 본문 용어 카드의 위치 — 뜨는 것은 CSS(:hover / :focus)가 하고, 여기서는 **위치만** 화면 기준(fixed)으로 옮긴다.
 // 이유: 카드는 position:absolute 인데 표를 감싼 .table-wrap(overflow-x:auto)과 .card(overflow:hidden)가 그 상자 밖을
 // 잘라 버린다(2026-08-29 사용자 관측). overflow 를 풀면 넓은 표의 가로 스크롤이 깨지므로, 화면 기준 좌표로 빼내는 쪽을 택했다.
@@ -463,6 +470,7 @@ function mountTermCards() {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='boot']"/>
 // 문서 안의 용어 그래프를 전부 찾아 그리기를 시작한다.
+// 쓰는 것: term-graph.build, mountTermCards · 쓰이는 곳: 없음
 function boot() {
   document.querySelectorAll<HTMLElement>(".term-graph").forEach(build);
   mountTermCards();

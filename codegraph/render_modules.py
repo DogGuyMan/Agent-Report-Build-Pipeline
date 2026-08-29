@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_modules.py']"/>
 # 모듈 사이의 의존 관계를 Graphviz 로 그리는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """render_modules.py — codegraph.json 의 모듈 의존 그래프를 Graphviz 로 그린다.
 
 사용자의 P1~P6 방법론을 **모듈 층**에 적용한 것이다. 클래스 층이 아니므로 P3(UML 3분할)는
@@ -37,6 +38,7 @@ C_BORDER = "#1f4e79"
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_modules.esc']"/>
 # DOT 문자열용 이스케이프.
+# 쓰는 것: 없음 · 쓰이는 곳: emit_dot
 def esc(s):
     """DOT 문자열용."""
     return str(s).replace("\\", "\\\\").replace('"', '\\"')
@@ -44,6 +46,7 @@ def esc(s):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_modules.esch']"/>
 # HTML 라벨용 이스케이프. 클래스 이름에 제네릭 꺾쇠가 실제로 들어오기 때문에 필요하다.
+# 쓰는 것: 없음 · 쓰이는 곳: node_label
 def esch(s):
     """HTML 라벨용. 🔵 클래스 이름에 제네릭/템플릿 꺾쇠가 실제로 들어온다
     (Action<TOwner>, UI_Base<T> 등) — DOT 이스케이프만으로는 dot 이 HTML 태그로 읽고 죽는다."""
@@ -52,6 +55,7 @@ def esch(s):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='load']"/>
 # codegraph.json 을 읽는다. 스키마 판이 다르면 경고만 하고 계속한다.
+# 쓰는 것: 없음 · 쓰이는 곳: render_modules.main
 def load(path):
     g = json.load(open(path, encoding="utf-8"))
     if g.get("schema_version") != 2:
@@ -61,6 +65,7 @@ def load(path):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_modules.build']"/>
 # 모듈 층 그래프와 노드마다 붙일 부가 정보를 만든다.
+# 쓰는 것: modules[] · 쓰이는 곳: render_modules.main
 def build(g):
     """모듈 층 그래프와 노드별 부가 정보를 만든다."""
     nodes = {n["id"]: n for n in g["nodes"]}
@@ -100,6 +105,7 @@ def build(g):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='node_label']"/>
 # 모듈 상자 안에 넣을 이름 · 클래스 수 · 대표 이름 세 줄을 만든다.
+# 쓰는 것: render_modules.esch · 쓰이는 곳: emit_dot
 def node_label(mod, names):
     """P3 의 모듈 층 대응 — 이름 + 클래스 수 + 대표 이름 3개."""
     short = sorted(names, key=lambda s: (len(s), s))
@@ -117,6 +123,7 @@ def node_label(mod, names):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='emit_dot']"/>
 # 모듈 그래프를 Graphviz DOT 문자열로 찍어 낸다.
+# 쓰는 것: node_label, render_modules.esc · 쓰이는 곳: render_modules.main
 def emit_dot(g, path_in, G, members, ext_touch, externals, cycles, cyc_edges, show_external):
     lang = g.get("language", "?")
     ext_note = "" if show_external else "  [이번 렌더에서는 생략됨 — --external 로 켠다]"
@@ -243,6 +250,7 @@ digraph modules {{
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_modules.main']"/>
 # 모듈 다이어그램 도구의 명령줄 진입점.
+# 쓰는 것: load, render_modules.build, emit_dot · 쓰이는 곳: 없음
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph", help="codegraph.json")

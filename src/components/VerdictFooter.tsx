@@ -1,7 +1,9 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='VerdictFooter.tsx']"/>
 // 수용 판정 기입란 조각이 있는 파일. 값은 사람이 채운다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // <include file="docs/codegraph/comments.xml" path="//term[@id='VerdictFooter']"/>
 // 수용 판정 기입란. 승인 · 보류 · 번복 세 칸과 사유 줄이 있다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // src/components/VerdictFooter.tsx
 // 수용 판정 푸터 — 이 블록의 값은 AI 가 채우지 않는다. 사용자 기입 전용.
 export function VerdictFooter({ note }: { note?: string }) {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='verify_citations.py']"/>
 # 문서에 적힌 file:line 인용이 진짜인지 기계로 판정하는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """verify_citations.py — 문서의 file:line 인용을 기계로 판정한다 (Track C §8, L1/L2/L3).
 
 deep-wiki 가 쓴 위키(또는 facts/*.md, 관찰 보고서)의 인용이 진짜인지를 판정한다.
@@ -42,6 +43,7 @@ CITE = re.compile(
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='verify_citations.short']"/>
 # 이름 대조용 마지막 조각을 남긴다. 중첩과 경로 구분자를 모두 벗긴다.
+# 쓰는 것: 없음 · 쓰이는 곳: _stem, build_index
 def short(name):
     """이름 대조용 마지막 조각. F-2 규칙 — ## 중첩, :: / . 경로 전부 마지막만."""
     for sep in ("##", "::", "."):
@@ -51,6 +53,7 @@ def short(name):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='build_index']"/>
 # 코드 지도에서 (파일, 줄) 로 찾는 판정 색인을 만든다.
+# 쓰는 것: verify_citations.short · 쓰이는 곳: verify_citations.main
 def build_index(codegraph):
     """codegraph -> (file,line) 판정 색인. L3 의 대상은 노드 + 소유 간선뿐이다(C-13)."""
     g = json.load(open(codegraph, encoding="utf-8"))
@@ -71,6 +74,7 @@ def build_index(codegraph):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='load_detail_index']"/>
 # 원시 분석 파일에서 멤버와 메서드의 선언 줄 색인을 만든다.
+# 쓰는 것: members[] · 쓰이는 곳: verify_citations.main
 def load_detail_index(path):
     """살 파일의 멤버·메서드 선언 줄 색인. clang-uml(elements)과 roslyn-dump(types) 양쪽을 안다."""
     d = json.load(open(path, encoding="utf-8"))
@@ -95,6 +99,7 @@ def load_detail_index(path):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='verify_citations.main']"/>
 # 인용 검증 도구의 명령줄 진입점. 실패가 있을 때만 종료 코드 1 이다.
+# 쓰는 것: build_index, load_detail_index · 쓰이는 곳: 없음
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("docs", nargs="+", help="검사할 마크다운 문서")

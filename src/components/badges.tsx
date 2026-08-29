@@ -1,5 +1,6 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='badges.tsx']"/>
 // 확신도 배지와 상태 태그 두 조각이 있는 파일.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // src/components/badges.tsx — theme.css 의 확신도·상태 배지 구획에 대응
 import type { Conf, StatusVariant, ReactNode } from "../types.js";
 
@@ -12,6 +13,7 @@ const TIER_EMOJI: Record<Conf["tier"], string> = {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='ConfBadge']"/>
 // 확신도 배지 한 개를 그린다. 이모지와 숫자가 함께 나온다.
+// 쓰는 것: 없음 · 쓰이는 곳: DecisionTable
 export function ConfBadge({ conf }: { conf: Conf }) {
   const emoji = conf.emoji ?? TIER_EMOJI[conf.tier];
   return <span className={`conf-badge conf-${conf.tier}`}>{`${emoji} ${conf.anchor}`}</span>;
@@ -19,6 +21,7 @@ export function ConfBadge({ conf }: { conf: Conf }) {
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='StatusTag']"/>
 // 상태 태그를 그린다. 색 계열만 정해 주고 문구는 자유다.
+// 쓰는 것: 없음 · 쓰이는 곳: DecisionTable
 export function StatusTag({ variant, children }: { variant: StatusVariant; children: ReactNode }) {
   return <span className={`status-tag status-${variant}`}>{children}</span>;
 }

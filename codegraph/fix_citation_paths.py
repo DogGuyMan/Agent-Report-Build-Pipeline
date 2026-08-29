@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='fix_citation_paths.py']"/>
 # 파일명만 남은 인용을 저장소 기준 전체 경로로 되살리는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """fix_citation_paths.py — 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다.
 
 **왜 필요한가.** 🔵 실측 — 위키를 쓰는 LLM 은 같은 파일을 여러 번 인용할 때 두 번째부터
@@ -29,6 +30,7 @@ SKIP_DIRS = {".git", "Library", "Temp", "obj", "bin", "node_modules", "out"}
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='index_repo']"/>
 # 저장소를 훑어 파일명마다 상대경로 목록을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: fix_citation_paths.main
 def index_repo(repo):
     """파일명 -> 저장소 기준 상대경로 목록."""
     idx = defaultdict(list)
@@ -42,6 +44,7 @@ def index_repo(repo):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='fix_citation_paths.main']"/>
 # 인용 경로 보강 도구의 명령줄 진입점.
+# 쓰는 것: index_repo · 쓰이는 곳: 없음
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("docs", nargs="+")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # <include file="docs/codegraph/comments.xml" path="//term[@id='demermaid.py']"/>
 # 위키에 남은 Mermaid 그림을 미리 그린 SVG 로 바꿔치기하는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """demermaid.py — C-18 집행. 위키의 Mermaid 를 사전 렌더 SVG 로 치환한다.
 
 C-8 이 "다이어그램은 deep-wiki 의 Mermaid 가 아니라 Graphviz P1~P6" 로 정했는데,
@@ -51,6 +52,7 @@ LABEL_BACKTICK = re.compile(r'(\["\[?)`([^`]*)`')
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='_mmdc']"/>
 # Mermaid 원문을 SVG 파일로 굽는 바깥 명령을 부른다.
+# 쓰는 것: 없음 · 쓰이는 곳: render_mermaid
 def _mmdc(src_text, out_svg):
     tmp = out_svg + ".mmd"
     open(tmp, "w", encoding="utf-8").write(src_text)
@@ -64,6 +66,7 @@ def _mmdc(src_text, out_svg):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='render_mermaid']"/>
 # Mermaid 한 덩이를 SVG 로 만든다. 실패하면 알려진 문법 제약을 걷어내고 다시 시도한다.
+# 쓰는 것: _mmdc · 쓰이는 곳: process
 def render_mermaid(src_text, out_svg):
     """mmdc 로 Mermaid 하나를 SVG 로 굽는다. 실패하면 None.
 
@@ -91,6 +94,7 @@ def render_mermaid(src_text, out_svg):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='process']"/>
 # 문서 하나를 훑어 Mermaid 블록을 그림으로 바꾼 사본을 만든다.
+# 쓰는 것: render_mermaid · 쓰이는 곳: demermaid.main
 def process(path, outdir, assets, svg_dir, rel_assets):
     lines = open(path, encoding="utf-8").read().splitlines()
     out, i = [], 0
@@ -147,6 +151,7 @@ def process(path, outdir, assets, svg_dir, rel_assets):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='demermaid.main']"/>
 # demermaid 도구의 명령줄 진입점.
+# 쓰는 것: process · 쓰이는 곳: 없음
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("wiki", help="위키 마크다운 디렉토리")

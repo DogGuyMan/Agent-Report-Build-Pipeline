@@ -1,10 +1,12 @@
 // <include file="docs/codegraph/comments.xml" path="//term[@id='page.tsx']"/>
 // 보고서의 뼈대(머리말 · 본문 자리 · 꼬리말)를 만드는 파일.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // src/page.tsx — 보고서 골격. 개별 보고서의 report.tsx 가 children 을 채운다.
 import type { ReportData, ReactNode } from "./types.js";
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='Page']"/>
 // 보고서 한 장의 뼈대. 머리말 · 본문 자리 · 꼬리말을 그린다.
+// 쓰는 것: ReportData · 쓰이는 곳: 없음
 export function Page({ data, children }: { data: ReportData; children: ReactNode }) {
   return (
     <div className="page">
@@ -29,6 +31,7 @@ export function Page({ data, children }: { data: ReportData; children: ReactNode
 
 // <include file="docs/codegraph/comments.xml" path="//term[@id='Section']"/>
 // 제목이 붙은 본문 절 하나를 감싼다.
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
