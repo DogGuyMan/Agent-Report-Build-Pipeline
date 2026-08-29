@@ -28,9 +28,9 @@ import run_mode1 as R  # noqa: E402
 
 # ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
 def test_plan_runs_everything_on_an_empty_repo():
-    """아무것도 없으면 다섯 단계를 순서대로 돈다. LLM 단계(agent)는 그중 하나뿐이다."""
+    """아무것도 없으면 일곱 단계를 순서대로 돈다. LLM 단계(agent)는 그중 하나뿐이다."""
     assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "prep", "agent", "terms", "build", "check"]
+        "prep", "warmup", "agent", "warmup-save", "terms", "build", "check"]
 
 
 def test_only_one_stage_calls_the_model():
@@ -40,10 +40,32 @@ def test_only_one_stage_calls_the_model():
 
 
 def test_plan_skips_the_agent_when_its_output_already_exists():
-    """조사 결과와 산문이 이미 있으면 에이전트를 부르지 않는다 — 다시 부르면 시간이 부풀고 돈이 든다."""
+    """조사 결과와 산문이 이미 있으면 에이전트를 부르지 않는다.
+
+    **그래도 warmup 두 칸은 남는다.** 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
+    매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다.
+    """
     p = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
     assert "agent" not in p
-    assert p == ["prep", "terms", "build", "check"]
+    assert p == ["prep", "warmup", "warmup-save", "terms", "build", "check"]
+
+
+def test_the_two_warmup_gates_straddle_the_agent():
+    """판정은 앞, 확정은 뒤. 이 순서가 뒤집히면 실패한 에이전트가 '유효' 로 기록된다."""
+    p = R.plan_stages(False, False, False)
+    assert p.index("warmup") < p.index("agent") < p.index("warmup-save")
+
+
+def test_the_save_gate_comes_before_terms():
+    """매니페스트 확정이 terms 뒤로 밀리면, terms 가 실패했을 때 판정이 사라진다."""
+    p = R.plan_stages(False, False, False)
+    assert p.index("warmup-save") < p.index("terms")
+
+
+def test_skipping_warmup_restores_the_old_five_stage_flow():
+    """warmup 을 빼면 2026-08-30 에 실측한 그 흐름 그대로여야 한다 — 대조군을 만들 수 있게."""
+    p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
+    assert p == ["prep", "agent", "terms", "build", "check"]
 
 
 def test_plan_keeps_the_agent_when_only_half_its_work_is_done():
@@ -119,6 +141,98 @@ def test_agent_result_is_a_failure_when_json_is_unreadable():
     assert not ok and "읽지" in why
 
 
+# ── 3.5 WarmUp — 언어 이름 다리
+def test_lang_of_bridges_the_two_naming_schemes(tmp_path):
+    """코드 지도는 'csharp' 이라 적고 declmap 은 'cs' 로 안다. 이 한 칸이 어긋나면 단계가 죽는다."""
+    p = tmp_path / "codegraph.json"
+    p.write_text('{"language": "csharp"}', encoding="utf-8")
+    assert R.lang_of(str(p)) == "cs"
+
+
+def test_lang_of_passes_through_a_name_declmap_already_knows(tmp_path):
+    p = tmp_path / "codegraph.json"
+    p.write_text('{"language": "cpp"}', encoding="utf-8")
+    assert R.lang_of(str(p)) == "cpp"
+
+
+def test_lang_of_is_none_when_it_cannot_tell():
+    """모르는 언어와 없는 파일은 둘 다 None 이다 — 부르는 쪽이 단계를 건너뛴다. 실패가 아니다."""
+    assert R.lang_of("/없는/파일.json") is None
+    assert R.lang_of(None) is None
+
+
+def test_seed_includes_position_only_files():
+    """급소 — 함수 본문만 바꾼 변경은 '위치만' 으로 온다.
+
+    decl_hash 는 (kind, name) 만 해싱하므로(warmup.py:84) 본문을 통째로 다시 써도
+    선언 이름이 같으면 '위치만' 이다. 이것을 빼면 레코드의 does 가 조용히 낡는다.
+    """
+    판정 = {"유효": ["a.cpp"], "재읽기": ["b.cpp"], "위치만": ["c.cpp"], "삭제됨": ["d.cpp"]}
+    assert R.changed_seed(판정) == ["b.cpp", "c.cpp"]
+
+
+def test_seed_excludes_valid_and_deleted():
+    """유효는 읽을 것이 없고, 삭제됨은 읽을 파일 자체가 없다."""
+    seed = R.changed_seed({"유효": ["a"], "재읽기": [], "위치만": [], "삭제됨": ["d"]})
+    assert seed == []
+
+
+def test_seed_is_sorted_and_deduplicated():
+    """같은 파일이 두 갈래에 들어와도 한 번만 센다 — 프롬프트에 두 번 실리면 안 된다."""
+    assert R.changed_seed({"재읽기": ["z", "a"], "위치만": ["a"]}) == ["a", "z"]
+
+
+def test_seed_tolerates_missing_buckets():
+    assert R.changed_seed({}) == []
+
+
+def test_agent_is_skipped_when_nothing_changed_and_records_exist():
+    """국소 변경의 이득이 여기서 나온다 — 27분짜리 단계를 통째로 건너뛴다."""
+    assert R.should_call_agent(targets=[], has_reading=True) is False
+
+
+def test_agent_still_runs_when_there_are_no_records_yet():
+    """조사 결과가 아예 없으면 warmup 이 뭐라 하든 부른다 — 백지에서 시작하는 실행이다."""
+    assert R.should_call_agent(targets=[], has_reading=False) is True
+
+
+def test_agent_runs_when_something_changed():
+    assert R.should_call_agent(targets=["a.cpp"], has_reading=True) is True
+
+
+def test_agent_runs_when_warmup_could_not_judge():
+    """targets 가 None 이면 warmup 이 못 돌았다는 뜻이다. 그때는 옛 동작(전량)으로 돌아간다."""
+    assert R.should_call_agent(targets=None, has_reading=True) is True
+
+
+def test_warmup_section_lists_every_target_and_the_ratio():
+    """에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다."""
+    s = R.warmup_section(["core/a.cpp", "server/b.h"], total=77)
+    assert "core/a.cpp" in s and "server/b.h" in s
+    assert "2" in s and "77" in s
+    assert "읽지 마라" in s          # 목록 밖을 읽지 말라고 분명히 말한다
+
+
+def test_warmup_section_is_empty_when_there_is_nothing_to_scope():
+    """범위가 없으면 빈 글이다 — 부르는 쪽이 이 절을 통째로 뺀다."""
+    assert R.warmup_section([], total=77) == ""
+    assert R.warmup_section(None, total=77) == ""
+
+
+def test_prompt_carries_the_scope_when_warmup_gave_one():
+    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리",
+                       targets=["core/a.cpp"], total=77)
+    assert "core/a.cpp" in p
+    assert "증분" in p
+
+
+def test_prompt_without_a_scope_is_the_full_survey():
+    """warmup 이 못 돌았거나 백지 실행이면 옛 프롬프트 그대로여야 한다."""
+    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    assert "증분" not in p
+    assert "codebase-terms-survey" in p and "deep-wiki" in p
+
+
 # ── 4. 에이전트 호출 — 하나만, 그리고 대상 저장소를 볼 수 있게
 def test_claude_argv_is_headless_json_and_names_the_model():
     argv = R.claude_argv(model="opus", repo="/어느/저장소", extra_dirs=["/도구/뿌리"])
@@ -182,3 +296,20 @@ def test_report_marks_a_failed_stage():
     text = R.format_report([{"stage": "build", "seconds": 1.0, "ok": False,
                              "why": "산문이 없다", "usage": R.normalize_usage(None)}])
     assert "실패" in text and "산문이 없다" in text
+
+
+def test_report_marks_a_skipped_stage():
+    """건너뜀을 '성공' 으로 그리면 27분이 15초가 된 이유를 읽는 사람이 알 수 없다."""
+    text = R.format_report([{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
+                             "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)}])
+    assert "건너뜀" in text
+    assert "바뀐 파일 0개" in text
+    assert "실패" not in text
+
+
+def test_a_skipped_stage_does_not_break_the_total():
+    rows = [{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
+             "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)},
+            {"stage": "build", "seconds": 2.0, "ok": True,
+             "usage": R.normalize_usage(None)}]
+    assert "합계" in R.format_report(rows)
