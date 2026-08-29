@@ -16,8 +16,10 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import terms_db as T  # noqa: E402
 
-CS_REPO = os.path.expanduser("$CSHARP_REPO")
-CPP_REPO = os.path.expanduser("$GRAPHICS_REPO")
+# 환경변수가 없으면 절대 존재할 수 없는 경로를 쓴다 — 빈 문자열이면 아래 os.path.join 이
+# 상대경로가 되어 **이 저장소의 산출물을 골든으로 착각해 읽는다**(실제로 겪었다).
+CS_REPO = os.path.expandvars(os.environ.get("CSHARP_REPO", "")) or "/골든저장소_미지정/CSHARP_REPO"
+CPP_REPO = os.path.expandvars(os.environ.get("GRAPHICS_REPO", "")) or "/골든저장소_미지정/GRAPHICS_REPO"
 
 
 def _graph():

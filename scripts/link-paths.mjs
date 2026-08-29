@@ -11,6 +11,7 @@
 import { statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 
 /** 이 요소 안의 글자는 건드리지 않는다. a 가 들어 있는 이유는 링크 안에 링크를 넣지 않기 위함이다. */
@@ -70,6 +71,23 @@ const isDir = (p) => {
   }
 };
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='expandRoot']"/>
+// data.ts 의 linkRoots 에 적힌 $VAR 와 ~ 를 실제 경로로 편다.
+// 쓰는 것: 없음 · 쓰이는 곳: makeResolver
+/**
+ * 경로 앞머리의 `~` 와 `$VAR` / `${VAR}` 를 편다.
+ *
+ * **왜 필요한가.** 공개 저장소에 맥 유저명을 남기지 않으려고 `data.ts` 의 `linkRoots` 를
+ * `$CSHARP_REPO/out/codegraph-raw` 같은 꼴로 적는다. 값이 없으면 그 자리는 빈 문자열이
+ * 되고 `isDir` 이 걸러 내므로, 그 폴더가 없는 독자에게는 조용히 링크가 안 걸릴 뿐이다.
+ */
+export function expandRoot(base) {
+  let out = String(base);
+  if (out === "~" || out.startsWith("~/")) out = join(homedir(), out.slice(1));
+  return out.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g,
+    (_, a, b) => process.env[a ?? b] ?? "");
+}
+
 // <include file="docs/codegraph/comments.xml" path="//term[@id='makeResolver']"/>
 // 경로 낱말 하나를 받아 실제 파일 주소를 돌려주는 함수를 만든다.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
@@ -78,7 +96,7 @@ const isDir = (p) => {
  * 순서: bases 를 차례로(보고서 폴더 → specs/ → 저장소 루트 → out/codegraph-raw → linkRoots) → 이름만이면 index 에서 유일할 때.
  */
 export function makeResolver({ bases, repoRoot, index }) {
-  const roots = [...new Set(bases.filter(Boolean))].filter((b) => isDir(b));
+  const roots = [...new Set(bases.filter(Boolean).map(expandRoot))].filter((b) => isDir(b));
   return function resolve(token) {
     if (token.includes("*")) {
       const dir = dirname(token);

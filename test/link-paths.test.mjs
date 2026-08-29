@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir, homedir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { linkPaths, makeResolver, pathPattern } from "../scripts/link-paths.mjs";
+import { linkPaths, makeResolver, pathPattern, expandRoot } from "../scripts/link-paths.mjs";
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "rb-links-"));
@@ -96,4 +96,21 @@ test("makeResolver 는 bases 순서대로 먼저 찾은 것을 쓴다 — linkRo
   const r2 = makeResolver({ bases: [join(root, "b"), join(root, "a")], repoRoot: root, index: new Map() });
   assert.equal(r1("x.json").href, pathToFileURL(join(root, "a/x.json")).href);
   assert.equal(r2("x.json").href, pathToFileURL(join(root, "b/x.json")).href);
+});
+
+test("expandRoot 는 $VAR 와 ${VAR} 를 편다", () => {
+  process.env.RB_TEST_ROOT = "/tmp/rb-test";
+  assert.equal(expandRoot("$RB_TEST_ROOT/out"), "/tmp/rb-test/out");
+  assert.equal(expandRoot("${RB_TEST_ROOT}/out"), "/tmp/rb-test/out");
+  delete process.env.RB_TEST_ROOT;
+});
+
+test("expandRoot 는 값이 없는 변수를 빈 문자열로 만든다 — 그러면 isDir 이 걸러 낸다", () => {
+  delete process.env.RB_ABSENT_ROOT;
+  assert.equal(expandRoot("$RB_ABSENT_ROOT/out"), "/out");
+});
+
+test("expandRoot 는 앞머리 ~ 를 홈으로 편다", () => {
+  assert.equal(expandRoot("~/x"), join(homedir(), "/x"));
+  assert.equal(expandRoot("/a/~/b"), "/a/~/b");
 });

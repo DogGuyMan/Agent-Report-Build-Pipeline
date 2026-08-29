@@ -22,3 +22,6 @@ out/diagrams/
 
 # 파이썬 바이트코드 캐시 - 소스 실행 시 자동 재생성된다
 __pycache__/
+
+# 로컬 유지보수 도구 - 기계마다 다른 경로가 규칙에 박혀 있어 공유하지 않는다
+scripts/scrub_local_paths.py

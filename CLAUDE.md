@@ -104,6 +104,36 @@ report-term grade answers.json                  # → term-grades.json  확실/�
 report-term emit term-grades.json               # → terms.json + term-study-note.md
 ```
 
+## 경로 변수 — 문서와 테스트가 쓰는 이름
+
+**이 저장소는 공개된다. 기계마다 다른 경로를 문서·코드·커밋에 그대로 적지 않는다.**
+어느 머신에서 읽어도 뜻이 통하도록 변수 이름을 쓴다.
+
+| 변수 | 가리키는 곳 | 값이 없으면 |
+|---|---|---|
+| `$REPO_ROOT` | 이 저장소 | 문서 표기 전용 — 동작에 영향 없음 |
+| `$TOOLS_ROOT` · `$DEV_ROOT` | 개인 작업 폴더 두 곳 | 같음 |
+| `$GRAPHICS_REPO` | C++ 골든 저장소 (clang-uml 표본) | **골든 테스트 15개가 건너뛴다.** 실패가 아니다 |
+| `$CSHARP_REPO` | C# 골든 저장소 (StickRushGame) | 같음 |
+| `$CPP_REPO` | C++ 위키 대상 (QtVisionEdit) | 문서 표기 전용 |
+
+```bash
+# 각자 자기 경로로. ~/.zshrc 에 넣으면 골든 테스트까지 돈다.
+export GRAPHICS_REPO="$HOME/<...>/GlobalMedia-OpenGL-ComputerGraphics"
+export CSHARP_REPO="$HOME/<...>/StickRushGame"
+```
+
+🔵 실측 — 변수 없이 `pytest codegraph/` 는 **47 통과 · 15 건너뜀**, 변수를 주면 **62 통과**다.
+
+**함정.** 골든 경로 상수는 값이 없을 때 빈 문자열이 되면 안 된다. `os.path.join("", "out/…")` 이
+**상대경로**가 되어 이 저장소의 산출물을 골든으로 착각해 읽는다(실제로 겪었다). 그래서
+`… or "/골든저장소_미지정/<변수>"` 로 절대 존재할 수 없는 경로를 준다.
+
+`data.ts` 의 `linkRoots` 도 같은 규약을 쓴다 — `scripts/link-paths.mjs` 의 `expandRoot()` 가
+`$VAR` 와 `~` 를 편다. 변수가 없는 독자에게는 그 링크만 조용히 안 걸린다.
+
+**새 문서에도 이 규약을 쓴다** — 홈 아래 경로를 적을 일이 생기면 위 변수 중 하나로 적는다.
+
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
 
 이 저장소는 렌더러이고, **보고서는 다른 저장소의 `<프로젝트>/specs/<slug>/` 에 산다.** 여기서 나오는
