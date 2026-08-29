@@ -1,3 +1,4 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='scripts/wiki/build.mjs']"/>
 // scripts/wiki/build.mjs
 // report-wiki build <저장소> — 산문 후처리.
 //   1) demermaid.py 가 Mermaid 를 사전 렌더 SVG 로 바꾼다 (결정 C-18)
@@ -13,6 +14,7 @@ import { pythonPath } from "../python.mjs";
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 /** 마크다운 파일 목록 -> VitePress 사이드바 항목. index 는 뺀다(홈이 따로 링크한다). */
+// <include file="docs/codegraph/comments.xml" path="//term[@id='sidebarFrom']"/>
 export function sidebarFrom(files) {
   return files
     .filter((f) => f.endsWith(".md") && f !== "index.md")
@@ -29,6 +31,7 @@ export function sidebarFrom(files) {
  * `Cannot find package 'vitepress'` 로 즉사한다(🔵 2026-08-29 QtVisionEdit 에서 겪었다).
  * `defineConfig` 는 타입만 붙여 주는 항등 함수라 평범한 객체를 내보내면 동작이 같다.
  */
+// <include file="docs/codegraph/comments.xml" path="//term[@id='vitepressConfig']"/>
 export function vitepressConfig(repoName, sidebar, outDir) {
   const items = sidebar.map((s) => `      { text: ${JSON.stringify(s.text)}, link: ${JSON.stringify(s.link)} }`);
   return `// report-wiki build 가 생성한다. 손으로 고치지 말 것 — 다음 빌드에서 덮어쓴다.
@@ -71,6 +74,11 @@ if (process.argv[1] && process.argv[1].endsWith("build.mjs")) {
   }
 
   // 1) Mermaid -> 사전 렌더 SVG
+  //
+  // **먼저 비운다.** demermaid 는 있는 파일을 덮어쓸 뿐 없어진 파일을 지우지 않는다.
+  // 산문에서 페이지를 빼거나 이름을 바꾸면 옛 페이지가 그대로 남아 사이트에 실린다
+  // (🔵 2026-08-29 StickRush 에서 옛 파일럿 위키 4장이 딸려 와 죽은 링크 10개가 났다).
+  rmSync(P.built, { recursive: true, force: true });
   mkdirSync(P.built, { recursive: true });
   const svgDir = existsSync(join(P.raw, "diagrams")) ? ["--svg-dir", join(P.raw, "diagrams")] : [];
   run(pythonPath(ROOT), [join(ROOT, "codegraph", "demermaid.py"), P.wiki, "--out", P.built, ...svgDir]);

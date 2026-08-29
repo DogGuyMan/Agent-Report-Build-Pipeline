@@ -1,3 +1,4 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='scripts/wiki/check.mjs']"/>
 // scripts/wiki/check.mjs
 // report-wiki check <저장소> — 위키 산문의 인용을 검증한다.
 // verify_citations.py 의 3값 판정을 그대로 쓴다:
@@ -13,6 +14,7 @@ import { pythonPath } from "../python.mjs";
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 /** verify_citations.py 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다. */
+// <include file="docs/codegraph/comments.xml" path="//term[@id='checkArgs']"/>
 export function checkArgs({ repo, codegraph, detail, docs }) {
   const out = ["--repo", repo, "--codegraph", codegraph];
   if (detail) out.push("--detail", detail);

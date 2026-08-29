@@ -516,7 +516,7 @@
   "_assemble": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:281",
+    "where": "codegraph/normalize.py:379",
     "means": "두 언어 파서가 함께 쓰는 마무리. 최종 codegraph.json 모양으로 조립한다.",
     "does": "닿지 않는 외부 노드를 걷어내고, 클래스 간선에서 모듈 사이 의존을 유도해 nodes[] · edges[] · modules[] 세 목록을 낸다.",
     "uses": [
@@ -524,25 +524,25 @@
         "to": "nodes[]",
         "kind": "dependency",
         "label": "fills",
-        "where": "codegraph/normalize.py:318"
+        "where": "codegraph/normalize.py:299"
       },
       {
         "to": "edges[]",
         "kind": "dependency",
         "label": "fills",
-        "where": "codegraph/normalize.py:319"
+        "where": "codegraph/normalize.py:326"
       },
       {
         "to": "modules[]",
         "kind": "dependency",
         "label": "fills",
-        "where": "codegraph/normalize.py:320"
+        "where": "codegraph/normalize.py:378"
       },
       {
         "to": "git_commit",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:317"
+        "where": "codegraph/normalize.py:378"
       }
     ],
     "source": "reading"
@@ -852,7 +852,7 @@
   "codegraph.json": {
     "kind": "artifact",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:552",
+    "where": "codegraph/normalize.py:642",
     "means": "코드 지도. 점(클래스)과 선(관계)과 모듈을 담은 JSON 한 개.",
     "does": "normalize.py 가 쓰고 facts.py · render_*.py · verify_citations.py 가 읽는다. 언어가 달라도 모양이 같아 소비자는 하나면 된다.",
     "uses": [],
@@ -907,7 +907,7 @@
   "cs_asm2pkg": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:373",
+    "where": "codegraph/normalize.py:471",
     "means": "어셈블리 이름을 유니티 패키지 이름으로 바꿔 줄 사전을 만든다.",
     "uses": [],
     "source": "reading"
@@ -915,7 +915,7 @@
   "cs_external_group": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:396",
+    "where": "codegraph/normalize.py:494",
     "means": "C# 외부 타입을 패키지 이름 하나로 접는다.",
     "uses": [],
     "source": "reading"
@@ -923,7 +923,7 @@
   "cs_module_of": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:358",
+    "where": "codegraph/normalize.py:456",
     "means": "C# 파일 경로에서 모듈 이름을 정한다. 여기서도 경계는 폴더 트리다.",
     "uses": [],
     "source": "reading"
@@ -988,7 +988,7 @@
   "depends_on": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:320",
+    "where": "codegraph/normalize.py:384",
     "means": "모듈 하나가 기대는 다른 모듈의 이름 목록.",
     "uses": [],
     "source": "reading"
@@ -1005,7 +1005,7 @@
   "edges[]": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:319",
+    "where": "codegraph/normalize.py:326",
     "means": "코드 지도의 선 목록. 어느 점에서 어느 점으로 어떤 종류의 관계인지 담는다.",
     "uses": [],
     "source": "reading"
@@ -1081,7 +1081,7 @@
   "external_group": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:96",
+    "where": "codegraph/normalize.py:193",
     "means": "외부 타입을 라이브러리 이름 하나로 접는다. 외부 하나에 노드 하나다.",
     "uses": [],
     "source": "reading"
@@ -1304,7 +1304,7 @@
   "is_first_party": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:89",
+    "where": "codegraph/normalize.py:150",
     "means": "이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.",
     "uses": [],
     "source": "reading"
@@ -1312,7 +1312,7 @@
   "is_transparent_wrapper": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:127",
+    "where": "codegraph/normalize.py:224",
     "means": "vector 나 unique_ptr 같은 담는 그릇인지 본다. 그릇은 노드로 만들지 않고 통과시킨다.",
     "does": "이 규칙을 빼면 우리 클래스끼리의 소유 관계가 그릇에 가려 보이지 않는다.",
     "uses": [],
@@ -1386,7 +1386,7 @@
   "member_location": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:139",
+    "where": "codegraph/normalize.py:236",
     "means": "간선의 근거가 되는 멤버 선언 줄을 찾는다.",
     "does": "멤버 이름으로 members[] 를 조회한다. 문자열 탐색이 아니라 구조 조회라서 애매한 경우가 없다.",
     "uses": [
@@ -1394,7 +1394,7 @@
         "to": "members[]",
         "kind": "dependency",
         "label": "reads",
-        "where": "codegraph/normalize.py:149"
+        "where": "codegraph/normalize.py:235"
       }
     ],
     "source": "reading"
@@ -1402,7 +1402,7 @@
   "members[]": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:149",
+    "where": "codegraph/normalize.py:235",
     "means": "원시 분석 파일이 갖는 멤버 변수 목록. 코드 지도에는 없다.",
     "does": "간선의 근거 줄을 찾을 때 멤버 이름으로 여기를 조회한다.",
     "uses": [],
@@ -1435,7 +1435,7 @@
   "modules[]": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:320",
+    "where": "codegraph/normalize.py:378",
     "means": "모듈 목록과 모듈 사이 의존. 모듈 경계는 폴더 트리다.",
     "does": "클래스 간선에서 유도한다. 링크 의존이 아니라 타입 의존이므로 빌드 설정의 의존과 같은 것으로 읽으면 안 된다.",
     "uses": [],
@@ -1494,7 +1494,7 @@
   "node_name": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:159",
+    "where": "codegraph/normalize.py:256",
     "means": "노드에 쓸 이름을 고른다. 중첩 타입은 구분자가 :: 가 아니라 ## 이다.",
     "uses": [],
     "source": "reading"
@@ -1502,7 +1502,7 @@
   "nodes[]": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:318",
+    "where": "codegraph/normalize.py:299",
     "means": "코드 지도의 점 목록. 클래스 하나가 점 하나다.",
     "uses": [],
     "source": "reading"
@@ -1510,32 +1510,32 @@
   "normalize.main": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:546",
+    "where": "codegraph/normalize.py:644",
     "means": "normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.",
     "uses": [
       {
         "to": "load_clang_uml",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:556"
+        "where": "codegraph/normalize.py:643"
       },
       {
         "to": "normalize_cpp",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:558"
+        "where": "codegraph/normalize.py:643"
       },
       {
         "to": "normalize_csharp",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:561"
+        "where": "codegraph/normalize.py:519"
       },
       {
         "to": "codegraph.json",
         "kind": "dependency",
         "label": "writes",
-        "where": "codegraph/normalize.py:552"
+        "where": "codegraph/normalize.py:642"
       }
     ],
     "source": "reading"
@@ -1551,13 +1551,13 @@
         "to": "codegraph.json",
         "kind": "dependency",
         "label": "writes",
-        "where": "codegraph/normalize.py:552"
+        "where": "codegraph/normalize.py:642"
       },
       {
         "to": "roslyn-dump.json",
         "kind": "dependency",
         "label": "reads",
-        "where": "codegraph/normalize.py:550"
+        "where": "codegraph/normalize.py:648"
       }
     ],
     "source": "reading"
@@ -1565,7 +1565,7 @@
   "normalize_cpp": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:167",
+    "where": "codegraph/normalize.py:264",
     "means": "C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.",
     "does": "먼저 노드를 정하고(그릇과 원시 타입은 뺀다), 그다음 관계를 훑어 간선을 만든다. clang-uml 의 낱말을 우리 낱말로 갈아 끼우는 대응표가 여기 걸린다.",
     "uses": [
@@ -1573,43 +1573,43 @@
         "to": "is_transparent_wrapper",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:180"
+        "where": "codegraph/normalize.py:221"
       },
       {
         "to": "node_name",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:183"
+        "where": "codegraph/normalize.py:253"
       },
       {
         "to": "is_first_party",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:186"
+        "where": "codegraph/normalize.py:149"
       },
       {
         "to": "module_of",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:192"
+        "where": "codegraph/normalize.py:263"
       },
       {
         "to": "external_group",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:198"
+        "where": "codegraph/normalize.py:193"
       },
       {
         "to": "member_location",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:250"
+        "where": "codegraph/normalize.py:236"
       },
       {
         "to": "_assemble",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:275"
+        "where": "codegraph/normalize.py:373"
       }
     ],
     "source": "reading"
@@ -1617,7 +1617,7 @@
   "normalize_csharp": {
     "kind": "function",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:421",
+    "where": "codegraph/normalize.py:519",
     "means": "C# 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.",
     "does": "참조 집합이 틀리면 결과가 통째로 쓰레기가 되므로, 컴파일 오류나 못 푼 타입이 있으면 시작하자마자 거절한다.",
     "uses": [
@@ -1625,13 +1625,13 @@
         "to": "cs_asm2pkg",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:430"
+        "where": "codegraph/normalize.py:468"
       },
       {
         "to": "cs_module_of",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:473"
+        "where": "codegraph/normalize.py:456"
       },
       {
         "to": "cs_external_group",
@@ -1643,7 +1643,7 @@
         "to": "_assemble",
         "kind": "dependency",
         "label": "calls",
-        "where": "codegraph/normalize.py:539"
+        "where": "codegraph/normalize.py:518"
       }
     ],
     "source": "reading"
@@ -2031,7 +2031,7 @@
   "roslyn-dump.json": {
     "kind": "artifact",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:550",
+    "where": "codegraph/normalize.py:648",
     "means": "C# 쪽 원시 분석 결과. 형식만 정해져 있고 만드는 도구는 아직 없다.",
     "does": "normalize.py 가 이것을 받아 codegraph.json 으로 바꾼다. 진입점 재료처럼 지도에 없는 살은 여기에만 있다.",
     "uses": [],
@@ -2056,7 +2056,7 @@
   "schema_version": {
     "kind": "key",
     "module": "codegraph",
-    "where": "codegraph/normalize.py:313",
+    "where": "codegraph/normalize.py:411",
     "means": "코드 지도 형식의 판 번호. 지금은 2 다.",
     "does": "렌더러가 2 가 아니면 경고를 내고 계속한다.",
     "uses": [],
@@ -2789,6 +2789,230 @@
         "where": "scripts/doctor.mjs:15"
       }
     ],
+    "source": "reading"
+  },
+  "scripts/wiki/paths.mjs": {
+    "kind": "file",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/paths.mjs:1",
+    "means": "위키 세 명령이 함께 보는 경로 규약.",
+    "does": "산문은 추적 경로에, 파생물은 out 아래에 둔다는 결정이 여기 한 줄로 있다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "wikiPaths": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/paths.mjs:15",
+    "means": "대상 저장소 하나의 여러 경로를 한 덩이로 만든다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "collectorFor": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/paths.mjs:35",
+    "means": "저장소 최상위를 보고 어느 정적 수집기를 쓸지 고른다.",
+    "does": "C# 을 먼저 본다. 유니티 저장소는 네이티브 플러그인 때문에 CMake 파일을 함께 가질 수 있다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "scripts/wiki/prep.mjs": {
+    "kind": "file",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/prep.mjs:1",
+    "means": "정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "prepPlan": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/prep.mjs:21",
+    "means": "무엇을 어떤 순서로 돌릴지 정한다.",
+    "does": "파일을 뒤지지 않는 순수 함수라 시험하기 쉽다. 막히면 사람이 읽을 사유를 남긴다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "scripts/wiki/build.mjs": {
+    "kind": "file",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/build.mjs:1",
+    "means": "산문을 사전 렌더 그림으로 바꾸고 정적 사이트를 짓는 파일.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "sidebarFrom": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/build.mjs:19",
+    "means": "마크다운 파일 목록을 옆 차림표 항목으로 바꾼다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "vitepressConfig": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/build.mjs:36",
+    "means": "사이트 설정 파일의 글자를 만든다.",
+    "does": "설정 도우미를 불러오지 않는다. 이 파일은 남의 저장소에 쓰이는데 거기엔 꾸러미가 없다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "scripts/wiki/check.mjs": {
+    "kind": "file",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/check.mjs:1",
+    "means": "위키 산문의 인용을 검증하는 파일.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "checkArgs": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/check.mjs:19",
+    "means": "검증기에 넘길 인자를 만든다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "scripts/wiki/compdb.mjs": {
+    "kind": "file",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:1",
+    "means": "C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.",
+    "does": "CMake 타깃 트리가 여럿일 수 있다. 하나만 쓰면 그 타깃이 통째로 조사에서 빠진다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "findCompdbs": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:24",
+    "means": "저장소 안의 컴파일 명령 파일을 전부 찾는다.",
+    "does": "도구가 만든 축약본은 원본이 있으면 버린다. 같은 것을 두 번 세지 않는다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "mergeEntries": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:51",
+    "means": "여러 목록을 합치고 중복과 남의 코드를 걷어 낸다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "relativeFiles": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:69",
+    "means": "합친 목록에서 저장소 기준 상대 경로만 뽑아 정렬한다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "clangUmlConfig": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:83",
+    "means": "정적 수집기 설정 글자를 만든다.",
+    "does": "별표 무늬를 쓰지 않고 파일을 하나씩 적는다. 깊은 폴더에서 그 무늬가 도구를 죽인다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "readAuthorConfig": {
+    "kind": "function",
+    "module": "scripts/wiki",
+    "where": "scripts/wiki/compdb.mjs:105",
+    "means": "저자가 쓴 설정에서 컴파일 깃발과 포함 경로만 읽어 온다.",
+    "does": "그 두 값은 기계마다 달라 도구가 지어낼 수 없다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "codegraph/declmap.py": {
+    "kind": "file",
+    "module": "codegraph",
+    "where": "codegraph/declmap.py:1",
+    "means": "선언과 그 위의 문서 주석만 뽑아 한 장으로 만드는 파일.",
+    "does": "소스를 전부 읽지 않고도 무엇이 있는지 보게 한다. 읽을 자리를 좁혀 준다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "declmap.tracked_files": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/declmap.py:65",
+    "means": "조사 대상 파일 목록을 고른다.",
+    "does": "판 관리가 아는 파일만 본다. 빌드가 만든 것과 남의 꾸러미를 거르는 가장 싼 방법이다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "doc_above": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/declmap.py:84",
+    "means": "선언 바로 위에 붙은 문서 주석을 모은다.",
+    "does": "빈 줄과 특성 줄은 건너뛴다. 주석이 아닌 코드를 만나면 멈춰, 위쪽 딴 함수의 주석을 끌어오지 않는다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "declmap.scan": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/declmap.py:103",
+    "means": "파일을 돌며 선언과 문서 주석을 모은다.",
+    "uses": [
+      {
+        "to": "doc_above",
+        "kind": "dependency",
+        "label": "calls",
+        "where": "codegraph/declmap.py:82"
+      },
+      {
+        "to": "declmap.tracked_files",
+        "kind": "dependency",
+        "label": "calls",
+        "where": "codegraph/declmap.py:63"
+      }
+    ],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "defines_at": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/normalize.py:100",
+    "means": "그 줄이 이 타입을 실제로 정의하는지 본다.",
+    "does": "미리 알림만 하는 줄과 그냥 쓰는 줄을 가려낸다. 이것이 없으면 남의 타입이 우리 것으로 섞인다.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "tracked_set": {
+    "kind": "function",
+    "module": "codegraph",
+    "where": "codegraph/normalize.py:141",
+    "means": "판 관리가 아는 파일 집합을 얻는다.",
+    "does": "우리 코드인지 가르는 데 쓴다. 남의 헤더는 여기 없다.",
+    "uses": [],
+    "confidence": "HIGH",
     "source": "reading"
   }
 }

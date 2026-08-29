@@ -129,3 +129,46 @@ test("checkArgs 는 살 파일이 있으면 --detail 을 끼운다", () => {
   }), ["--repo", "/tmp/r", "--codegraph", "/tmp/r/cg.json",
        "--detail", "/tmp/r/rd.json", "/tmp/r/docs/wiki/a.md"]);
 });
+
+// ── compdb 합치기 (2026-08-29)
+import { mergeEntries, relativeFiles, clangUmlConfig, EXTERNAL_MARKERS } from "../scripts/wiki/compdb.mjs";
+
+test("mergeEntries 는 파일 경로로 중복을 지운다 — 트리 둘이 같은 TU 를 가질 수 있다", () => {
+  const e = (f) => ({ file: `/r/${f}`, directory: "/r/b" });
+  const out = mergeEntries([[e("a.cpp"), e("b.cpp")], [e("b.cpp"), e("c.cpp")]], "/r");
+  assert.deepEqual(out.map((x) => x.file), ["/r/a.cpp", "/r/b.cpp", "/r/c.cpp"]);
+});
+
+test("mergeEntries 는 저장소 밖 파일을 뺀다", () => {
+  const out = mergeEntries([[{ file: "/other/x.cpp" }, { file: "/r/y.cpp" }]], "/r");
+  assert.deepEqual(out.map((x) => x.file), ["/r/y.cpp"]);
+});
+
+test("mergeEntries 는 외부 라이브러리와 빌드 산출물을 뺀다", () => {
+  const files = ["/r/src/a.cpp", "/r/vcpkg_installed/x.cpp", "/r/b/vedit_autogen/moc_x.cpp",
+                 "/r/build/CMakeFiles/y.cpp"];
+  const out = mergeEntries([files.map((f) => ({ file: f }))], "/r");
+  assert.deepEqual(out.map((x) => x.file), ["/r/src/a.cpp"]);
+});
+
+test("EXTERNAL_MARKERS 는 Qt autogen 과 vcpkg 를 덮는다", () => {
+  for (const m of ["autogen", "/vcpkg_installed/", "moc_"]) assert.ok(EXTERNAL_MARKERS.includes(m));
+});
+
+test("relativeFiles 는 저장소 상대경로를 정렬해 낸다 — 결정론", () => {
+  const out = relativeFiles([{ file: "/r/b.cpp" }, { file: "/r/a.cpp" }, { file: "/r/b.cpp" }], "/r");
+  assert.deepEqual(out, ["a.cpp", "b.cpp"]);
+});
+
+test("clangUmlConfig 는 글로브를 쓰지 않고 파일을 열거한다 — 깊이 4 정규식 함정", () => {
+  const cfg = clangUmlConfig({
+    compdbDir: "/r/out/compdb", repo: "/r", outDir: "/r/out",
+    files: ["app/src/view/mainwindow.cpp", "core/panorama/warp.cpp"],
+    flags: ["-resource-dir=/x"], paths: ["app", "core"],
+  });
+  assert.doesNotMatch(cfg, /\*/);
+  assert.match(cfg, /- app\/src\/view\/mainwindow\.cpp/);
+  assert.match(cfg, /- core\/panorama\/warp\.cpp/);
+  assert.match(cfg, /- -resource-dir=\/x/);
+  assert.match(cfg, /paths: \[app, core\]/);
+});

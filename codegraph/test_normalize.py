@@ -326,3 +326,81 @@ def test_terms_db_is_deterministic():
     first = json.dumps(T.build_terms(g, facts={}, hotspot=[]), ensure_ascii=False, sort_keys=True)
     second = json.dumps(T.build_terms(g, facts={}, hotspot=[]), ensure_ascii=False, sort_keys=True)
     assert first == second
+
+
+# ── 11. 1차 판정 — 네임스페이스가 없는 코드도 잡는다 (2026-08-29)
+def test_first_party_by_namespace_allowlist():
+    """허용목록에 있는 네임스페이스는 저장소 경로를 몰라도 1차다."""
+    assert N.is_first_party({"namespace": "SJH::Core"}, None) is True
+
+
+def test_first_party_by_declaration_path(tmp_path):
+    """네임스페이스가 없어도 저장소 안에서 **정의**됐으면 1차다 — app/ 이 이 경우다."""
+    d = tmp_path / "app" / "src" / "view"
+    d.mkdir(parents=True)
+    (d / "mainwindow.h").write_text("#pragma once\nclass MainWindow : public QWidget\n{\n};\n",
+                                    encoding="utf-8")
+    el = {"namespace": "", "name": "MainWindow",
+          "source_location": {"file": "app/src/view/mainwindow.h", "line": 2}}
+    assert N.is_first_party(el, str(tmp_path)) is True
+
+
+def test_first_party_rejects_forward_declaration(tmp_path):
+    """`class QWidget;` 는 전방 선언이다 — 우리가 정의한 것이 아니다.
+    🔵 이 검사가 없으면 QWidget 이 PageRank 상위에 올라온다(2026-08-29 실측)."""
+    d = tmp_path / "app" / "src" / "feature"
+    d.mkdir(parents=True)
+    (d / "alignmentcontroller.h").write_text("#pragma once\nclass QWidget;\n", encoding="utf-8")
+    el = {"namespace": "", "name": "QWidget",
+          "source_location": {"file": "app/src/feature/alignmentcontroller.h", "line": 2}}
+    assert N.is_first_party(el, str(tmp_path)) is False
+
+
+def test_first_party_rejects_use_site(tmp_path):
+    """멤버 선언 줄은 정의가 아니다 — cv::Mat3b img; 가 이 경우다."""
+    d = tmp_path / "core"
+    d.mkdir(parents=True)
+    (d / "panorama.h").write_text("#pragma once\n\tcv::Mat3b img;\n", encoding="utf-8")
+    el = {"namespace": "cv", "name": "Mat_<uchar>",
+          "source_location": {"file": "core/panorama.h", "line": 2}}
+    assert N.is_first_party(el, str(tmp_path)) is False
+
+
+def test_first_party_accepts_nested_type(tmp_path):
+    """중첩 타입은 이름 구분자가 ## 다. 벗기지 않으면 우리 enum 이 외부로 밀린다."""
+    d = tmp_path / "app"
+    d.mkdir(parents=True)
+    (d / "mainwindow.h").write_text("#pragma once\n    enum class ServerState\n    {\n    };\n",
+                                    encoding="utf-8")
+    el = {"namespace": "", "name": "MainWindow##ServerState",
+          "source_location": {"file": "app/mainwindow.h", "line": 2}}
+    assert N.is_first_party(el, str(tmp_path)) is True
+
+
+def test_first_party_never_accepts_std_even_inside_repo():
+    """F-1 — clang-uml 은 std 타입의 위치로 이 저장소의 첫 사용 지점을 준다.
+    막지 않으면 std::vector 가 1차 코드가 된다."""
+    el = {"namespace": "std", "name": "vector",
+          "source_location": {"file": "core/panorama/panorama.h"}}
+    assert N.is_first_party(el, "/repo") is False
+
+
+def test_first_party_rejects_generated_files():
+    """Qt autogen 의 Ui::* 는 빌드 산출물이라 1차가 아니다."""
+    el = {"namespace": "Ui", "name": "MainWindow",
+          "source_location": {"file": "app/build/x/vedit_gui_autogen/include/ui_mainwindow.h"}}
+    assert N.is_first_party(el, "/repo") is False
+
+
+def test_first_party_rejects_outside_repo():
+    """저장소 밖에서 선언된 것은 1차가 아니다."""
+    el = {"namespace": "cv", "name": "Mat",
+          "source_location": {"file": "/opt/homebrew/include/opencv2/core.hpp"}}
+    assert N.is_first_party(el, "/repo") is False
+
+
+def test_first_party_without_repo_keeps_old_behavior():
+    """repo 를 안 주면 예전처럼 네임스페이스만 본다 — 기존 호출자가 안 깨진다."""
+    el = {"namespace": "", "name": "MainWindow",
+          "source_location": {"file": "app/src/view/mainwindow.h"}}
+    assert N.is_first_party(el) is False

@@ -14,7 +14,7 @@ Track C 의 정규화 계층이다. 접기 규칙(C-9 R1~R7)과 kind enum 사상
 거울 함정 경계 — 이 파일은 JSON 을 표로 바꾸는 스크립트다. 플러그인 구조·파서 레지스트리·
 추상 인터페이스가 나오면 그 자체가 Track C 가 잡으려는 실패다.
 """
-import argparse, json, os, subprocess, sys
+import argparse, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 
 # ── C++ 1차 코드로 볼 네임스페이스. 경로가 아니라 네임스페이스가 기준이다.
@@ -83,11 +83,108 @@ def load_clang_uml(path):
     return d["elements"], d["relationships"], d.get("metadata", {})
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='is_first_party']"/>
-# 이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.
+# ── 선언 위치가 저장소 안이어도 1차가 아닌 것들.
+#    std 는 F-1 때문에 반드시 있어야 한다(아래). 나머지는 빌드가 만든 파일이다.
+GENERATED_MARKERS = ("/build/", "/vcpkg_installed/", "autogen", "/cmake-build", "/.venv/")
+NEVER_FIRST_PARTY_NS = ("std", "__gnu_cxx", "__cxxabiv1")
+
+
+# 이 타입이 우리 코드인지 가른다. 네임스페이스 허용목록이 먼저, 없으면 선언 위치로 본다.
 # 쓰는 것: 없음 · 쓰이는 곳: normalize_cpp
-def is_first_party(el):
-    return (el.get("namespace") or "").split("::")[0] in CPP_FIRST_PARTY_NS
+# 그 줄이 이 이름을 **정의**하는가. 전방 선언(`class QWidget;`)과 사용 줄은 아니다.
+DEFINES_RE_CACHE = {}
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='defines_at']"/>
+def defines_at(repo, rel_file, line_no, name):
+    """`source_location` 이 가리키는 줄이 실제로 그 타입을 정의하는지 본다.
+
+    🔵 2026-08-29 QtVisionEdit 실측 — clang-uml 이 준 위치의 실제 줄:
+      MainWindow        app/src/view/mainwindow.h:32        `class MainWindow : public QWidget`   정의
+      AlignmentOptions  app/src/net/alignmentoptions.h:21   `struct AlignmentOptions`             정의
+      QWidget           app/src/feature/alignmentcontroller.h:12  `class QWidget;`                 전방 선언
+      QList<double>     app/src/net/veditclient.h:54        `… const QList<QList<double>> &…);`   사용
+      cv::Mat_<uchar>   core/panorama/panorama.h:20         `cv::Mat3b img;`                      사용
+    정의만 1차로 인정하면 넷 중 둘이 정확히 걸러진다.
+    """
+    if not (rel_file and line_no):
+        return False
+    # 중첩 타입의 구분자는 `::` 가 아니라 `##` 다(node_name 주석 참조). 둘 다 벗긴다.
+    base = name.replace("##", "::").split("::")[-1].split("<")[0].strip()
+    if not base:
+        return False
+    path = rel_file if os.path.isabs(rel_file) else os.path.join(repo, rel_file)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for i, ln in enumerate(fh, 1):
+                if i == line_no:
+                    src = ln.rstrip("\n")
+                    break
+            else:
+                return False
+    except OSError:
+        return False
+    stripped = src.strip()
+    if stripped.endswith(";"):          # 전방 선언과 멤버 선언
+        return False
+    key = base
+    rx = DEFINES_RE_CACHE.get(key)
+    if rx is None:
+        rx = re.compile(r"\b(?:class|struct|enum(?:\s+class)?|union)\s+(?:\w+\s+)*"
+                        + re.escape(base) + r"\b")
+        DEFINES_RE_CACHE[key] = rx
+    return bool(rx.search(stripped))
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='tracked_set']"/>
+def tracked_set(repo):
+    """git 이 추적하는 파일 집합. 1차 판정의 급소다 — 남의 헤더는 추적되지 않는다."""
+    r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    return {os.path.abspath(os.path.join(repo, f)) for f in r.stdout.split("\n") if f}
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='is_first_party']"/>
+def is_first_party(el, repo=None, ns=CPP_FIRST_PARTY_NS, tracked=None):
+    """1차 코드 판정. 두 갈래다.
+
+    ① **네임스페이스 허용목록** — 빠른 길. 저장소가 자기 네임스페이스를 쓰면 이것으로 끝난다.
+    ② **선언 위치가 저장소 안** — 전역 네임스페이스를 쓰는 코드를 위한 길.
+       🔵 2026-08-29 QtVisionEdit 실측 — `app/` 의 MainWindow · PanoramaController ·
+       VeditClient 는 네임스페이스가 없어 ①만으로는 전부 외부로 밀렸다(노드 15 중 app 1개).
+
+    ⚠ **②에 거름망이 세 겹 있어야 한다.** clang-uml 의 `source_location` 은 남의 헤더가
+    아니라 **이 저장소의 첫 사용 지점**을 가리킨다(관찰 보고서 F-1). 그래서
+      · std 계열은 NEVER_FIRST_PARTY_NS 로 막고,
+      · 빌드가 만든 파일(Qt autogen 의 Ui::*)은 GENERATED_MARKERS 로 막고,
+      · **나머지는 git 추적 여부로 막는다** — Qt 의 QWidget, OpenCV 의 cv::Mat 이 여기 걸린다.
+    """
+    root = (el.get("namespace") or "").split("::")[0]
+    if root in ns:
+        return True
+    if not repo:
+        return False
+    if root in NEVER_FIRST_PARTY_NS:
+        return False
+    src = ((el.get("source_location") or {}).get("file") or "")
+    if not src:
+        return False
+    abs_src = src if os.path.isabs(src) else os.path.join(repo, src)
+    abs_src = os.path.abspath(abs_src)
+    if not abs_src.startswith(os.path.abspath(repo) + os.sep):
+        return False
+    if any(m in abs_src for m in GENERATED_MARKERS):
+        return False
+    # ⚠ 여기가 급소다. clang-uml 은 Qt·OpenCV 타입의 위치로도 **이 저장소의 첫 사용 지점**을
+    # 준다(F-1 이 std 에서 관찰한 것과 같은 현상). 🔵 2026-08-29 — 이 검사가 없으면
+    # QWidget · QList<double> 이 PageRank 상위에 올라온다. git 이 추적하지 않는 파일은
+    # 우리 코드가 아니다.
+    if tracked is not None and abs_src not in tracked:
+        return False
+    # 마지막 겹 — 그 줄이 실제로 이 타입을 **정의**하는가. 전방 선언과 사용 줄은 뺀다.
+    return defines_at(repo, src, (el.get("source_location") or {}).get("line"),
+                      el.get("name") or el.get("display_name") or "")
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='external_group']"/>
@@ -165,6 +262,7 @@ def node_name(el):
 # C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
 # 쓰는 것: is_transparent_wrapper, node_name, is_first_party, module_of, external_group (+2) · 쓰이는 곳: normalize.main
 def normalize_cpp(elements, relationships, repo, source_tool):
+    tracked = tracked_set(repo)
     by_id = {e["id"]: e for e in elements}
     by_display = {e.get("display_name"): e for e in elements}
     stats = Counter()
@@ -183,7 +281,7 @@ def normalize_cpp(elements, relationships, repo, source_tool):
         if node_name(e) in CPP_PRIMITIVES:
             stats["R7 원시 타입 제외"] += 1
             continue
-        if is_first_party(e):
+        if is_first_party(e, repo, tracked=tracked):
             nid = "C%d" % (len(nodes) + 1)
             loc = e.get("source_location") or {}
             nodes[nid] = {
