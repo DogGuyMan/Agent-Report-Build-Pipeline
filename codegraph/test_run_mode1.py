@@ -1,0 +1,184 @@
+"""test_run_mode1.py — Mode 1 실행기의 회귀 테스트.
+
+**왜 필요한가.** 이 실행기의 존재 이유는 **토큰과 시간을 정확히 재는 것**이다.
+그래서 재는 자리가 틀리면 도구 전체가 무의미해진다. 그런데 그 다섯 자리는
+**틀려도 오류가 나지 않는다** — 조용히 0이나 절반을 내고 표까지 잘 그려진다.
+
+  1. 단계 고르기   이미 산출물이 있는 단계를 다시 돌면 시간이 부풀고, 없는 단계를
+                   건너뛰면 그 뒤가 통째로 막힌다.
+  2. 에이전트 하나 LLM 단계는 **하나**다. 둘로 쪼개면 캐시가 새로 서서 토큰이 부풀고
+                   측정의 뜻이 달라진다.
+  3. 토큰 합       `usage` 는 넷으로 쪼개져 온다(입력 · 출력 · 캐시 읽기 · 캐시 생성).
+                   캐시를 빼고 더하면 실제 사용량의 일부만 세게 된다.
+  4. 실패 판정     `claude -p` 는 막혀도 종료 코드 0 을 낼 수 있다. `is_error` 와
+                   `subtype` 을 봐야 한다.
+  5. 투영 덮어쓰기 `terms_db.py` 에 정적 `codegraph.json` 을 안 주면 투영이 그 파일을
+                   **덮어쓴다**. 노드가 조용히 줄어든다.
+
+  python -m pytest codegraph/test_run_mode1.py -q      # .venv 를 켠 뒤
+"""
+import os
+import sys
+
+import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import run_mode1 as R  # noqa: E402
+
+
+# ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
+def test_plan_runs_everything_on_an_empty_repo():
+    """아무것도 없으면 다섯 단계를 순서대로 돈다. LLM 단계(agent)는 그중 하나뿐이다."""
+    assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
+        "prep", "agent", "terms", "build", "check"]
+
+
+def test_only_one_stage_calls_the_model():
+    """에이전트는 **하나**다. 전수조사와 산문을 한 세션에서 이어 한다."""
+    stages = R.plan_stages(False, False, False)
+    assert [s for s in stages if R.is_agent_stage(s)] == ["agent"]
+
+
+def test_plan_skips_the_agent_when_its_output_already_exists():
+    """조사 결과와 산문이 이미 있으면 에이전트를 부르지 않는다 — 다시 부르면 시간이 부풀고 돈이 든다."""
+    p = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
+    assert "agent" not in p
+    assert p == ["prep", "terms", "build", "check"]
+
+
+def test_plan_keeps_the_agent_when_only_half_its_work_is_done():
+    """한쪽만 있으면 여전히 부른다. 에이전트가 자기 안에서 남은 쪽만 한다."""
+    assert "agent" in R.plan_stages(True, True, False)
+    assert "agent" in R.plan_stages(True, False, True)
+
+
+def test_plan_keeps_prep_even_when_codegraph_exists():
+    """prep 은 늘 부른다 — 건너뛸지는 prep 자신이 정한다(prepPlan 의 hasCodegraph)."""
+    assert R.plan_stages(has_codegraph=True, has_reading=False, has_prose=False)[0] == "prep"
+
+
+def test_plan_only_and_skip_are_honoured():
+    assert R.plan_stages(False, False, False, only=["prep", "check"]) == ["prep", "check"]
+    assert "build" not in R.plan_stages(False, False, False, skip=["build"])
+
+
+def test_plan_rejects_an_unknown_stage():
+    with pytest.raises(ValueError):
+        R.plan_stages(False, False, False, only=["없는단계"])
+
+
+# ── 2. 토큰 합 — 캐시를 빼먹지 않는다
+def test_usage_totals_include_cache():
+    """캐시 읽기와 캐시 생성까지 더해야 실제로 흘러간 토큰이다."""
+    got = R.normalize_usage({
+        "usage": {"input_tokens": 9, "output_tokens": 52,
+                  "cache_read_input_tokens": 13595, "cache_creation_input_tokens": 17213},
+        "total_cost_usd": 0.036, "num_turns": 1, "duration_ms": 1977, "duration_api_ms": 1657,
+    })
+    assert got["input"] == 9
+    assert got["output"] == 52
+    assert got["cache_read"] == 13595
+    assert got["cache_write"] == 17213
+    assert got["total"] == 9 + 52 + 13595 + 17213
+    assert got["cost_usd"] == 0.036
+    assert got["turns"] == 1
+
+
+def test_usage_of_a_machine_stage_is_all_zero():
+    """기계 단계는 토큰을 쓰지 않는다. None 이 아니라 0 이어야 표가 더해진다."""
+    z = R.normalize_usage(None)
+    assert z["total"] == 0 and z["cost_usd"] == 0.0 and z["turns"] == 0
+
+
+def test_usage_tolerates_missing_fields():
+    assert R.normalize_usage({"usage": {}})["total"] == 0
+
+
+def test_usage_sums_across_stages():
+    a = R.normalize_usage({"usage": {"input_tokens": 1, "output_tokens": 2}, "total_cost_usd": 0.5})
+    b = R.normalize_usage({"usage": {"output_tokens": 3}, "total_cost_usd": 0.25})
+    s = R.sum_usage([a, b])
+    assert s["total"] == 6 and s["cost_usd"] == 0.75
+
+
+# ── 3. 실패 판정 — 종료 코드만 믿지 않는다
+def test_agent_result_is_a_failure_when_is_error_is_set():
+    ok, why = R.agent_verdict(0, {"type": "result", "subtype": "success", "is_error": False})
+    assert ok and why == ""
+    bad, why = R.agent_verdict(0, {"type": "result", "subtype": "error_max_turns", "is_error": True})
+    assert not bad and "error_max_turns" in why
+
+
+def test_agent_result_is_a_failure_when_the_process_died():
+    ok, why = R.agent_verdict(1, {"type": "result", "subtype": "success", "is_error": False})
+    assert not ok and "종료 코드 1" in why
+
+
+def test_agent_result_is_a_failure_when_json_is_unreadable():
+    ok, why = R.agent_verdict(0, None)
+    assert not ok and "읽지" in why
+
+
+# ── 4. 에이전트 호출 — 하나만, 그리고 대상 저장소를 볼 수 있게
+def test_claude_argv_is_headless_json_and_names_the_model():
+    argv = R.claude_argv(model="opus", repo="/어느/저장소", extra_dirs=["/도구/뿌리"])
+    assert argv[0] == "claude"
+    assert "-p" in argv
+    assert argv[argv.index("--output-format") + 1] == "json"
+    assert argv[argv.index("--model") + 1] == "opus"
+    # 대상 저장소와 도구 저장소를 둘 다 읽어야 한다 — 한쪽만 주면 재료를 못 본다
+    dirs = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
+    assert "/어느/저장소" in dirs and "/도구/뿌리" in dirs
+
+
+def test_claude_argv_does_not_pass_the_prompt_on_the_command_line():
+    """프롬프트는 표준 입력으로 준다. 명령줄에 실으면 길이 한계와 따옴표 지옥에 걸린다."""
+    argv = R.claude_argv(model="opus", repo="/r", extra_dirs=[])
+    assert not any(len(a) > 200 for a in argv)
+
+
+def test_the_prompt_names_both_halves_of_the_one_agent_job():
+    """한 세션이 전수조사와 산문을 **둘 다** 한다 — 프롬프트가 그렇게 적혀 있어야 한다."""
+    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    assert "/어느/저장소" in p and "/도구/뿌리" in p
+    assert "codebase-terms-survey" in p and "deep-wiki" in p
+    assert "terms-reading.json" in p
+
+
+# ── 5. 투영이 정적 codegraph 를 덮어쓰지 않게
+def test_terms_argv_passes_the_static_codegraph_positionally():
+    """`--reading` 만 주면 투영이 codegraph.json 을 **덮어쓴다**. 실제로 겪은 사고다.
+
+    파일 시스템을 보지 않는 순수 함수다 — 없는 파일을 거르는 것은 부르는 쪽의 일이다.
+    """
+    argv = R.terms_argv(python="/py", root="/도구/뿌리", repo="/어느/저장소",
+                        codegraph="/어느/저장소/out/codegraph-raw/codegraph.json",
+                        reading="/어느/저장소/docs/codegraph/terms-reading.json")
+    assert argv[1].endswith("terms_db.py")
+    assert "/어느/저장소/out/codegraph-raw/codegraph.json" in argv
+    assert argv[argv.index("--reading") + 1].endswith("terms-reading.json")
+    assert argv[argv.index("--repo") + 1] == "/어느/저장소"
+
+
+# ── 6. 보고 — 재는 것이 목적이므로 표에 네 값이 다 있어야 한다
+def test_report_has_a_row_per_stage_and_a_total():
+    rows = [
+        {"stage": "prep", "seconds": 68.4, "usage": R.normalize_usage(None), "ok": True},
+        {"stage": "agent", "seconds": 512.0, "ok": True,
+         "usage": R.normalize_usage({"usage": {"input_tokens": 10, "output_tokens": 20,
+                                               "cache_read_input_tokens": 30,
+                                               "cache_creation_input_tokens": 40},
+                                     "total_cost_usd": 1.5, "num_turns": 7})},
+    ]
+    text = R.format_report(rows)
+    assert "prep" in text and "agent" in text
+    assert "1분 08.4초" in text        # 초가 아니라 사람이 읽는 꼴로 낸다
+    assert "100" in text            # 10+20+30+40 = 합계 토큰
+    assert "합계" in text
+    assert "1.5" in text or "1.50" in text
+
+
+def test_report_marks_a_failed_stage():
+    text = R.format_report([{"stage": "build", "seconds": 1.0, "ok": False,
+                             "why": "산문이 없다", "usage": R.normalize_usage(None)}])
+    assert "실패" in text and "산문이 없다" in text
