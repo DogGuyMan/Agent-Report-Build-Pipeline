@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote, Glossary, defineTerms } from "../.tmp/lib.mjs";
+import { ConfBadge, StatusTag, DecisionTable, OptionTable, LockTable, NewStructNote, Reversal, Correction, TriageBlock, BeforeAfter, VerdictFooter, EvidenceNote, Glossary, TermGraph, defineTerms } from "../.tmp/lib.mjs";
 
 const html = (el) => renderToStaticMarkup(el);
 
@@ -310,4 +310,13 @@ test("TermRef 카드는 body 와 mental 이 없으면 그 칸을 내지 않는�
   const out = html(T({ id: "Y" }));
   assert.ok(!out.includes("term-card-more") && !out.includes("term-mental"));
   assert.ok(out.includes('tabindex="0">Y<span class="term-card">'), "children 없으면 label");
+});
+
+test("TermGraph 는 tune 을 켜면 data-tune 을 내고, 끄면 마크업이 그대로다", () => {
+  const terms = [{ id: "A", label: "A", short: "a", kind: "concept" }];
+  const plain = html(TermGraph({ terms }));
+  const tuned = html(TermGraph({ terms, tune: true }));
+  assert.ok(!plain.includes("data-tune"), "기본은 없다");
+  assert.ok(tuned.includes('data-tune="1"'), "켜면 속성");
+  assert.equal(tuned.replace(' data-tune="1"', ""), plain, "그 속성 말고는 같다");
 });

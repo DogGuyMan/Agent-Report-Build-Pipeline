@@ -210,6 +210,17 @@ footer.page-footer { margin-top: 34px; font-size: 11px; color: var(--text-3); te
 .term-graph-hint { position: absolute; left: 12px; bottom: 10px;
   font-size: 11px; color: var(--text-3); pointer-events: none; }
 
+/* 임시 조정 패널 — TermGraph tune. 값을 찾으면 뗀다 */
+.term-graph-tune { margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--border); border-radius: 6px; font-size: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 18px; }
+.tune-row { display: grid; grid-template-columns: 128px 1fr 64px; align-items: center; gap: 8px; }
+.tune-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--text-2); }
+.tune-row output { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; text-align: right; }
+.tune-out { grid-column: 1 / -1; width: 100%; height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.tune-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.tune-actions button { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; }
+@media print { .term-graph-tune { display: none; } }
+
 @media print {
   .term-graph-hint { display: none; }
   .term-card { display: none !important; }

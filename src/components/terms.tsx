@@ -98,13 +98,16 @@ export function Glossary({ terms }: { terms: Term[] }) {
  * 마크업만 빌드 시점에 내고 좌표 계산과 조작은 런타임 스크립트가 한다.
  * 데이터는 `data-terms` 속성에 실어 보낸다 — `<script type="application/json">` 을 쓰면
  * 산출물 불변식(`<script>` 개수)이 2가 되어 깨진다.
+ *
+ * `tune` 을 켜면 `data-tune="1"` 이 붙고 런타임이 그래프 아래에 임시 조정 슬라이더를 깐다.
+ * 끄면(기본) 그 속성이 아예 나오지 않아 마크업이 이전과 같다.
  */
-export function TermGraph({ terms, height = 460 }: { terms: Term[]; height?: number }) {
+export function TermGraph({ terms, height = 460, tune }: { terms: Term[]; height?: number; tune?: boolean }) {
   const payload = JSON.stringify(
     terms.map((t) => ({ id: t.id, label: t.label, short: t.short, kind: t.kind, links: t.links ?? [] }))
   );
   return (
-    <div className="term-graph" data-terms={payload} style={{ height: `${height}px` }}>
+    <div className="term-graph" data-terms={payload} data-tune={tune ? "1" : undefined} style={{ height: `${height}px` }}>
       <svg className="term-graph-svg" />
       <div className="term-graph-tip" hidden />
       <div className="term-graph-hint">노드를 끌어 옮기고, 커서를 올리면 뜻이 뜬다. 빈 곳을 끌면 화면이 움직이고 휠로 확대된다.</div>
