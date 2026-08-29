@@ -1,13 +1,13 @@
 ---
 name: term-benchmark
-description: Use before a Mode 2 design review whenever a Plan or Spec is about to be judged — "용어 이해도 점검", "이 Plan 에서 내가 모르는 용어", "용어 시험", "term benchmark", or when spec-review-dashboard is about to start and the reader's mental model of the Plan's vocabulary has not been measured. Runs a human-facing multiple-choice benchmark (5 questions per term plus an "I don't know" choice), grades it through report-term, and emits terms.json for the Mode 2 glossary. The CLI never asks anything — the asking is this skill's job.
+description: Use before a Mode 2 design review whenever a Plan or Spec is about to be judged — "용어 이해도 점검", "이 Plan 에서 내가 모르는 용어", "용어 시험", "term benchmark", or when spec-review-dashboard is about to start and the reader's mental model of the Plan's vocabulary has not been measured. Runs a human-facing multiple-choice benchmark (3 questions per term plus an "I don't know" choice), grades it through report-term, and emits terms.json for the Mode 2 glossary. The CLI never asks anything — the asking is this skill's job.
 ---
 
 # Term Benchmark (Mode 1.5 — 용어 이해도 점검)
 
 ## 한 줄 요약
 
-인공지능 벤치마크를 사람 쪽으로 뒤집은 것이다. **정답지 → 객관식 → 정답률 → 확실/애매/모름.**
+인공지능 벤치마크를 사람 쪽으로 뒤집은 것이다. **정답지 → 객관식 → 정답률 → 확실/모름.** (3문항 규칙, 2026-08-29. 애매 는 5문항 시절의 산출물에만 남아 있다)
 
 인공지능 벤치마크는 사람이 만든 정답지로 기계를 채점한다. 여기서는 기계가 만든 정답지로 사람을 채점한다.
 목적은 성적이 아니라 **다음에 나올 설계 검토 보고서의 용어집에 무엇을 실어야 하는지를 실제로 재는 것**이다.
@@ -100,9 +100,9 @@ report-term collect <plan.md> <terms-db.json>
 
 정답이 정해지지 않은 용어는 **출제하지 않는다.** 정답 없는 문항은 채점이 불가능하다.
 
-### 5. 출제 — 한 용어씩, 5문항 + "모른다"
+### 5. 출제 — 한 용어씩, 3문항 + "모른다"
 
-용어마다 객관식 **5문항**을 낸다. 정답은 그 용어의 `means` 다.
+용어마다 객관식 **3문항**을 낸다. 정답은 그 용어의 `means` 다. (2026-08-29 사용자 변경 — 5문항은 첫 시험 100문항에서 피로가 실측됐다)
 
 - `AskUserQuestion` 으로 **한 용어씩** 묻는다. 여러 용어를 한 질문에 몰아넣지 않는다
 - 문항마다 보기 3~4개 + 마지막에 **"모른다"** 를 둔다
@@ -110,12 +110,12 @@ report-term collect <plan.md> <terms-db.json>
 
 ```json
 {
-  "C-19": { "correct": 4, "dontKnow": 0, "means": "인용 원점을 재는 결정 항목" },
-  "calls[]": { "correct": 1, "dontKnow": 3, "means": "함수 호출 간선 목록" }
+  "C-19": { "correct": 3, "dontKnow": 0, "means": "인용 원점을 재는 결정 항목" },
+  "calls[]": { "correct": 0, "dontKnow": 2, "means": "함수 호출 간선 목록" }
 }
 ```
 
-- `correct` — 5문항 중 맞힌 수
+- `correct` — 3문항 중 맞힌 수
 - `dontKnow` — "모른다" 를 고른 수
 - `means` — 4단계까지 확정된 정답 문구. `emit` 이 이 문구를 그대로 용어집으로 넘긴다
 
@@ -133,10 +133,11 @@ report-term grade answers.json
 
 | 조건 | 판정 |
 |---|---|
-| "모른다" 3회 이상 | **모름** — 정답률과 무관하다. 찍어서 맞힌 것을 안다고 세지 않는다 |
-| 정답률 80% 이상 (4~5개) | **확실** |
-| 정답률 40~79% (2~3개) | **애매** |
-| 정답률 40% 미만 (0~1개) | **모름** |
+| "모른다" 2회 이상 | **모름** — 정답률과 무관하다. 찍어서 맞힌 것을 안다고 세지 않는다 |
+| 맞힌 수 2~3 (정답률 67% 이상) | **확실** |
+| 맞힌 수 0~1 | **모름** |
+
+**애매 는 이 규칙이 내지 않는다.** 5문항 시절(2026-08-29 첫 시험까지)의 산출물과 `Term.mental` 타입에만 남아 있다.
 
 집계를 사용자에게 보이고 **"이 판정이 맞습니까"** 를 한 번 묻는다. 사용자가 "이건 사실 아는데
 문항이 이상했다" 고 하면 그 용어를 다시 출제하거나 판정을 사용자 말대로 고친다.
@@ -173,8 +174,8 @@ report-term emit term-grades.json
   틀렸는지 알 수 없다
 - **"모른다" 선택지는 항상 마지막에, 항상 같은 문구로.** 위치나 문구가 흔들리면 사용자가 그것을
   고르는 비용이 문항마다 달라진다
-- **문항 수를 줄이지 않는다.** 5문항이어야 정답률이 0/20/40/60/80/100 으로 나뉘어 80% 와 40% 경계에
-  딱 떨어진다. 4문항이면 0/25/50/75/100 이라 경계가 어느 값과도 맞지 않는다
+- **문항 수는 3이다.** 2026-08-29 첫 시험(용어 20개 × 5문항 = 100문항)에서 사용자가 피로를 보고해 5 에서 3 으로 줄였다.
+  맞힌 수 2~3 확실 / 0~1 모름. 이 수를 임의로 바꾸지 않는다 — 바꾸면 `quiz.mjs` 의 상수와 경계를 함께 바꿔야 한다
 
 ## Style rules
 
@@ -217,7 +218,7 @@ report-term emit term-grades.json
 
 ## 아직 재어 보지 않은 것
 
-- **이 시험이 실제 이해도와 얼마나 맞는지는 아직 재어 보지 않았다.** 5문항·80%·40% 라는 값은
-  사용자가 정한 것이지 관측에서 나온 것이 아니다. 표본이 쌓이면 다시 볼 값이다
-- **"모른다" 3회 규칙이 너무 세거나 약한지도 아직 모른다.** 정답률이 높은데 모름으로 떨어지는
+- **이 시험이 실제 이해도와 얼마나 맞는지는 표본 1건뿐이다.** 2026-08-29 첫 시험(5문항 규칙, 용어 20개): 확실 6 · 애매 3 · 모름 11 —
+  모름 11개가 전부 Plan 의 결정 코드·지표 표기였고, 사용자가 판정을 그대로 확정했다. 3문항·2/3 경계라는 값은 사용자가 정한 것이지 관측에서 나온 것이 아니다
+- **"모른다" 2회 규칙이 너무 세거나 약한지도 아직 모른다.** 정답률이 높은데 모름으로 떨어지는
   사례가 반복되면 사용자에게 보고한다. 혼자 고치지 않는다

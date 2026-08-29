@@ -1,6 +1,6 @@
 ---
 name: mode-1-5-term-benchmark
-description: Mode 1.5 — 인공지능 벤치마크를 사람 쪽으로 뒤집은 용어 이해도 점검. Plan 이 요구하는 용어를 모으고(collect), 객관식 5문항으로 사람에게 묻고, 채점해(grade), 확실/애매/모름 세 갈래로 갈라 terms.json 과 term-study-note.md 를 낸다(emit). Mode 2 의 판정 전에 도는 사전 관문이다. 용어 시험, 용어 이해도 측정, report-term 파이프라인, terms.json 생성 시 사용한다.
+description: Mode 1.5 — 인공지능 벤치마크를 사람 쪽으로 뒤집은 용어 이해도 점검. Plan 이 요구하는 용어를 모으고(collect), 객관식 3문항으로 사람에게 묻고, 채점해(grade), 확실/애매/모름 세 갈래로 갈라 terms.json 과 term-study-note.md 를 낸다(emit). Mode 2 의 판정 전에 도는 사전 관문이다. 용어 시험, 용어 이해도 측정, report-term 파이프라인, terms.json 생성 시 사용한다.
 model: opus
 tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill, TodoWrite
 ---
@@ -29,11 +29,11 @@ report-term collect <plan.md> [terms-db.json]   → term-candidates.json
     코드베이스 용어 ∩ Plan 본문  +  Plan 신규 개념
         ↓
   [Skill] 신규 개념의 정답을 Plan 저자에게 묻는다. LLM 이 지어내지 않는다
-  [Skill] 용어마다 객관식 5문항 + "모른다" 선택지를 만든다. 정답지는 TermMeans
+  [Skill] 용어마다 객관식 3문항 + "모른다" 선택지를 만든다. 정답지는 TermMeans
   [Skill] AskUserQuestion 으로 한 용어씩 묻는다 → answers.json
         ↓
 report-term grade answers.json                  → term-grades.json
-    맞힌 수 4~5 확실 / 2~3 애매 / 0~1 모름. "모른다" 3회 이상이면 모름
+    맞힌 수 2~3 확실 / 0~1 모름. "모른다" 2회 이상이면 모름 (2026-08-29 3문항 규칙. 애매 는 내지 않는다)
         ↓
 report-term emit term-grades.json               → terms.json + term-study-note.md
 ```

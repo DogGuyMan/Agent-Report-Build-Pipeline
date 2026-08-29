@@ -86,11 +86,11 @@ report-term collect <plan.md> <terms-db.json>   → term-candidates.json
     코드베이스 용어 ∩ Plan 본문  +  Plan 신규 개념
         ↓
   [Skill] 신규 개념의 정답을 Plan 저자에게 묻는다. LLM 이 지어내지 않는다
-  [Skill] 용어마다 객관식 5문항 + "모른다" 선택지를 만든다. 정답지는 TermMeans
+  [Skill] 용어마다 객관식 3문항 + "모른다" 선택지를 만든다. 정답지는 TermMeans
   [Skill] AskUserQuestion 으로 한 용어씩 묻는다 → answers.json
         ↓
 report-term grade answers.json                  → term-grades.json
-    맞힌 수 4~5 확실 / 2~3 애매 / 0~1 모름. "모른다" 3회 이상이면 모름
+    맞힌 수 2~3 확실 / 0~1 모름. "모른다" 2회 이상이면 모름 (2026-08-29 3문항 규칙. 애매 는 내지 않는다)
         ↓
 report-term emit term-grades.json               → terms.json + term-study-note.md
 ```
