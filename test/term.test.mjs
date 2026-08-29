@@ -32,32 +32,34 @@ test("findNewConcepts 는 이미 DB 에 있는 것을 새 개념으로 세지 �
 
 import { gradeOne, QUESTIONS_PER_TERM } from "../scripts/term/quiz.mjs";
 
-test("한 용어당 문항 수는 5개다", () => {
-  assert.equal(QUESTIONS_PER_TERM, 5);
+test("한 용어당 문항 수는 3개다", () => {
+  assert.equal(QUESTIONS_PER_TERM, 3);
 });
 
-test("gradeOne 은 4개 이상 맞히면 확실로 매긴다", () => {
-  assert.equal(gradeOne({ correct: 5, dontKnow: 0 }).mental, "확실");
-  assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).mental, "확실");
+test("gradeOne 은 2개 이상 맞히면 확실로 매긴다", () => {
+  assert.equal(gradeOne({ correct: 3, dontKnow: 0 }).mental, "확실");
+  assert.equal(gradeOne({ correct: 2, dontKnow: 0 }).mental, "확실");
 });
 
-test("gradeOne 은 2~3개 맞히면 애매로 매긴다", () => {
-  assert.equal(gradeOne({ correct: 3, dontKnow: 0 }).mental, "애매");
-  assert.equal(gradeOne({ correct: 2, dontKnow: 0 }).mental, "애매");
-});
-
-test("gradeOne 은 거의 못 맞히면 모름으로 매긴다", () => {
+test("gradeOne 은 1개 이하로 맞히면 모름으로 매긴다", () => {
   assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).mental, "모름");
   assert.equal(gradeOne({ correct: 0, dontKnow: 0 }).mental, "모름");
 });
 
-test("gradeOne 은 모른다를 3회 이상 고르면 정답률과 무관하게 모름으로 매긴다", () => {
-  assert.equal(gradeOne({ correct: 2, dontKnow: 3 }).mental, "모름");
+test("gradeOne 은 모른다를 2회 이상 고르면 정답률과 무관하게 모름으로 매긴다", () => {
+  assert.equal(gradeOne({ correct: 1, dontKnow: 2 }).mental, "모름");
+  assert.equal(gradeOne({ correct: 0, dontKnow: 3 }).mental, "모름");
+});
+
+test("gradeOne 은 애매를 내지 않는다 — 3문항 규칙은 확실 / 모름 두 갈래다", () => {
+  for (let c = 0; c <= 3; c++) {
+    assert.notEqual(gradeOne({ correct: c, dontKnow: 0 }).mental, "애매");
+  }
 });
 
 test("gradeOne 은 정답률을 함께 돌려준다", () => {
-  assert.equal(gradeOne({ correct: 4, dontKnow: 0 }).rate, 80);
-  assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).rate, 20);
+  assert.equal(gradeOne({ correct: 2, dontKnow: 0 }).rate, 67);
+  assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).rate, 33);
 });
 
 import { toTermsDb, toStudyNote } from "../scripts/term/emit.mjs";

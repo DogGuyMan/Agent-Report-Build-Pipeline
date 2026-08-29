@@ -5,20 +5,23 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** 한 용어당 문항 수. 5개여야 정답률이 80% 임계에 딱 떨어지는 값을 갖는다. */
-export const QUESTIONS_PER_TERM = 5;
+/** 한 용어당 문항 수. 2026-08-29 사용자 변경 — 5 에서 3 으로. 100문항 첫 시험에서 피로가 실측됐다. */
+export const QUESTIONS_PER_TERM = 3;
 
 /**
- * 한 용어의 답안을 채점한다.
- * 구간 경계는 사용자가 확정한 값이다(2026-08-29). 임의로 바꾸지 말 것.
+ * 한 용어의 답안을 채점한다. 두 갈래다 — 확실 / 모름.
+ * 구간은 사용자가 확정한 값이다(2026-08-29, 3문항 규칙). 임의로 바꾸지 말 것.
+ *   "모른다" 2회 이상        -> 모름 (찍어서 맞힌 것을 안다고 세지 않는다)
+ *   맞힌 수 2~3 (67% 이상)   -> 확실
+ *   맞힌 수 0~1              -> 모름
+ * "애매" 는 이 규칙이 내지 않는다 — 5문항 시절의 산출물과 Term.mental 타입에만 남아 있다.
  */
 export function gradeOne({ correct, dontKnow }) {
   const rate = Math.round((correct / QUESTIONS_PER_TERM) * 100);
   let mental;
-  if (dontKnow >= 3) mental = "모름";        // 찍어서 맞힌 것을 안다고 세지 않는다
-  else if (rate >= 80) mental = "확실";      // 4~5개
-  else if (rate >= 40) mental = "애매";      // 2~3개
-  else mental = "모름";                      // 0~1개
+  if (dontKnow >= 2) mental = "모름";
+  else if (correct >= 2) mental = "확실";
+  else mental = "모름";
   return { rate, mental };
 }
 
