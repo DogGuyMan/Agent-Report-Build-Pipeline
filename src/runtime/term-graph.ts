@@ -406,8 +406,50 @@ function build(container: HTMLElement) {
   }
 }
 
+// 본문 용어 카드의 위치 — 뜨는 것은 CSS(:hover / :focus)가 하고, 여기서는 **위치만** 화면 기준(fixed)으로 옮긴다.
+// 이유: 카드는 position:absolute 인데 표를 감싼 .table-wrap(overflow-x:auto)과 .card(overflow:hidden)가 그 상자 밖을
+// 잘라 버린다(2026-08-29 사용자 관측). overflow 를 풀면 넓은 표의 가로 스크롤이 깨지므로, 화면 기준 좌표로 빼내는 쪽을 택했다.
+// 화면 기준 요소는 조상의 overflow 에 잘리지 않는다. 카드가 없는 보고서에는 이 번들 자체가 실리지 않는다.
+function mountTermCards() {
+  let active: { ref: HTMLElement; card: HTMLElement } | null = null;
+  const place = (ref: HTMLElement, card: HTMLElement) => {
+    const r = ref.getBoundingClientRect();
+    card.style.display = "block";
+    card.style.position = "fixed";
+    card.style.left = "0px";
+    card.style.top = "0px";                       // 먼저 놓고 크기를 잰다
+    const cw = card.offsetWidth, ch = card.offsetHeight;
+    let left = r.left, top = r.bottom + 6;
+    if (left + cw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - cw);   // 오른쪽이 모자라면 왼쪽으로
+    if (top + ch > window.innerHeight - 8) top = Math.max(8, r.top - 6 - ch);                 // 아래가 모자라면 낱말 위로
+    card.style.left = left + "px";
+    card.style.top = top + "px";
+  };
+  const clear = (card: HTMLElement) => {
+    card.style.display = "";
+    card.style.position = "";
+    card.style.left = "";
+    card.style.top = "";
+  };
+  document.querySelectorAll<HTMLElement>(".term-ref").forEach((ref) => {
+    const card = ref.querySelector<HTMLElement>(":scope > .term-card");
+    if (!card) return;
+    const show = () => { active = { ref, card }; place(ref, card); };
+    const hide = () => { clear(card); if (active && active.card === card) active = null; };
+    ref.addEventListener("pointerenter", show);
+    ref.addEventListener("focus", show);
+    ref.addEventListener("pointerleave", hide);
+    ref.addEventListener("blur", hide);
+  });
+  // 스크롤·창 크기 변경 중에는 떠 있는 카드 하나만 따라간다
+  const follow = () => { if (active) place(active.ref, active.card); };
+  window.addEventListener("scroll", follow, { passive: true });
+  window.addEventListener("resize", follow);
+}
+
 function boot() {
   document.querySelectorAll<HTMLElement>(".term-graph").forEach(build);
+  mountTermCards();
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", boot);

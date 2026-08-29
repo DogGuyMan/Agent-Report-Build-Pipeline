@@ -448,7 +448,7 @@ $GRAPHICS_REPO/doc/
   `countScripts` 가 2로 세어 불변식이 깨진다
 - **런타임은 `terms` 가 있을 때만 번들된다.** 안 쓰는 보고서가 65KB 를 물지 않게
 - **`</script>` 문자열을 이스케이프한다.** 번들 코드 안에 그 문자열이 있으면 HTML 파서가 조기 종료한다
-- 본문 인라인 참조의 hover 카드는 **CSS 만으로** 뜬다(갈래 · id · 이해도 배지 / 뜻 / 용례 `body`, 밑줄 끝 `?`). 아코디언도 `<details>` 라 스크립트 0. 스크립트는 그래프에만 쓰인다
+- 본문 인라인 참조의 hover 카드는 CSS(`:hover`/`:focus`)로 **뜨고**, **위치만** 런타임이 화면 기준(`position: fixed`)으로 옮긴다 — 표의 `.table-wrap`(overflow-x) · `.card`(overflow hidden)에 잘리던 것을 2026-08-29 에 고쳤다. 카드 내용: 갈래 · id · 이해도 배지 / 뜻 / 용례 `body`, 밑줄 끝 `?`. 아코디언은 `<details>` 라 스크립트 0. 런타임 번들 하나가 그래프와 카드 위치를 맡는다
 
 ### `report-spec check` 의 용어 대조 — 경고이지 실패가 아니다
 
