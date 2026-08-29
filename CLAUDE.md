@@ -165,6 +165,12 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 `report.tsx` → esbuild 트랜스파일 → 동적 import → `renderToStaticMarkup` → `<style>` 에 `theme.css`
 문자열 삽입 → `out/report.html`. **React 는 빌드 시점 Node 에만 존재하고 산출물은 순수 HTML+CSS 다.**
 
+**용어 자동 참조 (2026-08-29 신설).** `data.ts` 에 `terms` 가 있으면 `renderToStaticMarkup` 결과에 `scripts/wrap-terms.mjs` 를
+한 번 더 통과시켜 본문 글자에 나오는 용어 id 의 **모든 등장**을 `TermRef` 마크업으로 감싼다(마크업은 그 컴포넌트를 실제로 렌더한
+문자열 — 출처 하나). 건너뛰는 곳: 이미 감싼 곳 · 카드 안 · `.mono` `<code>` `<pre>` · `h1~h3` · `th` · `summary` · 용어집 · 관계도 · SVG.
+긴 id 먼저, ASCII id 는 낱말 경계, 한글 id 는 조사까지. **저자는 `<T id>` 를 심지 않는다** — `defineTerms` 는 남아 있으나 선택이다.
+왜 여기인가: 본문 산문 대부분이 props 로 들어가 React 트리 순회로는 닿지 않고, 전역·컨텍스트는 쓰지 않기 때문이다.
+
 ## 확정된 스택 (변경 금지)
 
 | 축 | 결정 |
@@ -409,8 +415,8 @@ $GRAPHICS_REPO/doc/
 
 | 컴포넌트 | 하는 일 |
 |---|---|
-| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다** |
-| `<Glossary terms>` | 정의 전량을 표로 보인다. 보고서 맨 앞에 놓는다 |
+| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다.** 2026-08-29 부터 빌드가 본문 용어를 **자동으로** 감싸므로 저자가 직접 쓸 일은 드물다 (`scripts/wrap-terms.mjs`) |
+| `<Glossary terms>` | 정의 전량을 **이해도 그룹 아코디언**(`<details>`, 모름 → 애매 → 확실 → 미측정, 모름만 열림)으로 보인다. 보고서 맨 앞에 놓는다 |
 | `<TermGraph terms>` | 용어 관계를 그물로 그린다. 좌표 계산·드래그·확대·hover 는 런타임이 한다 |
 
 ### 왜 d3-force + SVG 인가 — 다른 것을 다시 제안하기 전에 읽을 것
@@ -436,7 +442,7 @@ $GRAPHICS_REPO/doc/
   `countScripts` 가 2로 세어 불변식이 깨진다
 - **런타임은 `terms` 가 있을 때만 번들된다.** 안 쓰는 보고서가 65KB 를 물지 않게
 - **`</script>` 문자열을 이스케이프한다.** 번들 코드 안에 그 문자열이 있으면 HTML 파서가 조기 종료한다
-- 본문 인라인 참조의 hover 카드는 **CSS 만으로** 뜬다. 스크립트는 그래프에만 쓰인다
+- 본문 인라인 참조의 hover 카드는 **CSS 만으로** 뜬다(갈래 · id · 이해도 배지 / 뜻 / 용례 `body`, 밑줄 끝 `?`). 아코디언도 `<details>` 라 스크립트 0. 스크립트는 그래프에만 쓰인다
 
 ### `report-spec check` 의 용어 대조 — 경고이지 실패가 아니다
 

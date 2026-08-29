@@ -102,8 +102,8 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | `EvidenceNote` | `measured: ReactNode[]`, `judged?: ReactNode[]` |
 | `BeforeAfter` | `id`, `before: DiagramPanel`, `after: DiagramPanel`, `legend: LegendItem[]` |
 | `VerdictFooter` | `note?: string` |
-| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. `const T = defineTerms(terms)` 뒤 `<T id="C-19" />` |
-| `Glossary` | `terms: Term[]` |
+| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`scripts/wrap-terms.mjs`). 손으로 `<T id>` 를 심지 않는다 |
+| `Glossary` | `terms: Term[]` — 이해도 그룹 아코디언(모름 → 애매 → 확실 → 미측정, 모름만 열림) |
 | `TermGraph` | `terms: Term[]`, `height?: number` |
 
 `Conf` = `{ tier: "green"|"amber"|"red"; anchor: number|string; emoji?: string }`.
@@ -111,8 +111,9 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 `emoji` 는 tier 가 함의하는 기본값(🔵/🟡/💭)을 덮어쓴다 — **정본 재현 목적으로만 쓴다.**
 
 `Term` = `{ id; label; short; body?; kind: "decision"|"artifact"|"concept"|"tool"; links?: string[] }`.
-**정의는 `data.ts` 의 `terms` 배열 한 곳에만 쓴다.** 본문 인라인 참조(`<T id=…/>`)·용어집 표·관계 그래프가
-전부 그 배열에서 나온다. `short` 는 커서를 올렸을 때 뜨는 한 줄이고 `body` 는 용어집 표에만 나온다.
+**정의는 `data.ts` 의 `terms` 배열 한 곳에만 쓴다.** 본문 인라인 참조·용어집 표·관계 그래프가
+전부 그 배열에서 나온다. **본문 인라인 참조는 자동이다** — 본문에 용어 id 를 그냥 쓰면 빌드가 모든 등장을 term-ref(밑줄 + `?` + 카드)로
+감싼다. 제목(h2) · 표 머리 · `.mono` · 용어집 · 관계도 · SVG 안은 건너뛴다. `short` 는 커서를 올렸을 때 뜨는 한 줄이고 `body` 는 용어집 표에만 나온다.
 `links` 는 방향 없는 그물 간선이다 — 양쪽 끝이 모두 정의된 용어일 때만 그려진다.
 
 **읽는 사람은 배경 지식이 없다고 가정한다.** 객체지향을 갓 배운 대학 1학년 눈높이로 `short` 와 `body` 를 쓴다.
@@ -144,7 +145,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 ## Common pitfalls
 
-- **용어를 본문 여기저기서 즉석 정의** — 금지. `terms` 배열에만 쓴다. `<T id=…/>` 로 참조한다
+- **용어를 본문 여기저기서 즉석 정의** — 금지. `terms` 배열에만 쓴다. 본문에는 id 를 그대로 쓰면 빌드가 감싼다 — `<T id=…/>` 를 손으로 심지 않는다
 - **`report check` 의 용어집 경고를 무시** — 본문에 식별자 꼴 낱말(`C-19`·`*.json`·`calls[]`)이 있는데
   `terms` 에 없으면 경고가 뜬다. 실패는 아니지만 **그 목록이 곧 빠진 정의 목록**이다. 자연어 용어(`WarmUp`)는
   기계가 못 잡으므로 저자가 직접 넣는다

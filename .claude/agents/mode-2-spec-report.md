@@ -22,7 +22,7 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 |---|---|
 | CLI | `report-spec init` → `build` → `check` (`report` 는 위임으로 호환) |
 | 컴포넌트 | 17개 — 배지 · 표 · 블록 · BeforeAfter · VerdictFooter · **Glossary · TermGraph · defineTerms** |
-| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 |
+| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`scripts/wrap-terms.mjs`) |
 | 관계 그래프 | d3-force 런타임. 드래그 · 확대 · hover. `<script>` 예산 1개를 이것이 쓴다 |
 | 검사 | `<script>` ≤ 1 · `tsc --noEmit` · 링크 무결성 · **용어집 대조(경고)** · builderVersion |
 | 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개(전부 미측정), 관계도 |
