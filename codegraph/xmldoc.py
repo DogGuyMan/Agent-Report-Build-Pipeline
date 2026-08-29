@@ -12,7 +12,8 @@
   xmldoc.py inject [--dry-run]   -> 코드에 레퍼런스 블록 주입/갱신 + json 의 where 재계산 + emit
   xmldoc.py check                -> 코드의 레퍼런스가 json 과 맞는지만 본다. 어긋나면 종료 코드 1
 
-주입 블록은 정확히 두 줄이고 include 줄로 식별한다. 다시 돌리면 덧붙지 않고 갈린다.
+주입 블록은 늘 세 줄(마커 · 뜻 · 의존)이고 include 줄로 식별한다. 다시 돌리면 덧붙지 않고 갈린다.
+줄 번호는 셈으로 내지 않는다 — 파일에 박힌 마커를 다시 읽어 그 아래 선언 줄을 찾는다.
 """
 import argparse
 import json
@@ -31,6 +32,14 @@ XML_ABS = os.path.join(ROOT, XML_REL)
 LINE_COMMENT = {".py": "#", ".ts": "//", ".tsx": "//", ".mjs": "//", ".js": "//", "": "//"}
 
 INCLUDE_RE = re.compile(r"^\s*(#|//)\s*<include file=\"" + re.escape(XML_REL) + r"\"")
+ID_RE = re.compile(r"@id='([^']*)'")
+# 블록 셋째 줄(의존 줄)을 알아보는 자. 걷어낼 때 옛 두 줄 블록과 가르는 데 쓴다.
+USES_LINE_RE = re.compile(r"^\s*(?:#|//)\s*(?:\S+ — )?쓰는 것: ")
+
+# 용어 하나에 붙는 줄 수 — 마커 · 뜻 · 의존.
+BLOCK_ROWS = 3
+# 의존 줄에 이름을 몇 개까지 적을지. 넘치면 (+n) 으로 센다.
+USES_SHOWN = 5
 
 # 코드에 레퍼런스를 박을 수 있는 kind. 선언 줄이 실제로 있는 것만이다.
 # external · key · artifact · concept 의 where 는 **쓰이는 자리**를 가리킨다. 문자열 안이거나
@@ -92,12 +101,16 @@ def emit_xml(terms):
 
 # ---------------------------------------------------------------- 레퍼런스 주입
 #
-# 블록의 모양 — include 줄 n 개가 먼저, 그 다음 한 줄 설명 n 개. 길이는 항상 2n 이라
-# 다시 돌릴 때 자를 범위를 세지 않고 알 수 있다.
+# 블록의 모양 — 용어 하나마다 세 줄이다. include 줄 n 개가 먼저, 그 다음 뜻 n 개,
+# 마지막이 의존 n 개. 길이는 항상 3n 이라 다시 돌릴 때 자를 범위를 세지 않고 알 수 있다.
 #
 #   # <include file="docs/codegraph/comments.xml" path="//term[@id='Fact']"/>
 #   # 사실 한 건을 담는 자료 구조.
+#   # 쓰는 것: 없음 · 쓰이는 곳: collect, emit
 #   class Fact:
+#
+# 셋째 줄이 있는 이유 — 파일을 열자마자 "이건 무엇을 부르고, 누가 이걸 부르나" 가
+# 보이게 하려는 것이다. 그러려고 다른 파일을 열어 다니지 않아도 된다.
 #
 # 놓는 자리는 **선언 위에 이미 있는 주석 덩어리보다 더 위**다. JSDoc 이나 파이썬 주석과
 # 선언 사이를 갈라놓으면 편집기의 hover 문서가 끊긴다.
@@ -110,13 +123,47 @@ def is_commentish(line):
     return s.startswith(COMMENTISH) if s else False
 
 
-def block_lines(tids, terms, prefix, indent):
+def used_by_index(terms):
+    """{용어: 그것을 쓰는 용어들}. uses 를 거꾸로 뒤집은 것뿐이다."""
+    back = {}
+    for tid, rec in terms.items():
+        for u in rec.get("uses") or []:
+            to = u.get("to")
+            if to:
+                back.setdefault(to, set()).add(tid)
+    return {k: sorted(v) for k, v in back.items()}
+
+
+def name_list(names):
+    """이름들을 한 줄로. 다섯 개까지 적고 남는 건 (+n) 으로 센다."""
+    seen = []
+    for n in names:
+        if n not in seen:
+            seen.append(n)
+    if not seen:
+        return "없음"
+    line = ", ".join(seen[:USES_SHOWN])
+    rest = len(seen) - USES_SHOWN
+    return f"{line} (+{rest})" if rest > 0 else line
+
+
+def uses_line(tid, terms, used_by):
+    mine = [u.get("to") for u in (terms[tid].get("uses") or []) if u.get("to")]
+    return f"쓰는 것: {name_list(mine)} · 쓰이는 곳: {name_list(used_by.get(tid, []))}"
+
+
+def block_lines(tids, terms, prefix, indent, used_by=None):
     """한 앵커에 붙일 레퍼런스 블록. 같은 줄에 여러 용어가 걸리면 함께 낸다."""
+    if used_by is None:
+        used_by = used_by_index(terms)
     lines = [f"{indent}{prefix} <include file=\"{XML_REL}\" path=\"//term[@id='{t}']\"/>" for t in tids]
     for tid in tids:
         means = (terms[tid].get("means") or "").replace("\n", " ").strip()
         label = f"{tid} — " if len(tids) > 1 else ""
         lines.append(f"{indent}{prefix} {label}{means}".rstrip())
+    for tid in tids:
+        label = f"{tid} — " if len(tids) > 1 else ""
+        lines.append(f"{indent}{prefix} {label}{uses_line(tid, terms, used_by)}")
     return lines
 
 
@@ -141,12 +188,45 @@ def scan_top(lines, anchor_idx):
     return i
 
 
-def own_block_len(lines, top):
-    """top 부터 시작하는 우리 블록의 길이. 없으면 0. include 줄 n 개 -> 2n 줄."""
+def block_extent(lines, i):
+    """lines[i] 가 include 줄일 때 (용어 수, 블록이 차지한 줄 수).
+
+    옛 두 줄 블록도 센다 — 의존 줄이 있는지 실제로 보고 세기 때문이다. 이행기에
+    3n 이라고 못 박아 버리면 걷어낼 때 코드 줄을 한 줄 삼킨다."""
     c = 0
-    while top + c < len(lines) and INCLUDE_RE.match(lines[top + c]):
+    while i + c < len(lines) and INCLUDE_RE.match(lines[i + c]):
         c += 1
-    return 2 * c
+    n = 2 * c                       # include c 줄 + 뜻 c 줄은 옛 판에도 있다
+    u = 0
+    while u < c and i + n + u < len(lines) and USES_LINE_RE.match(lines[i + n + u]):
+        u += 1
+    return c, n + u
+
+
+def relocate(lines):
+    """파일 본문에 박힌 마커를 읽어 {용어: 선언 줄(1-based)} 을 만든다.
+
+    **셈으로 내지 않는 것이 요점이다.** 블록을 몇 개 끼워 넣었는지 더해 가는 방식은
+    앞선 블록이 민 만큼을 한 번만 빠뜨려도 그 아래 전부가 어긋나고, 그 어긋난 값이
+    다시 저장돼 다음 판에서 더 어긋난다. 여기서는 파일에 실제로 박힌 자리를 본다.
+
+    선언은 블록 바로 아래다. 다만 블록 위쪽 놓기(scan_top) 때문에 원래 있던 주석
+    덩어리가 사이에 낀다 — 그 덩어리를 지나쳐 첫 코드 줄을 찾는다."""
+    out = {}
+    i = 0
+    while i < len(lines):
+        if INCLUDE_RE.match(lines[i]):
+            c, n = block_extent(lines, i)
+            tids = [ID_RE.search(lines[i + k]).group(1) for k in range(c)]
+            j = i + n
+            while j < len(lines) and is_commentish(lines[j]) and not INCLUDE_RE.match(lines[j]):
+                j += 1
+            for t in tids:
+                out[t] = j + 1
+            i += n
+            continue
+        i += 1
+    return out
 
 
 def strip_blocks(lines):
@@ -158,10 +238,7 @@ def strip_blocks(lines):
     i = 0
     while i < len(lines):
         if INCLUDE_RE.match(lines[i]):
-            c = 0
-            while i + c < len(lines) and INCLUDE_RE.match(lines[i + c]):
-                c += 1
-            i += 2 * c            # include 줄 c 개 + 설명 줄 c 개
+            i += block_extent(lines, i)[1]
             continue
         removed_before.append(i - len(out))
         out.append(lines[i])
@@ -169,64 +246,82 @@ def strip_blocks(lines):
     return out, removed_before
 
 
-def plan_file(path, entries, terms, src):
-    """한 파일에 블록을 넣는다. entries = [(현재 파일의 줄번호, [tid,...])].
-    반환 (새 본문, {tid: 새 줄번호(1-based)}). 줄 번호는 다시 찾지 않고 셈으로 낸다."""
+def plan_file(path, tids, terms, src):
+    """한 파일에 블록을 넣는다. 반환 (새 본문, {용어: 새 줄번호}, {옛 줄번호: 새 줄번호}).
+
+    앵커는 **이미 박힌 마커**가 알려 준다. json 의 where 는 마커가 없는 새 용어에만
+    쓴다 — 그 값은 낡았을 수 있고, 낡은 값을 다시 앵커로 삼으면 어긋남이 굳는다.
+
+    셋째 반환값이 필요한 이유 — 블록을 끼워 넣으면 **그 아래 모든 줄이 밀린다.**
+    마커를 못 박는 용어(artifact·key·concept·external)와 `uses[].where` 는 밀린 만큼을
+    스스로 알 도리가 없다. 이 대응표로 같이 옮겨 주지 않으면 주입할 때마다 조금씩
+    어긋나 결국 엉뚱한 줄을 가리킨다."""
     raw = src.split("\n")
+    known = relocate(raw)
     lines, removed_before = strip_blocks(raw)
+    stripped = list(lines)            # 삽입 자리를 되돌려 셀 때 쓴다
     # 걷어낸 뒤의 줄 번호로 옮긴다. removed_before[new_idx] = 그 줄 앞에서 지워진 줄 수.
     old_to_new = {}
     for new_idx, gap in enumerate(removed_before):
         old_to_new[new_idx + gap] = new_idx
 
     prefix = prefix_for(path)
-    where = {}
+    used_by = used_by_index(terms)
 
-    file_tids = sorted(t for _, tids in entries for t in tids if terms[t].get("kind") == "file")
-    sym = []
-    for ln, tids in entries:
-        tids = [t for t in tids if terms[t].get("kind") != "file"]
-        if not tids:
+    file_tids = sorted(t for t in tids if terms[t].get("kind") == "file")
+    anchors = {}
+    for t in sorted(tids):
+        if terms[t].get("kind") == "file":
             continue
+        ln = known.get(t) or split_where(terms[t].get("where"))[1]
         old = ln - 1
         if old not in old_to_new:
-            raise SystemExit(f"앵커가 옛 블록 안이다: {tids[0]} @ {path}:{ln}")
-        sym.append((old_to_new[old], sorted(tids)))
+            raise SystemExit(f"앵커가 옛 블록 안이다: {t} @ {path}:{ln}")
+        anchors.setdefault(old_to_new[old], []).append(t)
 
+    inserts = []                      # (걷어낸 좌표에서의 삽입 자리, 넣은 줄 수)
     floor = file_anchor(lines)
     if file_tids:
-        blk = block_lines(file_tids, terms, prefix, "")
+        blk = block_lines(file_tids, terms, prefix, "", used_by)
+        inserts.append((floor, len(blk)))
         lines[floor:floor] = blk
         shift = len(blk)
         floor += shift
-        sym = [(a + shift, t) for a, t in sym]
-        for t in file_tids:
-            where[t] = 1              # 파일 용어의 자리는 늘 첫 줄이다
+        anchors = {a + shift: t for a, t in anchors.items()}
 
     delta = 0
-    for anchor, tids in sorted(sym):
-        anchor += delta
-        name = anchor_name(tids[0])
+    for a in sorted(anchors):
+        here = sorted(anchors[a])
+        anchor = a + delta
+        name = anchor_name(here[0])
         if anchor >= len(lines) or name not in lines[anchor]:
-            raise SystemExit(f"앵커 불일치: {tids[0]} @ {path} — 그 줄에 {name} 이 없다")
+            raise SystemExit(f"앵커 불일치: {here[0]} @ {path} — 그 줄에 {name} 이 없다")
         if in_py_string(path, lines, anchor):
-            raise SystemExit(f"앵커가 문자열 안이다: {tids[0]} @ {path}")
+            raise SystemExit(f"앵커가 문자열 안이다: {here[0]} @ {path}")
         cur = lines[anchor]
         indent = cur[: len(cur) - len(cur.lstrip())]
         # 선언 위의 주석 덩어리(JSDoc 등)보다 더 위에 놓는다. 그 사이를 가르면 hover 문서가 끊긴다.
         # 다만 셔뱅과 앞선 블록 아래로는 절대 못 내려간다.
         top = max(scan_top(lines, anchor), floor)
-        blk = block_lines(tids, terms, prefix, indent)
+        blk = block_lines(here, terms, prefix, indent, used_by)
+        inserts.append((top - (len(lines) - len(stripped)), len(blk)))
         lines[top:top] = blk
         delta += len(blk)
         floor = top + len(blk)
-        for t in tids:
-            where[t] = anchor + len(blk) + 1
-    return "\n".join(lines), where
+
+    where = relocate(lines)
+    for t in file_tids:
+        where[t] = 1                  # 파일 용어의 자리는 늘 첫 줄이다
+
+    moved = {}
+    for raw_idx, new_idx in old_to_new.items():
+        shift = sum(n for pos, n in inserts if pos <= new_idx)
+        moved[raw_idx + 1] = new_idx + shift + 1
+    return "\n".join(lines), {t: where[t] for t in tids if t in where}, moved
 
 
-def run_inject(dry, all_kinds=False):
-    terms = json.load(open(READING, encoding="utf-8"))
+def collect_targets(terms, all_kinds=False):
+    """{파일: [용어…]} 와 XML 에만 남길 용어들. where 의 파일 이름만 쓴다."""
     by_file, skipped = {}, []
     for tid, rec in terms.items():
         path, ln = split_where(rec.get("where"))
@@ -238,14 +333,40 @@ def run_inject(dry, all_kinds=False):
             continue
         if not os.path.exists(os.path.join(ROOT, path)):
             raise SystemExit(f"파일 없음: {path} ({tid})")
-        by_file.setdefault(path, {}).setdefault(ln, []).append(tid)
+        by_file.setdefault(path, []).append(tid)
+    return by_file, skipped
 
-    changed, moved = [], 0
-    for path, per_line in sorted(by_file.items()):
+
+def carry_lines(terms, path, line_map, skip):
+    """블록 때문에 밀린 줄을 따라 옮긴다. 마커가 있는 용어(skip)는 이미 제자리다.
+
+    `uses[].where` 도 같이 옮긴다 — 거기엔 마커가 없어 스스로 제자리를 찾지 못한다.
+    옮기는 것은 **이번에 우리가 민 만큼**뿐이다. 코드가 딴 데서 바뀌어 생긴 어긋남은
+    여기서 고치지 못하고 L3 경고로 남는다."""
+    n = 0
+    for tid, rec in terms.items():
+        if tid not in skip:
+            p, ln = split_where(rec.get("where"))
+            if p == path and ln in line_map and line_map[ln] != ln:
+                rec["where"] = f"{path}:{line_map[ln]}"
+                n += 1
+        for u in rec.get("uses") or []:
+            p, ln = split_where(u.get("where"))
+            if p == path and ln in line_map and line_map[ln] != ln:
+                u["where"] = f"{path}:{line_map[ln]}"
+                n += 1
+    return n
+
+
+def run_inject(dry, all_kinds=False):
+    terms = json.load(open(READING, encoding="utf-8"))
+    by_file, skipped = collect_targets(terms, all_kinds)
+
+    changed, moved, carried = [], 0, 0
+    for path, tids in sorted(by_file.items()):
         abspath = os.path.join(ROOT, path)
         src = open(abspath, encoding="utf-8").read()
-        entries = [(ln, sorted(tids)) for ln, tids in sorted(per_line.items())]
-        new, where = plan_file(path, entries, terms, src)
+        new, where, line_map = plan_file(path, sorted(tids), terms, src)
         if new != src:
             changed.append(path)
             if not dry:
@@ -255,32 +376,36 @@ def run_inject(dry, all_kinds=False):
             if terms[tid].get("where") != w:
                 terms[tid]["where"] = w
                 moved += 1
+        carried += carry_lines(terms, path, line_map, skip=set(where))
 
     if dry:
-        print(f"[dry-run] 고칠 파일 {len(changed)}개 · where 갱신 {moved}건 · XML 에만 남을 용어 {len(skipped)}개")
+        print(f"[dry-run] 고칠 파일 {len(changed)}개 · where 갱신 {moved}건 · 따라 옮길 줄 {carried}건 · XML 에만 남을 용어 {len(skipped)}개")
         return
     open(READING, "w", encoding="utf-8").write(json.dumps(terms, ensure_ascii=False, indent=2) + "\n")
     open(XML_ABS, "w", encoding="utf-8").write(emit_xml(terms))
     why = Counter(k for _, k in skipped)
-    print(f"주입 완료 — 파일 {len(changed)}개 · where 갱신 {moved}건 · XML 항목 {len(terms)}개")
+    print(f"주입 완료 — 파일 {len(changed)}개 · where 갱신 {moved}건 · 따라 옮긴 줄 {carried}건 · XML 항목 {len(terms)}개")
     print(f"  XML 에만 남은 용어 {len(skipped)}개 — {dict(why)}")
 
 
 def run_check():
+    """코드의 마커와 json 의 where 가 같은 자리를 가리키는지만 본다."""
     terms = json.load(open(READING, encoding="utf-8"))
+    by_file, _ = collect_targets(terms)
     problems, seen = [], 0
-    for tid, rec in terms.items():
-        path, ln = split_where(rec.get("where"))
-        if not path or rec.get("kind") not in DECL_KINDS:
-            continue
+    for path, tids in sorted(by_file.items()):
         lines = open(os.path.join(ROOT, path), encoding="utf-8").read().split("\n")
-        lo = 0 if rec.get("kind") == "file" else max(0, ln - 1 - 40)
-        hi = 8 if rec.get("kind") == "file" else ln - 1
-        want = f"path=\"//term[@id='{tid}']\"/>"
-        if any(want in l and INCLUDE_RE.match(l) for l in lines[lo:hi]):
-            seen += 1
-        else:
-            problems.append(f"{tid}: {path}:{ln} 둘레에 레퍼런스가 없다")
+        found = relocate(lines)
+        for tid in sorted(tids):
+            ln = split_where(terms[tid].get("where"))[1]
+            if tid not in found:
+                problems.append(f"{tid}: {path}:{ln} 둘레에 레퍼런스가 없다")
+                continue
+            want = 1 if terms[tid].get("kind") == "file" else found[tid]
+            if ln != want:
+                problems.append(f"{tid}: where 가 {path}:{ln} 인데 마커 기준은 {path}:{want} 다")
+            else:
+                seen += 1
     if not os.path.exists(XML_ABS):
         problems.append(f"{XML_REL} 이 없다")
     elif open(XML_ABS, encoding="utf-8").read() != emit_xml(terms):
