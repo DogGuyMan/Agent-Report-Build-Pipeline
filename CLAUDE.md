@@ -28,8 +28,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 항목 | 실측값 |
 |---|---|
-| 커밋 / 태그 | 22개 (`794b17a`~`ea33069`) / `v1` |
-| 테스트 | `npm test` 44개 전부 통과 |
+| 커밋 / 태그 | 70개+ (`794b17a`~`988d6ca`, 2026-08-29 하루 60건) / `v1` — API 는 추가만이라 태그 그대로 |
+| 테스트 | `npm test` 95개 · `pytest codegraph/` 51개 전부 통과 (2026-08-29 18:15) |
 | `tsc --noEmit` | 통과 |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |

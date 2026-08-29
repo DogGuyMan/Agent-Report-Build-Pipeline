@@ -8,46 +8,46 @@
 
 ---
 
-## TL;DR + 바로 다음 한 걸음
+## TL;DR + 바로 다음 한 걸음 (2026-08-29 18:15 갱신)
 
-**어디까지 왔나** — Mode 1.5(용어 이해도 벤치마크) 계획서 `2026-08-29-mode-1-5-term-benchmark.md` 의
-**Task 10개 전부 완료·커밋**됐다. CLI `report-term collect → grade → emit` 이 end-to-end 로 돈다(스크래치패드 실측).
-Mode 2 연동(`Term.mental` · 이해도 컬럼 · init 스켈레톤)도 끝났다. `term-benchmark` 스킬이 저장소 밖과 안에 있다.
+**어디까지 왔나** — 세 mode 가 **이 저장소 안에서 한 바퀴 돌았다.**
+Mode 1(terms-db 우선 파이프라인, 자기 전수조사 191개) → Mode 1.5(첫 시험 20개: 확실 6 · 애매 3 · 모름 11, 이후 3문항 규칙) →
+Mode 2(이해도가 실측된 `llm-load-reduction` 보고서). 그 위에 사용자 지시로 Mode 2 프론트가 다섯 번 진화했다 —
+**용어집 아코디언 · 본문 용어 자동 참조 · 경로 `file://` 링크 · 관계도 물리(슬라이더로 확정) · 카드 위치/범례 수정.** 오늘 커밋 60건.
 
-**서브에이전트 정의 3개가 `.claude/agents/` 에 있다(미커밋).** ⚠ **이 문서의 최초 판이 "세 슬롯이 각자 만들었다"고 적은 것은
-틀렸다** — 🔵 mtime 실측(03:17:24 · 03:18:02 · 03:18:39)과 그 세션의 첫 `ls` 결과(디렉토리 부재)로 확인했다.
-**한 세션이 HANDOFF ③ 을 읽고 셋을 연달아 만들었다.** 아래 §4 를 보라.
+**서브에이전트 3개**(`.claude/agents/`)는 커밋됐고(`2aca41a`) 각각 실전에 1회 이상 투입돼 경계를 지켰다 — Mode 1 ⑤⑥, Mode 1.5 ⑦, Mode 2 ⑧⑨⑩⑪⑫.
+하네스의 "이 보고를 믿지 말고 재검증하라" 한 줄이 오늘 내 오류 **7건**을 잡았다(§5).
 
-**슬롯 B·C·D 의 실작업(외부 저장소)은 아직 착수 전**이다 — `terms-db.json` 도, 슬롯 D 의 새 보고서도 아직 없다(실측).
-
-**바로 다음 한 걸음 (2026-08-29 15:00 갱신)** — 이 저장소 안에서 할 수 있는 일은 **다 했다.** Mode 1(전수조사 `terms-reading.json` 191개) →
-Mode 1.5(첫 시험, 확실 6 · 애매 3 · 모름 11) → Mode 2(`llm-load-reduction` 보고서에 이해도 반영, check 5/5) 가 한 번 끝까지 돌았다.
-다음은 **사용자 결정** — 도구를 **다른 실제 프로젝트**에 써 보는 것(CLAUDE.md `## ⚠ 방향`). StickRush 는 DB 는 있으나 Plan 이 없다.
-열린 것: D7(C# 저장소에 읽기 단계 → C1 시험) · R3 · R4 · R5 · R6(낱말 오탐 `bin` `load` `report` `src` `Data` …).
+**바로 다음 한 걸음** — 이 저장소 안에서 할 일은 **없다.** 남은 것은 전부 **사용자 결정**이다(§6):
+> (가) 도구를 **다른 실제 프로젝트**에 써 본다 — CLAUDE.md `## ⚠ 방향`. StickRush 는 DB 는 있으나 Plan 이 없다.
+> (나) 보류 항목 R3~R8 중 무엇을 열지.
 
 ---
 
-## 1. 세계의 상태 — 2026-08-29 03:20 재측정
+## 1. 세계의 상태 — 2026-08-29 18:15 재측정
 
 | 항목 | 값 |
 |---|---|
 | 저장소 | `$REPO_ROOT` (`~/report-builder` 는 **존재하지 않는다**) |
 | 브랜치 | `feat/report-builder` |
-| HEAD | `a49e285 [docs] : Mode 1.5 오케스트레이터 세션 재개 문서와 핸드오프 부분 대체 배너` (🔵 03:2x 재측정) |
-| 이 세션 커밋 | **21개** (`95910ef` 이후). 아래 §2 표 참조 |
-| 미커밋 | `.claude/agents/` 3개 (**한 세션이 만든 한 벌.** §4 정정 참조) · `docs/prompt/checklist.yaml` (사용자 메모, 의도적 미추적) |
-| Node 테스트 | **64 통과** (`npm test`) |
-| Python 테스트 | **31 통과** (`.venv/bin/python -m pytest codegraph/ -q`) |
+| HEAD | `988d6ca [docs] : 재개 문서 이력 - 카드 위치와 범례 카드 결함 2건` |
+| 커밋 | `95910ef` 이후 **48개**, 2026-08-29 하루 **60개** |
+| 미커밋 | `docs/prompt/checklist.yaml` 하나 (사용자 메모, 의도적 미추적) |
+| Node 테스트 | **95 통과** (`npm test` — 파일 8개: check · components · dispatch · init · svg · term · wrap-terms · link-paths · graph-math) |
+| Python 테스트 | **51 통과** (`.venv/bin/python -m pytest codegraph/ -q`) |
 | 타입 검사 | 통과 (`npm run typecheck`) |
-| `report-spec check` (llm-load-reduction) | **5/5 통과**, 용어집 경고 0 (용어 24개) |
-| 스킬 | `~/.claude/skills/term-benchmark/SKILL.md` 223줄 (슬롯 C 저작) · 저장소 사본 `.claude/skills/term-benchmark/` 커밋됨 |
+| 보고서 2건 | `llm-load-reduction` · `mode-1-terms-db-first` — 둘 다 `report-spec check` **5/5**, `<script>` 1개, 용어집 경고 0 |
+| 태그 | `v1` 그대로 — 컴포넌트 API 는 추가만 했다(`Term.mental` · `TermGraph.tune` · `ReportData.linkRoots`) |
+| 런타임 번들 | 69.4KB (d3-force/zoom/drag/selection + 덩어리 물리 + 조정 슬라이더 + 카드 위치) |
+| 스킬 | `spec-review-dashboard` · `term-benchmark` — `~/.claude/skills/` 원본과 `.claude/skills/` 사본 **동일**(`diff -q`) |
+| 서브에이전트 정의 | `.claude/agents/mode-{1-codebase-wiki,1-5-term-benchmark,2-spec-report}.md` 커밋됨. 이 세션의 하네스가 셋 다 이름으로 부른다 |
+| 외부 저장소 | 새 산출물 없음(재측정). StickRush `out/codegraph-raw/` 에 `codegraph.json` · `roslyn-dump.json` · `facts/` (Track C 산출) |
 
-**저장소 밖 자산** — `~/.claude/skills/spec-review-dashboard/SKILL.md` (174줄, 용어집 3종 반영) · `~/.claude/skills/term-benchmark/SKILL.md`.
-둘 다 저장소 안 `.claude/skills/` 에 사본이 있다. **저장소 밖이 원본, 안은 사본**이다. 고치면 둘 다 갱신한다.
+**저장소 밖 자산** — 스킬 원본 2종(위). **저장소 밖이 원본, 안은 사본**이다. 고치면 둘 다 갱신한다.
 
 ---
 
-## 2. Task 상태 — 10/10
+## 2. Task 상태 — Mode 1.5 계획 10/10 · terms-db 우선 계획 7/7
 
 | Task | 내용 | 커밋 | 방식 |
 |---|---|---|---|
@@ -62,7 +62,17 @@ Mode 1.5(첫 시험, 확실 6 · 애매 3 · 모름 11) → Mode 2(`llm-load-red
 | 5.2 | init 스켈레톤 `terms: []` | `6e66190` | **오케스트레이터 직접** (위임 비용 > 작업) |
 | 6.1 | `term-benchmark` 스킬 | `1c22f65` | **슬롯 C** 저작, 오케스트레이터 검토·커밋 |
 
-**작업자 역할로 병행한 것** — `spec-review-dashboard` 스킬 용어집 반영 `d465df7` · 끊어진 심볼릭 링크 `33f4556` ·
+**terms-db 우선 계획** (`2026-08-29-mode-1-terms-db-first.md`):
+
+| Task | 내용 | 커밋 | 방식 |
+|---|---|---|---|
+| 1~5 | `terms_db.py` — `uses[]` 보존 · 투영 · 인용 3값 검사 · 합치기 · `--reading` CLI + 테스트 20 | `1ad879a` | `mode-1-codebase-wiki` — **계획서 결함 1건(C++ 간선 어휘) 실측 정정** |
+| 6 | 전수조사 절차를 에이전트 정의 + HANDOFF ③ 에 | `b2e1c78` | `mode-1-codebase-wiki` |
+| 7 | 이 저장소 전수조사 `terms-reading.json` 191개 | `a9b9080` | `mode-1-codebase-wiki` (LLM 읽기) |
+
+**Mode 1.5 첫 시험과 규칙 변경** — 시험 `041d4be`(이해도 반영) · 3문항 규칙 `71a3386`. **Mode 2 프론트(사용자 지시)** — 아코디언 `596dec9` · 자동 참조 `70e4f39` · 경로 링크 `f92cb7d` · 관계도 물리 `6ef58b3` · 카드 위치 `a4d526c` · 범례 카드 `d42d3b3`.
+
+**작업자 역할로 병행한 것(03:20 이전)** — `spec-review-dashboard` 스킬 용어집 반영 `d465df7` · 끊어진 심볼릭 링크 `33f4556` ·
 용어 11개 추가로 경고 0 `245d160` · 핸드오프 4종 작성과 갱신(`3faa86e` `22d7c2b` `6e38375` `1666469` `c2d7015` `8b71c25`).
 
 ---
@@ -79,6 +89,12 @@ Mode 1.5(첫 시험, 확실 6 · 애매 3 · 모름 11) → Mode 2(`llm-load-red
 | `terms.json` 필드명 | `TermMeans` · `UserMentalValue` — 사용자 확정, 바꾸지 말 것 | `emit.mjs:16-17` |
 | Task 6.1 위임 가능 | "오케스트레이터 직접"은 CLI 미확정이 전제였고 그 전제가 사라졌다 | 핸드오프 ① 변경 이력 |
 | 슬롯 B 가 지킬 간접 의존 | `normalize.py` 의 출력 키를 바꾸면 `terms_db.py` 가 깨진다 | `1666469` |
+| **terms-db 우선** | `terms-db.json` 이 원본, `codegraph.json` 은 투영. LLM 전수조사 1회. LLM 레코드는 `where` 필수 + L1/L2/L3 기계 검사. 정적 수집기가 있으면 구조 필드는 codegraph 가 이긴다(D3). 원본 `docs/codegraph/`, 파생물 `out/`(D4). 키 규칙 맨 이름·충돌 시 `파일줄기.이름`(D5). `C-19` `M4` `U5` 는 사전에 그대로 | 계획서 D1~D7, 사용자 확정 05:50 · 06:45 |
+| **3문항 규칙** | 용어당 3문항. 맞힌 수 2~3 확실 / 0~1 모름. "모른다" 2회 이상 모름. **애매 없음**(타입에만 남음) | 사용자 확정 14:40, `71a3386` |
+| 용어 자동 참조 | 본문 모든 등장 감쌈. 제목(h2) · `.mono` · 표 머리 · summary · 용어집 · 관계도 · SVG 는 건너뜀 | 사용자 확정 15:20, `70e4f39` |
+| 경로 링크 | 파일은 파일 · 글로브는 폴더 · `file://` · **새 탭** · `linkRoots` 가 저장소 기본 폴더보다 먼저 · 없는 파일은 링크 안 함 | 사용자 확정 16:00 · 16:30, `f92cb7d` |
+| 관계도 물리 `KNOBS` | `REPEL_IN -200 · REPEL_OUT -200 · REPEL_MAX_DIST 410 · GRAVITY 0.035 · BOUNDS_SCALE 2.5 · LINK_DISTANCE 90 · LINK_STRENGTH 0.35 · COLLIDE_RADIUS 49 · GROUP_PAD 24 · GROUP_STRENGTH 0.6` | 사용자가 슬라이더로 확정 17:40, `6ef58b3` |
+| 카드는 CSS 로 뜨고 위치만 런타임 | 표의 overflow 에 잘리지 않게 `position: fixed` 로 옮김 | `a4d526c` |
 
 **정정된 것** (이전 문서가 틀렸던 것):
 - 핸드오프 ② · ④ 는 작업 완료 후에도 "붙여넣어 실행하라"고 말하고 있었다 → 🔴 완료 배너를 달았다(`1c22f65` `8b71c25`).
@@ -86,36 +102,24 @@ Mode 1.5(첫 시험, 확실 6 · 애매 3 · 모름 11) → Mode 2(`llm-load-red
 
 ---
 
-## 4. 병렬 슬롯 충돌 매트릭스 — 2026-08-29 03:20 실측
+## 4. 서브에이전트 소유 매트릭스 — 2026-08-29 18:15 실측
 
-**한 세션이** HANDOFF ③ 을 읽고 `.claude/agents/` 에 서브에이전트 정의 3개를 연달아 만들었다.
-정의 파일의 `## 소유 파일과 경계` 절은 그 세션이 **핸드오프 ① §4·§0 에서 각 mode 의 행을 뽑아 넣은 것**이라
-당연히 일치한다 — 서로 다른 세션이 독립으로 같은 결론에 도달한 것이 **아니다.**
+**슬롯(별도 세션) 구도는 끝났다.** 정의 파일 3개는 한 세션이 만들었고(03:1x, §9 정정), 실작업은 전부 **이 오케스트레이터 세션이 `Agent` 도구로**
+띄운 서브에이전트가 했다. 각 정의의 `## 소유 파일과 경계` 절이 곧 매트릭스이고, 오늘 그 경계가 실전에서 지켜졌다(소유 밖 변경 0건, 전부 커밋 안 함).
 
-🔴 **정정(실측).** 이 문서의 최초 판과 핸드오프 ① §9 는 "슬롯 B 가 `mode-1-codebase-wiki.md` 를 만들었다",
-"세 슬롯이 각자 만들었다" 고 적었다. **둘 다 틀렸다.** 근거 — 세 파일 mtime 은 `03:17:24` · `03:18:02` · `03:18:39` 로
-40초 안에 연달아 찍혔고, 그 세션이 착수 전 돌린 `ls` 는 `.claude/agents/` 와 `~/.claude/agents/` **둘 다 부재**로 나왔다.
-커밋 `c2d7015`(03:18:18)가 그 사이에 끼어 첫 파일 하나만 보고 슬롯 B 로 귀속한 것이다.
-**딸린 결과 — 정의 파일의 커밋 주체를 슬롯별로 나눌 필요가 없다.** 셋을 한 커밋으로 낸다.
-
-| 파일 | A 오케스트레이터 | B `mode-1-codebase-wiki` | C `mode-1-5-term-benchmark` | D `mode-2-spec-report` |
+| 파일 | 오케스트레이터 | `mode-1-codebase-wiki` | `mode-1-5-term-benchmark` | `mode-2-spec-report` |
 |---|---|---|---|---|
-| `scripts/term/*` · `test/term.test.mjs` | 검토 | 읽기 | **소유** | 읽기 |
-| `scripts/dispatch.mjs` · `bin/*` | **소유** | 읽기 | 읽기 (명령표 변경은 A 승인) | 읽기 |
-| `codegraph/*` (terms_db 제외) | 읽기 | **소유** | 읽기 | 읽기 |
-| `codegraph/terms_db.py` | 참조 | **건드리지 말 것** | 읽기 | — |
+| `codegraph/*` (`terms_db.py` 포함 — ⑤ 이후) | 검토·커밋 | **소유** (⑤⑥ 투입) | 읽기 | 읽기 |
+| `docs/codegraph/terms-reading.json` | 검토 | **소유** (전수조사 원본) | 읽기 | 읽기 |
 | `normalize.py` 출력 키 | — | **바꾸지 말 것** | — | — |
-| `src/*` · `scripts/{build,check,init,svg}.mjs` · `test/components.test.mjs` | 검토 | 읽기 | 읽기 | **소유** (추가만) |
-| `CLAUDE.md` | 소유 | Track C 절만 | — | — |
-| `~/.claude/skills/term-benchmark/` | 검토 | — | 읽기 전용 (고칠 일은 보고) | — |
-| `.claude/agents/<자기 것>.md` | — | 소유 | 소유 | 소유 |
-| 다른 저장소 `specs/<slug>/` | — | 접근 안 함 | — | **소유** |
+| `scripts/term/*` · `test/term.test.mjs` | 검토 | 읽기 | **소유** (⑦ 투입) | 읽기 |
+| `scripts/dispatch.mjs` · `bin/*` | **소유** | 읽기 | 읽기 | 읽기 |
+| `src/*` · `scripts/{build,check,init,svg,wrap-terms,link-paths}.mjs` · `test/{components,wrap-terms,link-paths,graph-math}.test.mjs` | 검토·커밋 | 읽기 | 읽기 | **소유** (⑧⑨⑩⑪⑫ 투입, 추가만) |
+| `docs/superpowers/specs/*/{data.ts,report.tsx}` | 저작·커밋 | — | — | 소유(수동 `<T>` 제거 · `linkRoots` 한 줄) |
+| `CLAUDE.md` · `docs/handoffs/*` · `.claude/skills/*` | **소유** | Track C 절만 | — | — |
+| `.claude/agents/<자기 것>.md` | 검토 | 소유 | 소유 | 소유 |
 
-**동시 진행 가능** — B · C · D 는 서로 파일이 안 겹친다. **커밋은 각자 `git add <경로>` 로 좁힌다. `-A` 금지.**
-인덱스에 남의 파일이 있으면 `git status --porcelain` 으로 확인하고 자기 것만 스테이징한다.
-
-**슬롯 B·D 실작업 착수 여부** — 03:20 실측: 외부 저장소(`$DEV_ROOT`)에 새 `terms-db.json` 도 새 `specs/*/data.ts` 도 없다.
-**둘 다 정의 파일만 만들고 실작업은 아직이다.**
+**커밋은 오케스트레이터가 사용자 승인 후 경로를 좁혀 한다. `-A` 금지.** 서브에이전트는 구현 + 검증 + 보고까지.
 
 ---
 
@@ -135,59 +139,69 @@ Mode 1.5(첫 시험, 확실 6 · 애매 3 · 모름 11) → Mode 2(`llm-load-red
 | 도구는 판정하지 않는다 | CLI 는 사람에게 묻지 않는다. 묻는 건 스킬 |
 
 **하네스 7블록** (서브에이전트 프롬프트에 빠뜨리지 않을 것) — `[ROLE]` `[HARD RULES]` `[BOUNDARIES]` `[VERIFIED FACTS]` `[STEP n]` `[SELF-REVIEW]` `[REPORT]`.
-`[VERIFIED FACTS]` 에는 반드시 **"이 보고를 믿지 말고 재검증하라"** 를 넣는다. 이 세션에서 그 한 줄이 내 오류 4건을 잡았다.
+`[VERIFIED FACTS]` 에는 반드시 **"이 보고를 믿지 말고 재검증하라"** 를 넣는다. 오늘 그 한 줄이 내 오류 **7건**을 잡았다 — 계획서 키 2 · 테스트 절 번호 · 디스패처 인자 · C++ 간선 어휘(드라이런이 골든 하나만 돌림) · 테스트 단언 패턴 · `edges[]` 뒤쪽 경계. **드라이런은 골든 재료 전부에 돌린다.**
 
 ---
 
-## 6. 열린 결정 — 사용자 몫
+## 6. 열린 결정 — 사용자 몫 (2026-08-29 18:15)
 
-| # | 무엇 | 왜 지금 안 정했나 | 막고 있는 것 |
+| # | 무엇 | 상태 | 막고 있는 것 |
 |---|---|---|---|
-| **R1** | ~~시험 재료를 어디서 얻을지~~ **→ 2026-08-29 05:40 방향 확정.** 사용자 결정: Mode 1 을 **terms-db 우선** 구조로 뒤집어 이 저장소 자신의 DB 를 만든다. 계획서 `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` (Task 7개, 코드 드라이런 19/19 통과) + 검토 보고서 `docs/superpowers/specs/mode-1-terms-db-first/` (check 5/5). **착수 승인 대기** | — | 계획서 Task 1~7 실행 (`mode-1-codebase-wiki` 에 위임) |
-| R2 | `.claude/agents/*.md` 3개 커밋 | 커밋은 사용자 승인 후. (소유가 갈린다는 이전 사유는 **위 §4 정정으로 소멸**) | 없음 (미커밋 상태로도 동작) |
-| R3 | C++ 용어 키가 네임스페이스 포함 (`SJH::Material`) | 스킬의 자연어 보충 단계로 메우게 했으나 근본 해결 아님 | Mode 1.5 를 C++ 저장소에 쓸 때 |
-| R4 | `collect.mjs` 코드 펜스 처리 | `a.json` 오탐. "지금은 결정 안 한다" 로 보류됨 | 오탐 비율이 실사용에서 드러날 때 |
-| R5 | 외부 노드(`(STL) std`) 를 용어 DB 에서 뺄지 | `means` 가 어색 | R3 과 같은 시점 |
-
-**R1 이 가장 급하다.** 세 선택지: ① `terms-db.json` 없이 Plan 신규 개념 34개만으로 스킬 시험 (가장 빠름) ② 슬롯 B 의 Track C 완료 대기
-③ 슬롯 D 의 프로젝트에서 Mode 1 부터.
+| R1 | 시험 재료 | **해소** — Mode 1 을 terms-db 우선으로 뒤집어 이 저장소 자신의 DB 를 만들었다(계획서 7/7) | — |
+| R2 | `.claude/agents/*.md` 커밋 | **해소** `2aca41a` | — |
+| R3 | C++ 용어 키가 네임스페이스 포함 (`SJH::Material`) | 보류 | Mode 1.5 를 C++ 저장소에 쓸 때 |
+| R4 | `collect.mjs` 코드 펜스 처리 (`a.json` 오탐) | 보류 — "지금은 결정 안 한다" | 실사용 오탐 비율 |
+| R5 | 외부 노드(`(STL) std`)를 용어 DB 에서 뺄지 | 보류 | R3 과 같은 시점 |
+| R6 | `pickTerms` 낱말 오탐 — `Data` `Interface` `bin` `load` `report` `src` (짧은 영어 낱말이 Plan 본문 아무 데나 걸린다) | 보류 — R4 와 같은 갈래 | 실사용 오탐 비율 |
+| R7 | C# 저장소(StickRush)에 읽기 단계를 얹어 **C1(오답 보기 품질)** 시험 (terms-db 계획 D7) | 보류 | StickRush 용 Plan 이 생길 때 |
+| R8 | `facts/*.md` 처럼 **SVG 다이어그램 글자 안**의 경로까지 링크할지 | 보류 — 지금은 SVG 안을 건너뛴다 | 필요가 생길 때 |
+| **R10** | **인용 부패** — `terms-reading.json` 의 `where`(file:line)는 코드가 바뀌면 낡는다. 🔵 18:15 실측: Task 7 직후 근거 없음 3 → 오늘 `term-graph.ts` `build.mjs` `terms.tsx` `quiz.mjs` 를 고친 뒤 **26**. 실패(L1/L2)는 아니라 파이프라인은 돌지만 L3 가 약해진다. 대책 후보 — (가) 이름 조각으로 줄을 다시 찾아 `where` 를 고치는 `--relocate` 옵션 (나) 커밋 훅으로 검사 (다) 그냥 재조사 | 보류 — 방식은 사용자 결정 | 다음 전수조사 때 |
+| **R9** | **도구를 써 볼 다음 실제 프로젝트** | **열림 — 가장 급하다.** CLAUDE.md `## ⚠ 방향` 의 목적. StickRush 는 DB 있음 · Plan 없음 | 사용자 |
 
 ---
 
-## 7. 포인터
+## 7. 포인터 (2026-08-29 18:15)
 
 | 문서 | 역할 | 상태 |
 |---|---|---|
-| `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` | Task 별 코드. **실측 정정 주석 3건** 포함 | 10/10 완료 |
-| `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-orchestration.md` ① | 슬롯 분배 §0 · 위상 정렬 §3 · 하네스 §5 · 규약 §7 | **활성** — TL;DR·§1 은 이 문서가 대체 |
-| `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-build-targets.md` ② | Task 0.1 프롬프트 | 🔴 완료 (기록용) |
-| `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-agents.md` ③ | Mode 1/1.5/2 역할 정의 | **활성** — 슬롯 B·C·D 가 이것을 에이전트 정의로 옮겼다 |
-| `docs/handoffs/HANDOFF-2026-08-29-mode-1-5-skill.md` ④ | Task 6.1 프롬프트 | 🔴 완료 (기록용) |
-| `docs/handoffs/RESUME-2026-08-28-track-c.md` | Track C(Mode 1) 재개 | 활성 — **별개 갈래**, 슬롯 B 가 읽는다 |
-| `.claude/agents/mode-{1-codebase-wiki,1-5-term-benchmark,2-spec-report}.md` | 서브에이전트 정의 | 미커밋 (각 슬롯 소유) |
-| `CLAUDE.md` | 저장소 규약. `## ⚠ 방향` 절부터 | 갱신됨 |
+| `docs/superpowers/plans/2026-08-29-mode-1-5-term-benchmark.md` | Mode 1.5 계획. 실측 정정 주석 4건(키 2 · 디스패처 · 3문항) | 10/10 완료 |
+| `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` | Mode 1 terms-db 우선 계획. 결정 D1~D7, 정정 주석 1건(간선 어휘) | 7/7 완료 |
+| `docs/superpowers/specs/llm-load-reduction/` | Mode 2 보고서 — **이해도 실측 반영**(확실 6 · 애매 3 · 모름 11 · 미측정 4), `linkRoots` → StickRush | check 5/5 |
+| `docs/superpowers/specs/mode-1-terms-db-first/` | terms-db 계획의 검토 보고서 — 결정 7건, 용어 30개(미측정) | check 5/5 |
+| `docs/superpowers/specs/llm-load-reduction/term-quiz.md` (+ `out/quiz_to_answers.py` · `out/term-quiz.key.json`, gitignore) | 첫 시험지 100문항과 채점 헬퍼 | 기록 |
+| `docs/codegraph/terms-reading.json` | 이 저장소의 LLM 전수조사 원본(191). 파생물은 `out/codegraph-raw/` — `terms_db.py --reading` 한 줄로 재생성 | 커밋됨 |
+| HANDOFF ① `…-mode-1-5-orchestration.md` | Mode 1.5 위상 정렬 §3 · 하네스 §5 · 규약 §7 | 🟡 부분 대체 — §0 슬롯 분배도 낡음(아래 배너) |
+| HANDOFF ③ `…-mode-1-5-agents.md` | Mode 1/1.5/2 역할 서술 **원본** — `.claude/agents/` 가 실행본. 둘을 같이 고친다 | 활성 |
+| HANDOFF ② ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩ ⑪ ⑫ | 서브에이전트 프롬프트 기록(빌드 타깃 · 스킬 · terms-db 1~5 · 6~7 · 3문항 · 아코디언 · 자동 참조 · 경로 링크 · 물리 · 슬라이더) | 🔴 전부 완료 |
+| `docs/handoffs/RESUME-2026-08-28-track-c.md` | Track C(Mode 1) 재개 — **별개 갈래**. terms-db 우선 파이프라인 반영 배너 있음 | 🟡 부분 대체 |
+| `CLAUDE.md` | 저장소 규약. `## ⚠ 방향` 부터. 렌더 경로(자동 참조 · 경로 링크) · 용어집 절(아코디언 · `KNOBS` · 카드 위치) 갱신됨 | 갱신됨 |
+| `~/.claude/skills/{spec-review-dashboard,term-benchmark}/SKILL.md` | 스킬 원본(사본 `.claude/skills/`) — 3문항 · 자동 참조 · 경로 링크 반영 | 동일 |
 
-**gitignore 된 것** — `out/` · `.tmp/` · `.tmp-report-tsconfig.json` · `__pycache__/`. 스크래치패드(`/private/tmp/claude-501/.../scratchpad/`)의
-`rb-quiz/`(answers.json · term-grades.json · terms.json · term-study-note.md) 는 **세션이 끝나면 사라진다** — 재개 시 §8 로 재현한다.
+**gitignore 된 것** — `out/` (보고서 산출물 · `out/codegraph-raw/` 파생물 · 시험 정답지/답안) · `.tmp/` · `.tmp-report-tsconfig.json` · `__pycache__/`.
 
 ---
 
-## 8. 재현 — 스크래치 자료가 사라졌을 때
-
-Mode 1.5 CLI 의 end-to-end 를 30초에 다시 볼 수 있다:
+## 8. 재현 — 산출물이 사라졌을 때 (전부 결정론, 수 초)
 
 ```bash
-mkdir -p /tmp/rb-quiz && cd /tmp/rb-quiz
-printf '{"calls[]":{"correct":1,"dontKnow":0,"means":"호출 목록"},"Renderer":{"correct":5,"dontKnow":0,"means":"렌더러"},"WarmUp":{"correct":2,"dontKnow":3,"means":"캐시"}}\n' > answers.json
-report-term grade answers.json      # 기대: 확실 1 · 애매 0 · 모름 2
-report-term emit term-grades.json   # 기대: terms.json 용어 3개 (전부 실림) / 학습 노트 학습 대상 2개
-cat terms.json                       # Renderer 가 UserMentalValue: "확실" 로 들어 있어야 한다
-```
+cd $REPO_ROOT
+npm test && .venv/bin/python -m pytest codegraph/ -q && npm run typecheck        # 95 · 51 · 통과
 
-`collect` 실측 (DB 없이):
-```bash
-cd /tmp/rb-quiz && report-term collect $REPO_ROOT/docs/superpowers/plans/2026-08-28-llm-load-reduction.md
-# 기대: 신규 개념 34개. a.json 은 알려진 오탐(R4)
+# Mode 1 — 이 저장소 자신의 terms-db.json 과 codegraph.json(투영). 원본은 docs/codegraph/terms-reading.json
+.venv/bin/python codegraph/terms_db.py --repo . --reading docs/codegraph/terms-reading.json
+#   기대: 용어 191개 / 실패 0 · codegraph.json 노드 119 간선 76 모듈 6.  근거 없음은 3 → 26(18:15 실측) — 코드 편집으로 줄 번호가 밀린 것(R10)
+# 정적 수집기가 있는 저장소(StickRush)의 기존 호출 꼴 — 투영이 상위집합인지 대조
+.venv/bin/python codegraph/terms_db.py $CSHARP_REPO/out/codegraph-raw/codegraph.json --repo $CSHARP_REPO -o /tmp/rb-cs
+#   기대: 용어 241개 / 실패 0 · 투영에 없는 것 0개
+
+# Mode 1.5 — 후보 수집 (known 26 / newConcepts 23) 과 채점 e2e
+mkdir -p /tmp/rb-quiz && cd /tmp/rb-quiz && report-term collect $REPO_ROOT/docs/superpowers/plans/2026-08-28-llm-load-reduction.md $REPO_ROOT/out/codegraph-raw/terms-db.json
+printf '{"A":{"correct":3,"dontKnow":0,"means":"a"},"B":{"correct":1,"dontKnow":2,"means":"b"}}\n' > answers.json
+report-term grade answers.json && report-term emit term-grades.json      # 3문항 규칙: 확실 1 · 애매 0 · 모름 1
+
+# Mode 2 — 두 보고서 빌드 · 검사
+cd $REPO_ROOT/docs/superpowers/specs/llm-load-reduction && report-spec build && report-spec check   # 5/5, 자동 참조 40, 경로 링크 28
+cd ../mode-1-terms-db-first && report-spec build && report-spec check                                                              # 5/5, 80, 36
 ```
 
 ---
@@ -210,3 +224,4 @@ cd /tmp/rb-quiz && report-term collect $REPO_ROOT/docs/superpowers/plans/2026-08
 - 2026-08-29 16:35 — **Mode 2 경로 링크** (사용자 지시). 빌드 후 통과 둘째 `scripts/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더의 `file://` 링크(**새 탭**)로, 없는 파일은 그대로(`f92cb7d`). 해석 순서에서 **`linkRoots` 가 저장소 기본 폴더보다 앞**(사용자 확정) — llm 보고서의 `codegraph.json` 이 StickRush 로 간다. `ReportData.linkRoots?` 추가. llm 28개 · mode-1 36개 · 못 찾은 경로 4종(계획에만 있는 파일). `facts/*.md` 는 SVG 안에만 있어 링크 안 됨(의도). 테스트 86.
 - 2026-08-29 17:45 — **관계도 물리 (사용자 지시 2건, `6ef58b3`).** `forceManyBody` → 덩어리를 아는 쌍 전수 척력 + 노드별 중력, 캔버스 상자 제한, **덩어리 경계 사각형(AABB) 충돌**(context7: d3-force 에 그룹 충돌 없음 → 커스텀 힘). 임시 슬라이더(`<TermGraph tune />`)로 사용자가 값 10개를 육안 확정 → `KNOBS` 에 박고 tune 을 뗌. 순수 계산 `src/runtime/graph-math.ts`(components · bounds · clampBox · rectOverlap) 테스트 9개. 런타임 68.5KB. 테스트 95.
 - 2026-08-29 18:05 — **카드 결함 2건 (사용자 관측, 오케스트레이터 직접).** ① 표 안 카드가 `.table-wrap`(overflow-x)·`.card`(overflow hidden)에 잘림 → 런타임이 뜰 때 위치만 `position: fixed` 로(`a4d526c`, CLAUDE.md 의 'CSS 만으로' 문장 개정). ② 범례 안 카드가 항상 켜짐 — `.diagram-legend span` 이 자손 전체에 걸려 `.term-card` 의 display:none 을 이김 → 직계 자식 `>` 로(`d42d3b3`). 자동 참조가 새 자리에 term-ref 를 넣으면서 드러난 기존 CSS 의 함정. 같은 꼴의 자손 요소 선택자는 theme.css 에 더 없음(grep).
+- 2026-08-29 18:15 — **핸드오프 전면 갱신(사용자 지시).** TL;DR · §1 · §4 · §6 · §7 · §8 을 재측정으로 다시 썼다. HANDOFF ① 배너에 §0 도 낡았음을 적고, ③ 의 '아직 안 된 것' 을 전부 완료로, Mode 2 절과 정의 파일에 오늘의 프론트 변경 5건을 반영, Track C RESUME 에 terms-db 우선 파이프라인 배너, CLAUDE.md 상태 표 수치 갱신.

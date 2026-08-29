@@ -25,7 +25,10 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`scripts/wrap-terms.mjs`) |
 | 관계 그래프 | d3-force 런타임. 드래그 · 확대 · hover. `<script>` 예산 1개를 이것이 쓴다 |
 | 검사 | `<script>` ≤ 1 · `tsc --noEmit` · 링크 무결성 · **용어집 대조(경고)** · builderVersion |
-| 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개(전부 미측정), 관계도 |
+| 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개 **이해도 실측**(확실 6 · 애매 3 · 모름 11 · 미측정 4), 관계도 |
+| 본문 용어 자동 참조 (2026-08-29) | 빌드 후 통과 `scripts/wrap-terms.mjs` — 용어 id 의 모든 등장을 `TermRef` 마크업으로. 저자는 `<T id>` 를 심지 않는다. 카드: 갈래 · id · 이해도 / 뜻 / 용례, 밑줄 끝 `?`. 위치는 런타임이 `fixed` 로(표의 overflow 회피) |
+| 경로 링크 (2026-08-29) | 둘째 통과 `scripts/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더 `file://`(새 탭). 없는 파일은 그대로. `ReportData.linkRoots?` |
+| 관계도 물리 (2026-08-29) | 덩어리를 아는 척력 · 노드별 중력 · 캔버스 2.5배 상자 · **덩어리 경계 사각형 충돌**. 상수는 `term-graph.ts` 의 `KNOBS`(사용자가 `<TermGraph tune />` 슬라이더로 확정). 순수 계산 `graph-math.ts` |
 
 ## Mode 1.5 연동 (2026-08-29 완료)
 

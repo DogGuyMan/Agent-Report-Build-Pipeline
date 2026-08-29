@@ -1,5 +1,11 @@
 # RESUME — Track C 코드베이스 위키 파이프라인 (2026-08-28)
 
+> 🟡 **부분 대체됨 (2026-08-29 18:15)** — Mode 1 파이프라인이 **terms-db 우선** 구조로 바뀌었다(계획서 `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md`, 7/7 완료).
+> `codegraph/terms_db.py` 가 `--reading terms-reading.json`(LLM 전수조사 원본)을 받아 `terms-db.json`(원본)을 만들고 `codegraph.json` 을 **투영**한다. 정적 수집기(roslyn/clang-uml)가 있는
+> 저장소에서는 기존 호출 꼴 `terms_db.py <codegraph.json> --repo …` 이 그대로 돌고 투영이 상위집합인지 대조한다. **`normalize.py` 출력 키는 불변이다.**
+> 전수조사 절차는 `.claude/agents/mode-1-codebase-wiki.md` `## 전수조사 절차`. 이 문서의 C#/C++ 갈래 서술과 함정 절은 그대로 유효하다. 세션 재개의 단일 진입점은
+> `RESUME-2026-08-29-mode-1-5-orchestrator.md` 다.
+
 > **이 문서가 재개의 단일 진입점이다.** 새 세션은 이것 하나만 읽고 이어갈 수 있어야 한다.
 > 다른 문서는 심화 자료이지 시작 전제가 아니다.
 
