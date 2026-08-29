@@ -1,3 +1,5 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='init.mjs']"/>
+// 새 보고서의 뼈대 파일을 만드는 스크립트.
 // scripts/init.mjs
 // report init [slug]
 //  - 인자 없으면: specs/*-design.md 중 아직 보고서가 없는 것을 날짜 내림차순으로 나열.
@@ -15,6 +17,8 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const SPEC_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$/;
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='parseSpecFilename']"/>
+// 설계 문서 파일명에서 날짜와 slug 를 뽑는다. 규칙에 안 맞으면 아무것도 돌려주지 않는다.
 /**
  * spec 파일명에서 날짜와 slug 를 뽑는다.
  * 규칙: YYYY-MM-DD-<slug>-design.md
@@ -26,6 +30,8 @@ export function parseSpecFilename(basename) {
   return { date: m[1], slug: m[2] };
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='findSimilar']"/>
+// slug 오타에 대해 비슷한 후보를 찾는다.
 /**
  * slug 오타에 대한 비슷한 후보를 단순 규칙으로 찾는다.
  * 규칙: 부분 문자열 포함(양방향) 또는 앞 4글자 공유.
@@ -45,6 +51,8 @@ if (process.argv[1] && process.argv[1].endsWith("init.mjs")) {
   const cwd = process.cwd();
   const specsDir = join(cwd, "specs");
 
+  // <include file="docs/codegraph/comments.xml" path="//term[@id='init.currentBuilderVersion']"/>
+  // 뼈대를 만들 때 적어 넣을 report-builder git 태그를 읽는다.
   function currentBuilderVersion() {
     try {
       return execFileSync("git", ["describe", "--tags", "--abbrev=0"], {

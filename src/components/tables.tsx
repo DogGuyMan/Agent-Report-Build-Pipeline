@@ -1,11 +1,17 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='tables.tsx']"/>
+// 결정 표 · 옵션 표 · 정본 대조 표 세 조각이 있는 파일.
 // src/components/tables.tsx — theme.css 의 .card/.table-wrap/table 구획에 대응
 import type { Decision, ReactNode } from "../types.js";
 import { ConfBadge, StatusTag } from "./badges.js";
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='Card']"/>
+// 표를 감싸는 카드 상자. 가로 스크롤을 여기서 준다.
 function Card({ children }: { children: ReactNode }) {
   return <div className="card table-wrap">{children}</div>;
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='DecisionTable']"/>
+// 결정 목록 표. 번호 · 결정 · 확신도 · 상태 · 옵션 수 다섯 칸이다.
 export function DecisionTable({ decisions }: { decisions: Decision[] }) {
   return (
     <Card>
@@ -35,11 +41,15 @@ export function DecisionTable({ decisions }: { decisions: Decision[] }) {
   );
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='OptionRow']"/>
+// 옵션 비교 표의 한 줄. 칸 목록과 추천 여부를 갖는다.
 export interface OptionRow {
   cells: ReactNode[];
   recommended: boolean;
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='OptionTable']"/>
+// 설계 후보를 나란히 놓는 비교 표. 추천하는 줄은 강조된다.
 export function OptionTable({ columns, rows }: { columns: string[]; rows: OptionRow[] }) {
   return (
     <Card>
@@ -59,6 +69,8 @@ export function OptionTable({ columns, rows }: { columns: string[]; rows: Option
   );
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='LockVerdict']"/>
+// 정본 대조 판정 세 값. 일치 · 무관 · 상충.
 export type LockVerdict = "consistent" | "unrelated" | "conflicting";
 
 const VERDICT_LABEL: Record<LockVerdict, string> = {
@@ -67,6 +79,8 @@ const VERDICT_LABEL: Record<LockVerdict, string> = {
   conflicting: "상충",
 };
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='LockRow']"/>
+// 정본 대조 표의 한 줄. 정본 번호 · 주장 · 판정 · 비고.
 export interface LockRow {
   lockId: string;
   claim: string;
@@ -74,6 +88,8 @@ export interface LockRow {
   note: string;
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='LockTable']"/>
+// 이번 제안이 이미 확정된 결정과 어긋나지 않는지 대조하는 표.
 export function LockTable({ rows }: { rows: LockRow[] }) {
   return (
     <Card>

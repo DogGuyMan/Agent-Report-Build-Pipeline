@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# <include file="docs/codegraph/comments.xml" path="//term[@id='facts.py']"/>
+# 코드 지도에서 사람이 읽는 사실 표와 중요도 순위를 뽑는 도구.
 """facts.py — codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다.
 
 Track C §3 의 "입력 주입"(C-3) 재료다. deep-wiki 에는 입력 파일 파라미터가 없으므로,
@@ -30,11 +32,15 @@ import networkx as nx
 HOTSPOT_TOP = 30   # hotspot 표의 표시 상한. 전체 수는 함께 적는다(no silent caps).
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='sh']"/>
+# 바깥 명령을 돌리고 성공했을 때만 출력을 돌려준다.
 def sh(cmd, cwd):
     r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else None
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='collect_hotspot']"/>
+# 파일마다 커밋 수와 늘고 준 줄 수를 git 이력에서 센다.
 # ── hotspot — codegraph 가 아니라 git log 에서 온다 (§3 의 별도 피더)
 def collect_hotspot(repo):
     """파일별 커밋 수·증감 줄수. 이름변경(old => new)은 새 경로로 귀속시킨다(단순 규칙)."""
@@ -70,6 +76,8 @@ def collect_hotspot(repo):
     return dict(files)
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='facts.build']"/>
+# 코드 지도에서 클래스 중요도와 모듈 순환을 계산한다.
 def build(g):
     nodes = {n["id"]: n for n in g["nodes"]}
     first = {i: n for i, n in nodes.items() if n["kind"] != "external"}
@@ -115,6 +123,8 @@ def build(g):
     return rows, MG, cycles, cyc_mods
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='cite']"/>
+# 사실 표에 붙일 (경로:줄) 꼴 인용 문자열을 만든다.
 def cite(r):
     return f"({r['file']}:{r['line']})" if r.get("file") else "(위치 없음)"
 
@@ -124,6 +134,8 @@ HEAD_NOTE = """> **기계 생성 — 손으로 고치지 말 것.** `codegraph/f
 """
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='facts.main']"/>
+# facts 도구의 명령줄 진입점. ranking.json 과 사실 표들을 쓴다.
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph")

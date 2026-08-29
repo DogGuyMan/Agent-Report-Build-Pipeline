@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// <include file="docs/codegraph/comments.xml" path="//term[@id='report-wiki']"/>
+// Mode 1 의 진입점. 아직 비어 있는 자리 표시자다.
 // bin/report-wiki — Mode 1. 코드베이스 위키.
 // 아직 Node 진입점이 없다. 실제 파이프라인은 codegraph/*.py 와 deep-wiki 스킬이다.
 // 이 파일은 그 사실을 알려 주는 자리 표시자이며, Mode 1 이 Node 로 옮겨오면 채운다.

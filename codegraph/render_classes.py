@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# <include file="docs/codegraph/comments.xml" path="//term[@id='render_classes.py']"/>
+# 모듈 하나를 골라 그 안의 클래스 관계도를 Graphviz 로 그리는 도구.
 """render_classes.py — 모듈 하나를 골라 클래스 층 다이어그램을 그린다 (P1~P6 전체).
 
 모듈 층(`render_modules.py`)이 "어디를 볼지" 를 알려준다면, 이 그림은 "그 안에서 무엇이
@@ -43,14 +45,20 @@ BACKBONE = {"inheritance", "realization", "composition", "aggregation"}
 C_CYCLE = "#D50000"
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='render_classes.esch']"/>
+# HTML 라벨에 넣을 문자열의 꺾쇠와 앰퍼샌드를 안전하게 바꾼다.
 def esch(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='render_classes.esc']"/>
+# DOT 문자열에 넣을 따옴표와 역슬래시를 안전하게 바꾼다.
 def esc(s):
     return str(s).replace("\\", "\\\\").replace('"', '\\"')
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='render_classes.short']"/>
+# 긴 이름에서 마지막 조각만 남긴다. 클러스터가 이미 맥락을 주기 때문이다.
 def short(name):
     """SJH::Scene::Component -> Component. 모듈 클러스터가 이미 맥락을 준다."""
     return name.split("::")[-1].split(".")[-1]
@@ -59,6 +67,8 @@ def short(name):
 ACCESS = {"public": "+", "protected": "#", "private": "-"}
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='load_detail']"/>
+# 원시 분석 파일에서 이름마다 멤버 · 메서드 · 추상 여부를 뽑는다.
 def load_detail(path):
     """원문에서 이름 -> (members, methods, is_abstract) 를 뽑는다.
 
@@ -99,6 +109,8 @@ def load_detail(path):
     return out
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='pick_methods']"/>
+# 그림에 실을 만한 메서드만 고른다.
 def pick_methods(methods, limit=6):
     """책임을 전달하는 메서드만. 사소한 getter/setter·연산자·특수멤버는 뺀다(스킬 Phase 2)."""
     out = []
@@ -115,6 +127,8 @@ def pick_methods(methods, limit=6):
     return out[:limit], max(0, len(out) - limit)
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='node_html']"/>
+# 클래스 하나를 이름 · 멤버 · 메서드 3분할 상자로 그린다.
 def node_html(name, det, own_note):
     """P3 — UML 3분할. 이름(+스테레오타입) / 멤버(+소유권 노트) / 메서드."""
     rows = []
@@ -154,6 +168,8 @@ def node_html(name, det, own_note):
             + "".join(rows) + "</TABLE>>")
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='render_classes.main']"/>
+# 클래스 다이어그램 도구의 명령줄 진입점.
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph")

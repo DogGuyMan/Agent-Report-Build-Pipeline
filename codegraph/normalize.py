@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize.py']"/>
+# 언어별 분석 도구의 원시 출력을 공통 형식 codegraph.json 으로 바꾸는 도구.
 """normalize.py — 언어별 정적 분석 산출물을 codegraph.json(스키마 v2)으로 바꾼다.
 
 Track C 의 정규화 계층이다. 접기 규칙(C-9 R1~R7)과 kind enum 사상이 **여기에만** 있다.
@@ -43,6 +45,8 @@ CPP_PRIMITIVES = {
 }
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='git_commit']"/>
+# 대상 저장소의 현재 커밋을 짧은 해시로 읽는다. 실패하면 빈 값이다.
 def git_commit(repo):
     try:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo,
@@ -51,6 +55,8 @@ def git_commit(repo):
         return None
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='module_of']"/>
+# C++ 파일 경로에서 모듈 이름을 정한다. 모듈 경계는 폴더 트리다.
 def module_of(path):
     """모듈 경계 = 폴더 트리. C# 쪽 결정(폴더 트리 9개)과 축을 맞춘다.
 
@@ -66,15 +72,21 @@ def module_of(path):
     return parts[0]
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='load_clang_uml']"/>
+# clang-uml 이 낸 JSON 을 열어 elements · relationships · metadata 로 나눠 준다.
 def load_clang_uml(path):
     d = json.load(open(path, encoding="utf-8"))
     return d["elements"], d["relationships"], d.get("metadata", {})
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='is_first_party']"/>
+# 이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.
 def is_first_party(el):
     return (el.get("namespace") or "").split("::")[0] in CPP_FIRST_PARTY_NS
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='external_group']"/>
+# 외부 타입을 라이브러리 이름 하나로 접는다. 외부 하나에 노드 하나다.
 def external_group(el):
     """R2 — 외부 하나 = 노드 하나. 입도는 라이브러리·서브모듈 이름이다."""
     root = (el.get("namespace") or "").split("::")[0]
@@ -103,6 +115,8 @@ STD_TRANSPARENT = {
 }
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='is_transparent_wrapper']"/>
+# vector 나 unique_ptr 같은 담는 그릇인지 본다. 그릇은 노드로 만들지 않고 통과시킨다.
 def is_transparent_wrapper(el):
     """R5 — 컨테이너·스마트포인터는 노드로 만들지 않고 투과시킨다.
 
@@ -112,6 +126,8 @@ def is_transparent_wrapper(el):
     return (el.get("namespace") or "").split("::")[0] == "std" and el.get("name") in STD_TRANSPARENT
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='member_location']"/>
+# 간선의 근거가 되는 멤버 선언 줄을 찾는다.
 def member_location(src_el, label):
     """간선의 근거 위치. label(멤버 이름)로 members[] 를 정확히 찾는다.
 
@@ -129,11 +145,15 @@ def member_location(src_el, label):
     return loc.get("file"), loc.get("line")
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='node_name']"/>
+# 노드에 쓸 이름을 고른다. 중첩 타입은 구분자가 :: 가 아니라 ## 이다.
 def node_name(el):
     """중첩 타입의 name 은 구분자가 :: 가 아니라 ## 이고 바깥 클래스가 namespace 에 없다."""
     return el.get("display_name") or el.get("name")
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize_cpp']"/>
+# C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
 def normalize_cpp(elements, relationships, repo, source_tool):
     by_id = {e["id"]: e for e in elements}
     by_display = {e.get("display_name"): e for e in elements}
@@ -245,6 +265,8 @@ def normalize_cpp(elements, relationships, repo, source_tool):
     return _assemble(nodes, edges, stats, language="cpp", source_tool=source_tool, repo=repo)
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='_assemble']"/>
+# 두 언어 파서가 함께 쓰는 마무리. 최종 codegraph.json 모양으로 조립한다.
 def _assemble(nodes, edges, stats, *, language, source_tool, repo):
     """언어 공통 꼬리 — R1 제거, 모듈 의존 유도(C-15), 최종 dict 조립.
 
@@ -319,6 +341,8 @@ CS_KIND = {"inherit": "inheritance", "realize": "realization",
            "assoc": "association", "depend": "dependency"}
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='cs_module_of']"/>
+# C# 파일 경로에서 모듈 이름을 정한다. 여기서도 경계는 폴더 트리다.
 def cs_module_of(path):
     """모듈 경계 = 폴더 트리 (2026-08-27 사용자 확정 — .asmdef 기각, 네임스페이스 기각)."""
     if not path:
@@ -331,6 +355,8 @@ def cs_module_of(path):
     return parts[0]
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='cs_asm2pkg']"/>
+# 어셈블리 이름을 유니티 패키지 이름으로 바꿔 줄 사전을 만든다.
 def cs_asm2pkg(repo):
     """어셈블리 이름 -> 패키지 id. Library/PackageCache/<pkg>@<hash>/**/*.asmdef 의
     name 이 어셈블리, 경로의 @ 앞이 패키지다 (HANDOFF-unity-pattern-collection.md §2-2)."""
@@ -351,6 +377,8 @@ def cs_asm2pkg(repo):
     return out
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='cs_external_group']"/>
+# C# 외부 타입을 패키지 이름 하나로 접는다.
 def cs_external_group(asm, asm2pkg):
     """C-9 R2 — 외부 하나 = 노드 하나. 입도는 패키지 이름. 명명 규칙은 §2-2 표."""
     import re as _re
@@ -373,6 +401,8 @@ def cs_external_group(asm, asm2pkg):
     return f"(벤더링) {asm}"
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize_csharp']"/>
+# C# 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
 def normalize_csharp(dump, repo):
     # F5 게이트 — 참조 집합이 틀리면 dst 가 통째로 쓰레기가 된다(모드 A 1,055 / B 7,780 실측).
     comp = dump["compilation"]
@@ -495,6 +525,8 @@ def normalize_csharp(dump, repo):
                      language="csharp", source_tool=dump.get("tool", "roslyn-dump ?"), repo=repo)
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='normalize.main']"/>
+# normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     src = ap.add_mutually_exclusive_group(required=True)

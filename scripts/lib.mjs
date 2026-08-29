@@ -1,3 +1,5 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='lib.mjs']"/>
+// 테스트가 읽을 수 있도록 src 를 한 덩이로 묶는 스크립트.
 // scripts/lib.mjs
 // src/ 를 .tmp/lib.mjs 로 번들한다. test/ 가 이것을 import 한다.
 // node --test 는 JSX 를 해석하지 못하므로 이 단계가 필요하다.

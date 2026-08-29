@@ -1,3 +1,5 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='quiz.mjs']"/>
+// 객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.
 // scripts/term/quiz.mjs — Mode 1.5 2·3단계. 객관식 채점.
 //
 // **이 파일은 사람에게 묻지 않는다.** 답안 파일을 받아 채점만 한다.
@@ -8,6 +10,8 @@ import { join } from "node:path";
 /** 한 용어당 문항 수. 2026-08-29 사용자 변경 — 5 에서 3 으로. 100문항 첫 시험에서 피로가 실측됐다. */
 export const QUESTIONS_PER_TERM = 3;
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='gradeOne']"/>
+// 용어 하나의 답안을 채점해 확실 · 애매 · 모름을 매긴다.
 /**
  * 한 용어의 답안을 채점한다. 두 갈래다 — 확실 / 모름.
  * 구간은 사용자가 확정한 값이다(2026-08-29, 3문항 규칙). 임의로 바꾸지 말 것.
@@ -25,6 +29,8 @@ export function gradeOne({ correct, dontKnow }) {
   return { rate, mental };
 }
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='gradeAll']"/>
+// 답안 전체를 채점한다. 입력이 같으면 출력도 같다.
 /** 답안 전체를 채점한다. 입력이 같으면 출력도 같다. */
 export function gradeAll(answers) {
   const out = {};

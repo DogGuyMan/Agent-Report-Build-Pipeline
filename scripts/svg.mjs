@@ -1,9 +1,13 @@
+// <include file="docs/codegraph/comments.xml" path="//term[@id='svg.mjs']"/>
+// Graphviz 가 낸 SVG 를 HTML 본문에 그대로 넣을 수 있게 다듬는 스크립트.
 // scripts/svg.mjs
 // Graphviz 가 낸 SVG 를 HTML 본문에 인라인할 수 있는 형태로 정규화한다.
 // 규칙: 헤더 제거 / width·height 제거하고 viewBox 유지 / id 접두사.
 
 const PT_TO_PX = 4 / 3;
 
+// <include file="docs/codegraph/comments.xml" path="//term[@id='inlineSvg']"/>
+// Graphviz SVG 를 HTML 안에 그대로 넣을 수 있게 다듬고 원본 크기를 함께 돌려준다.
 /**
  * @param {string} raw       dot -Tsvg_inline 출력
  * @param {string} idPrefix  한 페이지에 SVG 가 2개 이상일 때의 충돌 방지 접두사
