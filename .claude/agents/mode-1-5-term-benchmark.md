@@ -29,11 +29,13 @@ report-term collect <plan.md> [terms-db.json]   → term-candidates.json
     코드베이스 용어 ∩ Plan 본문  +  Plan 신규 개념
         ↓
   [Skill] 신규 개념의 정답을 Plan 저자에게 묻는다. LLM 이 지어내지 않는다
-  [Skill] 용어마다 객관식 3문항 + "모른다" 선택지를 만든다. 정답지는 TermMeans
-  [Skill] AskUserQuestion 으로 한 용어씩 묻는다 → answers.json
+  [Skill] 용어마다 객관식 3문항 × 5지선다(마지막은 "모르겠다"). 정답지는 TermMeans
+          → questions.json (정답 O) → 실행기가 정답을 뺀 answer-sheet.json 을 깐다
+  [Skill] AskUserQuestion 으로 한 용어씩 묻고 UserAns 칸을 채운다 → answers.json
         ↓
-report-term grade answers.json                  → term-grades.json
-    맞힌 수 2~3 확실 / 0~1 모름. "모른다" 2회 이상이면 모름 (2026-08-29 3문항 규칙. 애매 는 내지 않는다)
+report-term grade answers.json questions.json   → term-grades.json
+    맞힌 수 2~3 확실 / 0~1 모름. "모르겠다" 2회 이상이면 모름 (2026-08-29 3문항 규칙. 애매 는 내지 않는다)
+    맞고 틀림은 기계가 센다. 사람이 세지 않는다
         ↓
 report-term emit term-grades.json               → terms.json + term-study-note.md
 ```
@@ -42,7 +44,8 @@ report-term emit term-grades.json               → terms.json + term-study-note
 
 | 파일 | 꼴 |
 |---|---|
-| `answers.json` | `{ "용어": { correct, dontKnow, means } }` |
+| `questions.json` | `{ plan, terms[]: { term, means, source, questions[]: { ask, choices[5], answer } } }` |
+| `answers.json` | `{ plan, questions[]: { QNum, Term, Question, AnsChoices, UserAns } }` — 정답 없음 |
 | `terms.json` | `{ "용어": { TermMeans, UserMentalValue } }` |
 
 디스패처가 명령어 이름을 소비하므로 **스크립트는 파일 경로만 받는다.**

@@ -4,7 +4,7 @@
 // 쓰는 것: runDispatch · 쓰이는 곳: 없음
 // bin/report-term — Mode 1.5. 용어 이해도 점검.
 //   collect : 이 Plan 을 이해하는 데 필요한 용어를 모은다
-//   grade   : 답안을 채점해 확실/애매/모름을 매긴다
+//   grade   : 채운 기입란과 문항지를 대조해 채점하고 확실/모름을 매긴다 (인자 둘)
 //   (문항 출제는 CLI 의 일이 아니다 — term-benchmark 스킬이 맡는다)
 //   emit    : 학습 노트와 용어집 DB 를 낸다
 import { dirname } from "node:path";

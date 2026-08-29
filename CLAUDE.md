@@ -109,8 +109,9 @@ report-spec check                      # script 수 · tsc · 링크 무결성 �
 
 ```bash
 report-term collect <plan.md> [terms-db.json]   # → term-candidates.json
-#   (스킬이 객관식으로 묻고 answers.json 을 만든다)
-report-term grade answers.json                  # → term-grades.json  확실/애매/모름
+#   (LLM 이 questions.json 을 내고, 실행기가 정답을 뺀 기입란 answer-sheet.json 을 깐다)
+#   (사람 또는 스킬이 칸마다 UserAns 에 보기 번호를 적어 answers.json 으로 둔다)
+report-term grade answers.json questions.json   # → term-grades.json  확실/모름
 report-term emit term-grades.json               # → terms.json + term-study-note.md
 ```
 
