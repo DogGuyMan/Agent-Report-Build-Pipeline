@@ -347,3 +347,38 @@ def test_a_skipped_stage_does_not_break_the_total():
             {"stage": "build", "seconds": 2.0, "ok": True,
              "usage": R.normalize_usage(None)}]
     assert "합계" in R.format_report(rows)
+
+
+# ── 11. warmup 확정 관문이 fail-open 이 되지 않는가 (2026-08-30 신설)
+def test_survey_가_실패하면_매니페스트를_갱신하지_않는다(monkeypatch):
+    """🔴 층 병렬이 만드는 조용한 버그를 막는 시험이다.
+
+    warmup 배선의 `save_warmup` 은 `r["stage"] == "agent"` 로 실패를 찾았다.
+    단계가 `survey` 로 갈리고 행 라벨이 `survey/L0-B00` 꼴이 되면서 그 비교가
+    **영원히 거짓**이 됐다 — 조사가 실패해도 매니페스트가 갱신되는 fail-open 이다.
+    그래서 단계 이름만 떼어 비교한다.
+    """
+    import warmup as W
+    saved = []
+    monkeypatch.setattr(W, "save", lambda path, entries: saved.append(path))
+
+    rows = [{"stage": "survey/L0-B00", "ok": True, "usage": R.normalize_usage(None)},
+            {"stage": "survey/L1-B00", "ok": False, "why": "터졌다",
+             "usage": R.normalize_usage(None)}]
+    R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+    assert saved == [], "전수조사가 실패했는데 매니페스트를 갱신했다"
+
+    rows[1]["ok"] = True
+    R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+    assert saved == ["/캐시/경로.json"]
+
+
+def test_판정을_못_했으면_아무것도_쓰지_않는다(monkeypatch):
+    """`entries is None` 은 warmup 이 언어를 몰라 판정을 건너뛴 경우다.
+    그때 쓰면 근거 없는 매니페스트가 생긴다."""
+    import warmup as W
+    saved = []
+    monkeypatch.setattr(W, "save", lambda path, entries: saved.append(path))
+    R.save_warmup("/캐시/경로.json", None, [])
+    R.save_warmup(None, {"a.py": {}}, [])
+    assert saved == []

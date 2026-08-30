@@ -555,16 +555,21 @@ def run_warmup(repo, codegraph, hops):
 # 판정 기록을 확정하는 뒤 관문.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
 def save_warmup(cache_path, entries, rows):
-    """관문 ② — 에이전트가 실제로 해낸 뒤에만 매니페스트를 갱신한다.
+    """관문 ② — **전수조사가 실제로 해낸 뒤에만** 매니페스트를 갱신한다.
 
-    앞칸이 판정을 못 했거나(`entries is None`) 에이전트가 실패했으면 **쓰지 않는다.**
+    앞칸이 판정을 못 했거나(`entries is None`) 전수조사가 실패했으면 **쓰지 않는다.**
     쓰지 않는 것이 안전한 쪽이다 — 다음 실행이 전량을 다시 읽을 뿐 틀리지는 않는다.
+
+    ⚠ **단계 이름만 떼어 본다.** 층 병렬이 되면서 행 라벨이 `survey/L0-B00` 꼴이 됐다.
+    예전처럼 `r["stage"] == "survey"` 로 비교하면 **영원히 거짓**이 되어 관문이
+    fail-open 이 된다 — 조사가 실패해도 매니페스트가 '유효' 로 남는 바로 그 사고다.
     """
     if entries is None or not cache_path:
         return True, ""
-    실패한_에이전트 = [r for r in rows if r["stage"] == "agent" and not r.get("ok")]
-    if 실패한_에이전트:
-        print("매니페스트를 갱신하지 않는다 — 에이전트가 실패했다. "
+    실패한_조사 = [r for r in rows
+                   if r["stage"].split("/")[0] == "survey" and not r.get("ok")]
+    if 실패한_조사:
+        print("매니페스트를 갱신하지 않는다 — 전수조사가 실패했다. "
               "지금 갱신하면 읽지 않은 파일이 '유효' 로 남는다.", file=sys.stderr)
         return True, ""
     warmup.save(cache_path, entries)
