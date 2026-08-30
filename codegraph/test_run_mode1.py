@@ -19,6 +19,7 @@
 """
 import os
 import sys
+import time
 
 import pytest
 
@@ -382,3 +383,60 @@ def test_판정을_못_했으면_아무것도_쓰지_않는다(monkeypatch):
     R.save_warmup("/캐시/경로.json", None, [])
     R.save_warmup(None, {"a.py": {}}, [])
     assert saved == []
+
+
+# ── 12. 층 병렬 — 동시에 몇 개까지 뜨는가 (2026-08-30 신설)
+def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch):
+    """K4 — 한 층에서 동시에 8배치까지. 넘으면 rate limit 에 걸려 층 전체가 무너진다.
+
+    실제로 `claude` 를 부르지 않는다. `run_agent_with` 를 바꿔 끼워 **동시에 몇 개가
+    살아 있었는지**만 센다.
+    """
+    import threading
+    lock, live, peak = threading.Lock(), [0], [0]
+
+    def fake(model, repo, root, prompt, timeout=None, label=None):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        time.sleep(0.02)
+        with lock:
+            live[0] -= 1
+        return 0.02, 0, {"usage": {"output_tokens": 1}, "num_turns": 1}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    jobs = [("L0-B%02d" % i, "글 %d" % i) for i in range(20)]
+    got = R.run_layer("claude-sonnet-5", "/r", "/root", jobs, concurrency=3)
+    assert peak[0] <= 3
+    assert len(got) == 20
+
+
+def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch):
+    """배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다."""
+    monkeypatch.setattr(R, "run_agent_with",
+                        lambda *a, **k: (0.01, 0, {"usage": {}, "num_turns": 0}))
+    jobs = [("L0-B02", "다"), ("L0-B00", "가"), ("L0-B01", "나")]
+    labels = [row[0] for row in R.run_layer("claude-sonnet-5", "/r", "/root", jobs)]
+    assert labels == ["L0-B00", "L0-B01", "L0-B02"]
+
+
+def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatch):
+    """배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다."""
+    def fake(model, repo, root, prompt, timeout=None, label=None):
+        if label == "L0-B01":
+            raise RuntimeError("자식이 죽었다")
+        return 0.01, 0, {"usage": {}, "num_turns": 0}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    jobs = [("L0-B00", "가"), ("L0-B01", "나"), ("L0-B02", "다")]
+    rows = R.run_layer("claude-sonnet-5", "/r", "/root", jobs)
+    bad = [r for r in rows if r[0] == "L0-B01"][0]
+    assert bad[2] != 0 and bad[3] is None      # (라벨, 초, 종료코드, 결과)
+    assert len(rows) == 3
+
+
+def test_빈_층은_모형을_부르지_않는다(monkeypatch):
+    """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
+    monkeypatch.setattr(R, "run_agent_with",
+                        lambda *a, **k: pytest.fail("빈 층에서 모형을 불렀다"))
+    assert R.run_layer("claude-sonnet-5", "/r", "/root", []) == []

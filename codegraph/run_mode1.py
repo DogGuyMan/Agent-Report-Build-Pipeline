@@ -63,6 +63,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 # warmup 과 declmap 은 같은 폴더에 있다. 이 파일이 CLI 로 돌 때는 sys.path[0] 이 그 폴더이고,
 # 시험이 import 할 때는 시험 파일이 넣어 준다. 어느 쪽이든 확실하도록 여기서도 넣는다.
@@ -466,27 +467,64 @@ class _Heartbeat:
         self._stop.set()
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_agent']"/>
-# 모형을 한 번 부르고 그 결과 기록을 돌려준다.
-# 쓰는 것: run_mode1.claude_argv, run_mode1.agent_prompt · 쓰이는 곳: run_mode1.main
-def run_agent(model, repo, root, targets=None, total=0, timeout=None):
-    """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`.
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_agent_with']"/>
+# 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 낸다.
+# 쓰는 것: run_mode1.claude_argv · 쓰이는 곳: run_mode1.run_layer
+def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
+    """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
 
-    `targets` 가 있으면 프롬프트에 범위 지시문이 붙어 증분 조사가 된다.
-    `None` 이면 옛 동작 그대로 전량 조사다.
+    **시간을 여기서 잰다.** 배치들이 동시에 도는 동안 부르는 쪽은 층 전체만 잴 수 있어
+    어느 배치가 비쌌는지 모른다. 다음에 `--target` 을 조절하려면 배치별 값이 있어야 한다.
+
+    **하트비트를 여기 두지 않는다.** 8개가 동시에 찍으면 화면이 못 읽는 글이 된다 —
+    층 하나를 감싸는 하트비트 하나면 충분하다(`run_layer` 를 부르는 쪽이 건다).
     """
     argv = claude_argv(model=model, repo=repo, extra_dirs=[root])
-    prompt = agent_prompt(repo, root, targets=targets, total=total)
-    with _Heartbeat("agent"):
-        p = subprocess.run(argv, input=prompt, cwd=repo,
-                           capture_output=True, text=True, timeout=timeout)
+    t0 = time.monotonic()
+    p = subprocess.run(argv, input=prompt, cwd=repo,
+                       capture_output=True, text=True, timeout=timeout)
+    seconds = time.monotonic() - t0
     try:
-        return p.returncode, json.loads(p.stdout)
+        return seconds, p.returncode, json.loads(p.stdout)
     except (ValueError, TypeError):
         tail = (p.stderr or p.stdout or "")[-800:]
         if tail:
-            print(tail, file=sys.stderr)
-        return p.returncode, None
+            print("[%s] %s" % (label or "?", tail), file=sys.stderr)
+        return seconds, p.returncode, None
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_layer']"/>
+# 한 층의 배치들을 동시에 돌리고 각각의 측정값을 모은다.
+# 쓰는 것: run_mode1.run_agent_with · 쓰이는 곳: run_mode1.main
+def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
+    """한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2).
+
+    같은 층끼리는 서로 의존하지 않으므로 순서가 결과를 바꾸지 않는다 — 그래서 병렬이 안전하다.
+    같은 층의 배치는 **같은 파일을 가리키지 않는다**(`survey_plan.pack` 이 보장한다).
+    그래서 파일 lock 이 필요 없다.
+
+    **자식 프로세스를 기다리는 일이라 스레드로 충분하다.** GIL 은 여기서 문제가 되지 않는다.
+
+    `jobs` 는 `[(라벨, 프롬프트), …]`. 낸 것은 `[(라벨, 초, 종료코드, 결과 또는 None), …]` 이고
+    **라벨 순서로 정렬**해서 낸다 — 끝나는 순서는 실행마다 흔들려 보고 표를 대조할 수 없게 된다.
+
+    **한 배치가 터져도 층을 버리지 않는다.** 20분짜리 층이 예외 하나로 날아가면 안 된다.
+    터진 배치는 종료 코드 -1 · 결과 None 인 행으로 남고, 부르는 쪽이 실패로 센다.
+    """
+    if not jobs:
+        return []
+    rows = []
+    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as ex:
+        futs = {ex.submit(run_agent_with, model, repo, root, prompt, timeout, label): label
+                for label, prompt in jobs}
+        for f in futs:
+            label = futs[f]
+            try:
+                rows.append((label,) + f.result())
+            except Exception as ex_:                      # noqa: BLE001 — 층을 살린다
+                print("[%s] 배치가 터졌다: %s" % (label, ex_), file=sys.stderr)
+                rows.append((label, 0.0, -1, None))
+    return sorted(rows, key=lambda r: r[0])
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_machine']"/>
