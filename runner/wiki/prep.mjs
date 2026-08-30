@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { wikiPaths, collectorFor } from "./paths.mjs";
+import { wikiPaths, collectorFor, collectorFromSelect } from "./paths.mjs";
 import { pythonPath } from "../../tools/python.mjs";
 import { findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig } from "./compdb.mjs";
 import { clangDocPath, clangDocArgs } from "./clang-doc.mjs";
@@ -33,6 +33,11 @@ export function prepPlan({ collector, hasCodegraph, hasClangUmlConfig, hasRoslyn
     const doc = hasClangDoc ? ["clang-doc"] : [];
     return { steps: ["clang-uml", ...doc, "normalize", ...tail], blocked: null };
   }
+  if (collector === "griffe+pycalls") {
+    // 파이썬은 수집기 둘을 합친다 — griffe(클래스·상속·타입 주석)와 pycalls(함수·호출).
+    // griffe 는 호출 관계를 내지 않으므로 pycalls 없이는 간선이 거의 없다.
+    return { steps: ["griffe", "pycalls", "normalize", ...tail], blocked: null };
+  }
   if (collector === "roslyn-dump") {
     if (!hasRoslynDump) {
       return {
@@ -44,6 +49,30 @@ export function prepPlan({ collector, hasCodegraph, hasClangUmlConfig, hasRoslyn
   }
   return { steps: [], blocked: "정적 수집기를 고르지 못했다. .csproj/.slnx 도 CMakeLists.txt 도 없다." };
 }
+
+/**
+ * `*.py` 를 가진 최상위 디렉토리 이름들. griffe 와 pycalls 가 같은 목록을 받아야
+ * 두 수집기의 노드가 이름으로 맞물린다.
+ *
+ * 숨김 폴더와 재생성물(`out`·`node_modules`·`.venv`)은 뺀다. 하나도 없으면 `["."]` 다 —
+ * 뿌리에 흩어진 스크립트뿐인 저장소가 그렇다.
+ */
+export function pyRoots(repo) {
+  const skip = new Set(["out", "node_modules", ".venv", "__pycache__", "docs", "test"]);
+  const roots = readdirSync(repo, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !skip.has(e.name))
+    .map((e) => e.name)
+    .filter((name) => {
+      try {
+        return readdirSync(join(repo, name)).some((f) => f.endsWith(".py"));
+      } catch {
+        return false;
+      }
+    })
+    .sort();
+  return roots.length ? roots : ["."];
+}
+
 
 function run(cmd, args, cwd) {
   const r = spawnSync(cmd, args, { stdio: "inherit", cwd });
@@ -66,7 +95,12 @@ if (process.argv[1] && process.argv[1].endsWith("prep.mjs")) {
   }
   const P = wikiPaths(repo);
   const PY = pythonPath(ROOT);
-  const collector = collectorFor(readdirSync(repo));
+  // lang-select 단계가 낸 판정이 있으면 그것을 쓴다. 없으면 예전처럼 루트를 보고 고른다.
+  const selectPath = join(P.raw, "lang-select.json");
+  const fromSelect = existsSync(selectPath)
+    ? collectorFromSelect(readFileSync(selectPath, "utf8"))
+    : null;
+  const collector = fromSelect ?? collectorFor(readdirSync(repo));
   // PATH 에 없는 도구라 찾아 둔다. 못 찾으면 null 이고 그 단계만 빠진다.
   const CLANG_DOC = collector === "clang-uml" ? clangDocPath() : null;
   const plan = prepPlan({
@@ -122,10 +156,19 @@ if (process.argv[1] && process.argv[1].endsWith("prep.mjs")) {
         outDir: docOutDir, repo, flags: authorFlags,
         compdbPath: join(compdbDir, "compile_commands.json"),
       }), repo);
+    } else if (step === "griffe") {
+      run(PY, ["-m", "griffe", "dump", ...pyRoots(repo),
+               "-o", join(P.raw, "griffe.json"), "-s", repo], repo);
+    } else if (step === "pycalls") {
+      run(PY, [join(ROOT, "machine", "pycalls.py"), ...pyRoots(repo),
+               "--repo", repo, "-o", join(P.raw, "pycalls.json")]);
     } else if (step === "normalize") {
-      const arg = collector === "clang-uml"
-        ? ["--clang-uml", join(P.raw, "full_class.json")]
-        : ["--roslyn-dump", join(P.raw, "roslyn-dump.json")];
+      let arg;
+      if (collector === "clang-uml") arg = ["--clang-uml", join(P.raw, "full_class.json")];
+      else if (collector === "griffe+pycalls") {
+        arg = ["--griffe-dump", join(P.raw, "griffe.json"),
+               "--py-calls", join(P.raw, "pycalls.json")];
+      } else arg = ["--roslyn-dump", join(P.raw, "roslyn-dump.json")];
       // clang-doc 이 돌았을 때만 얹는다. 안 돌았으면 옛 동작 그대로다.
       if (plan.steps.includes("clang-doc")) arg.push("--clang-doc", docOutDir);
       run(PY, [join(ROOT, "machine", "normalize.py"), ...arg, "--repo", repo, "-o", P.codegraph]);

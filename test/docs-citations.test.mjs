@@ -46,8 +46,12 @@ export function contextDocs(root = ROOT, exists = existsSync) {
 const PATH_REF = new RegExp(
   // 앞 글자가 경로/식별자 조각이면 중간을 문 것이라 버린다. `$` 도 여기서 걸러진다.
   "(?<![A-Za-z0-9_$/@~.-])" +
+  // **`../` 로 시작하는 것도 잡는다.** 모듈 문서는 형제 모듈을 그렇게 부른다.
+  // 이 조각이 없던 동안 `machine/CLAUDE.md` 의 죽은 `../src/CLAUDE.md` 가
+  // 177개 통과 속에 숨어 있었다 — 게이트를 만들면서 낸 사각이다(🔵 2026-08-30).
+  "((?:\\.\\./)*" +
   // 최소 한 칸의 디렉토리 — 맨 파일 이름(`data.ts`)은 대상 저장소의 것이라 검사하지 않는다.
-  "((?:\\.?[A-Za-z0-9_@+~-]+/)+[A-Za-z0-9_@.+~-]+" +
+  "(?:\\.?[A-Za-z0-9_@+~-]+/)+[A-Za-z0-9_@.+~-]+" +
   "\\.(?:h|hpp|hh|c|cc|cpp|cxx|mm|cs|py|mjs|js|ts|tsx|json|md|yaml|yml|toml|shader|glsl|dot|html|css|xml))" +
   // **확장자 뒤에 글자가 이어지면 안 된다.** 이 잠금이 없으면 교대(`|`)가 먼저 맞는 것을
   // 집어 `theme.css` 를 `theme.c` 로, `terms-reading.json` 을 `…​.js` 로 자른다.
@@ -151,6 +155,11 @@ test("맨 파일 이름은 검사하지 않는다 — 대상 저장소의 것이
 
 test("앞에 점이 붙은 폴더를 통째로 잡는다", () => {
   assert.deepEqual(pathRefsIn("`.claude/CLAUDE.md` 의 13개"), [".claude/CLAUDE.md"]);
+});
+
+test("형제 모듈을 부르는 ../ 경로도 잡는다 — 게이트의 옛 사각", () => {
+  assert.deepEqual(pathRefsIn("컴포넌트는 `../viz/src/CLAUDE.md`"), ["../viz/src/CLAUDE.md"]);
+  assert.deepEqual(pathRefsIn("나침반은 `../CLAUDE.md`"), []); // 디렉토리 조각이 없다
 });
 
 test("바깥 트리 그림은 통째로 건너뛰고, $REPO_ROOT 검증 블록은 검사한다", () => {

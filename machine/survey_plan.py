@@ -4,33 +4,23 @@
 # 쓰는 것: survey-plan.json, networkx · 쓰이는 곳: run_mode1.main
 """survey_plan.py — 전수조사 배치 계획.
 
-**왜 필요한가.** 심볼의 뜻은 그것이 의존하는 심볼의 뜻 위에 선다. 아무 순서로나 읽으면
-아직 안 읽은 것을 가리키게 되고, 그 자리는 추론으로 메워진다. 그래서 **의존 대상이 없는 것부터**
-한 겹씩 올라간다. 같은 층끼리는 서로 의존하지 않으므로 병렬로 읽어도 안전하다.
+의존 대상이 없는 것부터 한 겹씩 올라가는 순서를 계산하고 층을 배치로 나눈다.
+같은 층끼리는 서로 의존하지 않으므로 병렬로 읽어도 안전하다.
 
-**이 파일은 판정하지 않는다.** 순서를 계산하고 배치를 나눌 뿐이다.
-
-## ⚠ 간선의 방향 — 이것을 뒤집어 읽으면 정렬이 정반대가 된다
+## ⚠ 간선의 방향 — 뒤집어 읽으면 정렬이 정반대가 된다
 
 `codegraph.json` 의 간선 `{"from": A, "to": B}` 는 **"A 가 B 에 의존한다"** 는 뜻이다.
 레코드의 `uses[].to`(A 가 부르는 대상)가 그대로 `to` 가 된다.
-🔵 2026-08-30 이 저장소 실측 — 레코드 `uses` 105건이 **전부** `from=A, to=B` 로 들어 있었고
-반대 방향은 0건이었다.
-
-따라서:
 
 | 차수 | 뜻 | 층 |
 |---|---|---|
 | `out_deg` | **이것이 끌어오는 개수** (내가 남에게 의존) | 0이면 **층0** — 여기서 시작한다 |
 | `in_deg`  | **이것을 끌어가는 개수** (남이 나에게 의존) | 0이면 진입점 — **맨 나중**에 읽는다 |
 
-🔵 실측 — 층0(110개)의 평균 `out_deg` 는 **0.00**, 층3(7개)은 **3.14** 다.
-`in_deg` 가 0인 것들(`terms_db.main` · `normalize.main` 같은 진입점)은 층 3에 있다.
+`in_deg` 가 0인 것부터 시작하면 top-down 이 되어, `main` 이 부르는 것들이 아직 안 읽힌 채로
+`main` 의 뜻을 적게 된다.
 
-**`in_deg` 가 0인 것부터 시작하면 top-down 이 되어 정확히 이 도구가 막으려는 사고가 난다** —
-`main` 이 부르는 것들이 아직 안 읽힌 채로 `main` 의 뜻을 적게 된다.
-
-입력은 `prep` 이 이미 낸 `codegraph.json` 이다 — LLM 이 한 글자도 읽기 전에 존재한다.
+입력은 `prep` 이 낸 `codegraph.json` 이다.
 
   survey_plan.py <codegraph.json> [--target 8] [--only-files a.py,b.py] [-o survey-plan.json]
 """
@@ -39,36 +29,103 @@ import collections
 import json
 import os
 import sys
+from collections.abc import Collection, Iterable, Mapping
+from typing import NotRequired, TypedDict, cast
 
 import networkx as nx
+
+# ── 이 파일이 읽고 쓰는 사전의 모양.
+#    `from` 이 파이썬 예약어라 간선만 함수 꼴 TypedDict 문법을 쓴다.
+GraphNode = TypedDict("GraphNode", {
+    "id": str,
+    "name": NotRequired[str],
+    "kind": NotRequired[str],
+    "file": NotRequired[str],
+    "line": NotRequired[int],
+})
+GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str})
+
+
+class CodeGraph(TypedDict):
+    """`prep` 이 낸 codegraph.json 중 이 파일이 실제로 읽는 부분만."""
+    nodes: list[GraphNode]
+    edges: NotRequired[list[GraphEdge]]
+
+
+class PackedBatch(TypedDict):
+    """`pack` 이 내는 중간 묶음. 아직 배치 id 도 심볼 레코드도 붙지 않았다."""
+    files: list[str]
+    symbols: list[str]
+
+
+class PlanSymbol(TypedDict):
+    id: str
+    name: str | None
+    file: str | None
+    line: int | None
+    kind: str | None
+    in_cycle: bool
+    depends_on: list[str]
+
+
+class PlanBatch(TypedDict):
+    id: str
+    files: list[str]
+    symbols: list[PlanSymbol]
+
+
+class PlanLayer(TypedDict):
+    """심볼 층과 맨 끝 비노드 층이 한 목록에 섞여 있다.
+
+    비노드 층만 `kind` 와 `note` 를 갖고 `file_count` 는 갖지 않는다 — 그래서 셋이 선택 항목이다.
+    """
+    level: int
+    symbol_count: int | None
+    batches: list[PlanBatch]
+    file_count: NotRequired[int]
+    kind: NotRequired[str]
+    note: NotRequired[str]
+
+
+class PlanTotals(TypedDict):
+    symbols: int
+    edges: int
+    levels: int
+    cyclic_symbols: int
+
+
+class SurveyPlan(TypedDict):
+    target: int
+    layers: list[PlanLayer]
+    totals: PlanTotals
 
 
 # <include file="machine/comments.xml" path="//term[@id='survey_plan.layer_of']"/>
 # 노드마다 위상 깊이를 매긴다. 순환은 한 덩어리로 접는다.
 # 쓰는 것: networkx · 쓰이는 곳: survey_plan.plan
-def layer_of(first, edges):
+def layer_of(first: Collection[str],
+             edges: Iterable[tuple[str, str]]) -> tuple[dict[str, int], dict[str, bool]]:
     """의존 대상이 없으면 층0, 아니면 1 + 의존 대상들의 최대 층.
 
     `edges` 의 원소는 `(A, B)` = **"A 가 B 에 의존"** 이다(파일 머리말의 방향 표).
     그래서 `G.successors(n)` 이 "n 이 의존하는 것들" 이고, 그것이 비면 층0 이다.
-    **의존을 몇 개 갖는지(out_deg)로 정렬하면 안 된다** — 의존 하나만 가져도 그 하나가
-    3층이면 4층이다. 🔵 실측에서 out_deg 1 무리(31개) 안에 깊이 1·2·3·4 가 섞여 있었다.
+    의존을 몇 개 갖는지(out_deg)로 정렬하면 안 된다 — 의존 하나만 가져도 그 하나가 3층이면 4층이다.
 
     순환이 있으면 위상 깊이가 정의되지 않으므로 **강결합 성분(SCC)으로 접어** DAG 로 만든 뒤 센다.
-    같은 순환에 든 심볼은 같은 층이 되어 같은 배치 후보가 된다 — 서로를 보며 함께 읽으라는 뜻이다.
-    이 저장소 자신은 순환이 0개지만 C++ · C# 저장소에서는 흔하다.
+    같은 순환에 든 심볼은 같은 층이 되어 같은 배치 후보가 된다.
     """
-    G = nx.DiGraph()
+    G: nx.DiGraph[str] = nx.DiGraph()
     G.add_nodes_from(first)
     for s, d in edges:
         if s in first and d in first and s != d:
             G.add_edge(s, d)
     C = nx.condensation(G)                 # SCC 를 접은 DAG. C.graph["mapping"] 이 노드->성분
-    lv = {}
+    lv: dict[int, int] = {}
     for c in reversed(list(nx.topological_sort(C))):   # 뒤에서부터 = 의존 대상이 먼저
         succ = list(C.successors(c))
         lv[c] = 0 if not succ else 1 + max(lv[s] for s in succ)
-    m = C.graph["mapping"]
+    # networkx 는 성분 표를 타입이 없는 `graph` 사전(dict[str, Any])에 담아 돌려준다 — 여기서만 좁힌다.
+    m = cast(dict[str, int], C.graph["mapping"])
     size = collections.Counter(m.values())
     return {n: lv[m[n]] for n in G}, {n: size[m[n]] > 1 for n in G}
 
@@ -76,17 +133,19 @@ def layer_of(first, edges):
 # <include file="machine/comments.xml" path="//term[@id='survey_plan.pack']"/>
 # 한 층의 심볼을 파일이 쪼개지지 않게 목표 크기로 묶는다.
 # 쓰는 것: 없음 · 쓰이는 곳: survey_plan.plan
-def pack(members, file_of, target):
+def pack(members: Iterable[str], file_of: Mapping[str, str | None],
+         target: int) -> list[PackedBatch]:
     """같은 파일의 같은 층 심볼은 **한 배치에** 몰아넣는다 — 층 안 중복 통독을 0으로 만든다.
 
-    파일 하나가 target 을 넘으면 그 파일만으로 배치 하나가 된다(초과를 허용한다).
-    쪼개면 그 파일을 두 세션이 각각 통독하게 되어 더 비싸기 때문이다.
+    파일 하나가 target 을 넘으면 그 파일만으로 배치 하나가 된다 — target 은 상한이 아니다.
     파일명 정렬 뒤 그리디라 같은 입력이면 같은 출력이다.
     """
-    byfile = collections.defaultdict(list)
+    byfile: collections.defaultdict[str, list[str]] = collections.defaultdict(list)
     for n in members:
         byfile[file_of.get(n) or ""].append(n)
-    out, cur, curf = [], [], []
+    out: list[PackedBatch] = []
+    cur: list[str] = []
+    curf: list[str] = []
     for f in sorted(byfile):
         syms = sorted(byfile[f])
         if cur and len(cur) + len(syms) > target:
@@ -102,10 +161,11 @@ def pack(members, file_of, target):
 # <include file="machine/comments.xml" path="//term[@id='survey_plan.plan']"/>
 # 코드 지도를 층과 배치로 나눈 계획을 만든다.
 # 쓰는 것: survey_plan.layer_of, survey_plan.pack · 쓰이는 곳: run_mode1.main
-def plan(cg, target=8, only_files=None):
+def plan(cg: CodeGraph, target: int = 8,
+         only_files: Iterable[str] | None = None) -> SurveyPlan:
     """코드 지도 -> 층 · 배치 계획.
 
-    `only_files` 는 증분 재조사용이다 — `warmup.py` 의 `blast_radius` 가 낸 파일 목록을 주면
+    `only_files` 는 증분 재조사용이다 — `warmup.blast_radius` 가 낸 파일 목록을 주면
     그 파일의 심볼만 남긴다. 층 번호는 **전체 그래프 기준으로 매긴 뒤** 거른다.
     거르고 나서 매기면 사라진 의존 대상 때문에 층이 잘못 내려간다.
     """
@@ -120,11 +180,11 @@ def plan(cg, target=8, only_files=None):
         want = set(only_files)
         keep = {i for i in first if file_of.get(i) in want}
 
-    bylv = collections.defaultdict(list)
+    bylv: collections.defaultdict[int, list[str]] = collections.defaultdict(list)
     for n in keep:
         bylv[lv[n]].append(n)
 
-    layers = []
+    layers: list[PlanLayer] = []
     for k in sorted(bylv):
         bs = pack(bylv[k], file_of, target)
         layers.append({
@@ -145,7 +205,7 @@ def plan(cg, target=8, only_files=None):
                 for i, b in enumerate(bs)],
         })
 
-    # K5 — 그래프 노드가 아닌 용어는 맨 마지막 별도 층. 심볼이 다 읽힌 뒤라야 정확해진다.
+    # K5 — 그래프 노드가 아닌 용어는 맨 마지막 별도 층. `symbol_count` 가 None 인 층이 이것이다.
     last = (max(bylv) + 1) if bylv else 0
     layers.append({
         "level": last, "kind": "non-node", "symbol_count": None, "batches": [],
@@ -157,7 +217,7 @@ def plan(cg, target=8, only_files=None):
                        "cyclic_symbols": sum(1 for n in keep if in_cycle.get(n))}}
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="전수조사를 층과 배치로 나눈다.")
     ap.add_argument("codegraph", help="prep 이 낸 codegraph.json")
     ap.add_argument("--target", type=int, default=8, help="배치당 목표 심볼 수 (기본 8)")
@@ -165,7 +225,7 @@ def main(argv=None):
     ap.add_argument("-o", "--out", help="출력 경로. 기본은 codegraph.json 옆 survey-plan.json")
     a = ap.parse_args(argv)
     try:
-        cg = json.load(open(a.codegraph, encoding="utf-8"))
+        cg: CodeGraph = json.load(open(a.codegraph, encoding="utf-8"))
     except Exception as ex:
         print("에러 — codegraph.json 을 읽지 못했다: %s" % ex, file=sys.stderr)
         return 1
@@ -181,8 +241,9 @@ def main(argv=None):
         if L.get("kind") == "non-node":
             print("  층%d — 비노드 용어 (한 세션)" % L["level"])
         else:
+            # 심볼 층은 위에서 file_count 를 반드시 넣지만 형 검사기가 그것을 볼 방법이 없다.
             print("  층%d — 심볼 %d · 파일 %d · 배치 %d"
-                  % (L["level"], L["symbol_count"], L["file_count"], len(L["batches"])))
+                  % (L["level"], L["symbol_count"], L["file_count"], len(L["batches"])))  # pyright: ignore[reportTypedDictNotRequiredAccess]
     return 0
 
 

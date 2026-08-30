@@ -4,10 +4,7 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """fix_citation_paths.py — 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다.
 
-**왜 필요한가.** 🔵 실측 — 위키를 쓰는 LLM 은 같은 파일을 여러 번 인용할 때 두 번째부터
-경로를 줄여 `UI_StarRate.cs:50` 처럼 파일명만 남긴다. 사람이 읽기엔 자연스럽지만
-**링크로는 죽고 인용 검증기 L1 실패로 잡힌다.** 프롬프트로 경고해도 반복 발생했다.
-
+`Foo.cs:50` 처럼 경로가 빠진 인용은 링크로 죽고 인용 검증기 L1 실패로 잡힌다.
 기계적으로 복구 가능한 경우에만 고친다:
   - 저장소 안에서 그 파일명이 **정확히 하나**일 때 → 전체 경로로 치환
   - 여러 개면 손대지 않고 보고한다 (어느 것인지 기계가 정할 수 없다)
@@ -31,9 +28,9 @@ SKIP_DIRS = {".git", "Library", "Temp", "obj", "bin", "node_modules", "out"}
 # <include file="machine/comments.xml" path="//term[@id='index_repo']"/>
 # 저장소를 훑어 파일명마다 상대경로 목록을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: fix_citation_paths.main
-def index_repo(repo):
+def index_repo(repo: str) -> dict[str, list[str]]:
     """파일명 -> 저장소 기준 상대경로 목록."""
-    idx = defaultdict(list)
+    idx: defaultdict[str, list[str]] = defaultdict(list)
     for root, dirs, files in os.walk(repo):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for f in files:
@@ -45,7 +42,7 @@ def index_repo(repo):
 # <include file="machine/comments.xml" path="//term[@id='fix_citation_paths.main']"/>
 # 인용 경로 보강 도구의 명령줄 진입점.
 # 쓰는 것: index_repo · 쓰이는 곳: 없음
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("docs", nargs="+")
     ap.add_argument("--repo", required=True)
@@ -58,9 +55,11 @@ def main():
     total_fixed = total_ambiguous = total_missing = 0
     for doc in a.docs:
         text = open(doc, encoding="utf-8").read()
-        fixed, amb, miss = 0, [], []
+        fixed = 0
+        amb: list[tuple[str, int]] = []   # (파일명, 후보 수)
+        miss: list[str] = []
 
-        def sub(m):
+        def sub(m: re.Match[str]) -> str:
             nonlocal fixed
             name = m.group(1)
             cands = idx.get(name, [])

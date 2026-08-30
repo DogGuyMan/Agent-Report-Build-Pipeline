@@ -2,22 +2,14 @@
 # <include file="machine/comments.xml" path="//term[@id='demermaid.py']"/>
 # 위키에 남은 Mermaid 그림을 미리 그린 SVG 로 바꿔치기하는 도구.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-"""demermaid.py — C-18 집행. 위키의 Mermaid 를 사전 렌더 SVG 로 치환한다.
+"""demermaid.py — 위키의 Mermaid 를 사전 렌더 SVG 로 치환한다.
 
-C-8 이 "다이어그램은 deep-wiki 의 Mermaid 가 아니라 Graphviz P1~P6" 로 정했는데,
-VitePress 기성 경로(`vitepress-plugin-mermaid`)는 **클라이언트에서 Mermaid 를 그린다.**
-그대로 두면 C-8 이 무력화되므로 빌드 전에 전면 치환한다(C-18, A안).
+VitePress 의 mermaid 플러그인은 클라이언트에서 그리므로, 빌드 전에 전면 치환해 JS 의존을 없앤다.
+Mermaid 블록 **앞줄**에 `<!-- graphviz: <이름> -->` 표식이 있으면 그 SVG 로 바꾸고,
+표식이 없는 나머지는 `mmdc` 로 SVG 를 굽는다.
 
-치환은 두 단이다:
-
-  1. **교체** — 우리가 이미 Graphviz 로 그린 구조 다이어그램이 있으면 그것으로 바꾼다.
-     `<!-- graphviz: <이름> -->` 표식이 Mermaid 블록 **앞줄**에 있으면 그 SVG 를 쓴다.
-     이것이 C-8 의 본뜻이다 — 구조는 Graphviz 가 정본.
-  2. **렌더** — 표식이 없는 나머지(순서도·상태도 등 구조가 아닌 것)는 `mmdc` 로 SVG 를 굽는다.
-     Mermaid 문법 자체는 살리되 **클라이언트 JS 의존을 없앤다.**
-
-⚠ 이 스크립트는 원본을 고치지 않는다. `--out` 디렉토리에 치환본을 낸다 —
-원본 위키는 인용 검증기의 대상으로 그대로 남아야 한다.
+⚠ 원본은 고치지 않는다. `--out` 디렉토리에 치환본을 낸다 — 원본 위키는 인용 검증기의
+대상으로 그대로 남아야 한다.
 
   demermaid.py <위키디렉토리> --out <출력디렉토리> [--svg-dir <graphviz svg 디렉토리>]
 """
@@ -32,17 +24,15 @@ FENCE = re.compile(r"^```mermaid\s*$")
 MARK = re.compile(r"<!--\s*graphviz:\s*([A-Za-z0-9_.-]+)\s*-->")
 
 
-# ── 알려진 mermaid 11.16 문법 제약 셋. 🔵 전부 이 저장소 위키에서 실측됐다.
-#    전부 **색 지시자나 표기 문제**라 걷어내도 그림의 내용(노드·간선)은 바뀌지 않는다.
-#    클라이언트 렌더에 맡겼다면 브라우저에서 조용히 깨졌을 것들이다 — C-18 전면 치환이
-#    이것을 빌드 시점에 잡아낸다는 것이 A안의 실질 이득이다.
+# ── 알려진 mermaid 11.16 문법 제약 넷. 전부 색 지시자나 표기 문제라 걷어내도
+#    그림의 내용(노드·간선)은 바뀌지 않는다.
 
 # (1) `style X~T~ fill:...` — 제네릭 클래스에 style 을 걸면 GENERICTYPE 토큰 오류
 # (2) `style 한글이름 fill:...` — 비ASCII 식별자에 style 을 걸면 파서가 죽는다
 GENERIC_STYLE = re.compile(r"^[ \t]*style[ \t]+(?:\S*~[^~]*~\S*|[^\s\x00-\x7f][^\s]*)[ \t][^\n]*\n?", re.M)
 
 # (3) HTML 엔티티 — `&lt;T&gt;` 가 라벨에 그대로 들어오면 렉서가 못 읽는다.
-#     VitePress 호환을 위해 제네릭을 이스케이프한 것이 mmdc 에서는 역효과다.
+#     VitePress 호환으로 이스케이프한 제네릭이 mmdc 에서는 역효과다.
 ENTITY = [("&lt;", "<"), ("&gt;", ">"), ("&amp;", "&"), ("&quot;", '"')]
 
 # (4) 라벨 안의 백틱 — `["`이름`"]` 은 mermaid 의 markdown-string 문법이라
@@ -53,7 +43,7 @@ LABEL_BACKTICK = re.compile(r'(\["\[?)`([^`]*)`')
 # <include file="machine/comments.xml" path="//term[@id='_mmdc']"/>
 # Mermaid 원문을 SVG 파일로 굽는 바깥 명령을 부른다.
 # 쓰는 것: 없음 · 쓰이는 곳: render_mermaid
-def _mmdc(src_text, out_svg):
+def _mmdc(src_text: str, out_svg: str) -> subprocess.CompletedProcess[str]:
     tmp = out_svg + ".mmd"
     open(tmp, "w", encoding="utf-8").write(src_text)
     r = subprocess.run(
@@ -67,11 +57,10 @@ def _mmdc(src_text, out_svg):
 # <include file="machine/comments.xml" path="//term[@id='render_mermaid']"/>
 # Mermaid 한 덩이를 SVG 로 만든다. 실패하면 알려진 문법 제약을 걷어내고 다시 시도한다.
 # 쓰는 것: _mmdc · 쓰이는 곳: process
-def render_mermaid(src_text, out_svg):
+def render_mermaid(src_text: str, out_svg: str) -> str | None:
     """mmdc 로 Mermaid 하나를 SVG 로 굽는다. 실패하면 None.
 
-    한 번 실패하면 **알려진 문법 제약을 걷어내고 한 번만 재시도**한다.
-    걷어내는 것은 색 지시자뿐이라 그림의 내용은 바뀌지 않는다."""
+    한 번 실패하면 알려진 문법 제약을 걷어내고 **한 번만** 재시도한다."""
     r = _mmdc(src_text, out_svg)
     if r.returncode == 0:
         return out_svg
@@ -95,9 +84,11 @@ def render_mermaid(src_text, out_svg):
 # <include file="machine/comments.xml" path="//term[@id='process']"/>
 # 문서 하나를 훑어 Mermaid 블록을 그림으로 바꾼 사본을 만든다.
 # 쓰는 것: render_mermaid · 쓰이는 곳: demermaid.main
-def process(path, outdir, assets, svg_dir, rel_assets):
+def process(path: str, outdir: str, assets: str,
+            svg_dir: str | None, rel_assets: str) -> dict[str, int]:
     lines = open(path, encoding="utf-8").read().splitlines()
-    out, i = [], 0
+    out: list[str] = []
+    i = 0
     stats = {"교체": 0, "렌더": 0, "실패": 0}
     base = os.path.splitext(os.path.basename(path))[0]
 
@@ -107,12 +98,12 @@ def process(path, outdir, assets, svg_dir, rel_assets):
 
         # 블록 수집
         j = i + 1
-        body = []
+        body: list[str] = []
         while j < len(lines) and not lines[j].strip().startswith("```"):
             body.append(lines[j]); j += 1
 
         # 앞줄들에서 graphviz 표식 찾기 (빈 줄 건너뜀)
-        mark = None
+        mark: str | None = None
         for back in range(len(out) - 1, max(-1, len(out) - 4), -1):
             m = MARK.search(out[back])
             if m:
@@ -152,26 +143,31 @@ def process(path, outdir, assets, svg_dir, rel_assets):
 # <include file="machine/comments.xml" path="//term[@id='demermaid.main']"/>
 # demermaid 도구의 명령줄 진입점.
 # 쓰는 것: process · 쓰이는 곳: 없음
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("wiki", help="위키 마크다운 디렉토리")
     ap.add_argument("--out", required=True, help="치환본 출력 디렉토리 (원본은 안 고친다)")
     ap.add_argument("--svg-dir", help="Graphviz SVG 디렉토리 — <!-- graphviz: 이름 --> 표식이 여기서 찾는다")
     a = ap.parse_args()
+    # argparse.Namespace 의 속성은 Any 다. 타입 있는 지역 변수로 한 번 받아
+    # 아래 경로 계산까지 Unknown 이 번지지 않게 한다.
+    wiki_dir: str = a.wiki
+    out_dir: str = a.out
+    svg_dir: str | None = a.svg_dir
 
-    os.makedirs(a.out, exist_ok=True)
-    assets = os.path.join(a.out, "assets")
+    os.makedirs(out_dir, exist_ok=True)
+    assets = os.path.join(out_dir, "assets")
     os.makedirs(assets, exist_ok=True)
 
     total = {"교체": 0, "렌더": 0, "실패": 0}
-    docs = sorted(f for f in os.listdir(a.wiki) if f.endswith(".md"))
+    docs = sorted(f for f in os.listdir(wiki_dir) if f.endswith(".md"))
     for f in docs:
-        s = process(os.path.join(a.wiki, f), a.out, assets, a.svg_dir, "assets")
+        s = process(os.path.join(wiki_dir, f), out_dir, assets, svg_dir, "assets")
         for k in total:
             total[k] += s[k]
         print(f"  {f} — 교체 {s['교체']} · 렌더 {s['렌더']} · 실패 {s['실패']}")
 
-    print(f"\n{a.out} — 문서 {len(docs)}개")
+    print(f"\n{out_dir} — 문서 {len(docs)}개")
     print(f"  Graphviz 교체 {total['교체']} · mmdc 렌더 {total['렌더']} · 실패 {total['실패']}")
     left = total["실패"]
     print(f"  남은 클라이언트 Mermaid 의존: {left}  (0 이어야 C-18 집행 완료)")

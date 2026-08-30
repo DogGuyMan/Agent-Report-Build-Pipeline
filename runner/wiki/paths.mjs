@@ -40,5 +40,26 @@ export function collectorFor(entries) {
   const has = (suffix) => entries.some((f) => f.endsWith(suffix));
   if (has(".csproj") || has(".slnx") || has(".sln")) return "roslyn-dump";
   if (entries.includes("CMakeLists.txt")) return "clang-uml";
+  if (entries.includes("pyproject.toml") || entries.includes("requirements.txt")) {
+    return "griffe+pycalls";
+  }
   return "none";
+}
+
+/**
+ * `machine/lang_select.py` 가 낸 판정을 받아 수집기 이름을 낸다.
+ *
+ * 그 단계가 안 돌았거나 파일이 깨졌으면 `null` 이고, 부르는 쪽이 `collectorFor` 로 돌아간다.
+ * 판정이 아는 수집기가 아니면(예: TS 는 수집기가 없다) 그대로 돌려준다 — `prepPlan` 이
+ * 막고 사유를 말한다. 여기서 조용히 바꾸면 무엇이 골라졌는지 알 수 없게 된다.
+ */
+export function collectorFromSelect(text) {
+  let got;
+  try {
+    got = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const c = got && got.collector;
+  return typeof c === "string" && c ? c : null;
 }

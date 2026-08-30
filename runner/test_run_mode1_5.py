@@ -1,37 +1,27 @@
-"""test_run_mode1_5.py — Mode 1.5 실행기의 회귀 시험.
+"""Mode 1.5 실행기의 회귀 시험.
 
-**왜 필요한가.** Mode 1.5 는 **사람의 이해도를 재는** 파이프라인이다. 그래서 다른
-실행기라면 사소했을 실수가 여기서는 측정 자체를 무너뜨린다. 무너져도 오류가 나지
-않고 그럴듯한 표가 나온다는 것이 더 나쁘다.
-
-  1. 사람 관문   `claude -p` 는 되물을 수 없다. 사람 자리에 헤드리스 에이전트를 넣으면
-                 답을 지어내고, 그러면 "사람이 아는가" 를 잰다는 목적이 죽는다.
-                 실행기는 답안이 없으면 **반드시 멈춰야** 한다.
-  2. 재개        멈춘 뒤 다시 돌릴 때 이미 만든 산출물을 다시 만들면 안 된다.
-                 특히 문항을 다시 내면 사람이 이미 푼 시험과 어긋난다.
-  3. 정답 미정   뜻이 정해지지 않은 개념을 출제하면 채점이 불가능하다.
-                 기계 규칙은 하나뿐이다 — **정답 문구가 있느냐.**
-  4. 문항 검사   "모르겠다" 가 마지막에 없거나 보기 수가 다섯이 아니거나 문항 수가
-                 셋이 아니면 채점 구간(맞힌 수 2 이상 -> 확실)이 뜻을 잃는다.
-  5. 이어짐      `questions.json` 에서 기입란으로 바로 이어지지 않으면 사람이 손으로
-                 형식을 옮기다 틀린다. 그리고 **기입란에 정답이 실리면 안 된다** —
-                 풀기 전에 정답이 보이면 재는 것이 이해도가 아니라 눈이 된다.
-  6. 번호 규칙   `QNum` 은 파이썬과 `quiz.mjs` 두 곳에서 매겨진다. 어긋나면 남의 답을
-                 채점하고도 오류가 나지 않는다.
+여기서 보는 여섯 가지 — 사람 관문(답안이 없으면 멈추는가) · 재개(이미 만든 산출물을
+다시 만들지 않는가) · 정답 미정 가르기 · 문항 검사(`quiz.mjs` 는 이것을 검사하지
+않는다) · 기입란으로 이어짐(정답이 실리면 안 된다) · `QNum` 규칙(파이썬과 `quiz.mjs`
+두 곳에서 매겨진다. 어긋나면 남의 답을 채점하고도 오류가 나지 않는다).
 
   .venv/bin/python -m pytest runner/test_run_mode1_5.py -q
 """
 import os
 import sys
+from collections.abc import Sequence
+from typing import Any
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import run_mode1 as M  # noqa: E402
 import run_mode1_5 as R  # noqa: E402
 
 
 # ── 재료 ────────────────────────────────────────────────────────────────
-def one_question(ask="PageRank 는 무엇을 하는가?", answer=0):
+def one_question(ask: str = "PageRank 는 무엇을 하는가?",
+                 answer: int = 0) -> dict[str, Any]:
     """검사를 통과하는 문항 하나. 시험마다 한 군데씩만 망가뜨려 쓴다."""
     return {"ask": ask,
             "choices": ["그래프에서 중요한 점을 매긴다",
@@ -42,7 +32,7 @@ def one_question(ask="PageRank 는 무엇을 하는가?", answer=0):
             "answer": answer}
 
 
-def good_doc():
+def good_doc() -> dict[str, Any]:
     """정상 `questions.json` 한 장. 용어 하나 · 문항 셋."""
     return {"plan": "/어느/plan.md",
             "terms": [{"term": "PageRank",
@@ -144,10 +134,7 @@ def test_a_blank_meaning_counts_as_undefined():
 
 
 def test_the_machine_never_judges_whether_a_concept_is_a_false_positive():
-    """`E402`(린트 코드)든 진짜 개념이든 규칙은 같다 — 정답이 있으면 낸다.
-
-    오탐 여부를 기계가 판정하면 그 판정이 틀렸을 때 되돌릴 자리가 없다.
-    """
+    """`E402`(린트 코드)든 진짜 개념이든 규칙은 같다 — 정답이 있으면 낸다."""
     ready, _ = R.split_new_concepts(["E402"], {"E402": "파이썬 린트가 내는 코드"})
     assert ready == ["E402"]
 
@@ -194,10 +181,8 @@ def test_duplicate_choices_are_caught():
 
 
 def test_the_number_of_choices_is_fixed_at_five():
-    """실제 뜻 4개 + "모르겠다" = 다섯 고정.
-
-    문항마다 개수가 다르면 찍어서 맞을 확률이 문항마다 달라지고, 그러면 정답률을
-    문항끼리 견줄 수 없다. 둘뿐이면 절반은 찍어서 맞는다.
+    """실제 뜻 4개 + "모르겠다" = 다섯 고정. 문항마다 개수가 다르면 찍어서 맞을 확률이
+    달라져 정답률을 문항끼리 견줄 수 없다.
     """
     doc = good_doc()
     doc["terms"][0]["questions"][0]["choices"] = ["그래프 어쩌고", "모르겠다"]
@@ -205,7 +190,7 @@ def test_the_number_of_choices_is_fixed_at_five():
 
 
 def test_four_choices_are_no_longer_enough():
-    """옛 규칙(넷에서 다섯)으로 낸 문항지는 이제 걸린다."""
+    """보기가 넷이면 걸린다."""
     doc = good_doc()
     doc["terms"][0]["questions"][0]["choices"] = [
         "그래프에서 중요한 점을 매긴다", "파일을 줄 단위로 센다",
@@ -225,7 +210,8 @@ def test_a_sheet_with_no_terms_is_caught():
 
 
 # ── 5. questions.json 에서 기입란으로 바로 이어진다 ─────────────────────
-def filled_sheet(doc=None, picks=(1, 2, 3)):
+def filled_sheet(doc: dict[str, Any] | None = None,
+                 picks: Sequence[int | str] = (1, 2, 3)) -> dict[str, Any]:
     """기입란을 만들고 `UserAns` 를 채운 것. `picks` 는 문항 차례대로 고른 보기 번호.
 
     `good_doc()` 의 정답은 문항 차례대로 1 · 2 · 3번 보기다(`answer` 가 0부터라 하나 크다).
@@ -398,14 +384,14 @@ def test_the_prompt_forbids_asking_the_human():
 def test_collect_argv_names_the_plan_and_the_term_database():
     argv = R.collect_argv(root="/도구/뿌리", plan="/계획/plan.md", terms_db="/어느/terms-db.json")
     assert argv[0] == "node"
-    assert argv[1].endswith(os.path.join("scripts", "term", "collect.mjs"))
+    assert argv[1].endswith(os.path.join("runner", "term", "collect.mjs"))
     assert argv[2] == "/계획/plan.md" and argv[3] == "/어느/terms-db.json"
 
 
 def test_collect_argv_works_without_a_term_database():
     """DB 가 없으면 코드베이스 용어는 0개다 — 그래도 신규 개념은 잡힌다."""
     assert R.collect_argv(root="/r", plan="/p.md", terms_db=None) == [
-        "node", os.path.join("/r", "scripts", "term", "collect.mjs"), "/p.md"]
+        "node", os.path.join("/r", "runner", "term", "collect.mjs"), "/p.md"]
 
 
 def test_grade_and_emit_argv_point_at_the_right_scripts():
@@ -422,15 +408,15 @@ def test_grade_argv_hands_over_both_files():
 
 # ── 8. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
 def test_the_report_reuses_the_mode_1_table():
-    rows = [{"stage": "collect", "seconds": 0.4, "ok": True,
-             "usage": R.M.normalize_usage(None)}]
+    rows: list[M.StageRow] = [{"stage": "collect", "seconds": 0.4, "ok": True,
+                               "why": "", "usage": R.M.normalize_usage(None)}]
     text = R.format_run(rows, skipped=[], gate=None)
     assert "collect" in text and "합계" in text
 
 
 def test_a_stage_skipped_on_resume_is_marked_as_skipped_not_failed():
     """재개해서 건너뛴 단계를 '실패' 로 그리면 읽는 사람이 오해한다."""
-    text = R.format_run([{"stage": "grade", "seconds": 0.2, "ok": True,
+    text = R.format_run([{"stage": "grade", "seconds": 0.2, "ok": True, "why": "",
                           "usage": R.M.normalize_usage(None)}],
                         skipped=[("collect", "term-candidates.json 이 이미 있다")],
                         gate=None)
@@ -438,19 +424,17 @@ def test_a_stage_skipped_on_resume_is_marked_as_skipped_not_failed():
 
 
 def test_the_gate_is_appended_to_the_report_and_is_not_a_failure():
-    text = R.format_run([{"stage": "author", "seconds": 9.0, "ok": True,
+    text = R.format_run([{"stage": "author", "seconds": 9.0, "ok": True, "why": "",
                           "usage": R.M.normalize_usage(None)}],
                         skipped=[], gate="사람 차례 — answers.json 을 쓴다")
     assert "사람 차례" in text
     assert "실패" not in text
 
 
-# ── 9. 실측에서 드러난 두 가지 (2026-08-30, haiku 마른 실행) ────────────
+# ── 9. 문항지가 조용히 망가지는 두 자리 ─────────────────────────────────
 def test_an_unshuffled_sheet_is_caught():
-    """정답이 전부 같은 자리에 있으면 사람이 **위치로** 맞힌다 — 이해도가 아니라 눈치를 잰다.
-
-    실측 — haiku 로 돌린 첫 문항지 24문항의 정답이 전부 0번 자리였다.
-    보기의 좋고 나쁨은 기계가 못 보지만 **자리가 한곳에 몰린 것은 볼 수 있다.**
+    """정답이 전부 같은 자리에 있으면 사람이 **위치로** 맞힌다. 보기의 좋고 나쁨은
+    기계가 못 보지만 자리가 한곳에 몰린 것은 볼 수 있다.
     """
     doc = good_doc()
     doc["terms"].append({"term": "declmap.scan", "means": "선언을 훑는다",
@@ -478,20 +462,17 @@ def test_the_shuffle_check_stays_quiet_on_a_tiny_sheet():
 
 
 def test_known_terms_that_were_neither_asked_nor_excluded_are_reported():
-    """조용히 빠진 용어를 잡는다.
-
-    실측 — haiku 가 `known` 20개 중 8개만 내고 12개를 `excluded` 에도 안 적고 버렸다.
-    시험 범위를 좁히는 것 자체는 정당하다(용어 20개면 60문항이다). 다만 **무엇이
-    빠졌는지 사람이 봐야** 범위를 좁힌 것인지 잊은 것인지 구별할 수 있다.
+    """출제도 안 되고 `excluded` 에도 안 적힌 용어를 잡는다 — 무엇이 빠졌는지 보여야
+    범위를 좁힌 것인지 잊은 것인지 사람이 구별할 수 있다.
     """
-    cand = {"known": {"PageRank": {}, "declmap.scan": {}, "warmup.save": {}}}
+    cand: dict[str, Any] = {"known": {"PageRank": {}, "declmap.scan": {}, "warmup.save": {}}}
     doc = good_doc()                       # PageRank 만 출제됐다
     doc["excluded"] = [{"term": "declmap.scan", "why": "계획서에 정의가 없다"}]
     assert R.unasked_known(cand, doc) == ["warmup.save"]
 
 
 def test_nothing_is_reported_when_every_known_term_is_accounted_for():
-    cand = {"known": {"PageRank": {}}}
+    cand: dict[str, Any] = {"known": {"PageRank": {}}}
     assert R.unasked_known(cand, good_doc()) == []
 
 

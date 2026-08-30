@@ -4,12 +4,6 @@
 # 쓰는 것: terms-db.json, terms-reading.json · 쓰이는 곳: 없음
 """terms_db.py — 코드베이스 용어 전수 수집.
 
-**왜 필요한가.** Mode 1.5(용어 이해도 점검)가 사람에게 문제를 내려면 정답지가 있어야 한다.
-그 정답지를 LLM 이 매번 새로 지어내면 세션마다 설명이 흔들린다. 여기서 한 번 뽑아 고정한다.
-
-**이 파일은 판정하지 않는다.** 기계가 아는 사실(이름, 종류, 위치, 이웃)만 적는다.
-사람이 읽을 설명은 Mode 1.5 가 LLM 으로 채우고 사용자가 검수한다.
-
 입력은 normalize.py 가 낸 codegraph.json 이며 그 실제 키를 따른다.
   노드  id / name / kind / module / file / line
   간선  from / to / kind / label / file / line   (source/target 이 아니다)
@@ -21,14 +15,21 @@
   --reading 만            -> LLM 읽기 레코드로 terms-db.json 을 만들고 codegraph.json 을 투영해 쓴다
   둘 다                   -> 합친다. 구조는 codegraph 가 이긴다
   종료 코드 1 = 인용 실패(L1/L2) 또는 투영이 codegraph 를 다 담지 못함. 근거 없음(L3)은 0
+
+⚠ --reading 만 준 실행은 투영한 codegraph.json 을 출력 디렉토리에 **쓴다.** 기본 출력 자리가
+<repo>/out/codegraph-raw 라 거기 있던 지도를 덮는다. 원본을 지키려면 -o 로 다른 자리를 준다.
 """
 import argparse
 import json
 import os
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
+from typing import Literal, NotRequired, TypedDict, cast
 
+from codegraph_types import CodeGraph, Edge, EdgeKind, Node
 from verify_citations import short
+from xmldoc import Terms
 
 
 # 지도의 노드가 되지 않는 용어 종류. 사람이 부르는 이름(파일·산출물·JSON 키·개념)은 terms-db 에만 산다.
@@ -36,18 +37,55 @@ NON_NODE_KINDS = frozenset({"file", "module", "artifact", "key", "concept"})
 # reading 레코드가 쓸 수 있는 kind 전부. codegraph 에서 온 kind 는 검사하지 않는다(정적 도구의 어휘).
 KINDS = frozenset({"class", "struct", "enum", "interface", "delegate", "record", "external",
                    "function"}) | NON_NODE_KINDS
-# LLM 이 쓸 수 있는 간선 종류. 새 종류를 만들지 않는다.
-# ⚠ normalize.py 는 이보다 넓다 — instantiation · friendship 도 낸다(normalize.py:25-29).
-#   정적 도구의 어휘는 check_terms 가 판정하지 않으므로 여기 넣지 않는다.
+# LLM 이 쓸 수 있는 간선 종류.
+# ⚠ normalize.py 의 어휘는 이보다 넓다 — instantiation · friendship 도 낸다.
+#   정적 도구가 낸 간선은 check_terms 가 어휘를 판정하지 않으므로 여기 넣지 않는다.
 EDGE_KINDS = frozenset({"inheritance", "realization", "composition", "aggregation",
                         "association", "dependency"})
 SOURCES = frozenset({"codegraph", "reading", "codegraph+reading"})
+
+# LLM 이 덮어쓸 수 있는 필드. 열쇠에 Literal 형을 박아야 TypedDict 첨자가 풀린다.
+READING_WINS: tuple[Literal["means", "does"], ...] = ("means", "does")
+
+
+# ── terms-db.json 레코드의 모양. terms-reading.json 쪽은 `xmldoc.Term` 이 정본이고
+#    `merge_terms` 가 그것을 그대로 받는다. 여기 두 자리는 그보다 넓다:
+#      module   소속이 없는 노드가 있어 None 이 온다
+#      label    상속처럼 멤버가 없는 간선은 None 이다
+#    `Term`/`Use` 는 둘 다 `str` 이라 물려받을 수 없다(TypedDict 는 필드 형을 넓히지 못한다).
+
+class DbUse(TypedDict):
+    """레코드의 `uses[]` 한 칸. `source` 는 merge_terms 가 LLM 이 보탠 간선에만 남긴다."""
+    to: str
+    kind: str
+    label: str | None
+    where: str
+    source: NotRequired[str]
+
+
+class TermRecord(TypedDict):
+    """용어 하나. `id` 는 codegraph 에서 온 레코드에만 있다 — reading 레코드는 키가 곧 이름이다."""
+    kind: str
+    module: str | None
+    where: str
+    means: str
+    uses: list[DbUse]
+    neighbors: list[str]
+    source: str
+    id: NotRequired[str]
+    does: NotRequired[str]
+    confidence: NotRequired[str]
+    hotspot: NotRequired[bool]
+
+
+# {용어 이름: 레코드}. terms-db.json 최상위가 이 모양이다.
+TermsDb = dict[str, TermRecord]
 
 
 # <include file="machine/comments.xml" path="//term[@id='_where']"/>
 # 노드의 파일과 줄을 합쳐 경로:줄 꼴 위치 문자열로 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: build_terms
-def _where(node):
+def _where(node: Node | Edge) -> str:
     """`file:line` 위치 문자열. 파일이 없으면(외부 노드) 빈 문자열."""
     f = node.get("file") or ""
     ln = node.get("line")
@@ -59,7 +97,7 @@ def _where(node):
 # <include file="machine/comments.xml" path="//term[@id='_split_where']"/>
 # 경로:줄 문자열을 다시 파일과 줄 번호로 가른다.
 # 쓰는 것: 없음 · 쓰이는 곳: check_terms, project_codegraph
-def _split_where(where):
+def _split_where(where: str) -> tuple[str | None, int | None]:
     """`file:line` -> (file, line). 빈 문자열이면 (None, None). 줄 번호가 없으면 (file, None)."""
     if not where:
         return None, None
@@ -72,13 +110,12 @@ def _split_where(where):
 # <include file="machine/comments.xml" path="//term[@id='_recompute_neighbors']"/>
 # 방향이 있는 uses 에서 방향 없는 이웃 목록을 다시 센다.
 # 쓰는 것: 없음 · 쓰이는 곳: build_terms, merge_terms
-def _recompute_neighbors(db):
+def _recompute_neighbors(db: TermsDb) -> None:
     """uses(방향 있음)에서 neighbors(방향 없음)를 다시 센다.
 
-    모듈 레코드의 기존 이웃(depends_on)은 지킨다. 손으로 쓴 neighbors 는 여기서 덮인다 —
-    neighbors 는 파생값이지 입력이 아니다.
+    모듈 레코드의 기존 이웃(depends_on)만 지킨다. 나머지 손으로 쓴 neighbors 는 여기서 덮인다.
     """
-    near = {}
+    near: dict[str, set[str]] = {}
     for key, rec in db.items():
         near[key] = set(rec.get("neighbors", [])) if rec.get("kind") == "module" else set()
     for key, rec in db.items():
@@ -94,16 +131,17 @@ def _recompute_neighbors(db):
 # <include file="machine/comments.xml" path="//term[@id='build_terms']"/>
 # 코드 지도에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
 # 쓰는 것: _where, _recompute_neighbors · 쓰이는 곳: terms_db.main
-def build_terms(graph, facts, hotspot):
+def build_terms(graph: CodeGraph, facts: Mapping[str, object],
+                hotspot: Sequence[Mapping[str, str]]) -> TermsDb:
     """codegraph.json 에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
 
-    facts 는 현재 쓰지 않는다(시그니처만 고정). hotspot 은 {"name": ...} 목록이며
+    facts 는 쓰지 않는다(시그니처만 고정). hotspot 은 {"name": ...} 목록이며
     이름이 용어에 있으면 hotspot 표시만 붙인다.
 
     간선은 방향 · 종류 · 위치를 지켜 uses[] 에 담는다 — 이것이 있어야 project_codegraph 가
     codegraph.json 을 되돌릴 수 있다(codegraph ⊂ terms-db).
     """
-    db = {}
+    db: TermsDb = {}
     nodes = graph.get("nodes", [])
     by_id = {n.get("id"): n for n in nodes}
 
@@ -138,7 +176,7 @@ def build_terms(graph, facts, hotspot):
         })
 
     # 모듈 — 소속 타입 수와 의존 모듈은 codegraph 가 이미 아는 사실이다.
-    members = {}
+    members: dict[str, int] = {}
     for node in nodes:
         m = node.get("module")
         if m:
@@ -186,14 +224,17 @@ def build_terms(graph, facts, hotspot):
 # <include file="machine/comments.xml" path="//term[@id='project_codegraph']"/>
 # 용어 사전에서 codegraph.json 을 되돌려 만든다.
 # 쓰는 것: _split_where · 쓰이는 곳: terms_db.main
-def project_codegraph(db, language="unknown", repo_commit=""):
+def project_codegraph(db: TermsDb, language: str = "unknown",
+                      repo_commit: str = "") -> CodeGraph:
     """terms-db -> codegraph.json (schema_version 2). codegraph 는 terms-db 의 부분집합이다.
 
     노드 = NON_NODE_KINDS 가 아닌 레코드. 간선 = uses 중 양끝이 노드인 것.
-    모듈 의존 = 서로 다른 모듈의 노드 간 간선 (normalize.py:268-276 과 같은 규칙).
-    접기 키 (from, to, kind) 도 normalize.py:231 과 같다.
+    모듈 의존 = 서로 다른 모듈의 노드 간 간선. 접기 키는 (from, to, kind) — 둘 다 normalize.py 와
+    같은 규칙이라, 한쪽을 바꾸면 투영 대조가 깨진다.
     """
-    nodes, edges, node_id = {}, {}, {}
+    nodes: dict[str, Node] = {}
+    edges: dict[tuple[str, str, str], Edge] = {}
+    node_id: dict[str, str] = {}
     for key, rec in db.items():
         if rec.get("kind") in NON_NODE_KINDS:
             continue
@@ -210,7 +251,9 @@ def project_codegraph(db, language="unknown", repo_commit=""):
             t = u.get("to")
             if t not in node_id:
                 continue          # artifact / key / concept 로 가는 간선은 지도에 없다
-            kind = u.get("kind", "dependency")
+            # ⚠ cast — 사전의 uses[].kind 는 자유 문자열이고 지도의 간선 종류는 Literal
+            #   (`EdgeKind`) 이다. 어휘 검사는 check_terms 가 EDGE_KINDS 로 따로 한다.
+            kind = cast(EdgeKind, u.get("kind", "dependency"))
             k = (node_id[key], node_id[t], kind)
             if k in edges:
                 edges[k]["occurrences"] = edges[k].get("occurrences", 1) + 1
@@ -222,7 +265,7 @@ def project_codegraph(db, language="unknown", repo_commit=""):
                 edges[k]["constraint"] = False   # R6 — 섬으로 가는 간선
 
     modules = sorted({n["module"] for n in nodes.values() if n["module"] and n["kind"] != "external"})
-    mod_dep = {}
+    mod_dep: dict[str, set[str]] = {}
     for e in edges.values():
         a, b = nodes[e["from"]], nodes[e["to"]]
         if b["kind"] == "external" or not a["module"] or not b["module"]:
@@ -245,7 +288,7 @@ def project_codegraph(db, language="unknown", repo_commit=""):
 # <include file="machine/comments.xml" path="//term[@id='_stem']"/>
 # 인용 대조에 쓸 이름 조각을 만든다.
 # 쓰는 것: verify_citations.short · 쓰이는 곳: check_terms
-def _stem(key, kind):
+def _stem(key: str, kind: str) -> str:
     """L3 대조용 이름 조각. `calls[]` -> `calls`, `Outer::Inner` -> `Inner`, `terms_db.main` -> `main`.
     파일 · 산출물 · 키 · 개념 · 모듈은 글자 그대로 (`codegraph.json` 을 `.` 로 쪼개면 안 된다)."""
     k = key[:-2] if key.endswith("[]") else key
@@ -257,11 +300,11 @@ def _stem(key, kind):
 # <include file="machine/comments.xml" path="//term[@id='_written_by_llm']"/>
 # 이 간선을 LLM 이 썼는지 가른다. 표시가 없으면 정적 도구가 낸 것이다.
 # 쓰는 것: 없음 · 쓰이는 곳: check_terms
-def _written_by_llm(rec_source, use):
+def _written_by_llm(rec_source: str, use: DbUse) -> bool:
     """이 간선을 LLM 이 썼는가. 표시가 없는 간선은 정적 도구가 낸 것이다.
 
-    합쳐진 레코드(codegraph+reading)의 uses 에는 두 출처가 섞여 있다. merge_terms 가
-    LLM 이 보탠 것에만 source="reading" 을 남기므로 그것으로 가른다.
+    codegraph+reading 레코드의 uses 에는 두 출처가 섞여 있고, merge_terms 가 LLM 이 보탠
+    간선에만 source="reading" 을 남긴다. 그 표시가 유일한 구분 근거다.
     """
     return rec_source == "reading" or use.get("source") == "reading"
 
@@ -269,19 +312,19 @@ def _written_by_llm(rec_source, use):
 # <include file="machine/comments.xml" path="//term[@id='check_terms']"/>
 # LLM 이 쓴 인용을 3값으로 판정한다. 실패 · 근거 없음 · (아무 말 없으면) 통과다.
 # 쓰는 것: _split_where, _written_by_llm, _stem · 쓰이는 곳: terms_db.main
-def check_terms(db, repo):
+def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
     """3값 판정 목록 [(등급, 용어, 사유)]. 등급은 "실패" | "근거 없음". 비어 있으면 전부 통과.
 
-    검사 대상은 **LLM 이 쓴 부분**만이다 — source 가 reading 인 레코드의 where 와,
-    reading 이 보탠 uses 의 where. codegraph 에서 온 위치는 정적 도구의 사실이라 여기서
-    재판정하지 않는다(verify_citations.py 가 위키 인용을 볼 때 함께 본다).
+    검사 대상은 LLM 이 쓴 부분만이다 — source 가 reading 인 레코드의 where 와,
+    reading 이 보탠 uses 의 where. codegraph 에서 온 위치는 여기서 재판정하지 않는다.
       L1 파일이 있나            -> 실패
       L2 그 줄이 있나           -> 실패
-      L3 근처에 그 이름이 있나   -> 근거 없음 (verify_citations.py:116 과 같이 앞뒤 1줄까지)
+      L3 근처에 그 이름이 있나   -> 근거 없음 (앞 1줄 · 뒤 1줄까지 본다)
     """
-    out, cache = [], {}
+    out: list[tuple[str, str, str]] = []
+    cache: dict[str, list[str] | None] = {}
 
-    def lines_of(rel):
+    def lines_of(rel: str) -> list[str] | None:
         if rel not in cache:
             try:
                 cache[rel] = open(os.path.join(repo, rel), encoding="utf-8",
@@ -290,7 +333,7 @@ def check_terms(db, repo):
                 cache[rel] = None
         return cache[rel]
 
-    def cite(term, where, stem, what):
+    def cite(term: str, where: str, stem: str, what: str) -> None:
         f, ln = _split_where(where)
         if not f:
             return
@@ -338,14 +381,14 @@ def check_terms(db, repo):
     return out
 
 
-# LLM 이 덮어쓸 수 없는 필드. 정적 수집기가 있는 저장소에서 구조의 출처는 codegraph 하나다(D3).
+# LLM 이 덮어쓸 수 없는 필드. 구조의 출처는 codegraph 하나다(D3).
 STRUCTURE_FIELDS = ("id", "kind", "module", "where")
 
 
 # <include file="machine/comments.xml" path="//term[@id='merge_terms']"/>
 # LLM 이 읽은 것을 코드 지도가 만든 사전에 합친다.
 # 쓰는 것: _recompute_neighbors · 쓰이는 곳: terms_db.main
-def merge_terms(base, reading):
+def merge_terms(base: TermsDb, reading: Terms) -> TermsDb:
     """reading(LLM 이 쓴 것)을 base(codegraph 가 만든 것)에 합친다. 구조 필드는 codegraph 가 이긴다.
 
     - 같은 키가 base 에 있으면: means · does 를 덮고, (to, kind) 가 새로운 uses 만 더한다.
@@ -353,22 +396,25 @@ def merge_terms(base, reading):
     - 없으면: reading 레코드를 그대로 넣는다 (source="reading").
     - neighbors 는 마지막에 전부 다시 센다. 입력 dict 는 바꾸지 않는다.
     """
-    db = {k: dict(v, uses=[dict(u) for u in v.get("uses", [])]) for k, v in base.items()}
+    db: TermsDb = {k: {**v, "uses": [{**u} for u in v.get("uses", [])]} for k, v in base.items()}
     for key, r in reading.items():
         if key in db:
             rec = db[key]
-            for fld in ("means", "does"):
-                if r.get(fld):
-                    rec[fld] = r[fld]
+            for fld in READING_WINS:
+                값 = r.get(fld)
+                if 값:
+                    rec[fld] = 값
             seen = {(u.get("to"), u.get("kind")) for u in rec["uses"]}
             for u in r.get("uses", []):
                 sig = (u.get("to"), u.get("kind"))
                 if sig not in seen:
-                    rec["uses"].append(dict(u, source="reading"))
+                    rec["uses"].append({**u, "source": "reading"})
                     seen.add(sig)
             rec["source"] = "codegraph+reading"
         else:
-            rec = dict(r)
+            # ⚠ cast — reading 레코드에는 neighbors 가 없다. 아래 setdefault 가 자리를 채우고
+            #   끝의 _recompute_neighbors 가 사전 전체를 다시 센다.
+            rec = cast(TermRecord, dict(r))
             rec.setdefault("uses", [])
             rec.setdefault("neighbors", [])
             rec["source"] = "reading"
@@ -380,7 +426,7 @@ def merge_terms(base, reading):
 # <include file="machine/comments.xml" path="//term[@id='_git_commit']"/>
 # 저장소 HEAD 해시를 읽는다. git 이 없어도 실패시키지 않는다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-def _git_commit(repo):
+def _git_commit(repo: str) -> str:
     """저장소 HEAD. git 이 없거나 저장소가 아니면 빈 문자열 — 실패시키지 않는다."""
     try:
         return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"],
@@ -392,8 +438,7 @@ def _git_commit(repo):
 # <include file="machine/comments.xml" path="//term[@id='terms_db.main']"/>
 # 용어 사전 도구의 명령줄 진입점.
 # 쓰는 것: build_terms, merge_terms, check_terms, terms-db.json, project_codegraph · 쓰이는 곳: 없음
-# 직접 실행됐을 때만 CLI 를 수행한다(scripts/*.mjs 와 같은 규약).
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("codegraph", nargs="?", help="normalize.py 가 낸 codegraph.json. 없으면 --reading 만으로 만든다")
     ap.add_argument("--repo", required=True, help="인용 경로의 기준 저장소")
@@ -404,12 +449,16 @@ def main():
         ap.error("codegraph.json 이나 --reading 중 하나는 있어야 한다")
     repo = os.path.abspath(os.path.expanduser(a.repo))
 
-    g, db = None, {}
+    g: CodeGraph | None = None
+    db: TermsDb = {}
     if a.codegraph:
-        g = json.load(open(a.codegraph, encoding="utf-8"))
-        db = build_terms(g, facts={}, hotspot=[])
+        # 한 칸 거쳐 담는다 — `g` 는 아래에서 없을 수도 있는 값이라 CodeGraph | None 이다.
+        loaded: CodeGraph = json.load(open(a.codegraph, encoding="utf-8"))
+        g = loaded
+        db = build_terms(loaded, facts={}, hotspot=[])
     if a.reading:
-        db = merge_terms(db, json.load(open(a.reading, encoding="utf-8")))
+        reading: Terms = json.load(open(a.reading, encoding="utf-8"))
+        db = merge_terms(db, reading)
 
     if a.out:
         base = a.out
@@ -429,8 +478,9 @@ def main():
         json.dump(db, f, ensure_ascii=False, indent=2, sort_keys=True)
     print(f"{path} — 용어 {len(db)}개 / 실패 {len(fails)} / 근거 없음 {len(problems) - len(fails)}")
 
-    proj = project_codegraph(db, language=(g or {}).get("language", "unknown"),
-                             repo_commit=(g or {}).get("repo_commit") or _git_commit(repo))
+    lang = g.get("language", "unknown") if g else "unknown"
+    commit = (g.get("repo_commit") if g else None) or _git_commit(repo)
+    proj = project_codegraph(db, language=lang, repo_commit=commit)
     if g is not None:
         missing = {n["id"] for n in g["nodes"]} - {n["id"] for n in proj["nodes"]}
         print(f"투영 대조 — codegraph 노드 {len(g['nodes'])}개 중 투영에 없는 것 {len(missing)}개"

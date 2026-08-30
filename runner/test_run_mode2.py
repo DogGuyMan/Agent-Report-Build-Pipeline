@@ -1,20 +1,9 @@
-"""test_run_mode2.py — Mode 2 실행기의 회귀 시험.
+"""Mode 2 실행기의 회귀 시험.
 
-**왜 필요한가.** 이 실행기가 있는 이유는 Mode 2 한 바퀴가 **얼마나 걸리고 토큰을
-얼마나 쓰는가** 를 붙드는 것이다. 그런데 재는 자리와 그 앞의 배선은 **틀려도 오류가
-나지 않는다** — 조용히 엉뚱한 폴더에 파일을 만들거나, 0 을 세거나, 사람이 내려야 할
-판정을 모형이 대신 채우고도 표는 멀쩡히 그려진다. 그 다섯 자리를 여기서 못박는다.
-
-  1. 작업 디렉토리  Mode 2 는 명령마다 `cwd` 가 **다르다**. `init` 은 프로젝트 뿌리에서,
-                    `build` 와 `check` 는 보고서 폴더(`specs/<slug>/`)에서 돈다.
-                    여기서 틀리면 조용히 엉뚱한 곳에 스켈레톤이 생긴다.
-  2. 단계 고르기    원고가 이미 채워졌는데 모형을 다시 부르면 사람이 쓴 글이 덮이고
-                    돈이 든다. 반대로 뼈대뿐인데 건너뛰면 빈 보고서가 구워진다.
-  3. 원고 판별      뼈대(`decisions: []` · 결정 절 0개)와 채워진 원고를 글자로 가른다.
-  4. 프롬프트 규율  판정(`VerdictFooter`)은 **언제나 사람 몫**이다. `<script>` 1개
-                    불변식과 D축 금지도 프롬프트가 말하지 않으면 모형이 어긴다.
-  5. 재는 코드 재사용 토큰 세기와 실패 판정은 Mode 1 실행기에 이미 있다. 새로 짜면
-                    두 실행기의 숫자가 서로 다른 뜻을 갖게 된다.
+여기서 보는 다섯 자리 — 작업 디렉토리(`init`·`agent` 는 프로젝트 뿌리, `build`·`check`
+는 보고서 폴더. 틀려도 오류가 나지 않는다) · 단계 고르기 · 원고 판별(뼈대와 채워진
+원고를 글자로 가른다) · 프롬프트 규율(판정은 언제나 사람 몫) · 재는 코드가 Mode 1
+것을 그대로 쓰는가.
 
   .venv/bin/python -m pytest runner/test_run_mode2.py -q
 """
@@ -141,6 +130,7 @@ SPEC_FILES = [
 
 def test_find_spec_returns_the_date_from_the_filename():
     got = R.find_spec(SPEC_FILES, "llm-load-reduction")
+    assert got is not None
     assert got["date"] == "2026-08-28"
     assert got["file"] == "2026-08-28-llm-load-reduction-design.md"
 
@@ -158,7 +148,7 @@ def test_find_spec_does_not_match_a_partial_slug():
 def test_script_argv_points_at_the_renderer_scripts():
     argv = R.script_argv("/도구/뿌리", "build", slug="붙임")
     assert argv[0] == "node"
-    assert argv[1] == os.path.join("/도구/뿌리", "scripts", "build.mjs")
+    assert argv[1] == os.path.join("/도구/뿌리", "viz", "build.mjs")
 
 
 def test_only_init_takes_the_slug_on_the_command_line():
@@ -168,13 +158,12 @@ def test_only_init_takes_the_slug_on_the_command_line():
 
 
 # ── 6. 프롬프트 규율 — 검사가 잡아주지 않는 것들 ──────────────────────────
-def _prompt(**kw):
-    kw.setdefault("project", "/프로젝트")
-    kw.setdefault("slug", "붙임")
-    kw.setdefault("spec_file", "2026-08-28-붙임-design.md")
-    kw.setdefault("root", "/도구/뿌리")
-    kw.setdefault("terms_json", None)
-    return R.agent_prompt(**kw)
+def _prompt(project: str = "/프로젝트", slug: str = "붙임",
+            spec_file: str = "2026-08-28-붙임-design.md",
+            root: str = "/도구/뿌리", terms_json: str | None = None) -> str:
+    """`agent_prompt` 를 기본값으로 부른다. 시험마다 바꾸는 칸만 이름 인자로 준다."""
+    return R.agent_prompt(project=project, slug=slug, spec_file=spec_file,
+                          root=root, terms_json=terms_json)
 
 
 def test_the_prompt_forbids_the_model_from_filling_the_verdict():
@@ -190,7 +179,7 @@ def test_the_prompt_states_the_single_script_invariant():
 
 
 def test_the_prompt_forbids_the_d_axis():
-    """D축은 평가 없이 보류 상태다(Phase 3 취소). 필드를 넣으면 tsc 가 아니라 규율이 깨진다."""
+    """D축은 보류 상태다. 프롬프트가 말하지 않으면 모형이 필드를 넣는다."""
     assert "D축" in _prompt()
 
 
@@ -243,9 +232,10 @@ def test_a_machine_stage_row_is_all_zero_tokens():
 
 
 def test_the_report_table_has_a_row_per_stage_and_a_total():
-    rows = [
-        {"stage": "init", "seconds": 0.4, "usage": R.normalize_usage(None), "ok": True},
-        {"stage": "agent", "seconds": 68.4, "ok": True,
+    rows: list[M.StageRow] = [
+        {"stage": "init", "seconds": 0.4, "usage": R.normalize_usage(None),
+         "ok": True, "why": ""},
+        {"stage": "agent", "seconds": 68.4, "ok": True, "why": "",
          "usage": R.normalize_usage({"usage": {"input_tokens": 10, "output_tokens": 20,
                                                "cache_read_input_tokens": 30,
                                                "cache_creation_input_tokens": 40},

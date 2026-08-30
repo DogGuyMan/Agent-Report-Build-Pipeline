@@ -2,21 +2,14 @@
 # <include file="machine/comments.xml" path="//term[@id='runner/run_mode1.py']"/>
 # Mode 1 파이프라인을 한 번에 돌리면서 단계마다 걸린 시간과 쓴 토큰을 재는 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-"""run_mode1.py — Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 **재는** 실행기.
-
-**왜 이것이 있는가.** Mode 1 은 기계 단계(정적 수집 · 투영 · 사이트 빌드 · 인용 검증)와
-사람 자리(LLM 이 코드를 읽고 쓰는 곳)가 번갈아 나온다. 손으로 돌리면 명령을 여섯 번
-치는 동안 **어디에서 시간이 갔고 토큰이 얼마나 흘렀는지가 남지 않는다.** 이 파일의
-목적은 파이프라인을 자동화하는 것이 아니라 **단계마다 벽시계 시간과 토큰을 붙들어
-표로 내는 것**이다. 자동화는 그것을 재기 위한 수단이다.
+"""Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
 ## 아홉 단계 — LLM 이 도는 칸은 **둘**뿐이다
 
     prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
     기계    기계       기계            LLM 층별   기계           기계     LLM 층별  기계     기계
 
-**층을 매기는 것은 기계다.** `survey-plan` 이 자기 칸을 갖는 이유가 그것이다 —
-한 칸에 묶어 두면 "의존 위상 층 오름차순" 이 모형의 판단처럼 읽힌다.
+**층을 매기는 것은 기계다.** `survey-plan` 이 자기 칸을 갖는 이유가 그것이다.
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
@@ -30,60 +23,35 @@
 | `build` | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `runner/wiki/build.mjs` |
 | `check` | 산문의 인용을 저장소 실물과 대조한다 | `runner/wiki/check.mjs` |
 
-**⚠ 이 파일의 이전 판은 "에이전트를 하나로 묶은 것이 이 설계의 급소다" 라고 적었다.**
-이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
-측정값이 파이프라인 비용이 아니라 세션 수의 함수가 된다.
+**층 축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다(K1).**
+의존 하나만 가진 심볼도 그 하나가 3층이면 4층이다. 같은 층은 서로 의존하지 않으므로
+병렬로 읽는다(K2 · K4). 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5), 위키도 같은
+층 순서(K6), 고립 노드는 층0(K7)이다.
 
-**2026-08-30 사용자가 그 결정을 뒤집었다.** 심볼의 뜻은 그것이 의존하는 심볼의 뜻 위에 서므로
-아무 순서로나 읽으면 아직 안 읽은 것을 가리키게 되고 그 자리가 추론으로 메워진다.
-그래서 **의존 대상이 없는 것부터** 한 겹씩 올라가고(K1), 같은 층은 서로 의존하지 않으므로
-병렬로 읽는다(K2 · K4).
-
-⚠ **축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다.** 의존
-하나만 가진 심볼도 그 하나가 3층이면 4층이다. 🔵 2026-08-30 이 저장소 실측 — out_deg 1
-무리(31개) 안에 위상 깊이 1·2·3·4 가 전부 섞여 있었고, out_deg 2 무리(15개)도 같았다.
-out_deg 로 정렬하면 아직 안 읽은 것을 가리키게 된다. 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5),
-위키도 같은 층 순서(K6), 고립 노드는 층0(K7)이다.
-
-**비용은 아직 재지 않았다.** 쪼개면 캐시가 나빠지는 대신 배치마다 읽는 양이 훨씬 적다.
-어느 쪽이 큰지는 **모른다.** 이 파일 자신이 재는 도구이므로 A/B 를 돌려 숫자로 답한다.
-그 전에는 "더 싸졌다" "더 빨라졌다" 를 쓰지 않는다. 게다가 기준선은 **opus 한 세션**이고
-지금은 **claude-sonnet-5 여러 세션**이라 변수가 둘이다 — 무엇 덕분인지 귀속할 수 없다.
-
-**확정(`warmup-save`)이 `survey` 바로 뒤인 것이 중요하다.** 관문이 감싸야 하는 것은
-레코드를 만드는 단계다. `wiki` 뒤에 두면 산문 실패가 다음 실행의 전량 재조사를 부른다.
+**확정(`warmup-save`)은 `survey` 바로 뒤다.** 관문이 감싸야 하는 것은 레코드를 만드는
+단계다. `wiki` 뒤에 두면 산문 실패가 다음 실행의 전량 재조사를 부른다.
 
 `terms` 가 `survey` 와 `wiki` 사이에 있는 이유 — 산문을 쓰는 세션이 **인용 검사를 통과한**
-`terms-db.json` 을 재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
+`terms-db.json` 을 재료로 받게 하려는 것이다.
 
-## 모형은 두 계층이다 — 이 파일이 정하는 것은 아래 하나뿐이다
+## 모형을 정하는 자리는 하나뿐이다
 
-| 계층 | 누구 | 무슨 모형 | 이 파일이 정하나 |
-|---|---|---|---|
-| 위 — **오케스트레이터** | 이 스크립트를 실행하는 Claude Code 세션 | **opus** (사람이 그 세션에서 고른다) | **아니다.** 이 파일 밖이다 |
-| 아래 — **서브에이전트** | 이 파일이 `claude -p` 로 띄우는 배치·장 세션 | **`claude-sonnet-5`** | **그렇다.** `--model` 기본값 |
+`main` 의 `--model` 기본값 하나가 `run_survey`/`run_wiki` -> `run_layer` ->
+`run_agent_with` -> `claude_argv` 사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지
+않는다.** 별명이 아니라 정확한 ID 를 쓴다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
 
-**이 파일 자신은 모형이 아니다.** 파이썬 프로세스이고, 층 순서 · 배치 묶기 · 샤드 병합 ·
-키 충돌 해소를 전부 결정론으로 한다. 모형을 부르는 자리는 자식 세션뿐이다.
-
-그러므로 **위 계층은 여기서 강제할 수 없다.** `opus` 로 돌든 무엇으로 돌든 이 스크립트는
-똑같이 동작한다. 위 표의 `opus` 는 **규약이지 검사되는 값이 아니다** — 어긴다고 아무것도
-막히지 않으니, 측정값을 비교할 때 오케스트레이터가 무엇이었는지 사람이 따로 기록해야 한다.
-
-**아래 계층은 여기서 강제된다.** `main` 의 `--model` 기본값 하나가
-`run_survey`/`run_wiki` -> `run_layer` -> `run_agent_with` -> `claude_argv` 사슬을 그대로
-타고 내려간다. **중간에서 모형을 바꾸지 않는다.** 별명(`sonnet`)이 아니라 정확한 ID 를
-쓰는 이유도 여기 있다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
-
-⚠ **`--json` 이 남기는 `model` 칸은 아래 계층의 값이다.** 위 계층은 거기 안 들어간다.
+이 파일 자신은 모형이 아니다. 층 순서 · 배치 묶기 · 샤드 병합 · 키 충돌 해소를 전부
+결정론으로 하고, 모형을 부르는 자리는 자식 세션뿐이다. 그래서 **이 스크립트를 실행하는
+세션의 모형은 여기서 강제되지 않고, `--json` 이 남기는 `model` 칸에도 들어가지 않는다** —
+그 칸은 자식 세션의 값이다.
 
 ## 재는 자리 넷
 
   1. **벽시계 시간** — 단계마다 `time.monotonic()` 으로 감싼다. 파이썬이 재므로
      `claude` 가 무엇을 보고하든 상관없이 사람이 기다린 시간 그대로다.
   2. **토큰** — `claude -p --output-format json` 이 내는 `usage` 를 읽는다. 넷으로
-     쪼개져 온다(입력 · 출력 · **캐시 읽기** · **캐시 생성**). 캐시 둘을 빼면 실제
-     흘러간 양의 일부만 세게 된다 — 실측상 캐시가 전체의 99% 를 넘는 일이 흔하다.
+     쪼개져 온다(입력 · 출력 · **캐시 읽기** · **캐시 생성**). **캐시 둘을 빼면 실제
+     흘러간 양의 일부만 세게 된다.**
   3. **비용** — 같은 JSON 의 `total_cost_usd`.
   4. **턴 수** — `num_turns`. 에이전트가 몇 번 왕복했는지.
 
@@ -92,7 +60,7 @@ out_deg 로 정렬하면 아직 안 읽은 것을 가리키게 된다. 배치는
 - **`claude` 는 막혀도 종료 코드 0 을 낼 수 있다.** `is_error` 와 `subtype` 을 봐야 한다
   (`agent_verdict`).
 - **`terms_db.py` 에 정적 `codegraph.json` 을 안 주면 투영이 그 파일을 덮어쓴다.**
-  노드가 조용히 줄어든다 — 이 저장소 자신에서 실제로 겪었다(`terms_argv`).
+  노드가 조용히 줄어든다(`terms_argv`).
 - **경로를 박지 않는다.** 파이썬은 지금 도는 해석기(`sys.executable`), 나머지는 PATH 다.
   **예외 하나** — `_bootstrap_venv()` 는 `.venv` 밖 해석기로 불렸을 때 `.venv/bin/python3` 로
   재실행한다(파일 맨 위, `import survey_plan` 보다 먼저 — networkx 를 그 import 가 곧장 문다).
@@ -100,14 +68,12 @@ out_deg 로 정렬하면 아직 안 읽은 것을 가리키게 된다. 배치는
 
 ## 쓰는 법
 
-    .venv/bin/python runner/run_mode1.py <저장소> [--model claude-sonnet-5]
+    .venv/bin/python runner/run_mode1.py <저장소> [--model <모형 ID>]
                                             [--only prep,check] [--skip wiki]
                                             [--concurrency 8] [--target 8]
                                             [--json 측정.json] [--dry-run] [--hops 1]
 
-**증분 조사를 끄려면** `--skip warmup,warmup-save` 를 준다. **다섯 단계 시절의 대조군은
-이 옵션으로 만들 수 없다** — 그건 `git worktree add /tmp/rb-old 9223143` 으로 옛 커밋을
-통째로 떼어 돌린다.
+**증분 조사를 끄려면** `--skip warmup,warmup-save` 를 준다.
 """
 import os
 import sys
@@ -117,9 +83,8 @@ def _bootstrap_venv() -> None:
     """`.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다.
 
     survey_plan.py 가 networkx 를 곧장 import 하므로, 그 import 가 일어나기 전에
-    해석기 자체를 바꿔치기해야 한다. 재실행된 프로세스가 그대로 끝까지 돌고 종료되므로
-    별도의 "해제" 코드는 필요 없다 — 이 파일 자신이 아닌 다른 코드는 여전히
-    `sys.executable`(지금 도는 해석기)만 본다(위 "함정" 절).
+    해석기 자체를 바꿔치기해야 한다. 재실행된 프로세스가 그대로 끝까지 돌고 끝나므로
+    별도의 "해제" 코드는 없다 — 다른 코드는 여전히 `sys.executable` 만 본다.
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     venv_dir = os.path.join(repo_root, ".venv")
@@ -144,10 +109,12 @@ import json
 import subprocess
 import threading
 import time
+from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, NotRequired, TypedDict, cast
 
-# **축이 갈린 뒤로 이 셋은 다른 폴더에 산다.** 러너는 `runner/`, 결정론 기계는 `machine/` 이다.
-# 이 파일이 CLI 로 돌 때 sys.path[0] 은 `runner/` 라 machine 을 못 찾는다 — 그래서 여기서 넣는다.
+# 러너는 `runner/`, 결정론 기계는 `machine/` 이다. 이 파일이 CLI 로 돌 때 sys.path[0] 은
+# `runner/` 라 machine 을 못 찾는다 — 그래서 여기서 넣는다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(
     0,
@@ -162,32 +129,73 @@ import warmup  # noqa: E402
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# warmup 이 **둘**인 것이 이 흐름의 급소다. 앞(warmup)은 판정만 하고, 뒤(warmup-save)가
-# 확정한다 — 에이전트가 실패했는데 확정하면 읽지 않은 파일이 '유효' 로 남는다.
-# 확정은 **레코드를 만드는 `survey` 바로 뒤**다. `wiki` 뒤에 두면 산문 실패가
-# 다음 실행의 전량 재조사를 부른다(J6).
-# `survey-plan` 은 **기계**다. 층 오름차순이 LLM 의 판단처럼 보이지 않도록 자기 칸을 준다 —
-# 층은 `survey_plan.py` 가 codegraph.json 하나로 결정론으로 낸다(모형을 부르지 않는다).
-# 단계는 아홉 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
-STAGES = ["prep", "warmup", "survey-plan", "survey", "warmup-save",
+# warmup 이 **둘**이다. 앞(warmup)은 판정만 하고, 뒤(warmup-save)가 확정한다 —
+# 에이전트가 실패했는데 확정하면 읽지 않은 파일이 '유효' 로 남는다. 확정은 레코드를
+# 만드는 `survey` 바로 뒤다(J6).
+# `survey-plan` 은 기계다 — 층은 `survey_plan.py` 가 codegraph.json 하나로 결정론으로 낸다.
+# 단계는 열 고정이다.
+STAGES = ["lang-select", "prep", "warmup", "survey-plan", "survey", "warmup-save",
           "terms", "wiki", "build", "check"]
 
-# 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
-AGENT_STAGES = {"survey", "wiki"}
+# 모형을 부르는 단계. survey · wiki 는 **층 오름차순으로 여러 번** 부른다.
+# lang-select 는 한 번만, 그리고 가장 싼 모형으로 부른다 — 문서 몇 쪽을 읽고 낱말 하나를 낸다.
+AGENT_STAGES = {"lang-select", "survey", "wiki"}
 
-# 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 두 줄짜리 표다 —
-# 수집기 판별을 여기서 다시 하지 않는다. 그러면 판별 규칙이 두 곳에 생겨 조용히 어긋난다.
-LANG_ALIAS = {"csharp": "cs"}
+# 언어 판별에 쓸 모형. 문서를 읽고 `cpp|cs|py|ts` 중 하나를 내는 것이 전부라 가장 싼 것을 쓴다.
+# `--model` 은 survey·wiki 몫이라 여기에 쓰지 않는다.
+LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
+
+# 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 수집기 판별을 여기서
+# 다시 하지 않는다 — 판별 규칙이 두 곳에 생기면 조용히 어긋난다.
+LANG_ALIAS = {"csharp": "cs", "python": "py"}
+
+# ── 이 파일이 정하는 형 이름은 아래 다섯뿐이다. 코드 지도 · 층 계획 · 매니페스트 · 선언
+#    훑기의 꼴은 `machine/` 의 `codegraph_types` · `survey_plan` · `warmup` · `declmap` 이
+#    이미 적어 두었으므로 여기서 다시 적지 않는다.
+
+# `claude -p --output-format json` 이 stdout 으로 내는 객체 하나. 꼴을 정하는 것은 바깥
+# 프로그램이라 칸을 못 박지 않는다 — 읽는 자리마다 `.get` 으로 없을 수 있음을 받아들인다.
+AgentResult = dict[str, Any]
+
+# 잰 값 한 묶음. **정수 여섯에 실수 하나(`cost_usd`)가 섞인 의도된 이종 사전**이다.
+# 값 타입을 `float` 으로 적는 것은 파이썬에서 정수가 실수의 부분형이라 둘 다 담기기
+# 때문이다. 넣는 값을 실수로 바꾸지 않는다 — `normalize_usage` 는 그대로 정수를 넣는다.
+Usage = dict[str, float]
+
+# 전수조사 레코드 하나와 그 묶음. 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다.
+Record = dict[str, Any]
+Records = dict[str, Record]
+
+
+class StageRow(TypedDict):
+    """측정 표의 한 줄. **세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다.**
+
+    `skipped` 만 선택 항목이다 — 건너뛴 단계에만 붙는다.
+    """
+
+    stage: str
+    seconds: float
+    usage: Usage
+    ok: bool
+    why: str
+    skipped: NotRequired[bool]
+
+
+class WikiPage(TypedDict):
+    """`wiki-plan.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
+
+    file: str
+    title: NotRequired[str]
+    symbols: NotRequired[list[str]]
 
 
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.lang_of']"/>
 # 코드 지도가 적어 둔 언어를 선언 훑기가 아는 이름으로 바꾼다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
-def lang_of(codegraph_path):
+def lang_of(codegraph_path: str | None) -> str | None:
     """코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다.
 
-    모르면 `None` 이다 — 예외가 아니다. 부르는 쪽이 warmup 단계만 건너뛰고
-    나머지는 그대로 돈다. 새 언어가 들어와도 파이프라인이 죽지 않아야 한다.
+    모르면 `None` 이다 — 예외가 아니다. 부르는 쪽이 warmup 단계만 건너뛰고 나머지는 그대로 돈다.
     """
     if not codegraph_path:
         return None
@@ -203,16 +211,12 @@ def lang_of(codegraph_path):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.changed_seed']"/>
 # 다시 읽어야 할 파일의 씨앗을 고른다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
-def changed_seed(판정):
-    """다시 읽어야 할 파일의 씨앗. **`위치만` 을 반드시 포함한다.**
+def changed_seed(판정: warmup.Verdicts) -> list[str]:
+    """다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.**
 
-    `warmup.py` 의 문서는 `위치만` 을 "주석만 고치거나 줄만 밀린 변경" 이라 부르지만,
-    구현은 그것과 **본문 재작성**을 구별하지 못한다 — `decl_hash` 가 선언의 이름만
-    해싱하기 때문이다(`machine/warmup.py` 의 `decl_hash`). 🔵 2026-08-30 실측으로
-    `return x + 1` → `return x + 100` 이 `위치만` 으로 판정되는 것을 확인했다.
-
-    레코드의 `does`(동작)와 위키 산문의 행동 서술은 본문에 달려 있으므로 이 갈래를
-    빼면 그 서술이 조용히 낡는다. `warmup.py` 의 CLI 도 같은 합집합을 쓴다.
+    `위치만` 을 반드시 포함한다 — `warmup.decl_hash` 는 선언의 이름만 해싱하므로 본문만
+    바뀐 변경도 `위치만` 으로 판정된다. 레코드의 `does` 와 위키 산문의 행동 서술은 본문에
+    달려 있어서, 이 갈래를 빼면 그 서술이 조용히 낡는다. `warmup.py` 의 CLI 도 같은 합집합을 쓴다.
 
     `유효` 는 읽을 것이 없고, `삭제됨` 은 읽을 파일 자체가 없다.
     """
@@ -222,12 +226,11 @@ def changed_seed(판정):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.should_call_agent']"/>
 # 큰 언어 모형을 부를지 말지 정한다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
-def should_call_agent(targets, has_reading):
+def should_call_agent(targets: Sequence[str] | None, has_reading: bool) -> bool:
     """에이전트를 부를 것인가.
 
     `targets` 가 `None` 이면 warmup 이 판정을 못 했다는 뜻이다(언어를 모르거나 코드
-    지도가 없거나 단계를 건너뛴 경우). 그때는 **옛 동작인 전량 조사**로 돌아간다 —
-    모르는 상태에서 건너뛰면 조용히 아무 일도 안 하게 된다.
+    지도가 없거나 단계를 건너뛴 경우). 그때는 **전량 조사**로 돈다.
 
     빈 목록(`[]`)은 "정말로 바뀐 것이 없다" 는 판정이다. 그때만, 그리고 지난 조사
     결과가 있을 때만 건너뛴다.
@@ -243,7 +246,7 @@ def should_call_agent(targets, has_reading):
 # 이 단계가 큰 언어 모형을 부르는 자리인지 답한다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 1. 단계 고르기 ──────────────────────────────────────────────────────
-def is_agent_stage(stage):
+def is_agent_stage(stage: str) -> bool:
     """이 단계가 모형을 부르는가. 토큰이 잡히는 자리는 여기뿐이다."""
     return stage in AGENT_STAGES
 
@@ -251,11 +254,13 @@ def is_agent_stage(stage):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.plan_stages']"/>
 # 일곱 단계 중 무엇을 실제로 돌릴지 고른다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
-def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
-    """무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수라 시험이 쉽다.
+def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
+                only: Iterable[str] | None = None,
+                skip: Iterable[str] | None = None) -> list[str]:
+    """무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다.
 
-    `prep` 은 늘 남긴다 — 이미 코드 지도가 있으면 건너뛸지를 `prepPlan` 자신이 정한다
-    (`runner/wiki/prep.mjs` 의 `hasCodegraph`). 여기서 미리 빼면 그 판단을 뺏는 것이다.
+    `prep` 은 늘 남긴다 — 이미 코드 지도가 있으면 건너뛸지를 `runner/wiki/prep.mjs` 가
+    스스로 정한다. 여기서 미리 빼면 그 판단을 뺏는 것이다.
 
     LLM 단계 둘은 **각자 자기 산출물로 걸린다.** `survey` 는 읽기 레코드가 있으면,
     `wiki` 는 산문이 있으면 빠진다. 한쪽만 있으면 그쪽만 건너뛴다.
@@ -265,7 +270,7 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
             raise ValueError("모르는 단계: %s (있는 것: %s)" % (name, ", ".join(STAGES)))
     if only:
         return [s for s in STAGES if s in set(only)]
-    out = []
+    out: list[str] = []
     for s in STAGES:
         if s in set(skip or []):
             continue
@@ -282,16 +287,18 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
 # 모형이 낸 사용량 보고에서 잴 값만 뽑아 평평하게 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 2. 토큰 세기 ────────────────────────────────────────────────────────
-def normalize_usage(result):
+def normalize_usage(result: AgentResult | None) -> Usage:
     """`claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다.
 
-    **캐시 둘을 반드시 더한다.** `usage` 는 넷으로 쪼개져 오는데 캐시 읽기와 캐시 생성이
-    보통 전체의 대부분이다. 그 둘을 빼고 "토큰 합" 이라 부르면 한 자릿수 백분율만 센 것이다.
+    **정수 여섯과 실수 하나(`cost_usd`)를 한 사전에 담고, `total` 은 입력·출력·캐시읽기·
+    캐시생성 넷을 더한 값이다.** 캐시 둘을 빼고 "토큰 합" 이라 부르면 일부만 센 것이다.
+    `sum_usage` 가 이 사전을 키별로 접는다.
 
     기계 단계는 `None` 을 받아 전부 0 을 낸다 — `None` 을 그대로 두면 표를 더할 수 없다.
     """
-    u = (result or {}).get("usage") or {}
-    got = {
+    # `usage` 는 바깥 프로그램이 채우는 칸이라 값의 꼴을 못 박지 않는다.
+    u: dict[str, Any] = (result or {}).get("usage") or {}
+    got: Usage = {
         "input": int(u.get("input_tokens") or 0),
         "output": int(u.get("output_tokens") or 0),
         "cache_read": int(u.get("cache_read_input_tokens") or 0),
@@ -307,10 +314,11 @@ def normalize_usage(result):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.sum_usage']"/>
 # 단계별 사용량을 하나로 합친다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report, run_mode1.stage_totals
-def sum_usage(usages):
-    """단계별 사용량을 하나로 합친다. 표 맨 아래 '합계' 줄이 이것이다."""
+def sum_usage(usages: Sequence[Usage]) -> Usage:
+    """`normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다."""
     keys = ["input", "output", "cache_read", "cache_write", "total", "turns", "api_ms"]
-    out = {k: sum(int(u.get(k) or 0) for u in usages) for k in keys}
+    # 정수 여섯은 정수로 접고 `cost_usd` 만 실수로 따로 접는다.
+    out: Usage = {k: sum(int(u.get(k) or 0) for u in usages) for k in keys}
     out["cost_usd"] = sum(float(u.get("cost_usd") or 0.0) for u in usages)
     return out
 
@@ -319,12 +327,11 @@ def sum_usage(usages):
 # 큰 언어 모형 단계가 정말 해냈는지 판정한다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 3. 실패 판정 ────────────────────────────────────────────────────────
-def agent_verdict(returncode, result):
+def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, str]:
     """에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다.
 
     **종료 코드만 믿으면 안 된다.** `claude` 는 최대 턴 수에 걸리거나 권한에 막혀도
-    0 을 내면서 `is_error: true` 만 올릴 수 있다. 그걸 성공으로 세면 다음 단계가
-    빈 재료를 읽고 엉뚱한 곳에서 죽는다.
+    0 을 내면서 `is_error: true` 만 올릴 수 있다.
     """
     if result is None:
         return False, "결과 JSON 을 읽지 못했다 (종료 코드 %d)" % returncode
@@ -339,7 +346,7 @@ def agent_verdict(returncode, result):
 # 헤드리스 모형 호출의 명령줄을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_agent_with
 # ── 4. 에이전트 호출 ────────────────────────────────────────────────────
-def claude_argv(model, repo, extra_dirs):
+def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
     """헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
 
     `--add-dir` 로 대상 저장소와 도구 저장소를 둘 다 열어 준다. 한쪽만 주면
@@ -355,20 +362,14 @@ def claude_argv(model, repo, extra_dirs):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.warmup_section']"/>
 # 다시 읽을 범위를 알리는 지시문을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.survey_batch_prompt
-def warmup_section(targets, total, repo=""):
+def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") -> str:
     """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
 
-    **목록만 주면 부족하다.** 에이전트는 맥락이 모자라다고 느끼면 옆 파일을 더 읽는다.
-    그것이 이 배선이 줄이려는 바로 그 비용이므로, 목록 밖을 읽지 말라고 분명히 쓴다.
-    대신 이미 있는 레코드를 근거로 쓰라고 알려 준다 — 금지만 하면 막힌다.
+    ⚠ **이 글은 부르는 쪽이 `.format()` 을 돌린 뒤에 이어 붙는다.** 그래서 중괄호
+    자리표시자를 남기면 안 되고, 저장소 경로를 `repo` 로 받아 여기서 박아 넣는다.
 
-    이 글은 부르는 쪽이 이미 `.format()` 을 돌린 **뒤에** 이어 붙는다. 그래서
-    중괄호 자리표시자를 남기면 안 되고, 저장소 경로를 `repo` 로 받아 여기서 박아 넣는다.
-
-    ⚠ 2026-08-30 — 산문 범위를 말하던 줄을 뺐다. 이 글은 이제 **전수조사 배치 프롬프트**에만
-    붙는데, 그 프롬프트는 "쓰는 곳은 자기 샤드 하나뿐" 이라고 못 박는다. 한 글 안에서
-    `docs/wiki/*.md` 를 고치라는 지시와 어긋나면 세션이 어느 쪽을 따를지 알 수 없다.
-    위키 쪽 범위는 `wiki_page_prompt` 가 페이지 목록으로 따로 준다.
+    붙는 곳은 **전수조사 배치 프롬프트뿐**이다. 위키 쪽 범위는 `wiki_page_prompt` 가
+    페이지 목록으로 따로 준다.
     """
     if not targets:
         return ""
@@ -389,10 +390,9 @@ def warmup_section(targets, total, repo=""):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.dep_excerpt']"/>
 # 이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
-def dep_excerpt(merged, batch):
+def dep_excerpt(merged: Records, batch: survey_plan.PlanBatch) -> str:
     """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
 
-    전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 쪼갠 이점이 사라진다.
     아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
     """
     want = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
@@ -404,15 +404,15 @@ def dep_excerpt(merged, batch):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.survey_batch_prompt']"/>
 # 배치 하나를 맡을 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_survey
-def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
+def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
+                        dep_records: str, targets: Sequence[str] | None = None,
+                        total: int = 0) -> str:
     """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
 
-    `dep_records` 는 **아래층에서 이미 완성된** 레코드 중 이 배치의 심볼이 의존하는 것만
-    발췌한 것이다(`dep_excerpt`). 전량을 주입하면 층이 올라갈수록 프롬프트가 부푼다.
+    `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다.
 
     `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
-    `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다 — 배치 세션이 그것을 알아야
-    기존 레코드의 `means` `does` 를 함부로 다시 쓰지 않는다. `None` 이면 전량 조사다.
+    `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
     """
     syms = "\n".join(
         "  - %s (%s) %s:%s   의존 -> %s"
@@ -486,12 +486,11 @@ def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.nonnode_prompt']"/>
 # 지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
-def nonnode_prompt(repo, root):
+def nonnode_prompt(repo: str, root: str) -> str:
     """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
 
-    이것들은 코드 지도의 노드가 아니라 **층 축이 없다.** 대신 심볼 레코드가 재료다 —
-    파일 레코드는 그 파일 안 심볼들의 완성된 means/does 를 보고 쓴다.
-    그래서 심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.
+    이것들은 코드 지도의 노드가 아니라 층 축이 없다. 대신 심볼 레코드가 재료다 —
+    **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.**
     """
     return """\
 너는 코드베이스 전수조사의 **마지막 층** 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
@@ -542,7 +541,7 @@ def nonnode_prompt(repo, root):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.symbol_layers']"/>
 # 배치 계획에서 심볼마다 몇 층인지만 뽑아 표로 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
-def symbol_layers(plan):
+def symbol_layers(plan: survey_plan.SurveyPlan) -> dict[str, int]:
     """`survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다."""
     return {s["id"]: L["level"]
             for L in plan.get("layers", [])
@@ -553,16 +552,14 @@ def symbol_layers(plan):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.page_layers']"/>
 # 위키 페이지마다 몇 번째로 써야 하는지 층을 매기는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
-def page_layers(pages, sym_layer):
+def page_layers(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]:
     """K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층.
 
-    **왜 최대인가.** 페이지는 자기가 다루는 모든 개념이 이미 설명된 뒤라야 재설명 대신
-    링크할 수 있다. 가장 위층 심볼 하나가 아직 안 다뤄졌으면 그 페이지는 아직 못 쓴다.
-
     아는 심볼이 하나도 없으면 층0 이다 — `index.md` 처럼 개괄만 있는 장이 여기 온다.
-    카탈로그가 지어낸 이름 하나로 페이지가 맨 뒤로 밀리는 일도 이 규칙이 막는다.
+    `sym_layer` 에 없는 이름은 세지 않으므로, 카탈로그가 지어낸 이름 하나로 페이지가
+    맨 뒤로 밀리지 않는다.
     """
-    out = {}
+    out: dict[str, int] = {}
     for p in pages:
         known = [sym_layer[s] for s in p.get("symbols", []) if s in sym_layer]
         out[p["file"]] = max(known) if known else 0
@@ -572,11 +569,11 @@ def page_layers(pages, sym_layer):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.wiki_catalogue_prompt']"/>
 # 위키에 어떤 장을 둘지 정하는 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
-def wiki_catalogue_prompt(repo, root):
+def wiki_catalogue_prompt(repo: str, root: str) -> str:
     """페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다.
 
-    K6 의 층을 매기려면 이 둘이 있어야 하는데, deep-wiki 의 페이지는 심볼도 모듈도 아닌
-    **주제** 단위라 기계가 결정론으로 못 만든다. 그래서 이 한 세션만 먼저 돈다.
+    K6 의 층을 매기려면 이 둘이 있어야 하는데, 위키 페이지는 심볼도 모듈도 아닌 **주제**
+    단위라 기계가 결정론으로 못 만든다. 그래서 이 한 세션만 먼저 돈다.
     """
     return """\
 너는 코드베이스 위키의 **목차 담당**이다. 대상 저장소 {repo}. 도구 저장소 {root}.
@@ -620,12 +617,8 @@ Getting Started / Deep Dive 계열, 최대 4단, 절당 자식 8장 이하.
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.wiki_page_prompt']"/>
 # 위키 한 장을 맡을 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
-def wiki_page_prompt(repo, root, page, lower_pages):
-    """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다.
-
-    **deep-wiki 플러그인을 고치지 않는다.** 그건 `~/.claude/plugins/cache/` 에 사는 캐시라
-    업데이트에 덮인다. 대신 이 프롬프트가 감싸서 지시한다 — 지금 코드가 이미 쓰는 방식이다.
-    """
+def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> str:
+    """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다."""
     return """\
 너는 코드베이스 위키의 **{fname} 담당**이다. 대상 저장소 {repo}. 도구 저장소 {root}.
 사람에게 묻지 않는다 — 헤드리스 세션이다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
@@ -672,20 +665,20 @@ def wiki_page_prompt(repo, root, page, lower_pages):
 # 위키 기계 단계 하나를 부르는 명령줄을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 5. 기계 단계의 명령줄 ────────────────────────────────────────────────
-def node_argv(root, script, repo):
+def node_argv(root: str, script: str, repo: str) -> list[str]:
     """`runner/wiki/*.mjs` 하나를 부른다. node 는 PATH 에서 찾는다."""
-    return ["node", os.path.join(root, "scripts", "wiki", script), repo]
+    return ["node", os.path.join(root, "runner", "wiki", script), repo]
 
 
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.terms_argv']"/>
 # 용어 사전을 만드는 단계의 명령줄을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
-def terms_argv(python, root, repo, codegraph, reading):
+def terms_argv(python: str, root: str, repo: str,
+               codegraph: str | None, reading: str | None) -> list[str]:
     """`terms_db.py` 명령줄.
 
-    **정적 `codegraph.json` 을 위치 인자로 반드시 준다.** `--reading` 만 주면
-    읽기 레코드의 투영이 그 파일을 **덮어쓴다** — 정적 수집기가 찾은 노드가
-    조용히 사라진다(이 저장소 자신에서 노드 95 가 투영본 때문에 뒤바뀐 적이 있다).
+    **정적 `codegraph.json` 을 위치 인자로 반드시 준다.** `--reading` 만 주면 읽기
+    레코드의 투영이 그 파일을 **덮어써서** 정적 수집기가 찾은 노드가 조용히 사라진다.
     둘 다 주면 구조는 codegraph 가 이긴다.
     """
     argv = [python, os.path.join(root, "machine", "terms_db.py")]
@@ -697,11 +690,11 @@ def terms_argv(python, root, repo, codegraph, reading):
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1._hms']"/>
+# <include file="machine/comments.xml" path="//term[@id='run_mode1.hms']"/>
 # 초를 사람이 읽는 시간 꼴로 바꾼다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report
 # ── 6. 보고 ─────────────────────────────────────────────────────────────
-def _hms(seconds):
+def hms(seconds: float) -> str:
     """초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다."""
     s = float(seconds)
     if s < 60:
@@ -711,22 +704,22 @@ def _hms(seconds):
 
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.format_report']"/>
 # 단계별 측정값을 표 한 장으로 만든다.
-# 쓰는 것: run_mode1.sum_usage, run_mode1._hms · 쓰이는 곳: run_mode1.main
-def format_report(rows, wall_seconds=None):
+# 쓰는 것: run_mode1.sum_usage, run_mode1.hms · 쓰이는 곳: run_mode1.main
+def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -> str:
     """단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다.
 
-    `wall_seconds` 는 **병렬 때문에** 생겼다. 층 안에서 배치 8개가 동시에 돌면
-    행의 초를 더한 값이 사람이 기다린 시간의 8배까지 부푼다. 진짜 벽시계를 부르는 쪽이
-    재서 넘긴다. 안 넘기면 예전처럼 행을 더한다 — Mode 1.5 와 Mode 2 는 병렬이 아니라 그게 맞다.
+    **`wall_seconds` 를 주면 합계 줄의 시간이 그 값이 되고, 안 주면 행의 초를 더한다.**
+    층 안에서 배치가 동시에 돌면 행의 합이 사람이 기다린 시간보다 훨씬 커지므로 병렬로
+    도는 쪽이 진짜 벽시계를 재서 넘긴다. Mode 1.5 와 Mode 2 는 병렬이 아니라 안 넘긴다.
     """
     head = ["단계", "상태", "시간", "입력", "출력", "캐시읽기", "캐시생성", "합계", "턴", "비용($)"]
-    body = []
+    body: list[list[str]] = []
     for r in rows:
         u = r["usage"]
         body.append([
             r["stage"],
             "건너뜀" if r.get("skipped") else ("성공" if r.get("ok") else "실패"),
-            _hms(r["seconds"]),
+            hms(r["seconds"]),
             "{:,}".format(u["input"]), "{:,}".format(u["output"]),
             "{:,}".format(u["cache_read"]), "{:,}".format(u["cache_write"]),
             "{:,}".format(u["total"]), str(u["turns"]), "%.4f" % u["cost_usd"],
@@ -735,17 +728,17 @@ def format_report(rows, wall_seconds=None):
     total_seconds = (sum(float(r["seconds"]) for r in rows)
                      if wall_seconds is None else float(wall_seconds))
     body.append([
-        "합계", "", _hms(total_seconds),
+        "합계", "", hms(total_seconds),
         "{:,}".format(tot["input"]), "{:,}".format(tot["output"]),
         "{:,}".format(tot["cache_read"]), "{:,}".format(tot["cache_write"]),
         "{:,}".format(tot["total"]), str(tot["turns"]), "%.4f" % tot["cost_usd"],
     ])
 
     # 한글은 폭이 두 칸이라 len() 으로는 안 맞는다. 표시 폭을 따로 센다.
-    def w(s):
+    def w(s: object) -> int:
         return sum(2 if ord(c) > 0x2E80 else 1 for c in str(s))
     cols = [max(w(head[i]), max(w(row[i]) for row in body)) for i in range(len(head))]
-    def line(cells):
+    def line(cells: Sequence[str]) -> str:
         return "  ".join(str(c) + " " * (cols[i] - w(c)) for i, c in enumerate(cells)).rstrip()
 
     out = [line(head), "  ".join("-" * c for c in cols)]
@@ -762,19 +755,20 @@ def format_report(rows, wall_seconds=None):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.plan_summary']"/>
 # 층 계획을 사람이 읽는 줄들로 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-def plan_summary(plan):
-    """층·배치·동시 물결 수를 줄 목록으로. **돈을 쓰기 전에** 몇 세션이 뜨는지 보여 주려는 것이다.
-
-    `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. 순수 함수라 시험이 쉽다.
-    """
-    out = []
+def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
+    """층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다."""
+    out: list[str] = []
     for L in plan.get("layers", []):
         if L.get("kind") == "non-node":
             out.append("  층%d — 비노드 용어 (한 세션)" % L["level"])
         else:
             n = len(L.get("batches", []))
+            # `file_count` 는 비노드 층만 갖지 않는 선택 항목이라 첨자하면 기계가 짚는다.
+            # 이 가지는 `kind != "non-node"` 라 늘 있다.
             out.append("  층%d — 심볼 %d · 파일 %d · 배치 %d"
-                       % (L["level"], L["symbol_count"], L["file_count"], n))
+                       % (L["level"], L["symbol_count"],
+                          L["file_count"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+                          n))
     총배치 = sum(len(L.get("batches", [])) for L in plan.get("layers", []))
     out.append("  합계 — 심볼 %d · 층 %d · 배치 %d (LLM 세션이 그만큼 뜬다)"
                % (plan["totals"]["symbols"], plan["totals"]["levels"], 총배치))
@@ -784,60 +778,56 @@ def plan_summary(plan):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.stage_totals']"/>
 # 배치 행들을 단계 단위로 접어 소계를 내는 함수.
 # 쓰는 것: run_mode1.sum_usage · 쓰이는 곳: run_mode1.main
-def stage_totals(rows):
-    """`survey/L0-B00` 같은 행을 `survey` 로 접는다. `{단계: 합친 usage}`.
-
-    배치가 스물이 넘으면 표를 눈으로 훑어 "어느 단계가 비쌌나" 를 못 본다.
-    `ARCHITECTURE.md` 의 여덟 줄짜리 표와 대조할 수 있는 모양이 이것이다.
-    """
-    byname = collections.OrderedDict()
+def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]:
+    """`survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`."""
+    byname: collections.OrderedDict[str, list[Usage]] = collections.OrderedDict()
     for r in rows:
         name = r["stage"].split("/")[0]
         byname.setdefault(name, []).append(r["usage"])
     return collections.OrderedDict((k, sum_usage(v)) for k, v in byname.items())
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1._Heartbeat']"/>
+# <include file="machine/comments.xml" path="//term[@id='run_mode1.Heartbeat']"/>
 # 오래 도는 단계 옆에서 경과 시간을 알리는 조각.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
-class _Heartbeat:
-    """오래 도는 단계 옆에서 경과 시간을 알린다.
+class Heartbeat:
+    """오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다.
 
-    에이전트 단계는 수 분에서 십수 분이 걸리는데 `--output-format json` 은 끝나야
-    한 덩이로 나온다. 아무것도 안 찍히면 사람이 멈춘 줄 안다.
+    `--output-format json` 은 끝나야 한 덩이로 나오므로 그 사이 아무것도 찍히지 않는다.
     """
 
-    def __init__(self, label, every=30.0):
+    def __init__(self, label: str, every: float = 30.0) -> None:
         self.label, self.every = label, every
         self._stop = threading.Event()
         self._t0 = time.monotonic()
         self._th = threading.Thread(target=self._tick, daemon=True)
 
-    def _tick(self):
+    def _tick(self) -> None:
         while not self._stop.wait(self.every):
-            print("    … %s 진행 중 (%s)" % (self.label, _hms(time.monotonic() - self._t0)),
+            print("    … %s 진행 중 (%s)" % (self.label, hms(time.monotonic() - self._t0)),
                   file=sys.stderr, flush=True)
 
-    def __enter__(self):
+    def __enter__(self) -> "Heartbeat":
         self._th.start()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         self._stop.set()
 
 
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_agent_with']"/>
 # 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 내는 함수.
 # 쓰는 것: run_mode1.claude_argv · 쓰이는 곳: run_mode1.run_layer
-def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
+def run_agent_with(model: str, repo: str, root: str, prompt: str,
+                   timeout: float | None = None,
+                   label: str | None = None) -> tuple[float, int, AgentResult | None]:
     """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
 
-    **시간을 여기서 잰다.** 배치들이 동시에 도는 동안 부르는 쪽은 층 전체만 잴 수 있어
-    어느 배치가 비쌌는지 모른다. 다음에 `--target` 을 조절하려면 배치별 값이 있어야 한다.
+    **배치별 시간을 여기서 잰다** — 부르는 쪽은 병렬이라 층 전체만 잴 수 있다.
 
-    **하트비트를 여기 두지 않는다.** 8개가 동시에 찍으면 화면이 못 읽는 글이 된다 —
-    층 하나를 감싸는 하트비트 하나면 충분하다(`run_layer` 를 부르는 쪽이 건다).
+    **하트비트를 여기 두지 않는다.** 동시에 도는 배치가 저마다 찍으면 화면을 못 읽는다 —
+    층 하나를 감싸는 하트비트 하나를 `run_layer` 를 부르는 쪽이 건다.
     """
     argv = claude_argv(model=model, repo=repo, extra_dirs=[root])
     t0 = time.monotonic()
@@ -856,24 +846,23 @@ def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_layer']"/>
 # 한 층의 배치들을 동시에 돌리고 각각의 측정값을 모으는 함수.
 # 쓰는 것: run_mode1.run_agent_with · 쓰이는 곳: run_mode1.run_survey, run_mode1.run_wiki
-def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
+def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8,
+              timeout: float | None = None) -> list[tuple[str, float, int, AgentResult | None]]:
     """한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2).
 
-    같은 층끼리는 서로 의존하지 않으므로 순서가 결과를 바꾸지 않는다 — 그래서 병렬이 안전하다.
     같은 층의 배치는 **같은 파일을 가리키지 않는다**(`survey_plan.pack` 이 보장한다).
-    그래서 파일 lock 이 필요 없다.
-
-    **자식 프로세스를 기다리는 일이라 스레드로 충분하다.** GIL 은 여기서 문제가 되지 않는다.
+    그래서 파일 lock 이 필요 없다. 자식 프로세스를 기다리는 일이라 스레드로 충분하다.
 
     `jobs` 는 `[(라벨, 프롬프트), …]`. 낸 것은 `[(라벨, 초, 종료코드, 결과 또는 None), …]` 이고
-    **라벨 순서로 정렬**해서 낸다 — 끝나는 순서는 실행마다 흔들려 보고 표를 대조할 수 없게 된다.
+    **라벨 순서로 정렬**해서 낸다 — 끝나는 순서는 실행마다 흔들린다.
 
-    **한 배치가 터져도 층을 버리지 않는다.** 20분짜리 층이 예외 하나로 날아가면 안 된다.
-    터진 배치는 종료 코드 -1 · 결과 None 인 행으로 남고, 부르는 쪽이 실패로 센다.
+    **한 배치가 터져도 층을 버리지 않는다.** 터진 배치는 종료 코드 -1 · 결과 None 인
+    행으로 남고, 부르는 쪽이 실패로 센다.
     """
     if not jobs:
         return []
-    rows = []
+    rows: list[tuple[str, float, int, AgentResult | None]] = []
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as ex:
         futs = {ex.submit(run_agent_with, model, repo, root, prompt, timeout, label): label
                 for label, prompt in jobs}
@@ -890,20 +879,18 @@ def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.merge_shards']"/>
 # 배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푸는 함수.
 # 쓰는 것: run_mode1._qualified · 쓰이는 곳: run_mode1.run_survey
-def merge_shards(shard_dir, existing):
+def merge_shards(shard_dir: str, existing: Records | None) -> Records:
     """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
 
-    배치 세션은 자기 배치만 보므로 `main` 이 9파일에 있다는 것을 알 수 없다.
-    전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을 `<파일줄기>.<이름>` 으로 고친다.
-    한쪽만 한정하면 나중에 또 겹친다(`codebase-terms-survey` 스킬의 키 규칙).
+    배치 세션은 자기 배치만 보므로 전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을
+    `<파일줄기>.<이름>` 으로 고친다. 한쪽만 한정하면 나중에 또 겹친다.
 
-    **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 결과를 버리지 않는다.
-    무엇을 건너뛰었는지는 stderr 에 적어 사람이 다시 돌릴 수 있게 한다.
+    **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 결과를 버리지 않는다.
+    무엇을 건너뛰었는지는 stderr 에 적는다.
 
     ⚠ **`existing` 에는 누적본이 아니라 조사 이전의 원본을 준다.** 이 함수는 층마다 불리고
     그때마다 샤드 전부를 다시 읽는다. 누적본을 넘기면 이미 합쳐 둔 레코드를 **자기 자신과의
-    충돌**로 보고 개명해 버린다 — 🔵 2026-08-30 연기 시험에서 레코드 수가 38 -> 27 로
-    줄어드는 것으로 드러났다. 샤드가 진실의 원본이고 이 함수는 그 순수 함수다.
+    충돌**로 보고 개명해 레코드 수가 줄어든다. 샤드가 원본이고 이 함수는 그 순수 함수다.
 
     충돌 판정에 `!=` 를 쓰는 것도 같은 이유다. `is not` 은 같은 샤드를 다시 읽은 새 객체를
     남으로 본다.
@@ -916,7 +903,7 @@ def merge_shards(shard_dir, existing):
             continue
         try:
             with open(os.path.join(shard_dir, fname), encoding="utf-8") as f:
-                shard = json.load(f)
+                shard: Records = json.load(f)
         except (ValueError, OSError) as ex:
             print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
             continue
@@ -934,7 +921,7 @@ def merge_shards(shard_dir, existing):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1._qualified']"/>
 # 겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.merge_shards
-def _qualified(key, rec):
+def _qualified(key: str, rec: Record | None) -> str:
     """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
     where = (rec or {}).get("where") or ""
     stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
@@ -944,24 +931,76 @@ def _qualified(key, rec):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_machine']"/>
 # 기계 단계 하나를 부른다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
-def run_machine(argv, label):
+def run_machine(argv: Sequence[str], label: str) -> int:
     """기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다."""
-    with _Heartbeat(label, every=60.0):
+    with Heartbeat(label, every=60.0):
         p = subprocess.run(argv)
     return p.returncode
+
+
+# 어떤 정적 수집기를 돌릴지 정한다. 모형의 제안을 결정론 검사로 거른다.
+# 쓰는 것: claude_argv, lang_select · 쓰이는 곳: run_mode1.main
+def run_lang_select(repo: str, root: str, timeout: float | None) -> tuple[bool, str, Usage]:
+    """루트 문서를 모형에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다.
+
+    **모형은 제안만 한다.** 채택 여부는 `machine/lang_select.py` 가 결정론으로 판정한다 —
+    제안한 언어의 소스가 한 개도 없으면 버리고 파일 수가 가장 많은 언어로 간다.
+
+    모형을 못 부르거나 문서가 없으면 제안 없이 파일 수만으로 고른다. **막지 않는다** —
+    이 단계는 뒤 단계를 돕는 것이지 관문이 아니다.
+    """
+    raw = os.path.join(repo, "out", "codegraph-raw")
+    os.makedirs(raw, exist_ok=True)
+    out = os.path.join(raw, "lang-select.json")
+    tool = os.path.join(root, "machine", "lang_select.py")
+
+    docs = subprocess.run([sys.executable, tool, repo, "--print-docs"],
+                          capture_output=True, text=True).stdout
+    proposed: str | None = None
+    usage: Usage = normalize_usage(None)
+    if docs.strip():
+        prompt = (
+            "아래는 한 저장소의 최상위 문서다. 이 저장소에 **정적 분석기를 돌려 코드 지도를 만들려 한다.**\n"
+            "어느 언어를 대상으로 삼아야 가장 쓸모 있는 지도가 나오겠는지 판단해라.\n\n"
+            "고를 수 있는 것과 그 수집기:\n"
+            "  cpp -> clang-uml    cs -> roslyn-dump    py -> griffe+pycalls    ts -> (수집기 없음)\n\n"
+            "문서가 어떤 언어를 많이 이야기하는지가 아니라, **분석해서 얻을 것이 있는 코드**가\n"
+            "어느 언어인지를 본다. 넷 중 하나를 **낱말 하나로만** 답해라. 설명하지 마라.\n"
+            "판단이 안 서면 `unknown` 이라고 답해라.\n\n" + docs)
+        try:
+            r = subprocess.run(claude_argv(model=LANG_SELECT_MODEL, repo=repo, extra_dirs=[root]),
+                               input=prompt, capture_output=True, text=True, timeout=timeout)
+            if r.returncode == 0:
+                got = json.loads(r.stdout)
+                usage = normalize_usage(got)
+                word = str(got.get("result", "")).strip().strip("`.").lower()
+                if word in ("cpp", "cs", "py", "ts"):
+                    proposed = word
+        except (OSError, ValueError, subprocess.SubprocessError):
+            proposed = None
+
+    argv = [sys.executable, tool, repo, "-o", out]
+    if proposed:
+        argv += ["--propose", proposed]
+    r2 = subprocess.run(argv, capture_output=True, text=True)
+    sys.stdout.write(r2.stdout)
+    if r2.returncode != 0:
+        return False, (r2.stdout + r2.stderr).strip().splitlines()[-1][:120], usage
+    return True, f"제안 {proposed or '없음'}", usage
 
 
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_warmup']"/>
 # 무엇을 다시 읽어야 하는지 판정하는 앞 관문.
 # 쓰는 것: run_mode1.lang_of, run_mode1.changed_seed · 쓰이는 곳: run_mode1.main
-def run_warmup(repo, codegraph, hops):
+def run_warmup(repo: str, codegraph: str, hops: int) -> tuple[
+        list[str] | None, warmup.Manifest | None, str | None, int, bool, str]:
     """관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.**
 
     쓰기를 여기서 하면 에이전트가 실패했을 때도 "유효" 로 기록되어, 다음 실행이
-    읽지 않은 파일을 읽은 것으로 친다. 그래서 갱신은 `save_warmup` 이 따로 한다.
+    읽지 않은 파일을 읽은 것으로 친다. 갱신은 `save_warmup` 이 따로 한다.
 
     판정할 수 없으면 `targets` 를 `None` 으로 낸다 — 실패가 아니다. 그러면
-    `should_call_agent` 가 옛 동작(전량 조사)으로 돌아간다.
+    `should_call_agent` 가 전량 조사로 돌아간다.
 
     반환 (targets, entries, cache_path, 추적파일수, 성공인가, 사유)
     """
@@ -1006,15 +1045,15 @@ def run_warmup(repo, codegraph, hops):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.save_warmup']"/>
 # 판정 기록을 확정하는 뒤 관문.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
-def save_warmup(cache_path, entries, rows):
+def save_warmup(cache_path: str | None, entries: warmup.Manifest | None,
+                rows: Sequence[StageRow]) -> tuple[bool, str]:
     """관문 ② — **전수조사가 실제로 해낸 뒤에만** 매니페스트를 갱신한다.
 
     앞칸이 판정을 못 했거나(`entries is None`) 전수조사가 실패했으면 **쓰지 않는다.**
-    쓰지 않는 것이 안전한 쪽이다 — 다음 실행이 전량을 다시 읽을 뿐 틀리지는 않는다.
+    쓰지 않는 쪽이 안전하다 — 다음 실행이 전량을 다시 읽을 뿐 틀리지는 않는다.
 
-    ⚠ **단계 이름만 떼어 본다.** 층 병렬이 되면서 행 라벨이 `survey/L0-B00` 꼴이 됐다.
-    예전처럼 `r["stage"] == "survey"` 로 비교하면 **영원히 거짓**이 되어 관문이
-    fail-open 이 된다 — 조사가 실패해도 매니페스트가 '유효' 로 남는 바로 그 사고다.
+    ⚠ **행 라벨에서 `/` 앞의 단계 이름만 떼어 본다.** 라벨은 `survey/L0-B00` 꼴이라
+    `r["stage"] == "survey"` 로 비교하면 영원히 거짓이 되어 관문이 fail-open 이 된다.
     """
     if entries is None or not cache_path:
         return True, ""
@@ -1032,31 +1071,32 @@ def save_warmup(cache_path, entries, rows):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_survey']"/>
 # 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합치는 함수.
 # 쓰는 것: run_mode1.run_layer, run_mode1.merge_shards, run_mode1.survey_batch_prompt, run_mode1.nonnode_prompt, run_mode1.dep_excerpt · 쓰이는 곳: run_mode1.main
-def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
-               targets=None, total=0):
+def run_survey(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
+               concurrency: int, timeout: float | None, reading_path: str,
+               targets: Sequence[str] | None = None, total: int = 0) -> list[StageRow]:
     """층 사이는 순차, 층 안은 병렬(K2). `[행, …]` 을 낸다.
 
     **층이 끝날 때마다 병합해서 디스크에 쓴다.** 다음 층의 배치가 아래층 레코드를 발췌해
     받아야 하고, 중간에 죽어도 거기까지는 남아야 한다.
 
-    **샤드가 이미 있는 배치는 건너뛴다(J4).** 재시도 구조를 만들지 않고도 `--only survey` 로
-    다시 돌리면 실패한 배치만 다시 돈다.
+    **샤드가 이미 있는 배치는 건너뛴다(J4).** `--only survey` 로 다시 돌리면 실패한
+    배치만 다시 돈다.
     """
     shard_dir = os.path.join(repo, "out", "codegraph-raw", "_shards")
     os.makedirs(shard_dir, exist_ok=True)
     # **조사 이전의 원본**을 따로 붙들어 둔다. 층마다 `merge_shards` 에 이것을 준다 —
-    # 누적본을 주면 이미 합친 레코드를 자기 자신과의 충돌로 보고 개명한다(위 경고).
-    baseline = {}
+    # 누적본을 주면 이미 합친 레코드를 자기 자신과의 충돌로 보고 개명한다.
+    baseline: Records = {}
     if os.path.exists(reading_path):
         with open(reading_path, encoding="utf-8") as f:
             baseline = json.load(f)
     merged = dict(baseline)
 
-    rows = []
+    rows: list[StageRow] = []
     for L in plan["layers"]:
         if L.get("kind") == "non-node":
-            jobs = [("NONNODE", nonnode_prompt(repo, root))]
-            label_of = {"NONNODE": "survey/L%d-비노드" % L["level"]}
+            jobs: list[tuple[str, str]] = [("NONNODE", nonnode_prompt(repo, root))]
+            label_of: dict[str, str] = {"NONNODE": "survey/L%d-비노드" % L["level"]}
         else:
             jobs, label_of = [], {}
             for b in L["batches"]:
@@ -1071,7 +1111,7 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
 
         print("  층%d — 배치 %d개를 동시 %d 로 돌린다"
               % (L["level"], len(jobs), concurrency), flush=True)
-        with _Heartbeat("survey 층%d" % L["level"]):
+        with Heartbeat("survey 층%d" % L["level"]):
             got = run_layer(model, repo, root, jobs, concurrency, timeout)
         for bid, seconds, rc, result in got:
             ok, why = agent_verdict(rc, result)
@@ -1093,18 +1133,15 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.run_wiki']"/>
 # 위키 목차를 받고 장들을 층 오름차순으로 쓰게 하는 함수.
 # 쓰는 것: run_mode1.run_layer, run_mode1.wiki_catalogue_prompt, run_mode1.wiki_page_prompt, run_mode1.page_layers, run_mode1.symbol_layers · 쓰이는 곳: run_mode1.main
-def run_wiki(model, repo, root, plan, concurrency, timeout):
-    """카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6).
-
-    목차를 기계가 못 만드는 이유는 deep-wiki 의 장이 심볼도 모듈도 아닌 **주제** 단위라서다.
-    그래서 이 한 세션만 먼저 돈다.
-    """
+def run_wiki(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
+             concurrency: int, timeout: float | None) -> list[StageRow]:
+    """카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6)."""
     raw = os.path.join(repo, "out", "codegraph-raw")
     wiki_plan_path = os.path.join(raw, "wiki-plan.json")
-    rows = []
+    rows: list[StageRow] = []
 
     if not os.path.exists(wiki_plan_path):
-        with _Heartbeat("wiki 목차"):
+        with Heartbeat("wiki 목차"):
             got = run_layer(model, repo, root,
                             [("catalogue", wiki_catalogue_prompt(repo, root))], 1, timeout)
         _, seconds, rc, result = got[0]
@@ -1119,9 +1156,9 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
         return rows
 
     with open(wiki_plan_path, encoding="utf-8") as f:
-        pages = json.load(f)["pages"]
+        pages: list[WikiPage] = json.load(f)["pages"]
     lv = page_layers(pages, symbol_layers(plan))
-    done = []
+    done: list[WikiPage] = []
     for k in sorted(set(lv.values())):
         here = [pg for pg in pages if lv[pg["file"]] == k
                 and not os.path.exists(os.path.join(repo, "docs", "wiki", pg["file"]))]
@@ -1131,7 +1168,7 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
                           for pg in done)
         jobs = [(pg["file"], wiki_page_prompt(repo, root, pg, lower)) for pg in here]
         print("  층%d — 장 %d개를 동시 %d 로 쓴다" % (k, len(jobs), concurrency), flush=True)
-        with _Heartbeat("wiki 층%d" % k):
+        with Heartbeat("wiki 층%d" % k):
             got = run_layer(model, repo, root, jobs, concurrency, timeout)
         for fname, seconds, rc, result in got:
             ok, why = agent_verdict(rc, result)
@@ -1147,15 +1184,14 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
 # <include file="machine/comments.xml" path="//term[@id='run_mode1.main']"/>
 # 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
 # 쓰는 것: run_mode1.plan_stages, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup, run_mode1.save_warmup (+4) · 쓰이는 곳: 없음
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo", help="대상 저장소 경로")
-    # 🔴 서브에이전트 모델은 Claude Sonnet 5 다. 별명(`sonnet`)이 아니라 정확한 ID 를 적는다 —
-    #    별명은 최신판을 따라 움직여 측정이 흔들린다. 예전 기본값은 `opus` 였다.
-    #    이 값이 main -> run_survey/run_wiki -> run_layer -> run_agent_with -> claude_argv
-    #    사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지 않는다.**
+    # 별명이 아니라 정확한 ID 를 적는다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
+    # 이 값이 main -> run_survey/run_wiki -> run_layer -> run_agent_with -> claude_argv
+    # 사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지 않는다.**
     ap.add_argument("--model", default="claude-sonnet-5",
                     help="배치·장 세션이 쓸 모형 (기본: claude-sonnet-5)")
     ap.add_argument("--concurrency", type=int, default=8,
@@ -1200,22 +1236,26 @@ def main(argv=None):
     print("이미 있는 것 — 코드지도 %s · 읽기레코드 %s · 산문 %s"
           % (os.path.exists(codegraph), os.path.exists(reading), has_prose))
     if a.dry_run:
-        # 돈을 쓰기 전에 **몇 세션이 뜨는지** 보여 준다. 층 계산은 결정론이라 지금 해도 같다.
+        # 층 계산은 결정론이라 지금 해도 같다.
         if "survey-plan" in stages and os.path.exists(codegraph):
             with open(codegraph, encoding="utf-8") as f:
                 미리 = survey_plan.plan(json.load(f), a.target)
             print("\n층 계획 (기계가 결정론으로 낸다 — 모형을 부르지 않는다)")
-            for L in plan_summary(미리):
-                print(L)
+            for lines in plan_summary(미리):
+                print(lines)
         return 0
 
     # warmup 이 앞칸에서 담아 두고 뒤칸이 꺼내 쓴다. 같은 프로세스 안이라 파일로 넘길 이유가 없다.
     #   targets  에이전트가 읽을 파일 목록. None 이면 판정을 못 했다는 뜻이다(= 전량 조사)
     #   entries  갱신될 매니페스트. 에이전트가 성공한 뒤에만 쓴다
-    targets, entries, warmup_cache, tracked_n = None, None, None, 0
+    targets: list[str] | None = None
+    entries: warmup.Manifest | None = None
+    warmup_cache: str | None = None
+    tracked_n = 0
     survey_plan_path = os.path.join(raw, "survey-plan.json")
-    plan_json = None
-    rows, t_all = [], time.monotonic()
+    plan_json: survey_plan.SurveyPlan | None = None
+    rows: list[StageRow] = []
+    t_all = time.monotonic()
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
@@ -1227,10 +1267,13 @@ def main(argv=None):
             ok, why = save_warmup(warmup_cache, entries, rows)
             rows.append({"stage": stage, "seconds": time.monotonic() - t0,
                          "usage": normalize_usage(None), "ok": ok, "why": why})
+        elif stage == "lang-select":
+            ok, why, usage = run_lang_select(repo, ROOT, a.timeout)
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": usage, "ok": ok, "why": why})
         elif stage == "survey-plan":
-            # **기계 단계다. 모형을 부르지 않는다.** 층은 codegraph.json 하나로 결정론이다 —
-            # 의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**로 매긴다. 🔵 실측에서
-            # out_deg 1 무리 안에 깊이 1·2·3·4 가 섞여 있었다(K1).
+            # **기계 단계다. 모형을 부르지 않는다.** 층은 codegraph.json 하나로 결정론이고,
+            # 의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**로 매긴다(K1).
             if not os.path.exists(codegraph):
                 ok, why = False, "코드 지도가 없다 — prep 이 먼저다: %s" % codegraph
             else:
@@ -1243,8 +1286,8 @@ def main(argv=None):
                     json.dump(plan_json, f, ensure_ascii=False, indent=1)
                 print("%s%s" % (survey_plan_path,
                                 " (증분: warmup 이 준 %d파일)" % len(targets) if targets else ""))
-                for L in plan_summary(plan_json):
-                    print(L)
+                for lines in plan_summary(plan_json):
+                    print(lines)
                 ok, why = True, ""
             rows.append({"stage": stage, "seconds": time.monotonic() - t0,
                          "usage": normalize_usage(None), "ok": ok, "why": why})
@@ -1262,7 +1305,9 @@ def main(argv=None):
                           file=sys.stderr)
                     return 1
                 with open(survey_plan_path, encoding="utf-8") as f:
-                    plan_json = json.load(f)
+                    # 디스크에서 읽은 것이라 기계가 꼴을 확인할 수 없다. `survey-plan` 칸이
+                    # `survey_plan.plan` 의 결과를 그대로 쓴 파일이라 꼴은 같다.
+                    plan_json = cast(survey_plan.SurveyPlan, json.load(f))
                 print("층 계획을 디스크에서 읽었다 — %s" % survey_plan_path, flush=True)
             if stage == "survey":
                 got = run_survey(a.model, repo, ROOT, plan_json, a.concurrency,
@@ -1272,7 +1317,7 @@ def main(argv=None):
             rows += got
             ok = bool(got) and all(r["ok"] for r in got)
             print("%s — %s (%s · 세션 %d개)"
-                  % (stage, "성공" if ok else "실패", _hms(time.monotonic() - t0), len(got)),
+                  % (stage, "성공" if ok else "실패", hms(time.monotonic() - t0), len(got)),
                   flush=True)
         else:
             if stage == "terms":
@@ -1287,14 +1332,14 @@ def main(argv=None):
             seconds = time.monotonic() - t0
             rows.append({"stage": stage, "seconds": seconds, "usage": normalize_usage(None),
                          "ok": ok, "why": why})
-            print("%s — %s (%s)" % (stage, "성공" if ok else "실패", _hms(seconds)), flush=True)
+            print("%s — %s (%s)" % (stage, "성공" if ok else "실패", hms(seconds)), flush=True)
         if not all(r["ok"] for r in rows):
             print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
             break
 
     wall = time.monotonic() - t_all
     print("\n" + "=" * 72)
-    print("Mode 1 측정 — 전체 %s" % _hms(wall))
+    print("Mode 1 측정 — 전체 %s" % hms(wall))
     print("=" * 72)
     print(format_report(rows, wall_seconds=wall))
     print("\n단계 소계 — 병렬이라 행의 초 합계는 벽시계가 아니다")

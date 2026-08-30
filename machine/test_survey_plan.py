@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
-"""survey_plan.py 시험. 합성 그래프로 규칙을, 실제 지도로 규모를 본다."""
+"""test_survey_plan.py — 층 계획기의 회귀 시험."""
 import collections
 import json
 import os
 import sys
+from typing import cast
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from survey_plan import layer_of, pack, plan  # noqa: E402
+from survey_plan import CodeGraph, layer_of, pack, plan  # noqa: E402
 
 
-def _cg(nodes, edges):
+def _cg(nodes: list[tuple[str, str]], edges: list[tuple[str, str]]) -> CodeGraph:
     return {"nodes": [{"id": i, "name": i, "kind": "function", "file": f, "line": 1}
                       for i, f in nodes],
             "edges": [{"from": s, "to": d} for s, d in edges]}
 
 
 def test_층은_의존_대상이_없는_것부터():
-    """a -> b -> c 면 c 가 층0, b 가 층1, a 가 층2 (K1)."""
+    """a -> b -> c 면 c 가 층0, b 가 층1, a 가 층2 다."""
     lv, _ = layer_of({"a": 1, "b": 1, "c": 1}, [("a", "b"), ("b", "c")])
     assert (lv["c"], lv["b"], lv["a"]) == (0, 1, 2)
 
 
 def test_고립_노드는_층0():
-    """간선이 하나도 없어도 의존 대상이 없으므로 층0 이다 (K7)."""
+    """간선이 하나도 없어도 의존 대상이 없으므로 층0 이다."""
     lv, _ = layer_of({"x": 1}, [])
     assert lv["x"] == 0
 
@@ -57,9 +58,9 @@ def test_큰_파일은_초과를_허용한다():
 
 
 def test_층_안에서_한_파일은_한_배치에만_있다():
-    """**lock 없는 설계의 전제다.** 이 성질이 깨지면 두 세션이 같은 파일을 동시에 연다.
+    """lock 없는 설계의 전제다 — 깨지면 두 세션이 같은 파일을 동시에 연다.
 
-    `pack` 을 직접 부르는 위 시험과 달리 `plan` 이 낸 실제 배치를 본다 —
+    `pack` 을 직접 부르는 위 시험과 달리 `plan` 이 낸 실제 배치를 본다.
     층을 나누고 배치를 묶는 두 단계가 함께 성립해야 의미가 있다.
     """
     cg = _cg([("a", "f1"), ("b", "f1"), ("c", "f1"), ("d", "f2"),
@@ -86,14 +87,16 @@ def test_결정론():
 
 
 def test_external_은_제외():
+    """external 노드는 계획에 세지 않는다."""
     cg = _cg([("a", "f1")], [])
     cg["nodes"].append({"id": "ext", "name": "ext", "kind": "external"})
     assert plan(cg)["totals"]["symbols"] == 1
 
 
 def test_마지막은_비노드_층():
-    """K5 — file · module · artifact · key · concept 는 층 축이 없어 맨 뒤 별도 층이다."""
-    assert plan(_cg([("a", "f1")], []))["layers"][-1]["kind"] == "non-node"
+    """file · module · artifact · key · concept 는 층 축이 없어 맨 뒤 별도 층이다."""
+    # `kind` 가 있다는 것이 이 시험이 보는 내용이라 `.get` 으로 무르게 하지 않는다.
+    assert plan(_cg([("a", "f1")], []))["layers"][-1]["kind"] == "non-node"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 def test_배치는_자기_심볼의_의존_대상을_들고_있다():
@@ -117,11 +120,12 @@ REAL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 
 @pytest.mark.skipif(not os.path.exists(REAL), reason="out/codegraph-raw/codegraph.json 이 없다")
 def test_이_저장소_실측():
-    """🔵 2026-08-30 기준 층 분포 110/32/16/7/2. 코드가 바뀌면 숫자도 바뀐다 — 그때는 값을 갱신한다."""
+    """이 저장소의 실제 지도로 층 분포를 못박는다 — 코드가 바뀌면 기대값을 함께 고친다."""
     p = plan(json.load(open(REAL, encoding="utf-8")))
     sizes = [L["symbol_count"] for L in p["layers"] if L.get("kind") != "non-node"]
-    assert sizes == [110, 32, 16, 7, 2]
-    assert sum(sizes) == p["totals"]["symbols"] == 167
+    assert sizes == [230, 214, 139, 87, 12, 4]
+    # ⚠ cast — `symbol_count` 가 None 인 것은 비노드 층뿐이고 그것은 바로 위 조건이 걸렀다.
+    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 686
     # lock 없는 설계의 전제 — 실제 지도에서도 층 안 파일이 배타적이어야 한다
     for L in p["layers"]:
         seen = collections.Counter(f for b in L.get("batches", []) for f in b["files"])
@@ -129,11 +133,9 @@ def test_이_저장소_실측():
 
 
 def test_간선은_from_이_의존하는_쪽이다():
-    """🔴 이 방향을 뒤집어 읽으면 정렬이 **정반대**가 된다.
+    """`{from: A, to: B}` 는 "A 가 B 에 의존" 이다 — 뒤집어 읽으면 정렬이 정반대가 된다.
 
-    `{from: A, to: B}` = "A 가 B 에 의존". 그래서 out_deg 0(아무것도 안 끌어옴)이 층0 이고,
-    in_deg 0(아무도 안 씀 = 진입점)이 맨 위층이다. 2026-08-30 에 실제로 헷갈린 자리라
-    시험으로 못 박는다.
+    out_deg 0(아무것도 안 끌어옴)이 층0 이고, in_deg 0(아무도 안 씀 = 진입점)이 맨 위층이다.
     """
     # main 이 util 을 부른다  ->  (main, util)
     lv, _ = layer_of({"main": 1, "util": 1}, [("main", "util")])

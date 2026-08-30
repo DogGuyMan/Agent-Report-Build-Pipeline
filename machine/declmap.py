@@ -4,17 +4,11 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """declmap.py — 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다.
 
-**왜 있나.** 전수조사(Mode 1)에서 LLM 이 소스를 전부 정독하면 비싸다.
-🔵 2026-08-29 실측 — QtVisionEdit 30파일 2,982줄을 전량 정독했을 때 소스 1줄당 96토큰,
-StickRush 110파일 8,164줄을 이 방식(선언 + 문서 주석)으로 읽었을 때 **1줄당 33토큰**이었다.
-약 3배 차이다. 그 손 작업을 도구로 굳힌 것이 이 파일이다.
+뽑는 것은 선언 한 줄과 그 **바로 위에 붙은 문서 주석**이다. 본문은 뽑지 않는다.
 
-**무엇을 뽑나.** 선언 한 줄과, 그 **바로 위에 붙은 문서 주석**이다. 저자가 직접 쓴 의도라
-이름에서 추론하는 것보다 근거가 낫다. 본문은 뽑지 않는다 — 본문이 필요하면 사람이 연다.
-
-**한계를 분명히 한다.** 정규식이라 문법을 이해하지 못한다. 문자열 안의 `class` 같은 낱말에
-속을 수 있고, 여러 줄에 걸친 선언은 첫 줄만 본다. 그래서 이 산출물은 **읽을 자리를 좁혀 주는
-목록**이지 코드 지도가 아니다. 지도는 정적 수집기(clang-uml · roslyn-dump)가 만든다.
+⚠ 정규식이라 문법을 이해하지 못한다. 문자열 안의 `class` 같은 낱말에 속을 수 있고,
+여러 줄에 걸친 선언은 첫 줄만 본다. 산출물은 읽을 자리를 좁혀 주는 목록이지 코드 지도가
+아니다 — 지도는 정적 수집기(clang-uml · roslyn-dump)가 만든다.
 
   python3 declmap.py <저장소> --lang cs --include Assets/@Scripts -o declmap.json
   python3 declmap.py <저장소> --lang cpp --include core --include app
@@ -25,37 +19,69 @@ import os
 import re
 import subprocess
 import sys
+from typing import TypedDict
 
-# ── 언어별 규칙. 넷 고정이다 — 레지스트리를 만들지 않는다.
+
+# 언어 규칙 한 칸의 생김새를 적어 둔 표.
+# 쓰는 것: 없음 · 쓰이는 곳: declmap.LANGS, doc_above, declmap.scan
+class LangRule(TypedDict):
+    """LANGS 한 칸의 생김새. 다섯 칸 중 None 이 될 수 있는 것은 `strip` 하나뿐이다."""
+    exts: tuple[str, ...]
+    decl: re.Pattern[str]
+    doc: tuple[str, ...]
+    lead: re.Pattern[str]
+    strip: re.Pattern[str] | None
+
+
+# ── 언어별 규칙. 넷 고정이다.
 #    doc:  선언 위에 붙는 문서 주석의 시작 표시
 #    lead: 주석 표시 자체를 벗기는 꼴 (줄 앞의 /// · # · * 따위)
-#    strip: 벗긴 뒤 남은 마크업을 걷어 내는 꼴 (C# 의 <summary> 등). 없으면 생략
-LANGS = {
-    "cs": dict(
-        exts=(".cs",),
-        decl=re.compile(r'^\s*(?:\[[^\]]*\]\s*)?(?:public|internal|protected|private)?\s*'
-                        r'(?:static\s+|abstract\s+|sealed\s+|partial\s+|readonly\s+)*'
-                        r'(class|interface|struct|enum|record)\s+([A-Za-z_][\w<>,\s]*)'),
-        doc=("///",), lead=re.compile(r'^\s*///+\s?'), strip=re.compile(r'<[^>]+>'),
-    ),
-    "cpp": dict(
-        exts=(".h", ".hpp", ".cpp", ".cc"),
-        decl=re.compile(r'^\s*(?:template\s*<[^>]*>\s*)?'
-                        r'(class|struct|enum class|enum|namespace)\s+([A-Za-z_]\w*)'),
-        doc=("///", "//!", "//"), lead=re.compile(r'^\s*//[/!]*\s?'), strip=None,
-    ),
-    "py": dict(
-        exts=(".py",),
-        decl=re.compile(r'^\s*(?:@\w+\s*)?(class|def)\s+([A-Za-z_]\w*)'),
-        doc=("#",), lead=re.compile(r'^\s*#+\s?'), strip=None,
-    ),
-    "ts": dict(
-        exts=(".ts", ".tsx", ".mjs", ".js", ".jsx"),
-        decl=re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?'
-                        r'(class|interface|type|enum|function|const)\s+([A-Za-z_$][\w$]*)'),
-        doc=("///", "//", "*"), lead=re.compile(r'^\s*(?://+|\*+)\s?'), strip=None,
-    ),
+#    strip: 벗긴 뒤 남은 마크업을 걷어 내는 꼴 (C# 의 <summary> 등). 없으면 None
+LANGS: dict[str, LangRule] = {
+    "cs": {
+        "exts": (".cs",),
+        "decl": re.compile(r'^\s*(?:\[[^\]]*\]\s*)?(?:public|internal|protected|private)?\s*'
+                           r'(?:static\s+|abstract\s+|sealed\s+|partial\s+|readonly\s+)*'
+                           r'(class|interface|struct|enum|record)\s+([A-Za-z_][\w<>,\s]*)'),
+        "doc": ("///",), "lead": re.compile(r'^\s*///+\s?'), "strip": re.compile(r'<[^>]+>'),
+    },
+    "cpp": {
+        "exts": (".h", ".hpp", ".cpp", ".cc"),
+        "decl": re.compile(r'^\s*(?:template\s*<[^>]*>\s*)?'
+                           r'(class|struct|enum class|enum|namespace)\s+([A-Za-z_]\w*)'),
+        "doc": ("///", "//!", "//"), "lead": re.compile(r'^\s*//[/!]*\s?'), "strip": None,
+    },
+    "py": {
+        "exts": (".py",),
+        "decl": re.compile(r'^\s*(?:@\w+\s*)?(class|def)\s+([A-Za-z_]\w*)'),
+        "doc": ("#",), "lead": re.compile(r'^\s*#+\s?'), "strip": None,
+    },
+    "ts": {
+        "exts": (".ts", ".tsx", ".mjs", ".js", ".jsx"),
+        "decl": re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?'
+                           r'(class|interface|type|enum|function|const)\s+([A-Za-z_$][\w$]*)'),
+        "doc": ("///", "//", "*"), "lead": re.compile(r'^\s*(?://+|\*+)\s?'), "strip": None,
+    },
 }
+
+
+# 뽑아낸 선언 한 줄의 생김새.
+# 쓰는 것: 없음 · 쓰이는 곳: declmap.FileDecls, declmap.scan
+class Decl(TypedDict):
+    """선언 하나. `line` 은 1-based 다. `scan` 이 내고 `render` · warmup · run_mode1 이 읽는다."""
+    line: int
+    kind: str
+    name: str
+    doc: str
+
+
+# 파일 한 개 몫의 선언 묶음.
+# 쓰는 것: Decl · 쓰이는 곳: declmap.scan, render
+class FileDecls(TypedDict):
+    """파일 한 개 몫. `warmup.decl_hash` 가 받는 것이 이 꼴이다."""
+    lines: int
+    decls: list[Decl]
+
 
 SKIP_DIRS = {"node_modules", "__pycache__", ".git", "build", "obj", "bin",
              "vcpkg_installed", ".venv", "Library", "Temp", "out", ".tmp"}
@@ -65,13 +91,13 @@ DOC_MAX_LINES = 14   # 선언 위로 이만큼만 거슬러 올라간다
 # <include file="machine/comments.xml" path="//term[@id='declmap.tracked_files']"/>
 # 조사 대상 파일 목록을 고른다.
 # 쓰는 것: 없음 · 쓰이는 곳: declmap.scan, warmup.main
-def tracked_files(repo, lang, includes):
+def tracked_files(repo: str, lang: str, includes: list[str]) -> list[str]:
     """git 이 아는 파일만 본다 — 빌드 산출물과 캐시를 걸러 내는 가장 싼 방법이다."""
     r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
     if r.returncode != 0:
         return []
     exts = LANGS[lang]["exts"]
-    out = []
+    out: list[str] = []
     for rel in r.stdout.split("\n"):
         if not rel or not rel.endswith(exts):
             continue
@@ -86,15 +112,17 @@ def tracked_files(repo, lang, includes):
 # <include file="machine/comments.xml" path="//term[@id='doc_above']"/>
 # 선언 바로 위에 붙은 문서 주석을 모은다.
 # 쓰는 것: 없음 · 쓰이는 곳: declmap.scan
-def doc_above(lines, i, rule):
+def doc_above(lines: list[str], i: int, rule: LangRule) -> str:
     """선언 위에 붙은 문서 주석을 모은다. 빈 줄과 특성(attribute) 줄은 건너뛴다."""
-    got, j = [], i - 1
+    got: list[str] = []
+    j = i - 1
     while j >= 0 and (i - j) <= DOC_MAX_LINES:
         s = lines[j].strip()
         if s.startswith(rule["doc"]):
             body = rule["lead"].sub("", s)
-            if rule["strip"]:
-                body = rule["strip"].sub("", body)
+            strip = rule["strip"]      # 지역 변수로 받아야 None 검사가 아래까지 이어진다
+            if strip:
+                body = strip.sub("", body)
             got.insert(0, body.strip())
         elif s == "" or s.startswith("[") or s.startswith("@"):
             pass                      # 빈 줄과 특성은 주석과 선언 사이에 흔히 낀다
@@ -107,16 +135,18 @@ def doc_above(lines, i, rule):
 # <include file="machine/comments.xml" path="//term[@id='declmap.scan']"/>
 # 파일을 돌며 선언과 문서 주석을 모은다.
 # 쓰는 것: doc_above, declmap.tracked_files · 쓰이는 곳: warmup.decl_hash, warmup.main
-def scan(repo, lang, includes, doc_chars):
+def scan(repo: str, lang: str, includes: list[str],
+         doc_chars: int) -> tuple[dict[str, FileDecls], dict[str, int]]:
     rule = LANGS[lang]
-    result, counts = {}, {"파일": 0, "선언": 0, "문서 주석 있음": 0}
+    result: dict[str, FileDecls] = {}
+    counts = {"파일": 0, "선언": 0, "문서 주석 있음": 0}
     for rel in tracked_files(repo, lang, includes):
         path = os.path.join(repo, rel)
         try:
             lines = open(path, encoding="utf-8", errors="replace").read().split("\n")
         except OSError:
             continue
-        hits = []
+        hits: list[Decl] = []
         for i, ln in enumerate(lines):
             m = rule["decl"].match(ln)
             if not m:
@@ -135,9 +165,9 @@ def scan(repo, lang, includes, doc_chars):
     return result, counts
 
 
-def render(result):
+def render(result: dict[str, FileDecls]) -> str:
     """사람과 LLM 이 그대로 읽을 수 있는 글자로. JSON 보다 짧다."""
-    out = []
+    out: list[str] = []
     for rel, v in result.items():
         out.append(f"══ {rel}  ({v['lines']}줄)")
         for d in v["decls"]:
@@ -147,7 +177,7 @@ def render(result):
     return "\n".join(out)
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo")

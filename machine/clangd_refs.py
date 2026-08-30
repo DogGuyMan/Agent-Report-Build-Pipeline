@@ -4,11 +4,11 @@
 # 쓰는 것: clangd · 쓰이는 곳: 없음
 """clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6).
 
-E7 의 설계 제약: 산출물은 엔진 중립이어야 한다. LSP 의 uri/range 형태를
-그대로 내보내지 않고 {repo 상대경로, line, col} 로 정규화해서 낸다.
-E5(libclang) 로 갈아끼울 때 소비자가 안 바뀌게 하기 위해서다.
+E7 제약 — 산출물은 엔진 중립이다. LSP 의 uri/range 를 그대로 내보내지 않고
+{repo 상대경로, line, col} 로 정규화해서 낸다.
 """
-import json, os, subprocess, sys, threading, time
+import json, os, subprocess, threading, time
+from typing import IO, Any
 from urllib.parse import urlparse, unquote
 
 
@@ -16,32 +16,41 @@ from urllib.parse import urlparse, unquote
 # clangd 프로세스 하나를 감싼 클래스.
 # 쓰는 것: 없음 · 쓰이는 곳: reverse_refs.main, reverse_refs.py
 class Clangd:
-    def __init__(self, root, compdb_dir, binary="clangd", background_index=True):
+    def __init__(self, root: str, compdb_dir: str,
+                 binary: str = "clangd", background_index: bool = True) -> None:
         self.root = os.path.abspath(root)
         argv = [binary, f"--compile-commands-dir={compdb_dir}", "--log=error"]
         if background_index:
             argv.append("--background-index")
-        self.proc = subprocess.Popen(
+        self.proc: subprocess.Popen[bytes] = subprocess.Popen(
             argv, cwd=self.root,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # 파이프 셋을 여기서 한 번만 좁혀 붙들어 둔다. 위에서 셋 다 subprocess.PIPE 로
+        # 고정해 넘겼으므로 None 이 될 수 없다.
+        assert self.proc.stdin is not None
+        assert self.proc.stdout is not None
+        assert self.proc.stderr is not None
+        self._stdin: IO[bytes] = self.proc.stdin
+        self._stdout: IO[bytes] = self.proc.stdout
+        self._stderr: IO[bytes] = self.proc.stderr
         self._id = 0
-        self._pending = {}
-        self._notifications = []      # 서버가 보낸 알림 전량 (관찰용)
-        self._progress = {}           # token -> 마지막 kind
+        self._pending: dict[int, dict[str, Any]] = {}
+        self._notifications: list[dict[str, Any]] = []   # 서버가 보낸 알림 전량 (관찰용)
+        self._progress: dict[str, str] = {}              # token -> 마지막 kind
         self._lock = threading.Lock()
         threading.Thread(target=self._reader, daemon=True).start()
         threading.Thread(target=self._drain_stderr, daemon=True).start()
 
     # ---- 프레이밍: Content-Length 헤더 + CRLF CRLF + 본문 ----
-    def _send(self, obj):
+    def _send(self, obj: dict[str, Any]) -> None:
         body = json.dumps(obj).encode()
-        self.proc.stdin.write(b"Content-Length: %d\r\n\r\n" % len(body) + body)
-        self.proc.stdin.flush()
+        self._stdin.write(b"Content-Length: %d\r\n\r\n" % len(body) + body)
+        self._stdin.flush()
 
-    def _reader(self):
-        f = self.proc.stdout
+    def _reader(self) -> None:
+        f = self._stdout
         while True:
-            length = None
+            length: int | None = None
             while True:
                 line = f.readline()
                 if not line:
@@ -53,7 +62,7 @@ class Clangd:
                     length = int(line.split(b":")[1])
             if length is None:
                 continue
-            msg = json.loads(f.read(length))
+            msg: dict[str, Any] = json.loads(f.read(length))
             if "id" in msg and ("result" in msg or "error" in msg):
                 with self._lock:
                     self._pending[msg["id"]] = msg
@@ -71,11 +80,11 @@ class Clangd:
                         if "kind" in val:
                             self._progress[str(pr.get("token"))] = val["kind"]
 
-    def _drain_stderr(self):
-        for _ in iter(self.proc.stderr.readline, b""):
+    def _drain_stderr(self) -> None:
+        for _ in iter(self._stderr.readline, b""):
             pass
 
-    def request(self, method, params, timeout=120):
+    def request(self, method: str, params: Any, timeout: float = 120) -> dict[str, Any]:
         self._id += 1
         rid = self._id
         self._send({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
@@ -87,11 +96,11 @@ class Clangd:
             time.sleep(0.01)
         raise TimeoutError(f"{method} 가 {timeout}s 안에 응답하지 않았다")
 
-    def notify(self, method, params):
+    def notify(self, method: str, params: Any) -> None:
         self._send({"jsonrpc": "2.0", "method": method, "params": params})
 
     # ---- 수명 ----
-    def initialize(self):
+    def initialize(self) -> dict[str, Any]:
         r = self.request("initialize", {
             "processId": os.getpid(),
             "rootUri": "file://" + self.root,
@@ -104,14 +113,15 @@ class Clangd:
         self.notify("initialized", {})
         return r
 
-    def did_open(self, rel):
+    def did_open(self, rel: str) -> None:
         path = os.path.join(self.root, rel)
         with open(path, encoding="utf-8", errors="replace") as fh:
             text = fh.read()
         self.notify("textDocument/didOpen", {"textDocument": {
             "uri": "file://" + path, "languageId": "cpp", "version": 1, "text": text}})
 
-    def references(self, rel, line, col, include_decl=True):
+    def references(self, rel: str, line: int, col: int,
+                   include_decl: bool = True) -> dict[str, Any]:
         """line/col 은 clang-uml 과 같은 1-based 로 받는다. LSP 는 0-based 라 여기서 변환한다."""
         path = os.path.join(self.root, rel)
         r = self.request("textDocument/references", {
@@ -121,7 +131,7 @@ class Clangd:
         })
         return r
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         try:
             self.request("shutdown", None, timeout=10)
             self.notify("exit", None)
@@ -130,29 +140,30 @@ class Clangd:
         self.proc.terminate()
 
     # ---- 관찰 / 색인 완료 판정 ----
-    def notifications(self):
+    def notifications(self) -> list[dict[str, Any]]:
         with self._lock:
             return list(self._notifications)
 
-    def progress_state(self):
+    def progress_state(self) -> dict[str, str]:
         with self._lock:
             return dict(self._progress)
 
-    def index_idle(self):
+    def index_idle(self) -> bool:
         """진행 중인(begin/report 상태로 남은) progress 토큰이 하나도 없으면 idle."""
         with self._lock:
             return all(k == "end" for k in self._progress.values())
 
-    def wait_for_index(self, timeout=600, settle=2.0, poll=0.25):
-        """색인이 시작됐다가 전부 end 로 끝날 때까지 기다린다.
+    def wait_for_index(self, timeout: float = 600, settle: float = 2.0,
+                       poll: float = 0.25) -> tuple[bool, float]:
+        """색인이 시작됐다가 전부 end 로 끝날 때까지 기다린다. (완료했나, 걸린 초).
 
-        settle 은 '아직 시작도 안 한' 상태와 '이미 끝난' 상태를 구분하기 위한 유예다.
+        settle 은 '아직 시작도 안 한' 상태와 '이미 끝난' 상태를 가르는 유예다.
         begin 이 한 번도 안 왔는데 idle 이라고 판정하면 콜드 상태에서 오답을 낸다.
         """
         t0 = time.time()
         seen_any = False
         last_change = time.time()
-        prev = None
+        prev: dict[str, str] | None = None
         while time.time() - t0 < timeout:
             st = self.progress_state()
             if st:
@@ -170,6 +181,6 @@ class Clangd:
 # <include file="machine/comments.xml" path="//term[@id='to_repo_relative']"/>
 # 언어 서버가 준 파일 주소를 저장소 기준 상대경로로 바꾼다.
 # 쓰는 것: 없음 · 쓰이는 곳: reverse_refs.main
-def to_repo_relative(uri, root):
+def to_repo_relative(uri: str, root: str) -> str:
     p = unquote(urlparse(uri).path)
     return os.path.relpath(p, root)

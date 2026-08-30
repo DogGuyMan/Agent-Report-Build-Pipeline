@@ -1,84 +1,60 @@
-"""test_run_mode1.py — Mode 1 실행기의 회귀 테스트.
+"""Mode 1 실행기의 회귀 테스트.
 
-**왜 필요한가.** 이 실행기의 존재 이유는 **토큰과 시간을 정확히 재는 것**이다.
-그래서 재는 자리가 틀리면 도구 전체가 무의미해진다. 그런데 그 다섯 자리는
-**틀려도 오류가 나지 않는다** — 조용히 0이나 절반을 내고 표까지 잘 그려진다.
-
-  1. 단계 고르기   이미 산출물이 있는 단계를 다시 돌면 시간이 부풀고, 없는 단계를
-                   건너뛰면 그 뒤가 통째로 막힌다.
-  2. 에이전트 하나 LLM 단계는 **하나**다. 둘로 쪼개면 캐시가 새로 서서 토큰이 부풀고
-                   측정의 뜻이 달라진다.
-  3. 토큰 합       `usage` 는 넷으로 쪼개져 온다(입력 · 출력 · 캐시 읽기 · 캐시 생성).
-                   캐시를 빼고 더하면 실제 사용량의 일부만 세게 된다.
-  4. 실패 판정     `claude -p` 는 막혀도 종료 코드 0 을 낼 수 있다. `is_error` 와
-                   `subtype` 을 봐야 한다.
-  5. 투영 덮어쓰기 `terms_db.py` 에 정적 `codegraph.json` 을 안 주면 투영이 그 파일을
-                   **덮어쓴다**. 노드가 조용히 줄어든다.
+재는 자리는 **틀려도 오류가 나지 않는다** — 조용히 0이나 절반을 내고 표까지 잘 그려진다.
+그래서 여기서 본다: 단계 고르기 · 토큰 합(캐시 둘을 더하는가) · 실패 판정(종료 코드 0 인
+실패를 잡는가) · 투영이 정적 `codegraph.json` 을 덮어쓰지 않는가 · 층 병렬과 샤드 병합.
 
   python -m pytest runner/test_run_mode1.py -q      # .venv 를 켠 뒤
 """
+import json
 import os
 import sys
 import time
+from pathlib import Path
+from typing import cast
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_mode1 as R  # noqa: E402
+import warmup as W  # noqa: E402
+from survey_plan import PlanBatch, SurveyPlan  # noqa: E402
+from warmup import Manifest  # noqa: E402
 
 
 # ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
-def test_빈_저장소면_아홉_단계를_순서대로_돈다():
-    """예전 이름은 `test_plan_runs_everything_on_an_empty_repo` 였다.
-
-    warmup 배선까지는 일곱이었다(prep warmup agent warmup-save terms build check).
-    2026-08-30 사용자 결정으로 `agent` 가 `survey` 와 `wiki` 로 갈렸고, `terms` 가 그 둘 사이로 왔다.
-    `terms` 를 가운데 둔 이유는 산문 세션이 **인용 검사를 통과한** terms-db.json 을
-    재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
+def test_빈_저장소면_열_단계를_순서대로_돈다():
+    """`terms` 가 `survey` 와 `wiki` 사이인 것은 산문 세션이 **인용 검사를 통과한**
+    terms-db.json 을 재료로 받게 하려는 것이다.
     """
     assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "prep", "warmup", "survey-plan", "survey", "warmup-save",
+        "lang-select", "prep", "warmup", "survey-plan", "survey", "warmup-save",
         "terms", "wiki", "build", "check"]
 
 
 def test_warmup_관문이_survey_를_감싼다():
-    """예전 이름은 `test_the_two_warmup_gates_straddle_the_agent` 였다.
-
-    관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `survey` 가 레코드를 만들고
-    `wiki` 는 산문을 쓴다. `wiki` 뒤에 확정을 두면 산문 실패가 다음 실행의 전량 재조사를
-    부른다 — 레코드는 멀쩡한데 27분을 다시 쓰는 비용 회귀다 (J6).
+    """관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `wiki` 뒤에 확정을 두면
+    산문 실패가 다음 실행의 전량 재조사를 부른다 (J6).
     """
     p = R.plan_stages(False, False, False)
     assert p.index("warmup") < p.index("survey") < p.index("warmup-save")
     assert p.index("warmup-save") < p.index("wiki")
 
 
-def test_두_단계가_모형을_부른다():
-    """예전 이름은 `test_only_one_stage_calls_the_model` 였다. 예전에는 `agent` 한 칸이었고
-    그것이 **이 설계의 급소**라고 적혀 있었다.
-
-    이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
-    측정값이 파이프라인 비용이 아니라 세션 수의 함수가 된다.
-    **2026-08-30 사용자가 그 결정을 뒤집었다.** 층 오름차순 병렬이 세션 분리를 전제하기 때문이다.
-    캐시가 나빠지는 대신 배치마다 읽는 양이 크게 준다 — 어느 쪽이 큰지는 **아직 재지 않았다.**
-    """
+def test_세_단계가_모형을_부른다():
+    """모형을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다."""
     stages = R.plan_stages(False, False, False)
-    assert [s for s in stages if R.is_agent_stage(s)] == ["survey", "wiki"]
+    assert [s for s in stages if R.is_agent_stage(s)] == ["lang-select", "survey", "wiki"]
 
 
 def test_산출물이_있는_LLM_단계만_각자_빠진다():
-    """예전 이름은 `test_plan_skips_the_agent_when_its_output_already_exists` 와
-    `test_plan_keeps_the_agent_when_only_half_its_work_is_done` 둘이었다.
-    둘을 하나로 합쳤다 — 둘 다 "산출물 유무로 각 LLM 단계가 걸리는가" 라는 같은 성질을 본다.
-
-    예전에는 `agent` 하나를 `has_reading and has_prose` 로 걸렀다.
-    이제 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다. 이건 **개선**이지 회귀가 아니다.
-    """
+    """LLM 단계 둘은 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다."""
     both = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
     assert "survey" not in both and "wiki" not in both
     # warmup 두 칸은 남는다 — 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
     # 매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다(warmup 배선의 규칙 그대로).
-    assert both == ["prep", "warmup", "survey-plan", "warmup-save", "terms", "build", "check"]
+    assert both == ["lang-select", "prep", "warmup", "survey-plan", "warmup-save",
+                    "terms", "build", "check"]
 
     only_reading = R.plan_stages(True, True, False)
     assert "survey" not in only_reading and "wiki" in only_reading
@@ -93,26 +69,17 @@ def test_the_save_gate_comes_before_terms():
     assert p.index("warmup-save") < p.index("terms")
 
 
-def test_skip_은_새_여덟_흐름_기준으로_걸러낸다():
-    """예전 이름은 `test_skipping_warmup_restores_the_old_five_stage_flow` 였다.
-
-    옛 시험은 `skip=["warmup", "warmup-save"]` 가 **다섯 단계 시절의 대조군**
-    (`["prep", "agent", "terms", "build", "check"]`)을 되살린다고 단언했다. 이 계획이
-    `agent` 를 지웠으므로 그 값 자체가 더는 나올 수 없다 — `STAGES` 에 `agent` 가 없다.
-
-    **다섯 단계 대조군은 이 코드로 만드는 것이 아니다.** 계획 맨 위 "🔴🔴 서브에이전트 모델"
-    절이 이미 정한 대로, 옛 코드가 필요한 대조군은 `git worktree add /tmp/rb-old 9223143`
-    로 커밋 `9223143` 을 통째로 떼어 돌린다. `--skip warmup,warmup-save` 는 그 대조군을
-    만드는 경로가 **아니다** — 이 시험은 그저 `skip` 이 새 여덟 단계 목록에서도 여전히
-    걸러내는 필터로 옳게 동작하는지만 본다.
-    """
+def test_skip_은_열_단계_흐름_기준으로_걸러낸다():
+    """`skip` 이 열 단계 목록에서 걸러내는 필터로 옳게 도는지만 본다."""
     p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
-    assert p == ["prep", "survey-plan", "survey", "terms", "wiki", "build", "check"]
+    assert p == ["lang-select", "prep", "survey-plan", "survey", "terms",
+                 "wiki", "build", "check"]
 
 
 def test_plan_keeps_prep_even_when_codegraph_exists():
     """prep 은 늘 부른다 — 건너뛸지는 prep 자신이 정한다(prepPlan 의 hasCodegraph)."""
-    assert R.plan_stages(has_codegraph=True, has_reading=False, has_prose=False)[0] == "prep"
+    stages = R.plan_stages(has_codegraph=True, has_reading=False, has_prose=False)
+    assert stages[0] == "lang-select" and stages[1] == "prep"
 
 
 def test_plan_only_and_skip_are_honoured():
@@ -178,14 +145,14 @@ def test_agent_result_is_a_failure_when_json_is_unreadable():
 
 
 # ── 3.5 WarmUp — 언어 이름 다리
-def test_lang_of_bridges_the_two_naming_schemes(tmp_path):
+def test_lang_of_bridges_the_two_naming_schemes(tmp_path: Path):
     """코드 지도는 'csharp' 이라 적고 declmap 은 'cs' 로 안다. 이 한 칸이 어긋나면 단계가 죽는다."""
     p = tmp_path / "codegraph.json"
     p.write_text('{"language": "csharp"}', encoding="utf-8")
     assert R.lang_of(str(p)) == "cs"
 
 
-def test_lang_of_passes_through_a_name_declmap_already_knows(tmp_path):
+def test_lang_of_passes_through_a_name_declmap_already_knows(tmp_path: Path):
     p = tmp_path / "codegraph.json"
     p.write_text('{"language": "cpp"}', encoding="utf-8")
     assert R.lang_of(str(p)) == "cpp"
@@ -198,10 +165,8 @@ def test_lang_of_is_none_when_it_cannot_tell():
 
 
 def test_seed_includes_position_only_files():
-    """급소 — 함수 본문만 바꾼 변경은 '위치만' 으로 온다.
-
-    decl_hash 는 (kind, name) 만 해싱하므로(warmup.py:84) 본문을 통째로 다시 써도
-    선언 이름이 같으면 '위치만' 이다. 이것을 빼면 레코드의 does 가 조용히 낡는다.
+    """함수 본문만 바꾼 변경은 '위치만' 으로 온다 — `warmup.decl_hash` 가 (kind, name)
+    만 해싱하기 때문이다. 이 갈래를 빼면 레코드의 does 가 조용히 낡는다.
     """
     판정 = {"유효": ["a.cpp"], "재읽기": ["b.cpp"], "위치만": ["c.cpp"], "삭제됨": ["d.cpp"]}
     assert R.changed_seed(판정) == ["b.cpp", "c.cpp"]
@@ -223,7 +188,7 @@ def test_seed_tolerates_missing_buckets():
 
 
 def test_agent_is_skipped_when_nothing_changed_and_records_exist():
-    """국소 변경의 이득이 여기서 나온다 — 27분짜리 단계를 통째로 건너뛴다."""
+    """국소 변경의 이득이 여기서 나온다 — 조사 단계를 통째로 건너뛴다."""
     assert R.should_call_agent(targets=[], has_reading=True) is False
 
 
@@ -255,7 +220,7 @@ def test_warmup_section_is_empty_when_there_is_nothing_to_scope():
     assert R.warmup_section(None, total=77) == ""
 
 
-def _배치():
+def _배치() -> PlanBatch:
     return {"id": "L1-B00", "files": ["core/net.py"],
             "symbols": [{"id": "send", "name": "send", "file": "core/net.py",
                          "line": 42, "kind": "function", "in_cycle": False,
@@ -263,9 +228,7 @@ def _배치():
 
 
 def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
-    """예전 이름은 `test_prompt_carries_the_scope_when_warmup_gave_one` 였다.
-
-    warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
+    """warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
     기존 레코드의 means/does 를 함부로 다시 쓰지 않는다.
     """
     p = R.survey_batch_prompt("/r", "/root", _배치(), "", targets=["core/a.cpp"], total=77)
@@ -274,8 +237,7 @@ def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
 
 
 def test_배치_프롬프트는_범위가_없으면_전량_조사다():
-    """예전 이름은 `test_prompt_without_a_scope_is_the_full_survey` 였다.
-    warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다."""
+    """warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다."""
     p = R.survey_batch_prompt("/r", "/root", _배치(), "")
     assert "증분" not in p
 
@@ -299,11 +261,8 @@ def test_claude_argv_does_not_pass_the_prompt_on_the_command_line():
 
 
 def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
-    """예전에는 한 프롬프트가 전수조사와 산문을 **둘 다** 지시했다
-    (`test_the_prompt_names_both_halves_of_the_one_agent_job`).
-
-    2026-08-30 사용자 결정으로 갈렸다. 배치 세션은 자기 심볼만 읽고 자기 샤드에만 쓴다 —
-    terms-reading.json 을 직접 고치면 동시에 도는 다른 배치가 서로를 지운다.
+    """배치 세션은 자기 심볼만 읽고 자기 샤드에만 쓴다 — terms-reading.json 을 직접
+    고치면 동시에 도는 다른 배치가 서로를 지운다.
     """
     p = R.survey_batch_prompt(repo="/어느/저장소", root="/도구/뿌리",
                               batch=_배치(), dep_records="  - encode — 바이트로 바꾼다")
@@ -320,9 +279,10 @@ def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
 
 def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다():
     """층0 은 의존 대상이 없다. 빈 칸을 그냥 두면 세션이 무엇이 빠졌는지 헷갈린다."""
-    batch = {"id": "L0-B00", "files": ["a.py"],
-             "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
-                          "kind": "function", "in_cycle": False, "depends_on": []}]}
+    batch: PlanBatch = {"id": "L0-B00", "files": ["a.py"],
+                        "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
+                                     "kind": "function", "in_cycle": False,
+                                     "depends_on": []}]}
     assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, "")
 
 
@@ -339,7 +299,9 @@ def test_비노드_프롬프트는_심볼이_아닌_종류만_말한다():
 def test_의존_발췌는_아래층에_있는_것만_낸다():
     """전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 캐시 이점이 사라진다."""
     merged = {"encode": {"means": "바이트로 바꾼다"}, "무관": {"means": "상관없다"}}
-    batch = {"symbols": [{"id": "send", "depends_on": ["encode", "아직없음"]}]}
+    # 일부러 모자란 배치다 — `dep_excerpt` 가 보는 열쇠(`symbols[].depends_on`)만 담았다.
+    # `id` · `files` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
+    batch = cast(PlanBatch, {"symbols": [{"id": "send", "depends_on": ["encode", "아직없음"]}]})
     got = R.dep_excerpt(merged, batch)
     assert "encode" in got and "바이트로 바꾼다" in got
     assert "무관" not in got
@@ -347,7 +309,8 @@ def test_의존_발췌는_아래층에_있는_것만_낸다():
 
 
 def test_의존_발췌는_아무것도_없으면_빈_문자열():
-    assert R.dep_excerpt({}, {"symbols": [{"id": "a", "depends_on": []}]}) == ""
+    # 위와 같은 이유로 부분 배치다
+    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]})) == ""
 
 
 # ── 5. 투영이 정적 codegraph 를 덮어쓰지 않게
@@ -367,9 +330,10 @@ def test_terms_argv_passes_the_static_codegraph_positionally():
 
 # ── 6. 보고 — 재는 것이 목적이므로 표에 네 값이 다 있어야 한다
 def test_report_has_a_row_per_stage_and_a_total():
-    rows = [
-        {"stage": "prep", "seconds": 68.4, "usage": R.normalize_usage(None), "ok": True},
-        {"stage": "agent", "seconds": 512.0, "ok": True,
+    rows: list[R.StageRow] = [
+        {"stage": "prep", "seconds": 68.4, "usage": R.normalize_usage(None),
+         "ok": True, "why": ""},
+        {"stage": "agent", "seconds": 512.0, "ok": True, "why": "",
          "usage": R.normalize_usage({"usage": {"input_tokens": 10, "output_tokens": 20,
                                                "cache_read_input_tokens": 30,
                                                "cache_creation_input_tokens": 40},
@@ -390,7 +354,7 @@ def test_report_marks_a_failed_stage():
 
 
 def test_report_marks_a_skipped_stage():
-    """건너뜀을 '성공' 으로 그리면 27분이 15초가 된 이유를 읽는 사람이 알 수 없다."""
+    """건너뜀을 '성공' 으로 그리면 시간이 확 준 이유를 읽는 사람이 알 수 없다."""
     text = R.format_report([{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
                              "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)}])
     assert "건너뜀" in text
@@ -399,50 +363,57 @@ def test_report_marks_a_skipped_stage():
 
 
 def test_a_skipped_stage_does_not_break_the_total():
-    rows = [{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
-             "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)},
-            {"stage": "build", "seconds": 2.0, "ok": True,
-             "usage": R.normalize_usage(None)}]
+    rows: list[R.StageRow] = [{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
+                               "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)},
+                              {"stage": "build", "seconds": 2.0, "ok": True, "why": "",
+                               "usage": R.normalize_usage(None)}]
     assert "합계" in R.format_report(rows)
 
 
-# ── 11. warmup 확정 관문이 fail-open 이 되지 않는가 (2026-08-30 신설)
-def test_survey_가_실패하면_매니페스트를_갱신하지_않는다(monkeypatch):
-    """🔴 층 병렬이 만드는 조용한 버그를 막는 시험이다.
-
-    warmup 배선의 `save_warmup` 은 `r["stage"] == "agent"` 로 실패를 찾았다.
-    단계가 `survey` 로 갈리고 행 라벨이 `survey/L0-B00` 꼴이 되면서 그 비교가
-    **영원히 거짓**이 됐다 — 조사가 실패해도 매니페스트가 갱신되는 fail-open 이다.
-    그래서 단계 이름만 떼어 비교한다.
+# ── 11. warmup 확정 관문이 fail-open 이 되지 않는가
+def test_survey_가_실패하면_매니페스트를_갱신하지_않는다(monkeypatch: pytest.MonkeyPatch):
+    """행 라벨이 `survey/L0-B00` 꼴이므로 `r["stage"] == "survey"` 로 비교하면 영원히
+    거짓이 되어 fail-open 이 된다. `save_warmup` 은 `/` 앞의 단계 이름만 떼어 본다.
     """
-    import warmup as W
-    saved = []
-    monkeypatch.setattr(W, "save", lambda path, entries: saved.append(path))
+    saved: list[str] = []
 
-    rows = [{"stage": "survey/L0-B00", "ok": True, "usage": R.normalize_usage(None)},
-            {"stage": "survey/L1-B00", "ok": False, "why": "터졌다",
-             "usage": R.normalize_usage(None)}]
-    R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+    def 가짜_save(path: str, entries: Manifest) -> None:
+        saved.append(path)
+
+    monkeypatch.setattr(W, "save", 가짜_save)
+
+    rows: list[R.StageRow] = [
+        {"stage": "survey/L0-B00", "seconds": 0.0, "ok": True, "why": "",
+         "usage": R.normalize_usage(None)},
+        {"stage": "survey/L1-B00", "seconds": 0.0, "ok": False, "why": "터졌다",
+         "usage": R.normalize_usage(None)}]
+    # 일부러 모자란 매니페스트다 — `save_warmup` 은 `None` 인지와 개수만 보고
+    # 나머지는 갈아 끼운 `save` 로 넘길 뿐이다. 다섯 칸을 채우면 소음만 는다.
+    엔트리 = cast(Manifest, {"a.py": {}})
+    R.save_warmup("/캐시/경로.json", 엔트리, rows)
     assert saved == [], "전수조사가 실패했는데 매니페스트를 갱신했다"
 
     rows[1]["ok"] = True
-    R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+    R.save_warmup("/캐시/경로.json", 엔트리, rows)
     assert saved == ["/캐시/경로.json"]
 
 
-def test_판정을_못_했으면_아무것도_쓰지_않는다(monkeypatch):
+def test_판정을_못_했으면_아무것도_쓰지_않는다(monkeypatch: pytest.MonkeyPatch):
     """`entries is None` 은 warmup 이 언어를 몰라 판정을 건너뛴 경우다.
     그때 쓰면 근거 없는 매니페스트가 생긴다."""
-    import warmup as W
-    saved = []
-    monkeypatch.setattr(W, "save", lambda path, entries: saved.append(path))
+    saved: list[str] = []
+
+    def 가짜_save(path: str, entries: Manifest) -> None:
+        saved.append(path)
+
+    monkeypatch.setattr(W, "save", 가짜_save)
     R.save_warmup("/캐시/경로.json", None, [])
-    R.save_warmup(None, {"a.py": {}}, [])
+    R.save_warmup(None, cast(Manifest, {"a.py": {}}), [])      # 위와 같은 이유로 부분 매니페스트다
     assert saved == []
 
 
-# ── 12. 층 병렬 — 동시에 몇 개까지 뜨는가 (2026-08-30 신설)
-def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch):
+# ── 12. 층 병렬 — 동시에 몇 개까지 뜨는가
+def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch: pytest.MonkeyPatch):
     """K4 — 한 층에서 동시에 8배치까지. 넘으면 rate limit 에 걸려 층 전체가 무너진다.
 
     실제로 `claude` 를 부르지 않는다. `run_agent_with` 를 바꿔 끼워 **동시에 몇 개가
@@ -451,7 +422,9 @@ def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch):
     import threading
     lock, live, peak = threading.Lock(), [0], [0]
 
-    def fake(model, repo, root, prompt, timeout=None, label=None):
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
         with lock:
             live[0] += 1
             peak[0] = max(peak[0], live[0])
@@ -467,18 +440,24 @@ def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch):
     assert len(got) == 20
 
 
-def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch):
+def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch: pytest.MonkeyPatch):
     """배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다."""
-    monkeypatch.setattr(R, "run_agent_with",
-                        lambda *a, **k: (0.01, 0, {"usage": {}, "num_turns": 0}))
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        return 0.01, 0, {"usage": {}, "num_turns": 0}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
     jobs = [("L0-B02", "다"), ("L0-B00", "가"), ("L0-B01", "나")]
     labels = [row[0] for row in R.run_layer("claude-sonnet-5", "/r", "/root", jobs)]
     assert labels == ["L0-B00", "L0-B01", "L0-B02"]
 
 
-def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatch):
+def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatch: pytest.MonkeyPatch):
     """배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다."""
-    def fake(model, repo, root, prompt, timeout=None, label=None):
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
         if label == "L0-B01":
             raise RuntimeError("자식이 죽었다")
         return 0.01, 0, {"usage": {}, "num_turns": 0}
@@ -491,15 +470,19 @@ def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatc
     assert len(rows) == 3
 
 
-def test_빈_층은_모형을_부르지_않는다(monkeypatch):
+def test_빈_층은_모형을_부르지_않는다(monkeypatch: pytest.MonkeyPatch):
     """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
-    monkeypatch.setattr(R, "run_agent_with",
-                        lambda *a, **k: pytest.fail("빈 층에서 모형을 불렀다"))
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        pytest.fail("빈 층에서 모형을 불렀다")
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
     assert R.run_layer("claude-sonnet-5", "/r", "/root", []) == []
 
 
-# ── 13. 샤드 병합 — 키 충돌은 전역을 보는 쪽만 푼다 (2026-08-30 신설)
-def _shard(tmp_path, name, payload):
+# ── 13. 샤드 병합 — 키 충돌은 전역을 보는 쪽만 푼다
+def _shard(tmp_path: Path, name: str, payload: R.Records) -> str:
     import json as _j
     d = tmp_path / "_shards"
     d.mkdir(exist_ok=True)
@@ -507,14 +490,14 @@ def _shard(tmp_path, name, payload):
     return str(d)
 
 
-def test_샤드를_하나로_합친다(tmp_path):
+def test_샤드를_하나로_합친다(tmp_path: Path):
     d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
     _shard(tmp_path, "L0-B01", {"나": {"where": "b.py:1"}})
     got = R.merge_shards(d, {})
     assert sorted(got) == ["가", "나"]
 
 
-def test_키가_겹치면_양쪽_다_개명한다(tmp_path):
+def test_키가_겹치면_양쪽_다_개명한다(tmp_path: Path):
     """한쪽만 한정하면 나중에 또 겹친다. `main` 이 9파일이면 9개 전부 개명이다."""
     d = _shard(tmp_path, "L0-B00", {"main": {"where": "app/gui.py:10"}})
     _shard(tmp_path, "L0-B01", {"main": {"where": "core/net.py:20"}})
@@ -523,47 +506,49 @@ def test_키가_겹치면_양쪽_다_개명한다(tmp_path):
     assert sorted(got) == ["gui.main", "net.main"]
 
 
-def test_아래층_레코드를_보존한다(tmp_path):
+def test_아래층_레코드를_보존한다(tmp_path: Path):
     """층 k 의 병합이 층 <k 의 결과를 지우면 조사가 층마다 초기화된다."""
     d = _shard(tmp_path, "L1-B00", {"위": {"where": "b.py:1"}})
     got = R.merge_shards(d, {"아래": {"where": "a.py:1"}})
     assert sorted(got) == ["아래", "위"]
 
 
-def test_이미_있는_키와_겹쳐도_양쪽_다_개명한다(tmp_path):
+def test_이미_있는_키와_겹쳐도_양쪽_다_개명한다(tmp_path: Path):
     """아래층이 이미 쓴 이름과 겹치는 경우다. 새 것만 한정하면 옛 것이 계속 모호하다."""
     d = _shard(tmp_path, "L1-B00", {"main": {"where": "core/net.py:20"}})
     got = R.merge_shards(d, {"main": {"where": "app/gui.py:10"}})
     assert sorted(got) == ["gui.main", "net.main"]
 
 
-def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path):
+def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path: Path):
     """배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 20분을 버리지 않는다."""
     d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
     (tmp_path / "_shards" / "L0-B01.json").write_text("{ 깨진", encoding="utf-8")
     assert sorted(R.merge_shards(d, {})) == ["가"]
 
 
-def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path):
+def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path: Path):
     assert R.merge_shards(str(tmp_path / "없다"), {"가": {}}) == {"가": {}}
 
 
-# ── 14. 위키도 같은 층 순서로 (K6) — 2026-08-30 신설
+# ── 14. 위키도 같은 층 순서로 (K6)
 def test_심볼_층_표를_계획에서_뽑는다():
     """페이지 층을 매기려면 심볼마다 층이 몇인지 알아야 한다."""
-    plan = {"layers": [
+    # 일부러 모자란 계획이다 — `symbol_layers` 가 보는 것은 층 번호와 심볼 id 뿐이라
+    # `totals` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
+    plan = cast(SurveyPlan, {"layers": [
         {"level": 0, "batches": [{"id": "L0-B00", "symbols": [{"id": "encode"}]}]},
         {"level": 1, "batches": [{"id": "L1-B00", "symbols": [{"id": "send"}]}]},
         {"level": 2, "kind": "non-node", "batches": []},
-    ]}
+    ]})
     assert R.symbol_layers(plan) == {"encode": 0, "send": 1}
 
 
 def test_페이지_층은_인용한_심볼의_최대():
     """가장 위층 심볼 하나가 아직 안 다뤄졌으면 그 페이지는 아직 못 쓴다."""
     sym = {"encode": 0, "send": 1, "retry": 3}
-    pages = [{"file": "protocol.md", "symbols": ["encode", "send"]},
-             {"file": "net.md", "symbols": ["retry", "encode"]}]
+    pages: list[R.WikiPage] = [{"file": "protocol.md", "symbols": ["encode", "send"]},
+                               {"file": "net.md", "symbols": ["retry", "encode"]}]
     assert R.page_layers(pages, sym) == {"protocol.md": 1, "net.md": 3}
 
 
@@ -588,7 +573,7 @@ def test_카탈로그_프롬프트는_계획_파일을_내라고_말한다():
 
 def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한다():
     """재설명 대신 링크하게 하는 것이 층 순서를 지키는 이유다."""
-    page = {"file": "net.md", "title": "네트워크", "symbols": ["send"]}
+    page: R.WikiPage = {"file": "net.md", "title": "네트워크", "symbols": ["send"]}
     p = R.wiki_page_prompt(repo="/어느/저장소", root="/도구/뿌리", page=page,
                            lower_pages="  - protocol.md — 프로토콜")
     assert "net.md" in p and "네트워크" in p
@@ -604,28 +589,27 @@ def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
     assert "첫 장" in p
 
 
-# ── 15. 병렬이면 행의 초 합계는 벽시계가 아니다 (2026-08-30 신설)
+# ── 15. 병렬이면 행의 초 합계는 벽시계가 아니다
 def test_보고표는_진짜_벽시계를_따로_받는다():
-    """8개가 동시에 돌면 행의 초를 더한 값이 사람이 기다린 시간의 8배가 된다.
-
-    `wall_seconds` 를 주면 합계 줄이 그 값을 쓴다. 안 주면 예전처럼 행을 더한다 —
+    """`wall_seconds` 를 주면 합계 줄이 그 값을 쓰고, 안 주면 행의 초를 더한다 —
     `run_mode2.py` 와 `run_mode1_5.py` 가 인자 없이 부르므로 기본값이 있어야 한다.
     """
-    rows = [{"stage": "survey/L0-B00", "seconds": 100.0, "ok": True,
-             "usage": R.normalize_usage(None)},
-            {"stage": "survey/L0-B01", "seconds": 100.0, "ok": True,
-             "usage": R.normalize_usage(None)}]
+    rows: list[R.StageRow] = [{"stage": "survey/L0-B00", "seconds": 100.0, "ok": True,
+                               "why": "", "usage": R.normalize_usage(None)},
+                              {"stage": "survey/L0-B01", "seconds": 100.0, "ok": True,
+                               "why": "", "usage": R.normalize_usage(None)}]
     assert "3분 20.0초" in R.format_report(rows)              # 100+100, 예전 방식
     assert "1분 45.0초" in R.format_report(rows, wall_seconds=105.0)
 
 
 def test_단계별_소계를_낸다():
     """어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다."""
-    rows = [
-        {"stage": "prep", "seconds": 1.0, "usage": R.normalize_usage(None), "ok": True},
-        {"stage": "survey/L0-B00", "seconds": 10.0, "ok": True,
+    rows: list[R.StageRow] = [
+        {"stage": "prep", "seconds": 1.0, "usage": R.normalize_usage(None),
+         "ok": True, "why": ""},
+        {"stage": "survey/L0-B00", "seconds": 10.0, "ok": True, "why": "",
          "usage": R.normalize_usage({"usage": {"output_tokens": 5}, "num_turns": 2})},
-        {"stage": "survey/L1-B00", "seconds": 20.0, "ok": True,
+        {"stage": "survey/L1-B00", "seconds": 20.0, "ok": True, "why": "",
          "usage": R.normalize_usage({"usage": {"output_tokens": 7}, "num_turns": 3})},
     ]
     got = R.stage_totals(rows)
@@ -633,12 +617,10 @@ def test_단계별_소계를_낸다():
     assert got["prep"]["total"] == 0
 
 
-def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path):
-    """🔴 층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다.
-
-    `is not` 으로 충돌을 보면 다시 읽은 새 객체를 남으로 착각해 개명한다 —
-    🔵 2026-08-30 연기 시험에서 레코드 수가 38 -> 27 로 줄어드는 것으로 드러났다.
-    같은 입력이면 몇 번을 합쳐도 같은 결과여야 한다(멱등).
+def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path: Path):
+    """층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다. `is not` 으로 충돌을
+    보면 다시 읽은 새 객체를 남으로 착각해 개명한다. 같은 입력이면 몇 번을 합쳐도
+    같은 결과여야 한다(멱등).
     """
     d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1", "means": "뜻"}})
     한번 = R.merge_shards(d, {})
@@ -648,7 +630,7 @@ def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path):
     assert R.merge_shards(d, 한번) == 한번
 
 
-# ── 16. 층 계획은 기계다 — LLM 이 하는 일처럼 보이면 안 된다 (2026-08-30 신설)
+# ── 16. 층 계획은 기계다 — LLM 이 하는 일처럼 보이면 안 된다
 def test_층_계획은_LLM_단계가_아니다():
     """`survey-plan` 은 `AGENT_STAGES` 에 없다.
 
@@ -659,7 +641,7 @@ def test_층_계획은_LLM_단계가_아니다():
     stages = R.plan_stages(False, False, False)
     assert "survey-plan" in stages
     assert not R.is_agent_stage("survey-plan")
-    assert [s for s in stages if R.is_agent_stage(s)] == ["survey", "wiki"]
+    assert [s for s in stages if R.is_agent_stage(s)] == ["lang-select", "survey", "wiki"]
 
 
 def test_층_계획은_조사와_산문보다_먼저다():
@@ -671,12 +653,50 @@ def test_층_계획은_조사와_산문보다_먼저다():
 
 def test_계획_요약은_층과_배치와_합계를_낸다():
     """돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다."""
-    plan = {"layers": [
+    # 위와 같은 이유로 부분 계획이다 — `plan_summary` 가 읽는 열쇠만 담았다.
+    plan = cast(SurveyPlan, {"layers": [
         {"level": 0, "symbol_count": 5, "file_count": 3,
          "batches": [{"id": "L0-B00"}, {"id": "L0-B01"}]},
         {"level": 1, "kind": "non-node", "batches": []},
-    ], "totals": {"symbols": 5, "levels": 1}}
+    ], "totals": {"symbols": 5, "levels": 1}})
     lines = R.plan_summary(plan)
     assert "층0 — 심볼 5 · 파일 3 · 배치 2" in lines[0]
     assert "비노드" in lines[1]
     assert "배치 2" in lines[-1] and "심볼 5" in lines[-1]
+
+
+def test_lang_of_maps_every_collector_language_to_declmap(tmp_path: Path) -> None:
+    """코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다.
+
+    풀리지 않으면 lang_of 가 None 을 내고 warmup 단계가 **조용히 건너뛰어진다** — 죽지
+    않으므로 알아채기 어렵다. 수집기를 더할 때 LANG_ALIAS 를 빠뜨리면 여기서 잡힌다.
+    """
+    for lang, want in (("cpp", "cpp"), ("csharp", "cs"), ("python", "py")):
+        p = tmp_path / f"{lang}.json"
+        p.write_text(json.dumps({"language": lang}), encoding="utf-8")
+        assert R.lang_of(str(p)) == want, lang
+
+
+def test_every_runner_script_path_actually_exists() -> None:
+    """세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다.
+
+    문자열만 대조하는 시험은 디렉토리가 개편돼도 초록으로 남는다 — 실제로
+    `scripts/` 가 `runner/`·`viz/` 로 갈린 뒤에도 세 실행기가 옛 경로를 가리킨 채
+    시험이 통과하고 있었다. 여기서는 파일 존재를 본다.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(root, "runner"))
+    import run_mode1_5 as R15
+    import run_mode2 as R2
+
+    for script in ("prep.mjs", "build.mjs", "check.mjs"):
+        p = R.node_argv(root, script, "/대상")[1]
+        assert os.path.isfile(p), f"Mode 1 이 없는 파일을 가리킨다: {p}"
+    for name in ("collect.mjs", "emit.mjs", "quiz.mjs"):
+        # 이 시험만 모듈 전용 헬퍼를 들여다본다 — 경로가 실재하는지 보는 것이 목적이고
+        # 그 경로를 만드는 곳이 여기뿐이다. 공개로 올리면 계약에 없는 이름이 는다.
+        p = R15._term_script(root, name)  # pyright: ignore[reportPrivateUsage]
+        assert os.path.isfile(p), f"Mode 1.5 가 없는 파일을 가리킨다: {p}"
+    for stage in ("init", "build", "check"):
+        p = R2.script_argv(root, stage, "슬러그")[1]
+        assert os.path.isfile(p), f"Mode 2 가 없는 파일을 가리킨다: {p}"

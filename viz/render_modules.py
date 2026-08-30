@@ -4,17 +4,10 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """render_modules.py — codegraph.json 의 모듈 의존 그래프를 Graphviz 로 그린다.
 
-사용자의 P1~P6 방법론을 **모듈 층**에 적용한 것이다. 클래스 층이 아니므로 P3(UML 3분할)는
-노드 안에 "클래스 수 + 대표 이름" 으로 치환된다 — 모듈 하나가 무엇을 담는지 노드만 보고 알게.
-
-  P1 클러스터   1차 모듈 밴드 / __external__ 섬 (C-9 R3)
-  P2 엣지 구분  DAG 뼈대 · 순환 · 외부 접촉 셋을 색·굵기로 가른다
-  P4 rankdir=BT 의존받는 쪽(잎)이 위, 오케스트레이터가 아래
-  P5 splines=spline  ⚠ 스킬 기본은 line 이지만 여기서는 spline 이다. 순환 간선이
-                     constraint=false 라 같은 랭크에 놓이고, 직선으로 그으면 사이의 노드를
-                     **관통해 라벨을 지운다**(실측). P5 의 목적은 가독성이므로 spline 이 맞다
-  P6 빨강 게이트 순환 간선만 굵은 빨강. 그 외에 빨강이 나오면 안 된다
-  A1 constraint  뼈대만 true. 순환·외부 접촉은 false — 없으면 BT 레이어가 흩어진다
+노드는 모듈 이름 + 클래스 수 + 대표 이름, 엣지는 뼈대 · 순환 · 외부 접촉 세 종류다.
+splines=spline 을 쓴다 — 순환 간선이 constraint=false 라 같은 랭크에 놓이고, 직선으로 그으면
+사이의 노드를 관통해 라벨을 지운다. constraint=true 는 뼈대에만 건다. 순환·외부 접촉까지 켜면
+rankdir=BT 레이어가 흩어진다.
 
 언어 무관하다. C++ · C# 의 codegraph.json 이 같은 스키마 v2 라 렌더러는 하나면 된다.
 
@@ -26,12 +19,61 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
+from typing import NotRequired, TypedDict, cast
 
 import networkx as nx
 
-# ── 색. 스킬 P2 의 5종 팔레트에서 이 다이어그램이 쓰는 것만 가져왔다.
+
+# ── codegraph.json (스키마 v2) 의 모양. `machine/normalize.py` 의 `_assemble` 반환부와 같다.
+#    이 선언이 없으면 pyright 가 이종(heterogeneous) dict 를 `int | list | str` 합집합으로 뭉개고,
+#    그 dict 를 받은 쪽의 첨자 접근이 전부 Unknown 으로 오염된다.
+#    ⚠ `render_classes.py` 에 같은 선언이 있다 — 스키마가 바뀌면 두 곳을 함께 고친다.
+class CodeNode(TypedDict):
+    """codegraph.json 의 nodes[] 한 칸."""
+    id: str
+    name: str
+    kind: str
+    module: str | None
+    file: str | None
+    line: int | None
+    collapsed_from: NotRequired[list[str]]   # 외부 노드만 갖는다 — R2 로 접힌 원본 이름들
+    signature: NotRequired[str]              # clang-doc 이 붙었을 때만
+    doc: NotRequired[str]                    # clang-doc 이 붙었을 때만
+
+
+# `from` 은 파이썬 예약어라 class 문법으로는 필드로 못 적는다. 함수형 TypedDict 를 쓴다.
+CodeEdge = TypedDict("CodeEdge", {
+    "from": str,
+    "to": str,
+    "kind": str,
+    "label": NotRequired[str | None],
+    "file": NotRequired[str | None],
+    "line": NotRequired[int | None],
+    "occurrences": NotRequired[int],         # 같은 쌍이 두 번 이상 나왔을 때만 붙는다
+})
+
+
+class CodeModule(TypedDict):
+    """codegraph.json 의 modules[] 한 칸."""
+    id: str
+    depends_on: list[str]
+
+
+class CodeGraph(TypedDict):
+    """codegraph.json 전체."""
+    schema_version: int
+    language: str
+    platform: str
+    source_tool: str
+    repo_commit: str | None
+    nodes: list[CodeNode]
+    edges: list[CodeEdge]
+    modules: list[CodeModule]
+
+
+# ── 색.
 C_BACKBONE = "#2e75b6"   # 뼈대(비순환) 의존 — aggregate 계열 파랑
-C_CYCLE = "#D50000"      # P6 — 순환. 여기 말고 빨강이 나오면 안 된다
+C_CYCLE = "#D50000"      # 순환. 여기 말고 빨강이 나오면 안 된다
 C_EXTERNAL = "#777777"   # 외부 접촉 — depend 계열 회색
 C_BORDER = "#1f4e79"
 
@@ -39,7 +81,7 @@ C_BORDER = "#1f4e79"
 # <include file="machine/comments.xml" path="//term[@id='render_modules.esc']"/>
 # DOT 문자열용 이스케이프.
 # 쓰는 것: 없음 · 쓰이는 곳: emit_dot
-def esc(s):
+def esc(s: object) -> str:
     """DOT 문자열용."""
     return str(s).replace("\\", "\\\\").replace('"', '\\"')
 
@@ -47,8 +89,8 @@ def esc(s):
 # <include file="machine/comments.xml" path="//term[@id='render_modules.esch']"/>
 # HTML 라벨용 이스케이프. 클래스 이름에 제네릭 꺾쇠가 실제로 들어오기 때문에 필요하다.
 # 쓰는 것: 없음 · 쓰이는 곳: node_label
-def esch(s):
-    """HTML 라벨용. 🔵 클래스 이름에 제네릭/템플릿 꺾쇠가 실제로 들어온다
+def esch(s: object) -> str:
+    """HTML 라벨용. 클래스 이름에 제네릭/템플릿 꺾쇠가 실제로 들어온다
     (Action<TOwner>, UI_Base<T> 등) — DOT 이스케이프만으로는 dot 이 HTML 태그로 읽고 죽는다."""
     return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
@@ -56,8 +98,10 @@ def esch(s):
 # <include file="machine/comments.xml" path="//term[@id='load']"/>
 # codegraph.json 을 읽는다. 스키마 판이 다르면 경고만 하고 계속한다.
 # 쓰는 것: 없음 · 쓰이는 곳: render_modules.main
-def load(path):
-    g = json.load(open(path, encoding="utf-8"))
+def load(path: str) -> CodeGraph:
+    # JSON 경계라 cast 가 불가피하다 — json.load 는 Any 를 준다. 실제 스키마 대조는
+    # 바로 아래 schema_version 검사가 런타임에 맡는다.
+    g = cast(CodeGraph, json.load(open(path, encoding="utf-8")))
     if g.get("schema_version") != 2:
         print(f"경고 — schema_version {g.get('schema_version')} (2 를 기대). 계속한다.", file=sys.stderr)
     return g
@@ -66,37 +110,44 @@ def load(path):
 # <include file="machine/comments.xml" path="//term[@id='render_modules.build']"/>
 # 모듈 층 그래프와 노드마다 붙일 부가 정보를 만든다.
 # 쓰는 것: modules[] · 쓰이는 곳: render_modules.main
-def build(g):
+# ⚠ networkx 의 `DiGraph` 는 **런타임에 첨자를 받지 않는다**(`nx.DiGraph[str]` 은 TypeError).
+#   타입 스텁에서만 제네릭이므로 주석은 반드시 따옴표로 감싼다.
+def build(g: CodeGraph) -> tuple[
+    "nx.DiGraph[str]", dict[str, list[str]], dict[tuple[str, str], int],
+    dict[str, CodeNode], list[list[str]], set[tuple[str, str]],
+]:
     """모듈 층 그래프와 노드별 부가 정보를 만든다."""
     nodes = {n["id"]: n for n in g["nodes"]}
     mods = {m["id"]: set(m["depends_on"]) for m in g["modules"]}
 
-    members = defaultdict(list)          # 모듈 -> 그 안의 1차 클래스 이름
+    members: defaultdict[str, list[str]] = defaultdict(list)   # 모듈 -> 그 안의 1차 클래스 이름
     for n in g["nodes"]:
-        if n["kind"] != "external" and n.get("module") in mods:
-            members[n["module"]].append(n["name"])
+        mod = n.get("module")
+        if n["kind"] != "external" and mod is not None and mod in mods:
+            members[mod].append(n["name"])
 
-    # 모듈 -> 외부 노드 접촉 횟수. R3 섬으로 가는 간선은 모듈 층에서도 따로 센다.
-    ext_touch = defaultdict(int)
-    externals = {}
+    # 모듈 -> 외부 노드 접촉 횟수. 외부 섬으로 가는 간선은 모듈 층에서도 따로 센다.
+    ext_touch: defaultdict[tuple[str, str], int] = defaultdict(int)
+    externals: dict[str, CodeNode] = {}
     for e in g["edges"]:
         a, b = nodes.get(e["from"]), nodes.get(e["to"])
         if not a or not b or b["kind"] != "external":
             continue
-        if a.get("module") in mods:
-            ext_touch[(a["module"], b["id"])] += e.get("occurrences", 1)
+        amod = a.get("module")
+        if amod is not None and amod in mods:
+            ext_touch[(amod, b["id"])] += e.get("occurrences", 1)
             externals[b["id"]] = b
 
-    G = nx.DiGraph()
+    G: "nx.DiGraph[str]" = nx.DiGraph()
     G.add_nodes_from(mods)
     for m, deps in mods.items():
         for d in deps:
             if d in mods:
                 G.add_edge(m, d)
 
-    # 순환에 참여하는 간선을 표시한다 — P6 빨강의 유일한 대상.
+    # 순환에 참여하는 간선을 표시한다 — 빨강의 유일한 대상.
     cycles = list(nx.simple_cycles(G))
-    cyc_edges = set()
+    cyc_edges: set[tuple[str, str]] = set()
     for c in cycles:
         for i in range(len(c)):
             cyc_edges.add((c[i], c[(i + 1) % len(c)]))
@@ -106,8 +157,8 @@ def build(g):
 # <include file="machine/comments.xml" path="//term[@id='node_label']"/>
 # 모듈 상자 안에 넣을 이름 · 클래스 수 · 대표 이름 세 줄을 만든다.
 # 쓰는 것: render_modules.esch · 쓰이는 곳: emit_dot
-def node_label(mod, names):
-    """P3 의 모듈 층 대응 — 이름 + 클래스 수 + 대표 이름 3개."""
+def node_label(mod: str, names: list[str]) -> str:
+    """이름 + 클래스 수 + 대표 이름 3개."""
     short = sorted(names, key=lambda s: (len(s), s))
     head = [s.split(".")[-1].split("::")[-1] for s in short[:3]]
     rest = len(names) - len(head)
@@ -124,13 +175,16 @@ def node_label(mod, names):
 # <include file="machine/comments.xml" path="//term[@id='emit_dot']"/>
 # 모듈 그래프를 Graphviz DOT 문자열로 찍어 낸다.
 # 쓰는 것: node_label, render_modules.esc · 쓰이는 곳: render_modules.main
-def emit_dot(g, path_in, G, members, ext_touch, externals, cycles, cyc_edges, show_external):
+def emit_dot(g: CodeGraph, path_in: str, G: "nx.DiGraph[str]",
+             members: dict[str, list[str]], ext_touch: dict[tuple[str, str], int],
+             externals: dict[str, CodeNode], cycles: list[list[str]],
+             cyc_edges: set[tuple[str, str]], show_external: bool) -> str:
     lang = g.get("language", "?")
     ext_note = "" if show_external else "  [이번 렌더에서는 생략됨 — --external 로 켠다]"
-    out = []
+    out: list[str] = []
     w = out.append
 
-    # ── 헤더 주석 (스킬: 제목·범위·엣지 종류·출처·렌더 명령)
+    # ── DOT 헤더 주석
     w(f"""/* 모듈 의존 그래프 — {lang} ({g.get('repo_commit', '?')})
  *
  * 목표 : 어느 모듈이 어느 모듈에 의존하는가, 그리고 순환이 어디 있는가.
@@ -161,7 +215,7 @@ digraph modules {{
   edge [fontname="Helvetica", fontsize=9];
 """)
 
-    # ── P1 — 1차 모듈 밴드
+    # ── 1차 모듈 밴드
     w('  subgraph cluster_first {')
     w(f'    label="1차 코드 — 모듈 {G.number_of_nodes()} / 의존 {G.number_of_edges()}";')
     w(f'    labeljust="l"; fontname="Helvetica"; fontsize=11; color="{C_BORDER}"; style="rounded";')
@@ -169,11 +223,9 @@ digraph modules {{
         w(f'    "{esc(m)}" [label={node_label(m, members.get(m, []))}];')
     w("  }\n")
 
-    # ── P1 — __external__ 섬 (C-9 R3). **기본은 끈다.**
-    #    🔵 켜고 렌더해 보니 외부 17개가 세로로 늘어져 1차 밴드를 압도했고, constraint=false
-    #    점선이 캔버스를 가로질러 스파게티가 됐다. 이 다이어그램의 논증은 "1차 모듈 간 의존과
-    #    순환" 하나다 — 외부 접촉은 **다른 논증**이라 같은 장에 넣으면 둘 다 죽는다.
-    #    스킬 Phase 2 의 "생략이 가치다" 를 그대로 적용한다. 수치는 external-nodes.tsv 에 있다.
+    # ── __external__ 섬. **기본은 끈다** — 켜면 외부 노드가 세로로 늘어져 1차 밴드를 압도하고,
+    #    constraint=false 점선이 캔버스를 가로질러 스파게티가 된다. 이 다이어그램의 논증은
+    #    "1차 모듈 간 의존과 순환" 하나다. 외부 접촉 수치는 external-nodes.tsv 에 있다.
     if externals and show_external:
         w("  subgraph cluster_external {")
         w(f'    label="__external__ — 외부 {len(externals)}개 (C-9 R1~R3 적용 후)";')
@@ -185,7 +237,7 @@ digraph modules {{
             w(f'    "{esc(n["id"])}" [shape=box, style="filled", fillcolor="#eeeeee", '
               f'color="#999999", fontsize=9, label="{esc(n["name"])}\\n({cf}종 접힘)"];')
         # 보이지 않는 constraint=true 사슬 — rank=same 은 BT+클러스터에서 못 믿는다.
-        # 한 열로 쌓으면 세로로 늘어져 캔버스를 잡아먹으므로 3열로 나눈다(스킬 anti-sprawl).
+        # 한 열로 쌓으면 세로로 늘어져 캔버스를 잡아먹으므로 3열로 나눈다.
         cols = 3
         for c in range(cols):
             col = order[c::cols]
@@ -193,7 +245,7 @@ digraph modules {{
                 w(f'    "{esc(a["id"])}" -> "{esc(b["id"])}" [style=invis, constraint=true];')
         w("  }\n")
 
-    # ── P2 + A1 — 뼈대는 constraint=true, 순환·외부는 false
+    # ── 뼈대는 constraint=true, 순환·외부는 false
     w("  // 뼈대 — 비순환 의존. 레이아웃 골격을 만든다.")
     w(f'  edge [color="{C_BACKBONE}", arrowhead=vee, style=solid, penwidth=1.2, constraint=true];')
     for a, b in sorted(G.edges()):
@@ -203,8 +255,8 @@ digraph modules {{
     if cyc_edges:
         w("\n  // P6 — 순환 참여 간선. 여기 말고 빨강이 나오면 안 된다.")
         w(f'  edge [color="{C_CYCLE}", arrowhead=vee, style=solid, penwidth=2.6, constraint=false];')
-        # 상호 의존(2-순환)은 화살표 둘이 아니라 dir=both 하나로 — 스킬 Phase 3 규정이고,
-        # 같은 쌍에 선이 겹쳐 그려지는 것도 막는다.
+        # 상호 의존(2-순환)은 화살표 둘이 아니라 dir=both 하나로 —
+        # 같은 쌍에 선이 겹쳐 그려지는 것을 막는다.
         mutual = {tuple(sorted(e)) for e in cyc_edges if (e[1], e[0]) in cyc_edges}
         for a, b in sorted(mutual):
             w(f'  "{esc(a)}" -> "{esc(b)}" [dir=both, arrowtail=vee, label="상호"];')
@@ -219,7 +271,7 @@ digraph modules {{
             lab = f' [label="{cnt}"]' if cnt > 1 else ""
             w(f'  "{esc(m)}" -> "{esc(x)}"{lab};')
 
-    # ── 범례 — 텍스트 표가 아니라 실제로 그린 예시 엣지
+    # ── 범례 — 실제로 그린 예시 엣지
     w("""
   subgraph cluster_legend {
     label="범례"; labeljust="l"; fontname="Helvetica"; fontsize=10;
@@ -239,7 +291,7 @@ digraph modules {{
     w('    Lc -> Le [style=invis, constraint=true];')
     w("  }")
 
-    # ── 사이클이 없다면 그 부재를 단언한다 (스킬 Phase 1 체크리스트)
+    # ── 사이클이 없다면 그 부재를 단언한다
     if not cycles:
         w('\n  note_nocycle [shape=note, fillcolor="#eefaee", color="#4a7",'
           ' label="순환 없음 — 모듈 의존이 단일 방향이다", fontsize=9];')
@@ -251,20 +303,25 @@ digraph modules {{
 # <include file="machine/comments.xml" path="//term[@id='render_modules.main']"/>
 # 모듈 다이어그램 도구의 명령줄 진입점.
 # 쓰는 것: load, render_modules.build, emit_dot · 쓰이는 곳: 없음
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph", help="codegraph.json")
     ap.add_argument("-o", "--out", help="출력 경로(확장자 없이). 기본은 입력 옆 <lang>-modules")
     ap.add_argument("--external", action="store_true",
                     help="__external__ 섬을 함께 그린다. 기본은 끔 — 켜면 1차 밴드를 압도한다")
     a = ap.parse_args()
+    # argparse.Namespace 의 속성은 Any 다. 타입 있는 지역 변수로 한 번 받아
+    # 아래 경로 계산까지 Unknown 이 번지지 않게 한다.
+    cg_path: str = a.codegraph
+    out_base: str | None = a.out
+    show_external: bool = a.external
 
-    g = load(a.codegraph)
+    g = load(cg_path)
     G, members, ext_touch, externals, cycles, cyc_edges = build(g)
-    dot = emit_dot(g, a.codegraph, G, members, ext_touch, externals, cycles, cyc_edges, a.external)
+    dot = emit_dot(g, cg_path, G, members, ext_touch, externals, cycles, cyc_edges, show_external)
 
-    base = a.out or os.path.join(os.path.dirname(os.path.abspath(a.codegraph)),
-                                 f"{g.get('language', 'x')}-modules")
+    base = out_base or os.path.join(os.path.dirname(os.path.abspath(cg_path)),
+                                    f"{g.get('language', 'x')}-modules")
     os.makedirs(os.path.dirname(base) or ".", exist_ok=True)
     open(base + ".dot", "w", encoding="utf-8").write(dot)
 
