@@ -594,8 +594,8 @@
         </div>
         <div class="header-meta">
           <div>점수 측정 <strong>2026-08-30</strong></div>
-          <div>브랜치 <strong>main</strong></div>
-          <div>모듈 <strong>4</strong> · 컨텍스트 파일 <strong>7</strong></div>
+          <div>브랜치 <strong>main</strong> · 성격축 분리 직후</div>
+          <div>모듈 <strong>5</strong> · 컨텍스트 파일 <strong>10</strong></div>
         </div>
       </header>
 
@@ -604,32 +604,30 @@
         <div class="score-hero">
           <div class="label">AI 준비도 지수</div>
           <div class="value">
-            <span class="num">70</span><span class="denom">/ 100</span>
+            <span class="num">77</span><span class="denom">/ 100</span>
           </div>
           <div class="grade-row">
-            <span class="grade-badge" style="background: var(--amber-soft); color: var(--amber)">
-              <span class="grade-dot" style="background: var(--amber)"></span> AI-Assisted · 에이전트 보조 가능
+            <span class="grade-badge">
+              <span class="grade-dot"></span> AI-Ready · 에이전트 친화
             </span>
           </div>
           <div class="desc">
-            <strong>65 → 70점</strong>(자동 채점 65 + 수동 보정 5).
-            보정은 점수를 봐준 것이 아니라 <strong>채점기의 오탐과 사각을 확인해 되돌린 것</strong>이다 —
-            지목된 잘못된 경로 9건은 하나씩 대조한 결과 <strong>전부 오탐</strong>이었고(정규식이
-            <code>.json</code> 을 <code>.js</code> 로 자르고 <code>.claude/</code> 의 앞 점을 삼킨다),
-            <code>ARCHITECTURE.md</code> 의 mermaid 5장과 <code>evals/runs/</code> 의 계측 파일은
-            채점기가 찾는 이름이 아니라 못 봤다. 남은 진짜 약점은
-            <strong>B 문서 품질 (11/20)</strong> 과 <strong>F 신선도 (6/10)</strong> —
-            모듈 문서 넷이 100줄을 넘고, <strong>인용 검증기가 CI·hook 에 안 걸려 있다.</strong>
+            자동 채점 <strong>72</strong> + 수동 보정 <strong>+5</strong>.
+            보정은 셋 — 채점기가 놓친 mermaid(D&nbsp;+3), 전수 재검증으로
+            <strong>진짜 0건</strong>이 확인된 경로 경고(E1&nbsp;+1),
+            추적 안 되는 실측 기록(G&nbsp;+1). 남은 최약점은
+            <strong>B 문서 품질 10/20</strong> 과 <strong>F 자가 유지보수
+            6/10</strong> — 게이트를 만들어 놓고 아직 훅에 걸지 않았다.
           </div>
           <hr />
           <div class="mini-stats">
             <div class="mini-stat">
               <div class="k">컨텍스트 보유 모듈</div>
-              <div class="v" style="color: var(--green)">3 / 4</div>
+              <div class="v" style="color: var(--green)">5 / 5</div>
             </div>
             <div class="mini-stat">
-              <div class="k">잘못된 경로 (확인)</div>
-              <div class="v" style="color: var(--green)">0 / 40</div>
+              <div class="k">진짜 깨진 경로</div>
+              <div class="v" style="color: var(--green)">0</div>
             </div>
             <div class="mini-stat">
               <div class="k">300줄 초과 파일</div>
@@ -654,183 +652,235 @@
           <div class="rule-row">
             <div class="idx">A</div>
             <div>
-              <div class="title">AI 탐색 &amp; 커버리지</div>
-              <div class="sub">
-                <code>codegraph/</code> · <code>scripts/</code> · <code>src/</code> 에 CLAUDE.md 신설 · <code>docs/</code> 만 남음
-              </div>
+              <div class="title">AI 탐색 & 커버리지</div>
+              <div class="sub">다섯 모듈 전부 CLAUDE.md 보유 · <code>runner</code> <code>tools</code> <code>docs</code> 신설분 포함</div>
             </div>
-            <div class="bar bar-warn"><span style="width: 73%"></span></div>
-            <div class="num">11/15</div>
+            <div class="bar bar-good">
+              <span style="width: 100%"></span>
+            </div>
+            <div class="num">15/15</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">B</div>
             <div>
               <div class="title">컨텍스트 문서 품질</div>
-              <div class="sub">
-                루트 521 → <strong>239줄</strong>. 모듈 문서 셋도 100줄 초과라 아직 감점
-              </div>
+              <div class="sub">256·221·143·132줄 넷이 100줄 초과 · 상호 링크 1/4 · bash 블록 부족</div>
             </div>
-            <div class="bar bar-warn"><span style="width: 55%"></span></div>
-            <div class="num">11/20</div>
+            <div class="bar bar-warn">
+              <span style="width: 50%"></span>
+            </div>
+            <div class="num">10/20</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">C</div>
             <div>
               <div class="title">암묵지 외부화</div>
-              <div class="sub">
-                <code>docs/decisions/</code> 6건 + 모듈마다 소유·의존·패턴·함정 4절
-              </div>
+              <div class="sub">ADR 6건 · Owns/Deps/Gotchas 절 다섯 모듈 전부 · 변경 패턴 절만 2/5</div>
             </div>
-            <div class="bar bar-good"><span style="width: 80%"></span></div>
-            <div class="num">16/20</div>
+            <div class="bar bar-good">
+              <span style="width: 90%"></span>
+            </div>
+            <div class="num">18/20</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">D</div>
             <div>
               <div class="title">모듈 간 의존성 매핑</div>
-              <div class="sub">
-                <code>ARCHITECTURE.md</code> · mermaid 5장(채점기 사각, 수동 +3) · 인용 10곳 정정
-              </div>
+              <div class="sub">ARCHITECTURE.md + mermaid 성격축 그림 · 의존 절 6개 <span style='color:var(--amber)'>(mermaid 는 수동 보정)</span></div>
             </div>
-            <div class="bar bar-good"><span style="width: 87%"></span></div>
+            <div class="bar bar-good">
+              <span style="width: 87%"></span>
+            </div>
             <div class="num">13/15</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">E</div>
             <div>
-              <div class="title">검증 &amp; 품질 게이트</div>
-              <div class="sub">
-                잘못된 경로 <strong>0/40</strong>(9건 오탐 확인, 수동 +1). CODEOWNERS · 프롬프트 시험 없음
-              </div>
+              <div class="title">검증 & 품질 게이트</div>
+              <div class="sub">경고 12건 <strong style='color:var(--green)'>전수 재검증 → 진짜 0건</strong> · PR 서식 신설 · CI 없음</div>
             </div>
-            <div class="bar bar-warn"><span style="width: 60%"></span></div>
-            <div class="num">9/15</div>
+            <div class="bar bar-warn">
+              <span style="width: 73%"></span>
+            </div>
+            <div class="num">11/15</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">F</div>
             <div>
-              <div class="title">신선도 &amp; 자가 유지</div>
-              <div class="sub">
-                <code>npm test</code> 에 인용 게이트 편입. CI·hook 은 아직 없음
-              </div>
+              <div class="title">신선도 & 자가 유지보수</div>
+              <div class="sub">drift 0% · <strong style='color:var(--amber)'>게이트는 있으나 훅·CI 에 안 걸림</strong></div>
             </div>
-            <div class="bar bar-warn"><span style="width: 60%"></span></div>
+            <div class="bar bar-warn">
+              <span style="width: 60%"></span>
+            </div>
             <div class="num">6/10</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">G</div>
             <div>
-              <div class="title">에이전트 성능 측정</div>
-              <div class="sub">
-                <code>evals/runs/</code> 에 Mode 1 냉시동 실측 보존(채점기 사각, 수동 +1) · 세 mode 대조표
-              </div>
+              <div class="title">에이전트 성과 측정</div>
+              <div class="sub"><code>evals/runs/</code> 실측 기록 보유 · telemetry 없음</div>
             </div>
-            <div class="bar bar-good"><span style="width: 80%"></span></div>
+            <div class="bar bar-good">
+              <span style="width: 80%"></span>
+            </div>
             <div class="num">4/5</div>
           </div>
         </div>
       </section>
 
-      <!-- =========== STRUCTURAL MAP =========== -->
+      <!-- =========== MAP =========== -->
       <section class="map-section">
         <div class="map-head">
           <div>
             <h2>구조 지도</h2>
             <div class="sub">
-              노드 = 디렉터리 · 카드 안 수치는 코드 파일 수와 최대 파일 길이 ·
-              세 mode 실행기가 파이프라인을 잇는다
+              2026-08-30 성격축 분리 후 구조. 가르는 질문은 언어가 아니라
+              <strong>시키는가 · 계산하는가 · 그리는가</strong>
             </div>
           </div>
           <div class="map-legend">
-            <span><span class="legend-dot" style="background: var(--accent)"></span> 자체 CLAUDE.md 보유</span>
-            <span><span class="legend-dot" style="background: var(--red)"></span> 컨텍스트 없음</span>
-            <span><span class="legend-square" style="background: var(--red-soft); border: 1px solid var(--red)"></span> 400줄 초과</span>
-            <span><span class="legend-line" style="border-color: var(--accent)"></span> 파이프라인</span>
-            <span><span class="legend-line" style="border-color: var(--border-strong); border-style: dashed"></span> 참조</span>
+            <span
+              ><span
+                class="legend-dot"
+                style="background: var(--accent)"
+              ></span>
+              CLAUDE.md 보유</span
+            >
+            <span
+              ><span
+                class="legend-dot"
+                style="background: var(--green)"
+              ></span>
+              테스트</span
+            >
+            <span
+              ><span
+                class="legend-square"
+                style="background: var(--red-soft); border: 1px solid var(--red)"
+              ></span>
+              500줄 초과
+            </span>
+            <span>
+              <span
+                class="legend-line"
+                style="border-color: var(--accent)"
+              ></span>
+              자식 프로세스
+            </span>
+            <span>
+              <span
+                class="legend-line"
+                style="border-color: var(--border-strong); border-style: dashed"
+              ></span>
+              의존성
+            </span>
           </div>
         </div>
 
         <div class="map-body">
           <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg">
             <g class="grid-bg">
-              <path d="M0,80 H1180" /><path d="M0,160 H1180" /><path d="M0,240 H1180" />
-              <path d="M0,320 H1180" /><path d="M0,400 H1180" /><path d="M0,480 H1180" />
-              <path d="M100,0 V560" /><path d="M300,0 V560" /><path d="M500,0 V560" />
-              <path d="M700,0 V560" /><path d="M900,0 V560" /><path d="M1100,0 V560" />
+              <path d="M0,80 H1180"/><path d="M0,160 H1180"/><path d="M0,240 H1180"/>
+              <path d="M0,320 H1180"/><path d="M0,400 H1180"/><path d="M0,480 H1180"/>
+              <path d="M100,0 V560"/><path d="M300,0 V560"/><path d="M500,0 V560"/>
+              <path d="M700,0 V560"/><path d="M900,0 V560"/><path d="M1100,0 V560"/>
+            </g>
+            <text x="200" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">러너축 · 시키는가</text>
+            <text x="590" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">기계축 · 계산하는가</text>
+            <text x="980" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">시각축 · 그리는가</text>
+
+            <g transform="translate(440,50)">
+              <rect class="node-card accent" width="300" height="62" rx="8"/>
+              <circle cx="22" cy="21" r="13" class="claude-ring"/><circle cx="22" cy="21" r="6" class="claude-dot"/>
+              <text x="44" y="24" class="node-title">CLAUDE.md (root) · 나침반</text>
+              <text x="44" y="41" class="node-meta">다섯 모듈 문서로 라우팅 · 성격축 표</text>
+              <text x="284" y="24" text-anchor="end" class="node-kpi" style="fill:var(--amber)">256 ln</text>
             </g>
 
-            <text x="180" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">정적 계층 · codegraph</text>
-            <text x="590" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">배선 · scripts + bin</text>
-            <text x="1000" y="30" text-anchor="middle" style="font-size:11px;fill:#475569;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">렌더 · src</text>
+            <g transform="translate(60,150)">
+              <rect class="node-card accent" width="280" height="150" rx="8"/>
+              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
+              <text x="42" y="26" class="node-title">runner/</text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi" style="fill:var(--green)">신설</text>
+              <text x="16" y="56" class="node-meta">run_mode1 · 1_5 · 2 · dispatch · wiki/ · term/</text>
+              <g transform="translate(16,66)"><rect class="hot" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">run_mode1.py</text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">1319</text></g>
+              <g transform="translate(16,88)"><rect class="hot" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">run_mode1_5.py</text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">842</text></g>
+              <g transform="translate(16,110)"><rect fill="var(--grid)" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--text-2)">wiki/ 6 · term/ 3 (.mjs)</text></g>
+            </g>
 
-            <!-- codegraph -->
-            <rect x="40" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
-            <circle cx="58" cy="74" r="4" fill="#dc2626"/>
-            <text x="72" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">codegraph/</text>
-            <text x="56" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">코드 파일 30 · 컨텍스트 0</text>
-            <rect x="56" y="114" width="248" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
-            <text x="64" y="129" style="font-size:11px;fill:#dc2626;font-family:'JetBrains Mono',monospace;">normalize.py 790줄 · run_mode1_5.py 738줄</text>
-            <text x="56" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">pytest 235 통과 · 19 건너뜀</text>
+            <g transform="translate(450,150)">
+              <rect class="node-card accent" width="280" height="150" rx="8"/>
+              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
+              <text x="42" y="26" class="node-title">machine/</text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi">13 py</text>
+              <text x="16" y="56" class="node-meta">normalize · facts · terms_db · xmldoc · roslyn-dump</text>
+              <g transform="translate(16,66)"><rect class="hot" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">normalize.py</text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">868</text></g>
+              <g transform="translate(16,88)"><rect class="warm" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--amber);font-weight:600">roslyn-dump/Program.cs</text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--amber);font-weight:600">527</text></g>
+              <g transform="translate(16,110)"><rect fill="var(--grid)" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--text-2)">terms-reading.json · comments.xml</text></g>
+            </g>
 
-            <rect x="40" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
-            <text x="56" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">세 mode 실행기</text>
-            <text x="56" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode1.py    474줄 · 시험 20</text>
-            <text x="56" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode1_5.py  738줄 · 시험 44</text>
-            <text x="56" y="282" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">run_mode2.py    441줄 · 시험 32</text>
+            <g transform="translate(840,150)">
+              <rect class="node-card accent" width="280" height="150" rx="8"/>
+              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
+              <text x="42" y="26" class="node-title">viz/</text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi">+ src/</text>
+              <text x="16" y="56" class="node-meta">build · check · init · svg · render_*.py · demermaid.py</text>
+              <g transform="translate(16,66)"><rect class="warm" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--amber);font-weight:600">src/runtime/term-graph.ts</text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--amber);font-weight:600">482</text></g>
+              <g transform="translate(16,88)"><rect fill="var(--accent-soft)" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--accent);font-weight:600">render_classes · render_modules (py)</text></g>
+              <g transform="translate(16,110)"><rect fill="var(--accent-soft)" width="248" height="18" rx="3"/>
+                <text x="8" y="13" class="node-meta" style="fill:var(--accent);font-weight:600">src/ 컴포넌트 17 + theme.css</text></g>
+            </g>
 
-            <rect x="40" y="320" width="280" height="84" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
-            <text x="56" y="344" style="font-size:13px;font-weight:600;fill:#0f172a;">검증기 (만들어 놓고 안 건다)</text>
-            <text x="56" y="366" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">verify_citations.py · L1/L2/L3</text>
-            <text x="56" y="384" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">xmldoc.py check · terms_db.py</text>
+            <g transform="translate(60,350)">
+              <rect class="node-card accent" width="280" height="62" rx="8"/>
+              <circle cx="22" cy="21" r="11" class="claude-ring"/><circle cx="22" cy="21" r="5" class="claude-dot"/>
+              <text x="42" y="25" class="node-title">tools/ · 어느 축도 아닌 것</text>
+              <text x="16" y="50" class="node-meta">python.mjs · doctor.mjs · scrub_local_paths.py</text>
+            </g>
 
-            <!-- scripts / bin -->
-            <rect x="450" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
-            <circle cx="468" cy="74" r="4" fill="#dc2626"/>
-            <text x="482" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">scripts/</text>
-            <text x="466" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">node 테스트 160 통과</text>
-            <text x="466" y="124" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">wiki/ · term/ · build · check</text>
-            <text x="466" y="146" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">직접 실행 가드 규약 준수</text>
+            <g transform="translate(450,350)">
+              <rect class="node-card" width="280" height="62" rx="8"/>
+              <circle cx="22" cy="21" r="9" fill="var(--green-soft)"/><circle cx="22" cy="21" r="5" class="test-dot"/>
+              <text x="42" y="25" class="node-title">게이트</text>
+              <text x="16" y="50" class="node-meta">npm test 178 · pytest 287 · tsc 통과</text>
+            </g>
 
-            <rect x="450" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
-            <text x="466" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">bin/ — 진입점 4개</text>
-            <text x="466" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-wiki  (mode 1)</text>
-            <text x="466" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-term  (mode 1.5)</text>
-            <text x="466" y="282" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">report-spec  (mode 2) · report</text>
+            <g transform="translate(840,350)">
+              <rect class="node-card accent" width="280" height="62" rx="8"/>
+              <circle cx="22" cy="21" r="11" class="claude-ring"/><circle cx="22" cy="21" r="5" class="claude-dot"/>
+              <text x="42" y="25" class="node-title">docs/ · 보관소</text>
+              <text x="16" y="50" class="node-meta">첨부 없이 열지 않는다 · ADR 6건</text>
+            </g>
 
-            <!-- src -->
-            <rect x="860" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
-            <circle cx="878" cy="74" r="4" fill="#dc2626"/>
-            <text x="892" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">src/</text>
-            <text x="876" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">코드 파일 12 · 컨텍스트 0</text>
-            <rect x="876" y="114" width="248" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
-            <text x="884" y="129" style="font-size:11px;fill:#dc2626;font-family:'JetBrains Mono',monospace;">runtime/term-graph.ts 482줄</text>
-            <text x="876" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">컴포넌트 17개 · tsc 통과</text>
-
-            <rect x="860" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
-            <text x="876" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">docs/</text>
-            <text x="876" y="246" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">handoffs · superpowers/specs</text>
-            <text x="876" y="264" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">codegraph/terms-reading.json 318</text>
-            <text x="876" y="282" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">ARCHITECTURE.md 없음</text>
-
-            <!-- root CLAUDE.md — 지식이 몰려 있는 곳 -->
-            <rect x="330" y="440" width="520" height="88" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
-            <circle cx="350" cy="462" r="4" fill="#2563eb"/>
-            <text x="364" y="467" style="font-size:14px;font-weight:600;fill:#0f172a;">CLAUDE.md — 521줄</text>
-            <text x="348" y="492" style="font-size:11px;fill:#475569;">저장소 유일의 컨텍스트 문서. 네 모듈의 규약을 혼자 짊어진다.</text>
-            <text x="348" y="512" style="font-size:11px;fill:#2563eb;">권장 100줄의 5배 — A 와 B 점수가 동시에 여기서 깎인다.</text>
-
-            <!-- edges -->
-            <path class="edge edge-dep" d="M320,116 H450" fill="none" stroke="#d1d5db" stroke-dasharray="4 3"/>
-            <path class="edge edge-dep" d="M730,116 H860" fill="none" stroke="#d1d5db" stroke-dasharray="4 3"/>
-            <path class="edge" d="M180,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
-            <path class="edge" d="M590,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
-            <path class="edge" d="M1000,296 V440" fill="none" stroke="#2563eb" opacity="0.35"/>
+            <path class="edge edge-dash" d="M500,112 C 500,132 200,130 200,150"/>
+            <path class="edge edge-dash" d="M590,112 V150"/>
+            <path class="edge edge-dash" d="M680,112 C 680,132 980,130 980,150"/>
+            <path class="edge edge-type" d="M340,215 H450"/>
+            <text x="395" y="208" text-anchor="middle" class="node-meta" style="fill:var(--accent);font-weight:600">부른다</text>
+            <path class="edge edge-type" d="M730,240 C 780,240 790,240 840,240"/>
+            <text x="785" y="233" text-anchor="middle" class="node-meta" style="fill:var(--accent);font-weight:600">부른다</text>
+            <path class="edge edge-dash" d="M200,300 V350"/>
+            <text x="240" y="330" class="node-meta" style="fill:var(--text-2)">해석기 탐색</text>
           </svg>
         </div>
       </section>
@@ -845,78 +895,38 @@
           <ul class="panel-list">
             <li>
               <div class="head">
-                <span class="tag tag-rule">Cat E3</span>
-                테스트 337개 · 타입 검사 통과
+                <span class="tag tag-rule">Cat A</span>
+                다섯 모듈 전부 컨텍스트 보유 — 15/15
               </div>
-              <div class="note">
-                <code>pytest codegraph/</code> 235 통과 · 19 건너뜀,
-                <code>npm test</code> 160 통과 · 0 실패, <code>tsc --noEmit</code> 통과.
-                건너뜀 19개는 골든 저장소 환경변수 부재로 실패가 아니다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat C</span>
-                기계가 검사하는 용어 사전 318개
-              </div>
-              <div class="note">
-                <code>terms-reading.json</code> 의 모든 레코드가 <code>파일:줄</code> 인용을
-                갖고 L1/L2/L3 로 검증된다 — 실패 0 · 근거 없음 1.
-                암묵지 외부화가 <strong>산문이 아니라 검사 가능한 자료구조</strong>로 되어 있다.
-                채점기는 <code>MEMORY.md</code> 라는 파일명만 찾아 이것을 0점 처리했다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat B</span>
-                소스 옆 주석 블록 268개가 자동 동기화된다
-              </div>
-              <div class="note">
-                <code>xmldoc.py inject</code> 가 마커 기준으로 좌표를 재계산해
-                코드가 밀려도 주석이 낡지 않는다. 문서 신선도 문제를
-                <strong>도구로</strong> 풀어 둔 드문 사례다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat G</span>
-                토큰·시간 계측이 이미 파이프라인에 있다
-              </div>
-              <div class="note">
-                세 <code>run_mode*.py</code> 가 단계마다 벽시계·토큰·비용·턴을 잰다.
-                🔵 실측 — Mode 1 냉시동 27분 08초 · 17,925,770 토큰 · $15.4991.
-                <code>evals/runs/</code> 에 냉시동 실측이 커밋돼 있다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat D</span>
-                LLM 칸의 입력 범위를 정적 도구가 좁힌다
-              </div>
-              <div class="note">
-                2026-08-30 <code>warmup</code> 배선(<code>1e5d766</code>). 판정(<code>warmup</code>)과
-                확정(<code>warmup-save</code>)이 <strong>레코드를 만드는 LLM 단계를 감싼다</strong>.
-                <strong>둘로 가른 것이 급소</strong> — 한 칸이면 에이전트가 실패해도 그 파일이
-                "유효" 로 남는다. 🔵 아무것도 안 바뀐 실행에서 그 단계가
-                <strong>건너뜀 · 토큰 0 · $0</strong>. 확률론(LLM)과 결정론(정적 도구)의
-                경계를 코드로 그은 자리다. <em>채점 직후 파이프라인이 아홉 단계로 다시 갈렸다
-                (<code>7b234c5</code> — <code>agent</code> → <code>survey</code> + <code>wiki</code>);
-                이 관문 구조는 그대로 유지된다.</em>
-              </div>
+              <div class="note">성격축 분리로 <code>runner/</code> <code>tools/</code> 가 생기며 각자 CLAUDE.md 를 얻었고, <code>docs/</code> 도 보관소 선언 문서를 받았다. 커버리지 3/4 → 5/5.</div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat E1</span>
-                지목된 잘못된 경로 9건은 전부 오탐이었다 — 원인이 셋
+                경로 경고 12건 — 전수 재검증 결과 <strong>진짜 0건</strong>
               </div>
-              <div class="note">
-                한 건씩 대조했다. ① <code>out/report.html</code> 4건은 git 제외 빌드 산출물이라
-                <strong>부재가 정상</strong>. ② <code>superpowers/specs/…</code> 2건은 코드 블록에서
-                <code>$GRAPHICS_REPO/doc/</code> 아래 들여쓴 줄이다. ③ 나머지 3건은
-                <strong>채점기 정규식 결함</strong> — 확장자 교대에서 <code>js</code> 가
-                <code>json</code> 보다 앞이라 <code>.json</code> 이 잘리고,
-                <code>.claude/</code> 의 앞 점이 삼켜진다. 실제 깨진 참조 <strong>0건</strong>.
+              <div class="note">재생성물 <code>out/</code> 8건, <code>$GRAPHICS_REPO</code> 트리 2건, 앞 점 탈락 1건, 그리고 채점기 정규식이 <code>.json</code>/<code>.tsx</code> 를 <code>.js</code>/<code>.ts</code> 로 자른 6건. <strong>같은 교대-순서 버그를 이 저장소 게이트도 처음에 냈고</strong>, 잠금을 걸어 함정 자체를 테스트로 박았다.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat C</span>
+                암묵지 18/20 — ADR 과 모듈 소유권이 문서에 산다
               </div>
+              <div class="note"><code>docs/decisions/</code> 6건이 기각·취소 사유를 보존하고, 다섯 모듈 전부 Owns / Cross-module / Gotchas 절을 갖는다. 에이전트가 죽은 방향을 재제안하기 어렵다.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat F</span>
+                context drift 0% — 다섯 모듈 전부 신선
+              </div>
+              <div class="note">각 CLAUDE.md 의 mtime 이 담당 디렉토리의 최근 변경보다 뒤다. 오늘 축을 갈면서 문서를 같이 옮긴 결과다.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat E</span>
+                게이트가 이번 이동에서 실제로 결함 3건을 잡았다
+              </div>
+              <div class="note"><code>machine/CLAUDE.md</code> 의 죽은 <code>../src/CLAUDE.md</code>, 그리고 <code>viz/src/</code> 가 한 단계 깊어지며 생긴 상대경로 깊이 오류 2건. <strong>합성이 아니라 진짜 이동에서 나온 회귀다.</strong></div>
             </li>
           </ul>
         </section>
@@ -930,88 +940,58 @@
             <li>
               <div class="head">
                 <span class="tag tag-rule" style="background: var(--red-soft); color: var(--red)">Cat F · S</span>
-                인용 검증기를 pre-push hook 에 건다
+                게이트를 pre-commit / CI 에 건다
               </div>
-              <div class="note">
-                <strong>Effort 1.0 hr · Impact 10/10.</strong>
-                <code>test/docs-citations.test.mjs</code> 는 이미 <code>npm test</code> 안에서 돈다.
-                그런데 <strong>아무것도 그것을 push 전에 강제하지 않는다.</strong>
-                이번 회차에만 낡은 줄 번호 인용 <strong>10곳</strong>이 나왔다
-                (<code>run_mode1.py:65</code> 같은 것들이 코드가 밀리며 전부 어긋났다).
-                F 6→9점. <strong>이 저장소는 검증기를 만들어 놓고 자기 push 에 안 걸고 있다.</strong>
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat A · S</span>
-                <code>docs/</code> 에 CLAUDE.md 신설 — 마지막 빈칸
-              </div>
-              <div class="note">
-                <strong>Effort 0.5 hr · Impact 8/10.</strong>
-                네 모듈 중 <code>docs/</code> 만 나침반이 없다. 그런데 거기에
-                <code>handoffs/</code> · <code>decisions/</code> · <code>superpowers/plans/</code> 가
-                섞여 있어 <strong>새 세션이 무엇부터 읽어야 하는지 알 수 없다</strong>.
-                A 11→14점. 이번 세션도 계획서를 찾는 데 사람의 지시가 필요했다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat G · S</span>
-                계획서 Task 9 — warmup 절감률을 실제로 잰다
-              </div>
-              <div class="note">
-                <strong>Effort 0.5 hr + LLM 비용 · Impact 8/10.</strong>
-                배선은 끝났으나 <strong>증분 실행의 절감폭은 아직 숫자가 없다.</strong>
-                냉시동 기준선 27분 08초 · 17,925,770 토큰 · $15.4991 이 유일한 값이다.
-                재지 않으면 이 배선이 값을 하는지 말할 수 없다 — G 4→5점이자
-                <strong>warmup 작업 전체의 정당화</strong>다.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat E2 · S</span>
-                PR 템플릿에 "🔵 는 실제 출력인가" 체크박스
-              </div>
-              <div class="note">
-                <strong>Effort 0.5 hr · Impact 6/10.</strong>
-                1인 저장소라 CODEOWNERS 가치는 낮다. 그러나 이 저장소의 핵심 규율은
-                <strong>"🔵 는 이번 세션에서 실제로 돌린 명령의 출력만"</strong> 이고,
-                지금 그것을 강제하는 구조가 없다. E 9→11점.
-              </div>
+              <div class="note"><strong>Effort 1.0 hr · Impact 9/10.</strong> <code>test/docs-citations.test.mjs</code> 가 이미 178개를 돌리는데 <strong>훅에 걸려 있지 않다.</strong> 만들어 놓고 안 쓰는 상태 — F 6→9. 오늘 잡은 3건 같은 회귀를 머지 시점에 막는다.</div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat B · M</span>
-                모듈 문서 넷을 100줄 아래로 — <em>단, 조건부</em>
+                루트 CLAUDE.md 를 나침반 크기로 (256 → ~80줄)
               </div>
-              <div class="note">
-                <strong>Effort 2.0 hr · Impact 5/10.</strong>
-                루브릭은 100줄을 넘기지 말라 하고 넷 다 넘는다(240 · 172 · 137 · 132).
-                B 11→15점. 다만 이 저장소는 <strong>521줄을 넷으로 쪼갠 것이 이미 한 번의 개선</strong>이었고,
-                더 줄이려면 내용을 버려야 한다. <strong>줄 수보다 "두 군데 살면 어긋난다" 원칙이 우선</strong>이므로
-                기계적 감축이 아니라 중복 제거로만 접근한다.
+              <div class="note"><strong>Effort 2.0 hr · Impact 7/10.</strong> 문서 자신이 "지도가 아니라 나침반"이라 선언했는데 오늘 축 표가 붙어 더 길어졌다. Phase 기각 서술과 실측 표를 <code>docs/decisions/</code> 로 옮기고 링크만 남긴다.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat B · S</span>
+                모듈 문서 사이 상호 링크 보강 (B5 1/4)
               </div>
+              <div class="note"><strong>Effort 1.0 hr · Impact 6/10.</strong> 축이 셋으로 갈리며 <code>runner ↔ machine ↔ viz</code> 왕복이 늘었는데 문서 링크가 그걸 못 따라간다. 표기 작업에 가깝다.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule" style="background: var(--amber-soft); color: var(--amber)">Cat B · S</span>
+                machine/CLAUDE.md 를 축 분리에 맞춰 다시 쓴다
+              </div>
+              <div class="note"><strong>Effort 1.0 hr · Impact 7/10.</strong> 제목이 아직 <code>codegraph/</code> 이고 "세 실행기" 절이 통째로 남아 있다 — 그 셋은 <code>runner/</code> 로 갔다. <strong>경로만 치환하고 내용은 안 고친 상태.</strong></div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat C · S</span>
+                축 분리를 ADR 로 남긴다 (0007)
+              </div>
+              <div class="note"><strong>Effort 0.5 hr · Impact 6/10.</strong> 이 저장소 규약은 구조 결정을 <code>docs/decisions/</code> 에 적는 것인데 오늘 셋으로 가른 결정은 기록이 없다. C 의 남은 감점(변경 패턴 절 2/5)과 함께 처리.</div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat E · M</span>
+                xmldoc 레퍼런스 34건 정합
+              </div>
+              <div class="note"><strong>Effort 2.0 hr · Impact 5/10.</strong> 전부 <code>run_mode1.py</code> 줄 밀림이다. <code>terms-reading.json</code> 의 <code>where</code> 를 다시 잡아야 풀린다.</div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat B · L</span>
-                god file 분할 — <strong>지금은 권하지 않는다</strong>
+                god file 분할 — run_mode1.py 1319줄 외 6건
               </div>
-              <div class="note">
-                <strong>Effort 15.0 hr · Impact 4/10.</strong>
-                <code>run_mode1_5.py</code> 842 · <code>normalize.py</code> 790 ·
-                <code>run_mode1.py</code> 687줄. 루브릭은 쪼개라 하지만 이 저장소의
-                <code>CLAUDE.md</code> 는 <strong>구현자 1 · 소비자 1이면 인터페이스를 만들지 말라</strong>고
-                못박아 두었다(거울 함정). 골든 시험이 노드·간선 수를 고정하고 있어 위험도 크다.
-                <strong>루브릭과 저장소 결정이 충돌하는 유일한 항목 — 저장소 결정을 따른다.</strong>
-              </div>
+              <div class="note"><strong>Effort 17.5 hr · Impact 6/10 · 우선순위 최하.</strong> 💭 <strong>보류를 권한다</strong> — 오늘 성격축으로 이미 갈랐고, 기계적 분할은 그 축을 흐릴 위험이 있다. 편집 정확도 문제가 실제로 관측될 때 착수.</div>
             </li>
           </ul>
         </section>
       </div>
 
       <footer>
-        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30 (warmup 배선 직후 재채점) · 자동 65 + 수동 보정 5
+        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30
       </footer>
     </div>
   </body>

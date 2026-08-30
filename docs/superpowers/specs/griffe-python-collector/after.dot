@@ -1,0 +1,28 @@
+digraph after {
+  rankdir=TB; bgcolor="transparent";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=11 color="#b9c0cc" fillcolor="#f4f6f9"];
+  edge [color="#8a93a3" fontname="Helvetica" fontsize=9];
+
+  subgraph cluster_in { label="수집기 (언어별 원시 사실)"; style=dashed; color="#b9c0cc"; fontsize=10;
+    uml [label="clang-uml\n(C++)"  fillcolor="#dce6f7" color="#8fa4d4"];
+    ros [label="roslyn-dump\n(C#)" fillcolor="#dce6f7" color="#8fa4d4"];
+    gri [label="griffe 2.2.0\n(Python)" fillcolor="#fdf3e0" color="#d2a03c"];
+  }
+
+  cli [label="main()  —  배타 그룹 3갈래\n--clang-uml | --roslyn-dump | --griffe-dump" fillcolor="#fdf3e0" color="#d2a03c"];
+
+  ncpp [label="normalize_cpp()\n노드 → 간선"];
+  ncs  [label="normalize_csharp()\n노드 → 간선"];
+  npy  [label="normalize_python()\n노드 → 간선" fillcolor="#fdf3e0" color="#d2a03c"];
+
+  walk [label="py_walk_expr()\nR5 투과 · R7 거르기\n식 트리를 따라 내려간다" fillcolor="#fdf3e0" color="#d2a03c"];
+
+  asm [label="_assemble()\nR1 · 모듈 의존 유도 · 조립\n(재구현 없음 — 그대로 호출)" fillcolor="#e3efe4" color="#6aa06f"];
+  out [label="codegraph.json\nschema_version 2\nlanguage=\"python\"" fillcolor="#e3efe4" color="#6aa06f"];
+
+  uml -> cli; ros -> cli; gri -> cli [color="#d2a03c"];
+  cli -> ncpp; cli -> ncs; cli -> npy [color="#d2a03c"];
+  npy -> walk [color="#d2a03c" label="타입 주석마다"];
+  walk -> npy [color="#d2a03c" style=dashed label="이름 목록"];
+  ncpp -> asm; ncs -> asm; npy -> asm [color="#d2a03c"]; asm -> out;
+}

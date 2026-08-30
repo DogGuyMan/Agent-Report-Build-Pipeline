@@ -1,4 +1,0 @@
-# Roslyn 5.9.0.0  mode=C(Unity 참조 395개만)  LangVersion=9.0  defines=137
-# 소스 112개에 선언된 named type 총 214개. 아래는 앞에서 20개.
-# name	kind	file:line
-AddressableRenamer	Class	Assets/@Editors/AddressableRenamer.cs:9

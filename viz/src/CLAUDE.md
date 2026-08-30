@@ -1,7 +1,7 @@
 # viz/src/ — 읽기 전용 React 컴포넌트
 
-> 루트 나침반은 `../CLAUDE.md`. 이 문서는 **보고서 컴포넌트와 테마만** 다룬다.
-> 빌드 배선은 `../viz/CLAUDE.md`.
+> 루트 나침반은 `../../CLAUDE.md`. 이 문서는 **보고서 컴포넌트와 테마만** 다룬다.
+> 빌드 배선은 `../CLAUDE.md`.
 
 ## 무엇이 여기 있나
 
@@ -104,7 +104,7 @@
 | 여기 → 다른 모듈 | **없다.** 컴포넌트는 아무것도 부르지 않는다 |
 
 ⚠ **런타임과 타입 검사가 서로 다른 경로를 탄다.** 한쪽만 고치면 다른 쪽이 깨진다 —
-자세한 것은 [`../viz/CLAUDE.md`](../viz/CLAUDE.md) 의 "모듈 해결" 절.
+자세한 것은 [`../CLAUDE.md`](../CLAUDE.md) 의 "모듈 해결" 절.
 
 ## 흔한 변경 패턴 (Common modification patterns)
 
@@ -129,4 +129,4 @@ grep -c '<script' out/report.html     # 용어집 없으면 0, 있으면 1. 2 �
   쓰면 `countScripts` 가 2로 세어 불변식이 깨진다.
 - **Note — 번들 코드 안의 `</script>` 문자열을 이스케이프한다.** 안 하면 HTML 파서가 조기 종료한다.
 - **Why — D축 필드를 `types.ts` 에 넣지 않는다.** 평가 없이 보류된 상태다
-  ([`../docs/decisions/0004-d-axis-on-hold.md`](../docs/decisions/0004-d-axis-on-hold.md)).
+  ([`../../docs/decisions/0004-d-axis-on-hold.md`](../../docs/decisions/0004-d-axis-on-hold.md)).

@@ -1,2 +1,0 @@
-kind=assoc	src=AddressableRenamer	field=groupNames	dst=string[]	dstAsm=	attrs=[]	at=Assets/@Editors/AddressableRenamer.cs:11
-kind=assoc	src=Gamerecipe.StickRush.Data.ScriptableFoodCells	field=_foodCells	dst=System.Collections.Generic.List<Gamerecipe.StickRush.Data.SerialDataFood>	dstAsm=netstandard	attrs=[SerializeField]	at=Assets/@Scripts/Data/DataFood/ScriptableFoodCells.cs:11

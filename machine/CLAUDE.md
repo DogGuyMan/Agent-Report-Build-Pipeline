@@ -1,7 +1,7 @@
 # codegraph/ — 파이썬 파이프라인
 
 > 루트 나침반은 `../CLAUDE.md`. 이 문서는 **파이썬 쪽만** 다룬다.
-> Node 배선은 `../viz/CLAUDE.md`, 컴포넌트는 `../src/CLAUDE.md`.
+> Node 배선은 `../viz/CLAUDE.md`, 컴포넌트는 `../viz/src/CLAUDE.md`.
 
 이 저장소에서 가장 큰 모듈이다(파이썬 30파일). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
@@ -10,7 +10,9 @@
 
 | 파일 | 하는 일 |
 |---|---|
-| `normalize.py` | 수집기 출력을 코드 지도(`codegraph.json`)로 정규화. **C++ 과 C# 두 경로가 한 파일에 있다** |
+| `normalize.py` | 수집기 출력을 코드 지도(`codegraph.json`)로 정규화. **C++ · C# · Python 세 경로가 한 파일에 있다** |
+| `pycalls.py` | 파이썬 소스에서 심볼과 **호출 관계**를 뽑는다(`ast` 만 씀). griffe 가 못 내는 것을 채운다 |
+| `codegraph_types.py` | `codegraph.json` 계약 한 곳. 생산자와 소비자가 전부 여기를 본다 |
 | `declmap.py` | 소스에서 선언 목록을 훑는다. 언어 넷(`cpp` `cs` `py` `ts`) |
 | `clang_doc.py` | `clang-doc` 의 흩어진 JSON 을 평평한 심볼 목록으로 |
 | `facts.py` · `render_modules.py` · `render_classes.py` | 사람이 읽는 사실 표 · 모듈 관계도 SVG |
@@ -22,6 +24,42 @@
 | `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
 | `run_mode1.py` · `run_mode1_5.py` · `run_mode2.py` | 세 mode 실행기. **단계마다 시간·토큰을 잰다** |
 | `demermaid.py` | Mermaid 를 사전 렌더 SVG 로 |
+
+## Python 수집기 — 왜 둘인가 (2026-08-30 신설)
+
+파이썬은 **수집기 둘을 합쳐야** 쓸 만한 지도가 나온다. C++ 이 clang-uml(관계)과
+clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
+
+| 수집기 | 내는 것 | 못 내는 것 |
+|---|---|---|
+| `griffe`(외부) | 클래스 · 상속 · 타입 주석 | **호출 관계를 아예 안 낸다** — 시그니처 추출기다 |
+| `pycalls.py`(우리 것) | 함수 · 메서드 · 호출 | 타입 주석에서 오는 관계 |
+
+```bash
+.venv/bin/python -m griffe dump machine runner -o g.json -s .
+.venv/bin/python machine/pycalls.py machine runner --repo . -o pycalls.json
+.venv/bin/python machine/normalize.py --griffe-dump g.json --py-calls pycalls.json --repo . -o codegraph.json
+```
+
+`--py-calls` 는 **`--clang-doc` 과 같은 자리**다 — 배타 그룹이 아니라 합치는 인자이고,
+안 주면 옛 동작 그대로다(🔵 바이트 대조로 확인).
+
+🔵 2026-08-30 이 저장소 실측 — 무엇이 달라지는지:
+
+| | 노드 | 간선 |
+|---|---:|---:|
+| griffe 만 | 67 | 122 |
+| griffe + pycalls | **613** | **840** |
+| (strict 전환 이전, griffe 만) | 2 | 0 |
+
+**함정 — 이름 해소가 이 수집기의 급소다.** 틀려도 오류가 나지 않고 간선이 조용히 사라진다.
+이 저장소는 `import machine.warmup` 이 아니라 `sys.path` 를 조작한 뒤 **`import warmup`**
+이라는 평평한 이름을 쓴다. 개발 중 디렉토리 뿌리로 걸렀더니 모듈을 넘는 호출이
+**338개에서 1개로** 떨어졌다. 그래서 `import_table` 은 **파일 이름(stem)** 을 열쇠로 잡고,
+이름이 겹치면 조용히 고르지 않고 **둘 다 버린다**(`machine/test_pycalls.py` 가 고정한다).
+
+**호출의 kind 는 `dependency` 다.** 8종 enum 안에 있고 "부른다" 의 UML 대응이다.
+소유(composition/aggregation)로 올리지 않는다 — 부른다고 갖는 것이 아니다.
 
 ## 세 실행기 — 재는 것이 목적이다
 

@@ -5,72 +5,73 @@
     "scored_at": "2026-08-30",
     "git_branch": "main",
     "rubric_version": "v2-100pt",
-    "modules_total": 4,
-    "context_files_total": 7,
+    "modules_total": 5,
+    "context_files_total": 10,
     "large_files_300plus": 13
   },
-  "total": 70,
-  "grade": "AI-Assisted",
-  "grade_color": "amber",
+  "total": 77,
+  "grade": "AI-Ready",
+  "grade_color": "green",
   "categories": {
     "A": {
       "name": "AI Navigation & Coverage",
-      "score": 11,
+      "score": 15,
       "max": 15,
       "evidence": {
-        "core_modules": 4,
-        "covered_modules": 3,
-        "coverage_ratio": 0.75,
+        "core_modules": 5,
+        "covered_modules": 5,
+        "coverage_ratio": 1.0,
         "root_claude": "CLAUDE.md"
       },
       "sub_scores": {},
-      "findings": [
-        "context 미보유 핵심 module 1개: docs"
-      ]
+      "findings": []
     },
     "B": {
       "name": "Context Document Quality",
-      "score": 11,
+      "score": 10,
       "max": 20,
       "evidence": {
-        "context_files": 7,
-        "max_lines": 240,
+        "context_files": 10,
+        "max_lines": 256,
         "min_lines": 18
       },
       "sub_scores": {
-        "B1_Conciseness": 1,
-        "B2_QuickCommands": 3,
+        "B1_Conciseness": 2,
+        "B2_QuickCommands": 2,
         "B3_KeyFiles": 3,
         "B4_NonObvious": 2,
-        "B5_CrossRefs": 2
+        "B5_CrossRefs": 1
       },
       "findings": [
-        "conciseness 초과(>100 lines) context 4건: CLAUDE.md (240), codegraph/CLAUDE.md (172), scripts/CLAUDE.md (137), src/CLAUDE.md (132)",
+        "conciseness 초과(>100 lines) context 4건: CLAUDE.md (256), viz/CLAUDE.md (143), viz/src/CLAUDE.md (132), machine/CLAUDE.md (221)",
+        "bash 코드블록이 부족 — quick command 보강 필요",
         "Why/Note/Gotcha 같은 hidden rule 마커 부족",
         "관련 module / context 간 cross-link 부족"
       ]
     },
     "C": {
       "name": "Tribal Knowledge Externalization",
-      "score": 16,
+      "score": 18,
       "max": 20,
       "evidence": {
         "memory_md": false,
         "adr": true,
-        "modules_total": 4,
-        "q1_owns": 3,
-        "q2_patterns": 3,
-        "q3_nonobvious": 3,
-        "q4_deps": 3
+        "modules_total": 5,
+        "q1_owns": 5,
+        "q2_patterns": 2,
+        "q3_nonobvious": 5,
+        "q4_deps": 5
       },
       "sub_scores": {
-        "C_Q1_Owns": 3,
-        "C_Q2_Patterns": 3,
-        "C_Q3_NonObvious": 3,
-        "C_Q4_Dependencies": 3,
+        "C_Q1_Owns": 4,
+        "C_Q2_Patterns": 2,
+        "C_Q3_NonObvious": 4,
+        "C_Q4_Dependencies": 4,
         "C_Q5_TribalStore": 4
       },
-      "findings": []
+      "findings": [
+        "Common modification patterns 섹션 누락"
+      ]
     },
     "D": {
       "name": "Cross-Module Dependency Mapping",
@@ -79,22 +80,22 @@
       "evidence": {
         "architecture_doc": true,
         "mermaid_diagrams": true,
-        "context_with_deps_section": 3,
+        "context_with_deps_section": 6,
         "monorepo_workspace": false,
-        "mermaid_location": "ARCHITECTURE.md (5장)"
+        "mermaid_location": "ARCHITECTURE.md (1장 · 성격축 셋)"
       },
       "sub_scores": {},
       "findings": []
     },
     "E": {
       "name": "Verification & Quality Gates",
-      "score": 9,
+      "score": 11,
       "max": 15,
       "evidence": {
-        "ref_total": 40,
-        "ref_broken": 9,
+        "ref_total": 54,
+        "ref_broken": 12,
         "codeowners": false,
-        "pr_template": false,
+        "pr_template": true,
         "ci_workflows": false,
         "husky": false,
         "evals_dir": true,
@@ -102,13 +103,13 @@
       },
       "sub_scores": {
         "E1_RefAccuracy": 5,
-        "E2_CriticReview": 0,
+        "E2_CriticReview": 2,
         "E3_TaskValidation": 2,
         "E4_PromptTests": 2
       },
       "findings": [
-        "hallucinated path 0건 — 자동 채점의 9건은 전부 오탐(아래 manual_review)",
-        "CODEOWNERS / PR template 없음 — independent critic infra 부재"
+        "hallucinated path 0건 — 자동 채점 12건은 전부 오탐(아래 manual_review)",
+        "CODEOWNERS 없음 — 1인 저장소라 PR 서식으로 대체(의도된 선택)"
       ]
     },
     "F": {
@@ -117,7 +118,7 @@
       "max": 10,
       "evidence": {
         "drifted_modules": 0,
-        "measurable_modules": 3,
+        "measurable_modules": 5,
         "drift_ratio": 0.0,
         "ctx_validation_workflow": false,
         "hook_validates_paths": false
@@ -137,7 +138,7 @@
           "evals"
         ],
         "metric_files": [
-          "evals/runs/2026-08-30-mode1-qtvisionedit-cold-opus.json"
+          "evals/runs/2026-08-30-mode1-qtvisionedit-cold-sonnet.json"
         ],
         "telemetry_hint": false
       },
@@ -148,29 +149,20 @@
     }
   },
   "insights": [
-    "총점 65/100 · 등급 AI-Assisted",
-    "가장 낮은 카테고리: E Verification & Quality Gates 8/15",
-    "가장 낮은 카테고리: B Context Document Quality 11/20",
-    "⚠️  context에 hallucinated path 9건 — Meta 기준으로는 0이어야 함"
+    "총점 77/100 · 등급 AI-Ready (자동 72 + 수동 보정 5)",
+    "A 15/15 — 성격축 분리로 다섯 모듈 전부 컨텍스트 보유",
+    "최약점 B 10/20 — 컨텍스트 넷이 100줄 초과, 상호 링크 부족",
+    "차약점 F 6/10 — 게이트는 있으나 훅·CI 에 안 걸려 있다"
   ],
   "actions": [
     {
-      "title": "context의 hallucinated path 9건 수정 (referential trust)",
+      "title": "context의 hallucinated path 12건 수정 (referential trust)",
       "category": "E",
       "effort": "S",
       "effort_hours": 0.5,
       "impact": "agent의 잘못된 path-following 방지 — stale = worse than missing",
       "impact_score": 10,
       "priority": 20.0
-    },
-    {
-      "title": "1개 핵심 module에 CLAUDE.md 신설 (docs)",
-      "category": "A",
-      "effort": "S",
-      "effort_hours": 0.5,
-      "impact": "task당 ~3 min × ~5 task/일 절감 → 모듈 1개당 주 1-2 hr 회수",
-      "impact_score": 9,
-      "priority": 18.0
     },
     {
       "title": "CI 또는 pre-push hook에 context path 검증 추가",
@@ -191,143 +183,127 @@
       "priority": 3.5
     },
     {
-      "title": "god file 6개 분할 (>500 lines): codegraph/run_mode1_5.py (842), codegraph/normalize.py (790), codegraph/run_mode1.py (687)",
+      "title": "god file 7개 분할 (>500 lines): runner/run_mode1.py (1319), machine/normalize.py (925), runner/run_mode1_5.py (842)",
       "category": "B",
       "effort": "L",
-      "effort_hours": 15.0,
+      "effort_hours": 17.5,
       "impact": "파일당 ~5K-10K token 절감 + 편집 정확도 ↑",
       "impact_score": 6,
-      "priority": 0.4
+      "priority": 0.34285714285714286
     }
   ],
   "extras": {
     "modules": [
       {
-        "path": "/Users/escatrgot/LLM-Tools/report-builder/codegraph",
-        "rel": "codegraph",
-        "code_files": 30,
-        "has_context": true,
-        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/codegraph/CLAUDE.md",
-        "context_kind": "CLAUDE.md"
-      },
-      {
         "path": "/Users/escatrgot/LLM-Tools/report-builder/docs",
         "rel": "docs",
-        "code_files": 4,
-        "has_context": false,
-        "context_file": null,
-        "context_kind": ""
-      },
-      {
-        "path": "/Users/escatrgot/LLM-Tools/report-builder/scripts",
-        "rel": "scripts",
-        "code_files": 1,
+        "code_files": 6,
         "has_context": true,
-        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/scripts/CLAUDE.md",
+        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/docs/CLAUDE.md",
         "context_kind": "CLAUDE.md"
       },
       {
-        "path": "/Users/escatrgot/LLM-Tools/report-builder/src",
-        "rel": "src",
-        "code_files": 12,
+        "path": "/Users/escatrgot/LLM-Tools/report-builder/machine",
+        "rel": "machine",
+        "code_files": 25,
         "has_context": true,
-        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/src/CLAUDE.md",
+        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/machine/CLAUDE.md",
+        "context_kind": "CLAUDE.md"
+      },
+      {
+        "path": "/Users/escatrgot/LLM-Tools/report-builder/runner",
+        "rel": "runner",
+        "code_files": 6,
+        "has_context": true,
+        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/runner/CLAUDE.md",
+        "context_kind": "CLAUDE.md"
+      },
+      {
+        "path": "/Users/escatrgot/LLM-Tools/report-builder/tools",
+        "rel": "tools",
+        "code_files": 1,
+        "has_context": true,
+        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/tools/CLAUDE.md",
+        "context_kind": "CLAUDE.md"
+      },
+      {
+        "path": "/Users/escatrgot/LLM-Tools/report-builder/viz",
+        "rel": "viz",
+        "code_files": 15,
+        "has_context": true,
+        "context_file": "/Users/escatrgot/LLM-Tools/report-builder/viz/CLAUDE.md",
         "context_kind": "CLAUDE.md"
       }
     ],
     "large_files": [
       {
-        "path": "codegraph/run_mode1_5.py",
+        "path": "runner/run_mode1.py",
+        "lines": 1319
+      },
+      {
+        "path": "machine/normalize.py",
+        "lines": 925
+      },
+      {
+        "path": "runner/run_mode1_5.py",
         "lines": 842
       },
       {
-        "path": "codegraph/normalize.py",
-        "lines": 790
+        "path": "machine/test_normalize.py",
+        "lines": 702
       },
       {
-        "path": "codegraph/run_mode1.py",
-        "lines": 687
+        "path": "runner/test_run_mode1.py",
+        "lines": 682
       },
       {
-        "path": "codegraph/roslyn-dump/Program.cs",
+        "path": "machine/roslyn-dump/Program.cs",
         "lines": 527
       },
       {
-        "path": "codegraph/test_normalize.py",
-        "lines": 511
-      },
-      {
-        "path": "codegraph/test_run_mode1_5.py",
+        "path": "runner/test_run_mode1_5.py",
         "lines": 503
       },
       {
-        "path": "src/runtime/term-graph.ts",
+        "path": "viz/src/runtime/term-graph.ts",
         "lines": 482
       },
       {
-        "path": "codegraph/terms_db.py",
+        "path": "machine/terms_db.py",
         "lines": 449
       },
       {
-        "path": "codegraph/run_mode2.py",
+        "path": "runner/run_mode2.py",
         "lines": 441
       },
       {
-        "path": "codegraph/xmldoc.py",
+        "path": "machine/xmldoc.py",
         "lines": 433
       },
       {
-        "path": "codegraph/render_classes.py",
+        "path": "viz/render_classes.py",
         "lines": 337
       },
       {
-        "path": "codegraph/facts.py",
+        "path": "machine/facts.py",
         "lines": 323
-      },
-      {
-        "path": "codegraph/test_run_mode1.py",
-        "lines": 315
       }
     ]
   },
   "manual_review": {
-    "reviewed_at": "2026-08-30",
-    "method": "채점기가 지목한 9건을 한 건씩 실제 파일 존재와 저장소 규약에 대조했다",
-    "e1_false_positives": [
-      {
-        "ref": "out/report.html",
-        "count": 4,
-        "why": "빌드 산출물. git 제외 경로이고 `report-spec build` 가 만든다 — 부재가 정상이다"
-      },
-      {
-        "ref": "superpowers/specs/2026-07-27-*.html",
-        "count": 2,
-        "why": "코드 블록에서 `$GRAPHICS_REPO/doc/` 아래 들여쓴 줄이다. 바깥 저장소 경로를 저장소 상대경로로 오인했다"
-      },
-      {
-        "ref": "docs/codegraph/terms-reading.js · out/codegraph-raw/codegraph.js",
-        "count": 2,
-        "why": "채점기 정규식 결함 — 확장자 교대에서 `js` 가 `json` 보다 앞이라 `.json` 이 `.js` 로 잘린다"
-      },
-      {
-        "ref": "claude/CLAUDE.md",
-        "count": 1,
-        "why": "채점기 정규식 결함 — `.claude/CLAUDE.md` 의 앞 점을 삼켰다. 실제 파일은 있다"
-      }
+    "ref_flagged": 12,
+    "ref_real": 0,
+    "classes": {
+      "재생성물 out/ (8건)": "CLAUDE.md 가 'git 제외 - 재생성' 이라 명시한 빌드 산출물",
+      "$GRAPHICS_REPO 트리 (2건)": "경로 변수 규약으로 바깥 저장소를 가리킨다",
+      "앞 점 탈락 (1건)": ".claude/CLAUDE.md 의 선행 점을 채점기 정규식이 흘린다",
+      "확장자 잘림 (6건)": "채점기 정규식의 js|json, ts|tsx 교대 순서 버그 - .json/.tsx 가 .js/.ts 로 잘린다",
+      "../.. 미지원 (1건)": "채점기가 두 단계 상위 경로를 해석하지 못한다"
+    },
+    "fixed_this_session": [
+      "machine/CLAUDE.md 의 ../src/CLAUDE.md -> ../viz/src/CLAUDE.md",
+      "viz/src/CLAUDE.md 의 ../viz/CLAUDE.md 와 ../docs/ 깊이 오류 2건"
     ],
-    "underscored": [
-      {
-        "cat": "D",
-        "delta": 3,
-        "why": "has_mermaid 가 context 파일만 훑는다. ARCHITECTURE.md 에 mermaid 5장"
-      },
-      {
-        "cat": "G",
-        "delta": 1,
-        "why": "metric_files 가 agent-results.json/.skill-eval.json 두 이름만 찾는다. 실제 계측은 evals/runs/<날짜>-mode1-*.json 에 있다"
-      }
-    ],
-    "auto_total": 65,
-    "corrected_total": 70
+    "gate": "test/docs-citations.test.mjs - 178개 통과. ../ 상대경로까지 검사한다"
   }
 }

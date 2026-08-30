@@ -1,1 +1,0 @@
-kind=realize	src=Gamerecipe.StickRush.BaseScene	dst=Gamerecipe.StickRush.ISceneNameAccessor	dstAsm=Probe	at=Assets/@Scripts/Utils/BaseScene.cs:8
