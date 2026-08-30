@@ -56,7 +56,7 @@ flowchart LR
 | 사는 곳            | 무엇                                                                        | 왜 거기인가                                           |
 | --------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
 | report-builder  | `viz/src/components/` React 컴포넌트, `viz/src/theme.css`                             | 모든 보고서가 공유한다. 읽기 전용                              |
-| report-builder  | `scripts/*.mjs` 빌드·검사, `codegraph/*.py` 정적 계층                             | 도구 본체                                            |
+| report-builder  | `runner/`, `viz/`, `tools/` `.mjs` 스크립트, `machine/` 등 `.py` 계층            | 도구 본체                                            |
 | 대상 저장소 (git 추적) | `specs/<slug>/data.ts` · `report.tsx`                                     | **원고**다. `.md` 와 같은 자격으로 그 저장소에 산다               |
 | 대상 저장소 (git 추적) | `docs/wiki/*.md`                                                          | LLM 이 쓴 산문. 역시 원고다 (`runner/wiki/paths.mjs:22`) |
 | 대상 저장소 (추적 안 함) | `out/codegraph-raw/` · `out/report.html` · `out/codegraph-raw/wiki-site/` | 결정론으로 재생성된다 (`runner/wiki/paths.mjs:18,23-25`)  |
@@ -264,12 +264,12 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 ```mermaid
 flowchart TD
   BIN["bin/ 진입점 4개"] --> DIS["runner/dispatch.mjs"]
-  DIS --> SPEC["scripts/{init,build,check}.mjs"]
+  DIS --> SPEC["viz/{init,build,check}.mjs"]
   DIS --> TERM["runner/term/*.mjs"]
   DIS --> WIKI["runner/wiki/*.mjs"]
   SPEC --> SRC["viz/src/ 컴포넌트 · 타입"]
-  WIKI --> PY["codegraph/*.py"]
-  RUN["codegraph/run_mode*.py 실행기"] --> WIKI
+  WIKI --> PY["machine/*.py"]
+  RUN["runner/run_mode*.py 실행기"] --> WIKI
   RUN --> SPEC
   RUN --> TERM
 ```
@@ -279,8 +279,8 @@ flowchart TD
 🔵 저장소 안 상대 import 를 전수로 뽑아 확인했다.
 
 ```bash
-grep -rnE '^(import|from) ' codegraph/*.py            # 표준 라이브러리를 걸러낸 뒤
-grep -rnE '^import .* from "\.' scripts/ bin/ viz/src/    # 상대 경로 import 만
+grep -rnE '^(import|from) ' machine/ runner/ viz/ tools/            # 표준 라이브러리를 걸러낸 뒤
+grep -rnE '^import .* from "\.' runner/ viz/ tools/ bin/    # 상대 경로 import 만
 ```
 
 파이썬 쪽 저장소 내부 import 는 시험 파일을 빼면 여섯 줄뿐이다.
@@ -413,8 +413,8 @@ sequenceDiagram
 
 | 명령                                      | 무엇                                                      | 🔵 이번 실측        |
 | --------------------------------------- | ------------------------------------------------------- | --------------- |
-| `npm test`                              | Node 쪽 순수 함수와 컴포넌트                                      | 141 통과 · 0 실패   |
-| `.venv/bin/python -m pytest codegraph/` | 파이썬 쪽                                                   | 201 통과 · 19 건너뜀 |
+| `npm test`                              | Node 쪽 순수 함수와 컴포넌트                                      | 160 통과 · 0 실패   |
+| `.venv/bin/python -m pytest machine/ runner/ viz/ tools/` | 파이썬 쪽                                                   | 374 통과 · 19 건너뜀 |
 | `npm run typecheck`                     | 이 저장소 `viz/src/` 의 `tsc --noEmit`                           | —               |
 | `npm run doctor`                        | 이 컴퓨터에 무엇이 있나. 필수가 없으면 exit 1 (`tools/doctor.mjs:51`) | —               |
 
@@ -489,7 +489,7 @@ sequenceDiagram
 ```
 
 🔵 이번에 실제로 돌린 출력 — `언어 unknown — 모듈 7 / 의존 1 / 외부 0` · `순환 0개, 순환 참여 간선 0개`.
-모듈 7개는 `codegraph` · `scripts` · `scripts/term` · `scripts/wiki` · `src` · `viz/src/components` · `viz/src/runtime` 이다.
+모듈 7개는 `machine` · `runner` · `runner/term` · `runner/wiki` · `viz/src` · `viz/src/components` · `viz/src/runtime` 이다.
 
 ⚠ **이 코드 지도는 이 저장소 자신을 완전히 담고 있지 않다.** 🔵 노드 173 · 간선 105 인데
 `language` 가 `unknown` 이고 모듈 간 의존은 1건만 잡혔다 — 위 §4 에서 손으로 센 상대 import 보다 적다.
