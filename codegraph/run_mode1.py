@@ -263,7 +263,7 @@ def claude_argv(model, repo, extra_dirs):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.warmup_section']"/>
 # 다시 읽을 범위를 알리는 지시문을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.agent_prompt
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.survey_batch_prompt
 def warmup_section(targets, total, repo=""):
     """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
 
@@ -271,8 +271,13 @@ def warmup_section(targets, total, repo=""):
     그것이 이 배선이 줄이려는 바로 그 비용이므로, 목록 밖을 읽지 말라고 분명히 쓴다.
     대신 이미 있는 레코드를 근거로 쓰라고 알려 준다 — 금지만 하면 막힌다.
 
-    이 글은 `agent_prompt` 가 이미 `.format()` 을 돌린 **뒤에** 이어 붙는다. 그래서
+    이 글은 부르는 쪽이 이미 `.format()` 을 돌린 **뒤에** 이어 붙는다. 그래서
     중괄호 자리표시자를 남기면 안 되고, 저장소 경로를 `repo` 로 받아 여기서 박아 넣는다.
+
+    ⚠ 2026-08-30 — 산문 범위를 말하던 줄을 뺐다. 이 글은 이제 **전수조사 배치 프롬프트**에만
+    붙는데, 그 프롬프트는 "쓰는 곳은 자기 샤드 하나뿐" 이라고 못 박는다. 한 글 안에서
+    `docs/wiki/*.md` 를 고치라는 지시와 어긋나면 세션이 어느 쪽을 따를지 알 수 없다.
+    위키 쪽 범위는 `wiki_page_prompt` 가 페이지 목록으로 따로 준다.
     """
     if not targets:
         return ""
@@ -286,71 +291,161 @@ def warmup_section(targets, total, repo=""):
             "- **이 목록에 없는 파일은 읽지 마라.** 나머지 레코드는 그대로 살아 있고, 손대면 안 된다.\n"
             "- 목록 밖의 이름이 필요하면 소스가 아니라 **기존 terms-reading.json 과 codegraph.json**\n"
             "  을 근거로 쓴다.\n"
-            "- 산문도 마찬가지다. 이 파일들을 다루는 페이지만 고치고 나머지 docs/wiki/*.md 는 둔다.\n"
             "- 목록의 파일이 사라졌거나 읽을 수 없으면 **지어내지 말고** 보고에 적는다.\n"
             % (repo, len(targets), total, len(targets), 목록))
 
 
-# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.agent_prompt']"/>
-# 한 세션이 할 일 전부를 적은 글.
-# 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_agent
-def agent_prompt(repo, root, targets=None, total=0):
-    """한 세션이 할 일 전부. **전수조사와 산문을 둘 다** 여기서 시킨다.
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.dep_excerpt']"/>
+# 이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
+def dep_excerpt(merged, batch):
+    """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
 
-    쪼개지 않는 이유는 캐시다 — 두 세션으로 나누면 두 번째가 저장소를 처음부터
-    다시 읽어 토큰이 부풀고, 그러면 측정값이 파이프라인의 비용이 아니라 세션 수의
-    함수가 된다.
+    전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 쪼갠 이점이 사라진다.
+    아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
+    """
+    want = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
+    lines = ["  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
+             for k in want if k in merged]
+    return "\n".join(lines)
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.survey_batch_prompt']"/>
+# 배치 하나를 맡을 세션에게 줄 글을 만든다.
+# 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_survey
+def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
+    """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
+
+    `dep_records` 는 **아래층에서 이미 완성된** 레코드 중 이 배치의 심볼이 의존하는 것만
+    발췌한 것이다(`dep_excerpt`). 전량을 주입하면 층이 올라갈수록 프롬프트가 부푼다.
+
+    `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
+    `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다 — 배치 세션이 그것을 알아야
+    기존 레코드의 `means` `does` 를 함부로 다시 쓰지 않는다. `None` 이면 전량 조사다.
+    """
+    syms = "\n".join(
+        "  - %s (%s) %s:%s   의존 -> %s"
+        % (s["name"], s["kind"], s["file"], s["line"],
+           ", ".join(s.get("depends_on") or []) or "없음")
+        for s in batch["symbols"])
+    return """\
+너는 코드베이스 전수조사의 배치 {bid} 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
+사람에게 묻지 않는다 — 이 세션은 헤드리스라 되묻는 순간 막힌다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
+
+## 너보다 아래층은 이미 끝났다 — 다시 조사하지 마라
+
+{deps}
+
+## 네가 맡은 심볼 {n}개 — 이것만 한다
+
+{syms}
+
+## 읽는 법 — 순서를 지킨다
+
+1. 담당 파일마다 통독 캐시를 먼저 본다:
+     {root}/.venv/bin/python {root}/codegraph/file_cache.py get {repo} <파일경로>
+   - 있으면: 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다.
+   - 없으면: 파일을 통독하고, 끝나면 개요를 남긴다:
+     {root}/.venv/bin/python {root}/codegraph/file_cache.py put {repo} <파일경로> <개요json>
+     개요 꼴 — 심볼마다 {{name, kind, line, end_line, signature, one_line}} 에
+     파일의 imports 와 head_comment 를 더한 객체.
+2. **네 심볼은 캐시로 때우지 않는다.** 반드시 그 줄 범위를 실제로 읽는다.
+   캐시는 남의 심볼을 uses[].to 로 가리킬 때만 쓴다.
+
+## 레코드 계약
+
+{{kind, module, where, means, does, uses[], confidence, source:"reading"}}
+- where = `경로:줄` (필수. 기계가 L1 파일 / L2 줄 / L3 근처에 이름 으로 검사한다)
+- means = 무엇인가, 한 문장. **객체지향을 갓 배운 대학 1학년 눈높이.** 어려운 용어로 설명하지 않는다
+- does  = 무엇을 하는가, 한두 문장
+- uses[] = {{to, kind, label, where}}. kind 는 dependency inheritance aggregation composition
+  association realization 중 하나
+- confidence = HIGH(코드를 읽고 썼다) / MEDIUM(일부 읽고 나머지는 추론) / LOW(이름·구조에서 추론)
+  **전부 HIGH 로 적으면 그 칸이 장식이 된다.**
+
+## 금지 — 이 말이 떠오르면 멈추고 읽는다
+
+  "이건 아마 …할 것이다"  -> 그 함수를 열어 실제로 무엇을 하는지 적는다
+  "이름으로 보아 …"       -> 이름은 거짓말한다. 구현을 확인한다
+  "보통 이런 건 …"        -> 이 코드베이스를 읽는다. 관례에 대지 않는다
+  "…에 연결될 것 같다"    -> import 나 호출을 실제로 따라간다
+  "읽지 않았지만 …"       -> confidence LOW 로 적거나 아예 쓰지 않는다
+
+## 쓰는 곳 — 여기 말고 아무 데도 쓰지 않는다
+
+  {repo}/out/codegraph-raw/_shards/{bid}.json      꼴은 {{"키": 레코드}}
+
+**terms-reading.json 을 열지도 고치지도 않는다.** 지금 다른 배치들이 동시에 돌고 있다.
+키가 다른 파일과 겹칠 것 같아도 **네가 고치지 않는다** — 층이 끝날 때 일괄 해소된다. 보고에 적기만 한다.
+**커밋하지 않는다.**
+
+## 끝내기 전에
+
+- 심볼 {n}개에 레코드가 {n}개 있는가
+- where 의 줄 번호를 실제로 열어 확인했는가
+- confidence 가 전부 HIGH 는 아닌가
+- 샤드 파일 하나만 만들었는가
+
+보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
+""".format(repo=repo, root=root, bid=batch["id"], n=len(batch["symbols"]),
+           syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)") \
+        + warmup_section(targets, total, repo)
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.nonnode_prompt']"/>
+# 지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
+def nonnode_prompt(repo, root):
+    """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
+
+    이것들은 코드 지도의 노드가 아니라 **층 축이 없다.** 대신 심볼 레코드가 재료다 —
+    파일 레코드는 그 파일 안 심볼들의 완성된 means/does 를 보고 쓴다.
+    그래서 심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.
     """
     return """\
-너는 report-builder 의 **Mode 1 에이전트**다. 대상 저장소 하나를 읽어 두 가지를 낸다.
-사람에게 묻지 않는다 — 이 세션은 헤드리스라 되묻는 순간 막힌다. 막히면 진행하지 말고
-무엇이 없어서 막혔는지 적고 끝낸다.
+너는 코드베이스 전수조사의 **마지막 층** 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
+사람에게 묻지 않는다 — 헤드리스 세션이다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
 
-대상 저장소   {repo}
-도구 저장소   {root}   (report-builder. 규약과 스킬이 여기 있다)
+## 심볼은 이미 전부 끝났다
 
-## 이미 있는 재료 — 다시 만들지 마라
+  {repo}/docs/codegraph/terms-reading.json   앞선 층들이 합쳐 놓은 심볼 레코드
 
-정적 계층은 이미 돌았다. 아래를 **먼저 읽고** 그 위에서 시작한다.
+이 파일을 **읽기만** 한다. 고치지 않는다.
 
-  {repo}/out/codegraph-raw/codegraph.json   코드 지도(점=타입·함수, 선=관계)
-  {repo}/out/codegraph-raw/facts/*.md       모듈 · 클래스 · 외부 의존 · 진입점 · hotspot 표
-  {repo}/out/codegraph-raw/ranking.json     모듈 중요도(PageRank · hotspot)
-  {repo}/out/codegraph-raw/modules.svg      모듈 관계도(큰 그림). .dot 와 .png 도 옆에 있다
+## 네가 맡은 것 — 코드 지도의 노드가 아닌 용어 다섯 종류
 
-## 할 일 1 — 용어 전수조사
+| kind | 무엇 | where 는 어디 |
+|---|---|---|
+| `file` | 소스 파일 하나 | `경로:1` |
+| `module` | 디렉토리 하나 | 없어도 된다 |
+| `artifact` | 이 저장소가 **만들어 내는** 파일 | 그 파일을 **쓰는** 줄 |
+| `key` | 설정·JSON 의 이름난 칸 | 그 키를 **채우는** 줄 |
+| `concept` | 코드에 글자로 있는 낱말 | 그 낱말이 있는 줄 |
 
-`codebase-terms-survey` 스킬을 Skill 도구로 불러 그 절차대로 한다. 산출물은
+**`file` `module` `artifact` `key` `concept` 는 이름이 그 줄에 글자 그대로 있어야 한다** —
+기계가 L3(근처에 그 이름) 으로 검사한다.
 
-  {repo}/docs/codegraph/terms-reading.json
+`file` 레코드는 **그 파일 안 심볼들의 완성된 means/does 를 재료로** 쓴다. 다시 통독하지 않는다.
+`concept` 은 **코드에 글자로 없는 것을 만들지 않는다** — 계획서에만 있는 개념은 여기 싣지 않는다.
 
-레코드 계약은 `{{kind, module, where, means, does, uses[], confidence, source}}` 이고
-**`where` 는 실제 `파일:줄` 이어야 한다** — 기계가 L1/L2/L3 로 검사한다. 지어내면 걸린다.
-`confidence` 는 HIGH(읽었다) / MEDIUM(일부) / LOW(이름만) 중 하나로 반드시 적는다.
+## 금지 — 이 말이 떠오르면 멈추고 읽는다
 
-## 할 일 2 — 위키 산문
+  "이건 아마 …할 것이다"  -> 그 자리를 열어 실제로 무엇을 하는지 적는다
+  "이름으로 보아 …"       -> 이름은 거짓말한다. 구현을 확인한다
+  "보통 이런 건 …"        -> 이 코드베이스를 읽는다. 관례에 대지 않는다
+  "읽지 않았지만 …"       -> confidence LOW 로 적거나 아예 쓰지 않는다
 
-`/deep-wiki:page` 의 규정(3단계 절차 · Mermaid · 인용 규격 · 미확인 영역 표기)을 따르되
-**사이트 조립은 하지 마라** — 그건 이 도구의 `report-wiki build` 가 한다. 너는 평평한
-마크다운만 쓴다.
+## 레코드 계약과 쓰는 곳
 
-  {repo}/docs/wiki/*.md      (하위 폴더 없이. `index.md` 를 반드시 포함)
+{{kind, module, where, means, does, uses[], confidence, source:"reading"}} 이고
+쓰는 곳은 **여기 하나뿐**이다:
 
-- 페이지 수는 모듈 수에 맞춘다. `ranking.json` 상위 모듈부터.
-- **인용은 로컬 규격 `(경로:줄)`** 로 쓴다. 저장소 뿌리 기준 상대 경로다.
-- Mermaid 는 소형만(노드 10개 이하). 큰 그림은 `out/codegraph-raw/modules.svg` 를 가리킨다.
-- 확인 못 한 것은 `(Unknown - verify in <파일>)` 로 남긴다. 지어내지 않는다.
+  {repo}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {{"키": 레코드}}
 
-## 규율
+**terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
-- **커밋하지 마라.** `git add` · `git commit` 금지.
-- 대상 저장소의 **소스는 읽기만** 한다. 쓰는 곳은 `docs/codegraph/` 와 `docs/wiki/` 둘뿐이다.
-- 주석과 문서는 **한국어**. 약어를 피하고 메커니즘을 먼저 쓴다.
-- 읽는 사람은 배경 지식이 없다고 가정한다(객체지향을 갓 배운 대학 1학년 눈높이).
-- 코드에 글자로 없는 것은 쓰지 않는다. "~일 것이다" 대신 읽고 말한다.
-
-끝나면 만든 파일 목록과 각 파일의 레코드 수 / 페이지 줄 수를 한 표로 보고한다.
-""".format(repo=repo, root=root) + warmup_section(targets, total, repo)
+보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
+""".format(repo=repo, root=root)
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.node_argv']"/>

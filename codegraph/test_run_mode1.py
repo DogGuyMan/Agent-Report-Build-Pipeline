@@ -254,18 +254,29 @@ def test_warmup_section_is_empty_when_there_is_nothing_to_scope():
     assert R.warmup_section(None, total=77) == ""
 
 
-def test_prompt_carries_the_scope_when_warmup_gave_one():
-    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리",
-                       targets=["core/a.cpp"], total=77)
+def _배치():
+    return {"id": "L1-B00", "files": ["core/net.py"],
+            "symbols": [{"id": "send", "name": "send", "file": "core/net.py",
+                         "line": 42, "kind": "function", "in_cycle": False,
+                         "depends_on": ["encode"]}]}
+
+
+def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
+    """예전 이름은 `test_prompt_carries_the_scope_when_warmup_gave_one` 였다.
+
+    warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
+    기존 레코드의 means/does 를 함부로 다시 쓰지 않는다.
+    """
+    p = R.survey_batch_prompt("/r", "/root", _배치(), "", targets=["core/a.cpp"], total=77)
     assert "core/a.cpp" in p
     assert "증분" in p
 
 
-def test_prompt_without_a_scope_is_the_full_survey():
-    """warmup 이 못 돌았거나 백지 실행이면 옛 프롬프트 그대로여야 한다."""
-    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리")
+def test_배치_프롬프트는_범위가_없으면_전량_조사다():
+    """예전 이름은 `test_prompt_without_a_scope_is_the_full_survey` 였다.
+    warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다."""
+    p = R.survey_batch_prompt("/r", "/root", _배치(), "")
     assert "증분" not in p
-    assert "codebase-terms-survey" in p and "deep-wiki" in p
 
 
 # ── 4. 에이전트 호출 — 하나만, 그리고 대상 저장소를 볼 수 있게
@@ -286,12 +297,56 @@ def test_claude_argv_does_not_pass_the_prompt_on_the_command_line():
     assert not any(len(a) > 200 for a in argv)
 
 
-def test_the_prompt_names_both_halves_of_the_one_agent_job():
-    """한 세션이 전수조사와 산문을 **둘 다** 한다 — 프롬프트가 그렇게 적혀 있어야 한다."""
-    p = R.agent_prompt(repo="/어느/저장소", root="/도구/뿌리")
+def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
+    """예전에는 한 프롬프트가 전수조사와 산문을 **둘 다** 지시했다
+    (`test_the_prompt_names_both_halves_of_the_one_agent_job`).
+
+    2026-08-30 사용자 결정으로 갈렸다. 배치 세션은 자기 심볼만 읽고 자기 샤드에만 쓴다 —
+    terms-reading.json 을 직접 고치면 동시에 도는 다른 배치가 서로를 지운다.
+    """
+    p = R.survey_batch_prompt(repo="/어느/저장소", root="/도구/뿌리",
+                              batch=_배치(), dep_records="  - encode — 바이트로 바꾼다")
     assert "/어느/저장소" in p and "/도구/뿌리" in p
-    assert "codebase-terms-survey" in p and "deep-wiki" in p
-    assert "terms-reading.json" in p
+    assert "L1-B00" in p
+    assert "core/net.py" in p and "42" in p
+    assert "encode — 바이트로 바꾼다" in p           # 아래층 레코드를 발췌해 준다
+    assert "_shards/L1-B00.json" in p               # 쓰는 곳은 자기 샤드뿐
+    assert "terms-reading.json" in p                # 열지도 고치지도 말라고 적혀 있다
+    assert "file_cache.py" in p                     # 통독 캐시를 먼저 본다
+    assert "이름으로 보아" in p                       # 금지표
+    assert "confidence" in p
+
+
+def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다():
+    """층0 은 의존 대상이 없다. 빈 칸을 그냥 두면 세션이 무엇이 빠졌는지 헷갈린다."""
+    batch = {"id": "L0-B00", "files": ["a.py"],
+             "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
+                          "kind": "function", "in_cycle": False, "depends_on": []}]}
+    assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, "")
+
+
+def test_비노드_프롬프트는_심볼이_아닌_종류만_말한다():
+    """K5 — file · module · artifact · key · concept 는 층 축이 없다.
+    심볼 레코드가 재료이므로 심볼 층이 전부 끝난 뒤에 돈다."""
+    p = R.nonnode_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    for kind in ["file", "module", "artifact", "key", "concept"]:
+        assert kind in p
+    assert "_shards/" in p
+    assert "이름으로 보아" in p
+
+
+def test_의존_발췌는_아래층에_있는_것만_낸다():
+    """전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 캐시 이점이 사라진다."""
+    merged = {"encode": {"means": "바이트로 바꾼다"}, "무관": {"means": "상관없다"}}
+    batch = {"symbols": [{"id": "send", "depends_on": ["encode", "아직없음"]}]}
+    got = R.dep_excerpt(merged, batch)
+    assert "encode" in got and "바이트로 바꾼다" in got
+    assert "무관" not in got
+    assert "아직없음" not in got
+
+
+def test_의존_발췌는_아무것도_없으면_빈_문자열():
+    assert R.dep_excerpt({}, {"symbols": [{"id": "a", "depends_on": []}]}) == ""
 
 
 # ── 5. 투영이 정적 codegraph 를 덮어쓰지 않게
