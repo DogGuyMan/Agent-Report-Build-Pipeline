@@ -1,6 +1,6 @@
-// <include file="machine/comments.xml" path="//term[@id='tools/doctor.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='doctor.mjs']"/>
 // 이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.
-// 쓰는 것: pythonPath · 쓰이는 곳: 없음
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // `npm run doctor` — 이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말한다.
 //
 // **왜 있나.** 이 저장소는 Node 와 파이썬과 바깥 명령 여럿에 걸쳐 있다. 다른 컴퓨터로 옮기면
@@ -17,9 +17,6 @@ import { pythonPath } from "./python.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
-// <include file="machine/comments.xml" path="//term[@id='probe']"/>
-// 바깥 명령 하나를 돌려 첫 줄을 얻는다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 명령 하나를 돌려 첫 줄을 돌려준다. 못 돌리면 null. */
 export function probe(cmd, args) {
   try {

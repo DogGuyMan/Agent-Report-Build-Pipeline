@@ -1,13 +1,10 @@
-// <include file="machine/comments.xml" path="//term[@id='runner/wiki/paths.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='paths.mjs']"/>
 // 위키 세 명령이 함께 보는 경로 규약.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // Mode 1 위키의 경로 규약 한 곳. prep · build · check 세 명령이 전부 이것만 본다.
 // 순수 함수만 노출한다 — CLI 본체가 없으므로 직접 실행 가드도 없다.
 import { join } from "node:path";
 
-// <include file="machine/comments.xml" path="//term[@id='wikiPaths']"/>
-// 대상 저장소 하나의 여러 경로를 한 덩이로 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * 대상 저장소 하나에 대한 경로 규약.
  *
@@ -26,9 +23,6 @@ export function wikiPaths(repo) {
   };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='collectorFor']"/>
-// 저장소 최상위를 보고 어느 정적 수집기를 쓸지 고른다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * 저장소 최상위 항목 목록을 보고 정적 수집기를 고른다.
  *

@@ -6,9 +6,6 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-// <include file="machine/comments.xml" path="//term[@id='resolveScript']"/>
-// 명령 이름을 스크립트 상대경로로 바꾼다. 없으면 아무것도 돌려주지 않는다.
-// 쓰는 것: 없음 · 쓰이는 곳: runDispatch
 /** 명령표에서 스크립트 상대경로를 찾는다. 없으면 null. */
 export function resolveScript(table, cmd) {
   if (!cmd) return null;
@@ -17,9 +14,6 @@ export function resolveScript(table, cmd) {
   return table[cmd];
 }
 
-// <include file="machine/comments.xml" path="//term[@id='runDispatch']"/>
-// 명령을 찾아 자식 프로세스로 실행하는 갈림길 함수.
-// 쓰는 것: resolveScript · 쓰이는 곳: report-spec, report-term, report-wiki
 // 부수효과(process.exit · spawnSync)는 이 함수 안에만 둔다.
 // import 시에는 순수 함수만 노출한다(러너·시각축 .mjs 규약).
 export function runDispatch({ root, table, argv, usage }) {

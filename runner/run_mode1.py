@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='runner/run_mode1.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='run_mode1.py']"/>
 # Mode 1 파이프라인을 한 번에 돌리면서 단계마다 걸린 시간과 쓴 토큰을 재는 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기.
@@ -79,6 +79,9 @@ import os
 import sys
 
 
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1._bootstrap_venv']"/>
+# 이 스크립트를 돌리는 파이썬이 .venv 안의 것인지 확인하고, 아니면 .venv 파이썬으로 바꿔서 다시 실행하는 함수다.
+# 쓰는 것: os, sys · 쓰이는 곳: 없음
 def _bootstrap_venv() -> None:
     """`.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다.
 
@@ -167,6 +170,9 @@ Record = dict[str, Any]
 Records = dict[str, Record]
 
 
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.StageRow']"/>
+# 측정 표에서 단계 하나를 나타내는 한 줄의 꼴을 정의하는 타입(TypedDict)이다.
+# 쓰는 것: runner.run_mode1.Usage · 쓰이는 곳: runner.test_run_mode1.test_report_has_a_row_per_stage_and_a_total
 class StageRow(TypedDict):
     """측정 표의 한 줄. **세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다.**
 
@@ -181,6 +187,9 @@ class StageRow(TypedDict):
     skipped: NotRequired[bool]
 
 
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.WikiPage']"/>
+# 위키 목차 파일(wiki-plan.json) 안의 장(페이지) 하나를 나타내는 타입(TypedDict)이다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.page_layers
 class WikiPage(TypedDict):
     """`wiki-plan.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
 
@@ -189,9 +198,9 @@ class WikiPage(TypedDict):
     symbols: NotRequired[list[str]]
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.lang_of']"/>
-# 코드 지도가 적어 둔 언어를 선언 훑기가 아는 이름으로 바꾼다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.lang_of']"/>
+# 코드 지도 파일(codegraph.json)에 적힌 언어 이름을 declmap 모듈이 아는 언어 이름으로 바꿔주는 함수다.
+# 쓰는 것: runner.run_mode1.LANG_ALIAS, declmap.LANGS · 쓰이는 곳: runner.run_mode1.run_warmup, runner.test_run_mode1.test_lang_of_bridges_the_two_naming_schemes, runner.test_run_mode1.test_lang_of_is_none_when_it_cannot_tell, runner.test_run_mode1.test_lang_of_maps_every_collector_language_to_declmap, runner.test_run_mode1.test_lang_of_passes_through_a_name_declmap_already_knows
 def lang_of(codegraph_path: str | None) -> str | None:
     """코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다.
 
@@ -208,9 +217,9 @@ def lang_of(codegraph_path: str | None) -> str | None:
     return name if name in declmap.LANGS else None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.changed_seed']"/>
-# 다시 읽어야 할 파일의 씨앗을 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_warmup
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.changed_seed']"/>
+# warmup 판정 결과에서 다시 읽어야 할 파일 목록의 씨앗을 골라내는 함수다.
+# 쓰는 것: warmup.Verdicts · 쓰이는 곳: runner.run_mode1.run_warmup, runner.test_run_mode1.test_seed_excludes_valid_and_deleted, runner.test_run_mode1.test_seed_includes_position_only_files, runner.test_run_mode1.test_seed_is_sorted_and_deduplicated, runner.test_run_mode1.test_seed_tolerates_missing_buckets
 def changed_seed(판정: warmup.Verdicts) -> list[str]:
     """다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.**
 
@@ -223,9 +232,9 @@ def changed_seed(판정: warmup.Verdicts) -> list[str]:
     return sorted(set(판정.get("재읽기") or []) | set(판정.get("위치만") or []))
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.should_call_agent']"/>
-# 큰 언어 모형을 부를지 말지 정한다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.should_call_agent']"/>
+# 전수조사 단계에서 큰 언어 모형(에이전트)을 실제로 부를지 말지를 정하는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.test_run_mode1.test_agent_is_skipped_when_nothing_changed_and_records_exist, runner.test_run_mode1.test_agent_runs_when_something_changed, runner.test_run_mode1.test_agent_runs_when_warmup_could_not_judge, runner.test_run_mode1.test_agent_still_runs_when_there_are_no_records_yet
 def should_call_agent(targets: Sequence[str] | None, has_reading: bool) -> bool:
     """에이전트를 부를 것인가.
 
@@ -242,18 +251,18 @@ def should_call_agent(targets: Sequence[str] | None, has_reading: bool) -> bool:
     return bool(targets)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.is_agent_stage']"/>
-# 이 단계가 큰 언어 모형을 부르는 자리인지 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.is_agent_stage']"/>
+# 주어진 단계 이름이 모형(LLM)을 부르는 단계인지 검사하는 함수다.
+# 쓰는 것: runner.run_mode1.AGENT_STAGES · 쓰이는 곳: runner.test_run_mode1.test_세_단계가_모형을_부른다, runner.test_run_mode1.test_층_계획은_LLM_단계가_아니다
 # ── 1. 단계 고르기 ──────────────────────────────────────────────────────
 def is_agent_stage(stage: str) -> bool:
     """이 단계가 모형을 부르는가. 토큰이 잡히는 자리는 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.plan_stages']"/>
-# 일곱 단계 중 무엇을 실제로 돌릴지 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.plan_stages']"/>
+# 아홉 단계 중 이번 실행에서 실제로 돌릴 단계 목록을 정하는 함수다.
+# 쓰는 것: runner.run_mode1.STAGES · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_plan_keeps_prep_even_when_codegraph_exists, runner.test_run_mode1.test_plan_only_and_skip_are_honoured, runner.test_run_mode1.test_plan_rejects_an_unknown_stage, runner.test_run_mode1.test_skip_은_열_단계_흐름_기준으로_걸러낸다 (+7)
 def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
                 only: Iterable[str] | None = None,
                 skip: Iterable[str] | None = None) -> list[str]:
@@ -283,9 +292,9 @@ def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.normalize_usage']"/>
-# 모형이 낸 사용량 보고에서 잴 값만 뽑아 평평하게 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.normalize_usage']"/>
+# claude -p 세션이 낸 JSON 결과에서 토큰 사용량·비용·턴수를 뽑아 평평한 사전 하나로 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_lang_select, runner.run_mode1.run_survey, runner.run_mode1_5.main, runner.run_mode2.main, runner.test_run_mode1.test_a_skipped_stage_does_not_break_the_total (+13)
 # ── 2. 토큰 세기 ────────────────────────────────────────────────────────
 def normalize_usage(result: AgentResult | None) -> Usage:
     """`claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다.
@@ -311,9 +320,9 @@ def normalize_usage(result: AgentResult | None) -> Usage:
     return got
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.sum_usage']"/>
-# 단계별 사용량을 하나로 합친다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report, run_mode1.stage_totals
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.sum_usage']"/>
+# 여러 단계의 Usage 사전들을 키별로 더해 하나로 합치는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.format_report, runner.run_mode1.main, runner.run_mode1.stage_totals, runner.run_mode1_5.main, runner.run_mode2.main (+2)
 def sum_usage(usages: Sequence[Usage]) -> Usage:
     """`normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다."""
     keys = ["input", "output", "cache_read", "cache_write", "total", "turns", "api_ms"]
@@ -323,9 +332,9 @@ def sum_usage(usages: Sequence[Usage]) -> Usage:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.agent_verdict']"/>
-# 큰 언어 모형 단계가 정말 해냈는지 판정한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.agent_verdict']"/>
+# 모형(에이전트) 호출이 종료 코드만으로는 알 수 없는 실제 성공 여부를 판정하는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_survey, runner.run_mode1.run_wiki, runner.run_mode1_5.main, runner.run_mode2.main, runner.test_run_mode1.test_agent_result_is_a_failure_when_is_error_is_set (+3)
 # ── 3. 실패 판정 ────────────────────────────────────────────────────────
 def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, str]:
     """에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다.
@@ -342,9 +351,9 @@ def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, st
     return True, ""
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.claude_argv']"/>
-# 헤드리스 모형 호출의 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_agent_with
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.claude_argv']"/>
+# 헤드리스 claude 명령을 부를 명령줄 인자 리스트를 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_agent_with, runner.run_mode1.run_lang_select, runner.run_mode1_5.author_argv, runner.test_run_mode1.test_claude_argv_does_not_pass_the_prompt_on_the_command_line, runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model (+1)
 # ── 4. 에이전트 호출 ────────────────────────────────────────────────────
 def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
     """헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
@@ -359,9 +368,23 @@ def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.warmup_section']"/>
-# 다시 읽을 범위를 알리는 지시문을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.survey_batch_prompt
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.reading_path']"/>
+# 전수조사 원본 terms-reading.json 이 어느 자리에 있는지 고르는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.nonnode_prompt, runner.run_mode1.warmup_section
+def reading_path(repo: str, root: str) -> str:
+    """전수조사 원본 `terms-reading.json` 의 자리.
+
+    대상 저장소는 `<repo>/docs/codegraph/` 아래에 둔다. **이 저장소 자신만 다르다** —
+    자기 것은 `machine/` 으로 옮겨져 있어 자기호스팅일 때 자리가 갈린다.
+    """
+    if os.path.abspath(repo) == os.path.abspath(root):
+        return os.path.join(root, "machine", "terms-reading.json")
+    return os.path.join(repo, "docs", "codegraph", "terms-reading.json")
+
+
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.warmup_section']"/>
+# 전수조사 배치 프롬프트 뒤에 붙는, 증분 조사 범위를 알리는 지시문 글을 만드는 함수다.
+# 쓰는 것: runner.run_mode1.reading_path · 쓰이는 곳: runner.run_mode1.survey_batch_prompt, runner.test_run_mode1.test_warmup_section_is_empty_when_there_is_nothing_to_scope, runner.test_run_mode1.test_warmup_section_lists_every_target_and_the_ratio
 def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") -> str:
     """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
 
@@ -376,7 +399,7 @@ def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") ->
     목록 = "\n".join("  " + t for t in targets)
     return ("\n## 범위 — 증분 조사다. 저장소 전량을 읽지 마라\n"
             "\n"
-            "지난 조사 결과가 %s/docs/codegraph/terms-reading.json 에 이미 있다. 그중\n"
+            "지난 조사 결과가 %s 에 이미 있다. 그중\n"
             "**아래 %d개 파일에 걸린 레코드만** 다시 만든다. 추적 파일 %d개 중 %d개다.\n"
             "\n%s\n"
             "\n"
@@ -384,12 +407,12 @@ def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") ->
             "- 목록 밖의 이름이 필요하면 소스가 아니라 **기존 terms-reading.json 과 codegraph.json**\n"
             "  을 근거로 쓴다.\n"
             "- 목록의 파일이 사라졌거나 읽을 수 없으면 **지어내지 말고** 보고에 적는다.\n"
-            % (repo, len(targets), total, len(targets), 목록))
+            % (reading_path(repo, ROOT), len(targets), total, len(targets), 목록))
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.dep_excerpt']"/>
-# 이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.dep_excerpt']"/>
+# 한 배치가 의존하는 아래층 심볼들 중 이미 완성된 레코드만 골라 짧은 발췌 글로 만드는 함수다.
+# 쓰는 것: machine.survey_plan.PlanBatch · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_의존_발췌는_아래층에_있는_것만_낸다, runner.test_run_mode1.test_의존_발췌는_아무것도_없으면_빈_문자열
 def dep_excerpt(merged: Records, batch: survey_plan.PlanBatch) -> str:
     """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
 
@@ -401,9 +424,9 @@ def dep_excerpt(merged: Records, batch: survey_plan.PlanBatch) -> str:
     return "\n".join(lines)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.survey_batch_prompt']"/>
-# 배치 하나를 맡을 세션에게 줄 글을 만드는 함수.
-# 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_survey
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.survey_batch_prompt']"/>
+# 전수조사 배치 하나를 맡을 세션에게 줄 지시문(프롬프트) 글을 만드는 함수다.
+# 쓰는 것: runner.run_mode1.warmup_section · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_배치_프롬프트는_범위가_없으면_전량_조사다, runner.test_run_mode1.test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다, runner.test_run_mode1.test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다, runner.test_run_mode1.test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다
 def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
                         dep_records: str, targets: Sequence[str] | None = None,
                         total: int = 0) -> str:
@@ -483,9 +506,9 @@ def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
         + warmup_section(targets, total, repo)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.nonnode_prompt']"/>
-# 지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.nonnode_prompt']"/>
+# 코드 지도의 노드가 아닌 용어들(파일·모듈·산출물·설정 키·개념)을 조사할 마지막 세션에게 줄 프롬프트 글을 만드는 함수다.
+# 쓰는 것: runner.run_mode1.reading_path · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_비노드_프롬프트는_심볼이_아닌_종류만_말한다
 def nonnode_prompt(repo: str, root: str) -> str:
     """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
 
@@ -498,7 +521,7 @@ def nonnode_prompt(repo: str, root: str) -> str:
 
 ## 심볼은 이미 전부 끝났다
 
-  {repo}/docs/codegraph/terms-reading.json   앞선 층들이 합쳐 놓은 심볼 레코드
+  {reading}   앞선 층들이 합쳐 놓은 심볼 레코드
 
 이 파일을 **읽기만** 한다. 고치지 않는다.
 
@@ -535,12 +558,12 @@ def nonnode_prompt(repo: str, root: str) -> str:
 **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
 보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
-""".format(repo=repo, root=root)
+""".format(repo=repo, root=root, reading=reading_path(repo, ROOT))
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.symbol_layers']"/>
-# 배치 계획에서 심볼마다 몇 층인지만 뽑아 표로 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.symbol_layers']"/>
+# 층 계획(survey-plan.json)에서 심볼마다 몇 층에 속하는지 뽑아 표로 만드는 함수다.
+# 쓰는 것: machine.survey_plan.SurveyPlan · 쓰이는 곳: runner.run_mode1.page_layers, runner.run_mode1.run_wiki, runner.test_run_mode1.test_심볼_층_표를_계획에서_뽑는다
 def symbol_layers(plan: survey_plan.SurveyPlan) -> dict[str, int]:
     """`survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다."""
     return {s["id"]: L["level"]
@@ -549,9 +572,9 @@ def symbol_layers(plan: survey_plan.SurveyPlan) -> dict[str, int]:
             for s in b.get("symbols", [])}
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.page_layers']"/>
-# 위키 페이지마다 몇 번째로 써야 하는지 층을 매기는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.page_layers']"/>
+# 위키 페이지마다 몇 번째 층에서 써야 하는지를, 그 페이지가 인용하는 심볼들의 층 중 가장 큰 값으로 매기는 함수다.
+# 쓰는 것: runner.run_mode1.WikiPage, runner.run_mode1.symbol_layers · 쓰이는 곳: runner.run_mode1.run_wiki, runner.test_run_mode1.test_모르는_심볼은_층을_올리지_않는다, runner.test_run_mode1.test_인용_심볼이_없는_페이지는_층0, runner.test_run_mode1.test_페이지_층은_인용한_심볼의_최대
 def page_layers(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]:
     """K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층.
 
@@ -566,9 +589,9 @@ def page_layers(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.wiki_catalogue_prompt']"/>
-# 위키에 어떤 장을 둘지 정하는 세션에게 줄 글을 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.wiki_catalogue_prompt']"/>
+# 위키의 목차(장 목록과 각 장이 다룰 심볼)를 정할 첫 세션에게 줄 프롬프트 글을 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_wiki, runner.test_run_mode1.test_카탈로그_프롬프트는_계획_파일을_내라고_말한다
 def wiki_catalogue_prompt(repo: str, root: str) -> str:
     """페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다.
 
@@ -614,9 +637,9 @@ Getting Started / Deep Dive 계열, 최대 4단, 절당 자식 8장 이하.
 """.format(repo=repo, root=root)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.wiki_page_prompt']"/>
-# 위키 한 장을 맡을 세션에게 줄 글을 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.wiki_page_prompt']"/>
+# 위키 장 하나를 쓸 세션에게 줄 프롬프트 글을 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_wiki, runner.test_run_mode1.test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한다, runner.test_run_mode1.test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다
 def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> str:
     """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다."""
     return """\
@@ -661,18 +684,18 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.node_argv']"/>
-# 위키 기계 단계 하나를 부르는 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.node_argv']"/>
+# runner/wiki/ 아래의 .mjs 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists
 # ── 5. 기계 단계의 명령줄 ────────────────────────────────────────────────
 def node_argv(root: str, script: str, repo: str) -> list[str]:
     """`runner/wiki/*.mjs` 하나를 부른다. node 는 PATH 에서 찾는다."""
     return ["node", os.path.join(root, "runner", "wiki", script), repo]
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.terms_argv']"/>
-# 용어 사전을 만드는 단계의 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.terms_argv']"/>
+# 용어 사전을 만드는 machine/terms_db.py 단계를 부를 명령줄 인자 리스트를 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_terms_argv_passes_the_static_codegraph_positionally
 def terms_argv(python: str, root: str, repo: str,
                codegraph: str | None, reading: str | None) -> list[str]:
     """`terms_db.py` 명령줄.
@@ -690,9 +713,9 @@ def terms_argv(python: str, root: str, repo: str,
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.hms']"/>
-# 초를 사람이 읽는 시간 꼴로 바꾼다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.hms']"/>
+# 초 단위 숫자를 사람이 읽기 쉬운 시간 표기로 바꾸는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.Heartbeat, runner.run_mode1.Heartbeat._tick, runner.run_mode1.format_report, runner.run_mode1_5.main
 # ── 6. 보고 ─────────────────────────────────────────────────────────────
 def hms(seconds: float) -> str:
     """초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다."""
@@ -702,9 +725,9 @@ def hms(seconds: float) -> str:
     return "%d분 %04.1f초" % (int(s // 60), s % 60)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.format_report']"/>
-# 단계별 측정값을 표 한 장으로 만든다.
-# 쓰는 것: run_mode1.sum_usage, run_mode1.hms · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.format_report']"/>
+# 단계별로 잰 시간과 토큰 사용량을 사람이 읽는 표 문자열로 만드는 함수다.
+# 쓰는 것: runner.run_mode1.sum_usage, runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.main, runner.run_mode1_5.format_run, runner.run_mode2.main, runner.test_run_mode1.test_a_skipped_stage_does_not_break_the_total, runner.test_run_mode1.test_report_has_a_row_per_stage_and_a_total (+5)
 def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -> str:
     """단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다.
 
@@ -752,9 +775,9 @@ def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -
     return "\n".join(out)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.plan_summary']"/>
-# 층 계획을 사람이 읽는 줄들로 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.plan_summary']"/>
+# 층 계획(survey-plan)을 사람이 읽을 수 있는 줄들의 목록으로 요약하는 함수다.
+# 쓰는 것: machine.survey_plan.SurveyPlan · 쓰이는 곳: runner.test_run_mode1.test_계획_요약은_층과_배치와_합계를_낸다
 def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
     """층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다."""
     out: list[str] = []
@@ -775,9 +798,9 @@ def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.stage_totals']"/>
-# 배치 행들을 단계 단위로 접어 소계를 내는 함수.
-# 쓰는 것: run_mode1.sum_usage · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.stage_totals']"/>
+# 배치 단위 행들을 상위 단계 이름으로 묶어 합친 사용량을 내는 함수다.
+# 쓰는 것: runner.run_mode1.sum_usage · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_단계별_소계를_낸다
 def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]:
     """`survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`."""
     byname: collections.OrderedDict[str, list[Usage]] = collections.OrderedDict()
@@ -787,9 +810,9 @@ def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage
     return collections.OrderedDict((k, sum_usage(v)) for k, v in byname.items())
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.Heartbeat']"/>
-# 오래 도는 단계 옆에서 경과 시간을 알리는 조각.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.Heartbeat']"/>
+# 오래 걸리는 단계가 도는 동안 얼마나 시간이 지났는지 주기적으로 화면에 알려주는 도구 클래스다.
+# 쓰는 것: runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.run_machine, runner.run_mode1.run_survey, runner.run_mode1_5.run_author, runner.run_mode1_5.run_machine, runner.run_mode2.run_machine
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 class Heartbeat:
     """오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다.
@@ -816,9 +839,9 @@ class Heartbeat:
         self._stop.set()
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_agent_with']"/>
-# 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 내는 함수.
-# 쓰는 것: run_mode1.claude_argv · 쓰이는 곳: run_mode1.run_layer
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_agent_with']"/>
+# claude 명령을 한 번 실행해서 모형의 응답을 받아오는 함수다.
+# 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: runner.run_mode1.run_layer
 def run_agent_with(model: str, repo: str, root: str, prompt: str,
                    timeout: float | None = None,
                    label: str | None = None) -> tuple[float, int, AgentResult | None]:
@@ -843,9 +866,9 @@ def run_agent_with(model: str, repo: str, root: str, prompt: str,
         return seconds, p.returncode, None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_layer']"/>
-# 한 층의 배치들을 동시에 돌리고 각각의 측정값을 모으는 함수.
-# 쓰는 것: run_mode1.run_agent_with · 쓰이는 곳: run_mode1.run_survey, run_mode1.run_wiki
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_layer']"/>
+# 한 층에 속한 여러 배치(작업)를 동시에 병렬로 돌리고 각각의 결과를 모으는 함수다.
+# 쓰는 것: runner.run_mode1.run_agent_with, concurrent.futures.ThreadPoolExecutor · 쓰이는 곳: runner.run_mode1.run_survey, runner.run_mode1.run_wiki, runner.test_run_mode1.test_run_layer_는_동시_한도를_넘지_않는다, runner.test_run_mode1.test_run_layer_는_라벨_순서로_돌려준다, runner.test_run_mode1.test_run_layer_는_한_배치가_죽어도_나머지를_돌린다 (+1)
 def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
               concurrency: int = 8,
               timeout: float | None = None) -> list[tuple[str, float, int, AgentResult | None]]:
@@ -876,9 +899,9 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
     return sorted(rows, key=lambda r: r[0])
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.merge_shards']"/>
-# 배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푸는 함수.
-# 쓰는 것: run_mode1._qualified · 쓰이는 곳: run_mode1.run_survey
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.merge_shards']"/>
+# 여러 배치 세션이 따로 쓴 결과 조각(샤드) 파일들을 하나의 레코드 사전으로 합치는 함수다.
+# 쓰는 것: runner.run_mode1._qualified · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_같은_샤드를_두_번_합쳐도_개명하지_않는다, runner.test_run_mode1.test_망가진_샤드는_건너뛰고_나머지를_살린다, runner.test_run_mode1.test_샤드_폴더가_없으면_있던_것을_그대로, runner.test_run_mode1.test_샤드를_하나로_합친다 (+3)
 def merge_shards(shard_dir: str, existing: Records | None) -> Records:
     """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
 
@@ -918,9 +941,9 @@ def merge_shards(shard_dir: str, existing: Records | None) -> Records:
     return got
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1._qualified']"/>
-# 겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만드는 함수.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.merge_shards
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1._qualified']"/>
+# 이름이 겹친 레코드 키 앞에 그 레코드가 속한 파일 이름을 붙여 서로 구별되게 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.merge_shards
 def _qualified(key: str, rec: Record | None) -> str:
     """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
     where = (rec or {}).get("where") or ""
@@ -928,9 +951,9 @@ def _qualified(key: str, rec: Record | None) -> str:
     return "%s.%s" % (stem, key) if stem else key
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_machine']"/>
-# 기계 단계 하나를 부른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_machine']"/>
+# 기계(파이썬·노드) 단계 하나를 자식 프로세스로 실행하는 함수다.
+# 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: runner.run_mode1.main, runner.run_mode1_5.main, runner.run_mode2.main
 def run_machine(argv: Sequence[str], label: str) -> int:
     """기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다."""
     with Heartbeat(label, every=60.0):
@@ -938,6 +961,9 @@ def run_machine(argv: Sequence[str], label: str) -> int:
     return p.returncode
 
 
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_lang_select']"/>
+# 저장소가 어느 언어인지 판별하기 위해 모형에게 문서를 읽혀 언어 하나를 제안받는 함수다.
+# 쓰는 것: runner.run_mode1.claude_argv, runner.run_mode1.normalize_usage · 쓰이는 곳: runner.run_mode1.main
 # 어떤 정적 수집기를 돌릴지 정한다. 모형의 제안을 결정론 검사로 거른다.
 # 쓰는 것: claude_argv, lang_select · 쓰이는 곳: run_mode1.main
 def run_lang_select(repo: str, root: str, timeout: float | None) -> tuple[bool, str, Usage]:
@@ -989,9 +1015,9 @@ def run_lang_select(repo: str, root: str, timeout: float | None) -> tuple[bool, 
     return True, f"제안 {proposed or '없음'}", usage
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_warmup']"/>
-# 무엇을 다시 읽어야 하는지 판정하는 앞 관문.
-# 쓰는 것: run_mode1.lang_of, run_mode1.changed_seed · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_warmup']"/>
+# 전수조사 전에 '어느 파일을 다시 읽어야 하는지' 만 미리 판정하는 함수다. 아직 아무것도 저장하지는 않는다.
+# 쓰는 것: runner.run_mode1.lang_of, machine.declmap.tracked_files, machine.declmap.scan, machine.warmup.status, runner.run_mode1.changed_seed (+1) · 쓰이는 곳: runner.run_mode1.main
 def run_warmup(repo: str, codegraph: str, hops: int) -> tuple[
         list[str] | None, warmup.Manifest | None, str | None, int, bool, str]:
     """관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.**
@@ -1042,9 +1068,9 @@ def run_warmup(repo: str, codegraph: str, hops: int) -> tuple[
     return targets, entries, cache, len(files), True, ""
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.save_warmup']"/>
-# 판정 기록을 확정하는 뒤 관문.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.save_warmup']"/>
+# 전수조사가 실제로 끝난 뒤에만 "무엇을 다시 읽었는지" 기록(매니페스트)을 확정해서 저장하는 함수다.
+# 쓰는 것: machine.warmup.save · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_survey_가_실패하면_매니페스트를_갱신하지_않는다, runner.test_run_mode1.test_판정을_못_했으면_아무것도_쓰지_않는다
 def save_warmup(cache_path: str | None, entries: warmup.Manifest | None,
                 rows: Sequence[StageRow]) -> tuple[bool, str]:
     """관문 ② — **전수조사가 실제로 해낸 뒤에만** 매니페스트를 갱신한다.
@@ -1068,9 +1094,9 @@ def save_warmup(cache_path: str | None, entries: warmup.Manifest | None,
     return True, ""
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_survey']"/>
-# 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합치는 함수.
-# 쓰는 것: run_mode1.run_layer, run_mode1.merge_shards, run_mode1.survey_batch_prompt, run_mode1.nonnode_prompt, run_mode1.dep_excerpt · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_survey']"/>
+# 전수조사(코드베이스 용어 레코드 작성)를 층 낮은 것부터 순서대로 돌리고, 층이 끝날 때마다 결과를 합쳐 파일에 저장하는 함수다.
+# 쓰는 것: runner.run_mode1.nonnode_prompt, runner.run_mode1.survey_batch_prompt, runner.run_mode1.dep_excerpt, runner.run_mode1.Heartbeat, runner.run_mode1.run_layer (+3) · 쓰이는 곳: runner.run_mode1.main
 def run_survey(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
                concurrency: int, timeout: float | None, reading_path: str,
                targets: Sequence[str] | None = None, total: int = 0) -> list[StageRow]:
@@ -1130,9 +1156,9 @@ def run_survey(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
     return rows
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.run_wiki']"/>
-# 위키 목차를 받고 장들을 층 오름차순으로 쓰게 하는 함수.
-# 쓰는 것: run_mode1.run_layer, run_mode1.wiki_catalogue_prompt, run_mode1.wiki_page_prompt, run_mode1.page_layers, run_mode1.symbol_layers · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_wiki']"/>
+# 위키 문서의 목차를 먼저 받고, 그 목차를 바탕으로 장(챕터)들을 의존 층 순서대로 병렬로 쓰게 만드는 함수다.
+# 쓰는 것: runner.run_mode1.run_layer, runner.run_mode1.wiki_catalogue_prompt, runner.run_mode1.wiki_page_prompt, runner.run_mode1.page_layers, runner.run_mode1.symbol_layers (+1) · 쓰이는 곳: runner.run_mode1.main
 def run_wiki(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
              concurrency: int, timeout: float | None) -> list[StageRow]:
     """카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6)."""
@@ -1181,9 +1207,9 @@ def run_wiki(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
     return rows
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1.main']"/>
-# 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
-# 쓰는 것: run_mode1.plan_stages, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup, run_mode1.save_warmup (+4) · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.main']"/>
+# Mode 1(코드베이스 위키) 파이프라인 전체를 순서대로 돌리는 진입점 함수. 명령줄 인자를 읽고 어떤 단계를 돌릴지 정한 뒤 하나씩 실행하며 시간과 토큰을 잰다.
+# 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.run_warmup, runner.run_mode1.save_warmup, runner.run_mode1.run_lang_select, runner.run_mode1.run_survey (+8) · 쓰이는 곳: 없음
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
@@ -1216,7 +1242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     raw = os.path.join(repo, "out", "codegraph-raw")
     codegraph = os.path.join(raw, "codegraph.json")
-    reading = os.path.join(repo, "docs", "codegraph", "terms-reading.json")
+    reading = reading_path(repo, ROOT)
     wiki = os.path.join(repo, "docs", "wiki")
     has_prose = os.path.isdir(wiki) and any(f.endswith(".md") for f in os.listdir(wiki))
 

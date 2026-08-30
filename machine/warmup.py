@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='machine/warmup.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='warmup.py']"/>
 # 전수조사를 매번 전량 다시 하지 않게 하는 캐시와 무효화의 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """warmup.py — 전수조사를 매번 전량 다시 하지 않게 하는 파일별 캐시와 무효화.
@@ -42,6 +42,9 @@ DEFAULT_CACHE = os.path.join("out", "codegraph-raw", "warmup.json")
 
 # ── 매니페스트의 모양. `status` 가 쓰는 꼴 그대로다.
 
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.Entry']"/>
+# 파일 하나를 조사한 기록을 담는 자료 모양이다. TypedDict 라 실제로 동작하는 코드는 없고 필드 이름과 타입만 정한다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 class Entry(TypedDict):
     """파일 하나 몫의 기록. `file_hash` 는 못 읽은 파일이면 None 이다."""
     mtime: float
@@ -57,9 +60,9 @@ Manifest = dict[str, Entry]
 Verdicts = dict[str, list[str]]
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.file_hash']"/>
-# 파일 내용을 한 줄의 지문으로 줄인다.
-# 쓰는 것: 없음 · 쓰이는 곳: warmup.status
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.file_hash']"/>
+# 파일 내용을 하나의 짧은 문자열(지문)로 바꾸는 함수다. 내용이 한 글자라도 다르면 지문도 달라진다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.test_warmup.test_file_hash_is_content_not_commit, machine.test_warmup.test_file_hash_returns_none_for_missing, machine.warmup.status
 def file_hash(path: str) -> str | None:
     """바이트 그대로의 sha256. 커밋 여부와 무관하다.
 
@@ -76,9 +79,9 @@ def file_hash(path: str) -> str | None:
     return h.hexdigest()
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.decl_hash']"/>
-# 한 파일의 선언 목록을 한 줄의 지문으로 줄인다.
-# 쓰는 것: declmap.scan · 쓰이는 곳: warmup.status
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.decl_hash']"/>
+# 한 파일 안에 어떤 이름의 선언(클래스, 함수 등)이 있는지를 하나의 지문으로 바꾸는 함수다. 선언 이름과 종류만 보고, 그 안의 코드 내용은 보지 않는다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.test_warmup.test_decl_hash_changes_when_declaration_added, machine.test_warmup.test_decl_hash_ignores_line_and_doc, machine.warmup.status
 def decl_hash(entry: declmap.FileDecls | None) -> str | None:
     """선언 목록의 해시. `declmap.scan` 의 **한 파일 몫**을 받는다.
 
@@ -93,9 +96,9 @@ def decl_hash(entry: declmap.FileDecls | None) -> str | None:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.load']"/>
-# 지난번 훑기의 기록을 읽는다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.load']"/>
+# 지난번에 저장해 둔 조사 기록(매니페스트) 파일을 읽어오는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.test_warmup.test_load_missing_cache_is_empty, machine.test_warmup.test_save_then_load_roundtrip, machine.warmup.status
 def load(cache_path: str) -> Manifest:
     """매니페스트를 읽는다. 없거나 깨졌으면 빈 것으로 친다 — 그러면 전량 재읽기다."""
     try:
@@ -108,9 +111,9 @@ def load(cache_path: str) -> Manifest:
     return cast("Manifest", data["files"] if isinstance(data, dict) and "files" in data else data)
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.save']"/>
-# 이번 훑기의 결과를 기록으로 남긴다.
-# 쓰는 것: 없음 · 쓰이는 곳: warmup.main
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.save']"/>
+# 이번에 조사한 결과를 다음에 또 쓸 수 있게 파일로 저장하는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.test_warmup.test_comment_only_change_needs_no_llm, machine.test_warmup.test_declaration_change_forces_reread, machine.test_warmup.test_missing_file_is_deleted, machine.test_warmup.test_mtime_gate_skips_hashing, machine.test_warmup.test_save_then_load_roundtrip (+7)
 def save(cache_path: str, entries: Manifest) -> Manifest:
     """매니페스트를 쓴다. 상위 폴더가 없으면 만든다."""
     os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
@@ -119,9 +122,9 @@ def save(cache_path: str, entries: Manifest) -> Manifest:
     return entries
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.status']"/>
-# 파일마다 무엇을 해야 하는지를 네 갈래로 가른다.
-# 쓰는 것: warmup.file_hash, warmup.decl_hash · 쓰이는 곳: warmup.main
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.status']"/>
+# 전수조사를 다시 돌릴 때, 파일마다 '내용이 안 바뀌었으니 건너뛰어도 되는지, 다시 읽어야 하는지'를 네 가지(유효/재읽기/위치만/삭제됨) 중 하나로 판정하는 함수다.
+# 쓰는 것: machine.warmup.file_hash, machine.warmup.decl_hash, machine.warmup.load · 쓰이는 곳: machine.test_warmup.test_comment_only_change_needs_no_llm, machine.test_warmup.test_declaration_change_forces_reread, machine.test_warmup.test_first_run_is_all_reread, machine.test_warmup.test_missing_file_is_deleted, machine.test_warmup.test_mtime_gate_skips_hashing (+5)
 def status(cache_path: str, repo: str, files: list[str],
            decls: dict[str, declmap.FileDecls] | None = None) -> tuple[Verdicts, Manifest]:
     """판정 네 갈래와 갱신된 매니페스트를 함께 낸다. **쓰지는 않는다** — 쓰기는 `save` 다.
@@ -184,9 +187,9 @@ def status(cache_path: str, repo: str, files: list[str],
     return 판정, entries
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.blast_radius']"/>
-# 바뀐 파일 때문에 서술이 틀려질 수 있는 이웃 파일까지 넓힌다.
-# 쓰는 것: 없음 · 쓰이는 곳: warmup.main
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.blast_radius']"/>
+# 바뀐 파일 때문에 내용이 같이 틀려질 수 있는 다른 파일들까지 범위를 넓혀 찾는 함수다. 예를 들어 A 파일이 바뀌면 A 를 쓰는 B 파일의 설명도 낡을 수 있으니 B 도 같이 챙긴다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.test_warmup.test_blast_radius_skips_nodes_without_file, machine.test_warmup.test_blast_radius_spreads_both_ways, machine.warmup.main, runner.run_mode1.run_warmup
 def blast_radius(codegraph: str, changed_files: list[str], hops: int = 1) -> list[str]:
     """바뀐 파일이 영향을 주는 파일 집합.
 
@@ -215,9 +218,9 @@ def blast_radius(codegraph: str, changed_files: list[str], hops: int = 1) -> lis
     return sorted(seen)
 
 
-# <include file="machine/comments.xml" path="//term[@id='warmup.main']"/>
-# 명령줄에서 판정과 파급을 부르고 결과를 사람이 읽게 찍는다.
-# 쓰는 것: declmap.tracked_files, declmap.scan, warmup.status, warmup.blast_radius, warmup.save · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.warmup.main']"/>
+# 전수조사를 다시 할 때 어떤 파일을 다시 읽어야 하는지 사람에게 알려 주는 명령줄 도구의 시작점.
+# 쓰는 것: machine.declmap.tracked_files, machine.declmap.scan, machine.warmup.save, machine.warmup.status, machine.warmup.blast_radius · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description="전수조사 증분 캐시 — 무엇을 다시 읽어야 하는가")
     ap.add_argument("action", choices=["status", "blast"])

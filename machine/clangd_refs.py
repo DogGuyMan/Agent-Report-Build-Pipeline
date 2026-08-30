@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # <include file="machine/comments.xml" path="//term[@id='clangd_refs.py']"/>
 # clangd 라는 언어 서버에게 직접 말을 거는 얇은 통신 계층.
-# 쓰는 것: clangd · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6).
 
 E7 제약 — 산출물은 엔진 중립이다. LSP 의 uri/range 를 그대로 내보내지 않고
@@ -12,9 +12,9 @@ from typing import IO, Any
 from urllib.parse import urlparse, unquote
 
 
-# <include file="machine/comments.xml" path="//term[@id='Clangd']"/>
-# clangd 프로세스 하나를 감싼 클래스.
-# 쓰는 것: 없음 · 쓰이는 곳: reverse_refs.main, reverse_refs.py
+# <include file="machine/comments.xml" path="//term[@id='machine.clangd_refs.Clangd']"/>
+# clangd 언어 서버 프로세스 하나를 감싸서 다루기 쉽게 만든 상자다.
+# 쓰는 것: subprocess.Popen, threading.Thread · 쓰이는 곳: machine.reverse_refs.main
 class Clangd:
     def __init__(self, root: str, compdb_dir: str,
                  binary: str = "clangd", background_index: bool = True) -> None:
@@ -178,9 +178,9 @@ class Clangd:
         return False, time.time() - t0
 
 
-# <include file="machine/comments.xml" path="//term[@id='to_repo_relative']"/>
-# 언어 서버가 준 파일 주소를 저장소 기준 상대경로로 바꾼다.
-# 쓰는 것: 없음 · 쓰이는 곳: reverse_refs.main
+# <include file="machine/comments.xml" path="//term[@id='machine.clangd_refs.to_repo_relative']"/>
+# clangd 가 돌려준 file:// URI 를 저장소 기준 상대경로 문자열로 바꿔주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.reverse_refs.main
 def to_repo_relative(uri: str, root: str) -> str:
     p = unquote(urlparse(uri).path)
     return os.path.relpath(p, root)

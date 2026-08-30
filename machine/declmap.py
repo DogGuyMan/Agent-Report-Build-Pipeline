@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='machine/declmap.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='declmap.py']"/>
 # 선언과 그 위의 문서 주석만 뽑아 한 장으로 만드는 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """declmap.py — 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다.
@@ -22,6 +22,9 @@ import sys
 from typing import TypedDict
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.LangRule']"/>
+# 언어 하나(cs/cpp/py/ts)마다 선언과 문서 주석을 정규식으로 잡는 규칙 한 세트의 모양이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.declmap.doc_above
 # 언어 규칙 한 칸의 생김새를 적어 둔 표.
 # 쓰는 것: 없음 · 쓰이는 곳: declmap.LANGS, doc_above, declmap.scan
 class LangRule(TypedDict):
@@ -65,6 +68,9 @@ LANGS: dict[str, LangRule] = {
 }
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.Decl']"/>
+# 뽑아낸 선언 하나를 담는 자료 모양이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.declmap.FileDecls
 # 뽑아낸 선언 한 줄의 생김새.
 # 쓰는 것: 없음 · 쓰이는 곳: declmap.FileDecls, declmap.scan
 class Decl(TypedDict):
@@ -75,6 +81,9 @@ class Decl(TypedDict):
     doc: str
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.FileDecls']"/>
+# 소스 파일 한 개에서 뽑아낸 결과(총 줄 수와 선언 목록)를 담는 딕셔너리 틀이다.
+# 쓰는 것: machine.declmap.Decl · 쓰이는 곳: machine.declmap.render
 # 파일 한 개 몫의 선언 묶음.
 # 쓰는 것: Decl · 쓰이는 곳: declmap.scan, render
 class FileDecls(TypedDict):
@@ -88,9 +97,9 @@ SKIP_DIRS = {"node_modules", "__pycache__", ".git", "build", "obj", "bin",
 DOC_MAX_LINES = 14   # 선언 위로 이만큼만 거슬러 올라간다
 
 
-# <include file="machine/comments.xml" path="//term[@id='declmap.tracked_files']"/>
-# 조사 대상 파일 목록을 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: declmap.scan, warmup.main
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.tracked_files']"/>
+# 훑어볼 소스 파일 목록을 골라내는 함수다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: machine.declmap.scan, machine.warmup.main, runner.run_mode1.run_warmup
 def tracked_files(repo: str, lang: str, includes: list[str]) -> list[str]:
     """git 이 아는 파일만 본다 — 빌드 산출물과 캐시를 걸러 내는 가장 싼 방법이다."""
     r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
@@ -109,9 +118,9 @@ def tracked_files(repo: str, lang: str, includes: list[str]) -> list[str]:
     return sorted(out)
 
 
-# <include file="machine/comments.xml" path="//term[@id='doc_above']"/>
-# 선언 바로 위에 붙은 문서 주석을 모은다.
-# 쓰는 것: 없음 · 쓰이는 곳: declmap.scan
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.doc_above']"/>
+# 선언 한 줄 바로 위에 붙어 있는 문서 주석을 모으는 함수다.
+# 쓰는 것: machine.declmap.LangRule · 쓰이는 곳: machine.declmap.scan, machine.test_declmap._doc
 def doc_above(lines: list[str], i: int, rule: LangRule) -> str:
     """선언 위에 붙은 문서 주석을 모은다. 빈 줄과 특성(attribute) 줄은 건너뛴다."""
     got: list[str] = []
@@ -132,9 +141,9 @@ def doc_above(lines: list[str], i: int, rule: LangRule) -> str:
     return " ".join(x for x in got if x).strip()
 
 
-# <include file="machine/comments.xml" path="//term[@id='declmap.scan']"/>
-# 파일을 돌며 선언과 문서 주석을 모은다.
-# 쓰는 것: doc_above, declmap.tracked_files · 쓰이는 곳: warmup.decl_hash, warmup.main
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.scan']"/>
+# 저장소 안 소스 파일들을 하나씩 열어서, 그 안에 있는 선언(클래스·함수 등)과 그 위에 붙은 문서 주석을 뽑아 모으는 함수다.
+# 쓰는 것: machine.declmap.tracked_files, machine.declmap.doc_above · 쓰이는 곳: machine.declmap.main, machine.warmup.main, runner.run_mode1.run_warmup
 def scan(repo: str, lang: str, includes: list[str],
          doc_chars: int) -> tuple[dict[str, FileDecls], dict[str, int]]:
     rule = LANGS[lang]
@@ -165,6 +174,9 @@ def scan(repo: str, lang: str, includes: list[str],
     return result, counts
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.render']"/>
+# scan()이 만든 결과를 사람이 읽기 좋은 텍스트로 바꾸는 함수다.
+# 쓰는 것: machine.declmap.FileDecls · 쓰이는 곳: machine.declmap.main
 def render(result: dict[str, FileDecls]) -> str:
     """사람과 LLM 이 그대로 읽을 수 있는 글자로. JSON 보다 짧다."""
     out: list[str] = []
@@ -177,6 +189,9 @@ def render(result: dict[str, FileDecls]) -> str:
     return "\n".join(out)
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.declmap.main']"/>
+# declmap.py 도구를 터미널에서 실행할 때 제일 먼저 불리는 진입점 함수다.
+# 쓰는 것: machine.declmap.scan, machine.declmap.render · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)

@@ -1,3 +1,6 @@
+# <include file="machine/comments.xml" path="//term[@id='test_external_contracts.py']"/>
+# 바깥 도구(griffe·clang-doc·Graphviz·networkx)의 동작에 기대는 주장을 고정하는 시험.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """test_external_contracts.py — 바깥 도구의 동작에 기대는 주장을 고정한다.
 
 이 저장소의 코드는 griffe · clang-doc · Graphviz · networkx 의 동작을 전제로 짜여 있다.
@@ -17,6 +20,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import declmap as D  # noqa: E402
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_networkx_digraph_is_not_subscriptable_at_runtime']"/>
+# networkx 의 DiGraph 가 실행 중에는 대괄호로 타입을 못 받는다는 것을 확인하는 시험 함수다.
+# 쓰는 것: networkx.DiGraph · 쓰이는 곳: 없음
 # ── 1. networkx — 실행 시각에 DiGraph 는 첨자를 못 받는다
 def test_networkx_digraph_is_not_subscriptable_at_runtime() -> None:
     """`nx.DiGraph[str]` 은 TypeError 다. 그래서 서명의 주석을 따옴표에 넣는다.
@@ -27,6 +33,9 @@ def test_networkx_digraph_is_not_subscriptable_at_runtime() -> None:
         nx.DiGraph[str]                                          # type: ignore[misc]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts._svg_size']"/>
+# Graphviz dot 명령으로 그림을 그려서 그 SVG 의 가로세로 크기(pt 단위)를 숫자로 꺼내주는 도우미 함수다.
+# 쓰는 것: subprocess.run, re.search · 쓰이는 곳: machine.test_external_contracts.test_graphviz_legend_edge_without_constraint_widens_the_canvas
 # ── 2. Graphviz — 범례 간선의 constraint 가 캔버스 너비를 정한다
 def _svg_size(dot_src: str, tmp: Path) -> tuple[float, float]:
     src = tmp / "g.dot"
@@ -46,6 +55,9 @@ _LEGEND = """digraph g {{
 }}"""
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_graphviz_legend_edge_without_constraint_widens_the_canvas']"/>
+# Graphviz(그림을 그려주는 외부 프로그램)의 동작 하나가 여전히 사실인지 확인하는 시험 함수다.
+# 쓰는 것: machine.test_external_contracts._svg_size · 쓰이는 곳: 없음
 def test_graphviz_legend_edge_without_constraint_widens_the_canvas(tmp_path: Path) -> None:
     """범례 간선을 `constraint=false` 로 두면 랭크 제약이 없어 캔버스가 옆으로 넓어진다.
 
@@ -59,6 +71,9 @@ def test_graphviz_legend_edge_without_constraint_widens_the_canvas(tmp_path: Pat
     assert w_off > w_on
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_langs_table_shape_is_uniform']"/>
+# declmap.py 의 LANGS 표에서 cpp·cs·py·ts 네 언어가 전부 같은 다섯 칸(exts, decl, doc, lead, strip)을 갖고, 각 칸의 값 타입이 정해진 대로인지 확인하는 시험이다.
+# 쓰는 것: declmap.LANGS · 쓰이는 곳: 없음
 # ── 3. declmap 의 LANGS 표 — 다섯 칸의 형이 실제로 고정돼 있는가
 def test_langs_table_shape_is_uniform() -> None:
     """네 언어 전부 같은 다섯 칸을 갖고, 칸마다 형이 고정돼 있다.
@@ -80,6 +95,9 @@ def test_langs_table_shape_is_uniform() -> None:
     assert [k for k, r in D.LANGS.items() if r["strip"] is not None] == ["cs"]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_declmap_regex_is_line_based_and_syntax_blind']"/>
+# declmap.py 의 선언 탐지 정규식이 프로그래밍 언어 문법을 전혀 모르고 그냥 한 줄씩 문자열 패턴만 본다는 한계를 확인하는 시험이다.
+# 쓰는 것: declmap.LANGS · 쓰이는 곳: 없음
 def test_declmap_regex_is_line_based_and_syntax_blind() -> None:
     """정규식이라 문법을 모른다 — 문자열 안의 `class` 에도 걸리고, 한 줄만 본다.
 
@@ -97,6 +115,9 @@ def test_declmap_regex_is_line_based_and_syntax_blind() -> None:
     assert D.LANGS["cpp"]["decl"].match('class Fake;')
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_griffe_gives_expression_trees_not_strings']"/>
+# 외부 도구 griffe 가 타입 주석을 평범한 문자열이 아니라 구조화된 식(expression) 트리로 내놓는다는 것을 확인하는 시험이다.
+# 쓰는 것: subprocess.run · 쓰이는 곳: 없음
 # ── 4. griffe — 이 저장소가 기대는 출력 모양
 def test_griffe_gives_expression_trees_not_strings(tmp_path: Path) -> None:
     """타입 주석은 문자열이 아니라 구조화된 식 트리로 온다.
@@ -123,6 +144,9 @@ def test_griffe_gives_expression_trees_not_strings(tmp_path: Path) -> None:
     assert ann["left"]["name"] == "list"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_external_contracts.test_python_ast_unparse_round_trips_annotations']"/>
+# 파이썬 표준 라이브러리 ast.unparse 가 함수 시그니처를 원문 그대로 되살리는지 확인하는 시험 함수다.
+# 쓰는 것: machine.pycalls.signature_of · 쓰이는 곳: 없음
 def test_python_ast_unparse_round_trips_annotations() -> None:
     """`pycalls.signature_of` 는 `ast.unparse` 로 주석을 되살린다. 원문 그대로여야 한다."""
     src = "def f(a: dict[str, int] = {}, *, b: str | None = None) -> bool: ...\n"

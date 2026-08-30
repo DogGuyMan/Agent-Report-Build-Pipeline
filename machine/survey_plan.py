@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='machine/survey_plan.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='survey_plan.py']"/>
 # 전수조사를 어떤 순서로 어떻게 쪼개 돌릴지 계획하는 파일.
-# 쓰는 것: survey-plan.json, networkx · 쓰이는 곳: run_mode1.main
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """survey_plan.py — 전수조사 배치 계획.
 
 의존 대상이 없는 것부터 한 겹씩 올라가는 순서를 계산하고 층을 배치로 나눈다.
@@ -46,18 +46,27 @@ GraphNode = TypedDict("GraphNode", {
 GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str})
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.CodeGraph']"/>
+# prep 단계가 만든 codegraph.json 파일의 내용 중 이 파일이 실제로 쓰는 부분(nodes, edges)만 담는 타입 정의다. 데이터를 담는 상자일 뿐 동작하는 코드는 없다.
+# 쓰는 것: machine.survey_plan.GraphNode, machine.survey_plan.GraphEdge · 쓰이는 곳: 없음
 class CodeGraph(TypedDict):
     """`prep` 이 낸 codegraph.json 중 이 파일이 실제로 읽는 부분만."""
     nodes: list[GraphNode]
     edges: NotRequired[list[GraphEdge]]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PackedBatch']"/>
+# pack 함수가 만들어내는, 아직 배치 번호나 상세 심볼 정보가 붙지 않은 중간 단계의 묶음을 나타내는 타입이다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 class PackedBatch(TypedDict):
     """`pack` 이 내는 중간 묶음. 아직 배치 id 도 심볼 레코드도 붙지 않았다."""
     files: list[str]
     symbols: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PlanSymbol']"/>
+# 최종 계획(survey-plan.json)에 들어가는 심볼 하나의 정보를 담는 타입이다. 이 심볼이 무엇이고, 어디에 있고, 무엇에 의존하는지를 담는다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.survey_plan.PlanBatch
 class PlanSymbol(TypedDict):
     id: str
     name: str | None
@@ -68,12 +77,18 @@ class PlanSymbol(TypedDict):
     depends_on: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PlanBatch']"/>
+# 전수조사 계획서 안에서 배치(한 세션이 맡을 몫) 하나의 모양을 정해 둔 타입 사전이다.
+# 쓰는 것: machine.survey_plan.PlanSymbol · 쓰이는 곳: machine.survey_plan.PlanLayer, runner.run_mode1.dep_excerpt, runner.test_run_mode1._배치
 class PlanBatch(TypedDict):
     id: str
     files: list[str]
     symbols: list[PlanSymbol]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PlanLayer']"/>
+# 전수조사 계획에서 층(layer) 하나를 나타내는 자료 모양이다. 딕셔너리 안에 어떤 값들이 들어가야 하는지 정하는 타입 틀(TypedDict)일 뿐, 실제로 동작하는 코드는 아니다.
+# 쓰는 것: machine.survey_plan.PlanBatch · 쓰이는 곳: machine.survey_plan.SurveyPlan
 class PlanLayer(TypedDict):
     """심볼 층과 맨 끝 비노드 층이 한 목록에 섞여 있다.
 
@@ -87,6 +102,9 @@ class PlanLayer(TypedDict):
     note: NotRequired[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PlanTotals']"/>
+# 계획 전체를 요약하는 합계 숫자들을 담는 타입이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.survey_plan.SurveyPlan
 class PlanTotals(TypedDict):
     symbols: int
     edges: int
@@ -94,15 +112,18 @@ class PlanTotals(TypedDict):
     cyclic_symbols: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.SurveyPlan']"/>
+# 전수조사를 어떻게 나눠 돌릴지 계획한 결과 전체를 담는 자료형이다.
+# 쓰는 것: machine.survey_plan.PlanLayer, machine.survey_plan.PlanTotals · 쓰이는 곳: runner.run_mode1.plan_summary, runner.run_mode1.symbol_layers
 class SurveyPlan(TypedDict):
     target: int
     layers: list[PlanLayer]
     totals: PlanTotals
 
 
-# <include file="machine/comments.xml" path="//term[@id='survey_plan.layer_of']"/>
-# 노드마다 위상 깊이를 매긴다. 순환은 한 덩어리로 접는다.
-# 쓰는 것: networkx · 쓰이는 곳: survey_plan.plan
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.layer_of']"/>
+# 각 심볼이 그래프에서 몇 번째 층에 있는지 계산하는 함수다. 아무것도 의존하지 않으면 층0, 의존하는 것이 있으면 그중 가장 깊은 층보다 1 더 깊은 층이다.
+# 쓰는 것: networkx · 쓰이는 곳: machine.survey_plan.plan, machine.test_survey_plan.test_out_deg_가_아니라_위상_깊이다, machine.test_survey_plan.test_간선은_from_이_의존하는_쪽이다, machine.test_survey_plan.test_고립_노드는_층0, machine.test_survey_plan.test_순환은_한_덩어리로_접힌다 (+2)
 def layer_of(first: Collection[str],
              edges: Iterable[tuple[str, str]]) -> tuple[dict[str, int], dict[str, bool]]:
     """의존 대상이 없으면 층0, 아니면 1 + 의존 대상들의 최대 층.
@@ -130,9 +151,9 @@ def layer_of(first: Collection[str],
     return {n: lv[m[n]] for n in G}, {n: size[m[n]] > 1 for n in G}
 
 
-# <include file="machine/comments.xml" path="//term[@id='survey_plan.pack']"/>
-# 한 층의 심볼을 파일이 쪼개지지 않게 목표 크기로 묶는다.
-# 쓰는 것: 없음 · 쓰이는 곳: survey_plan.plan
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.pack']"/>
+# 같은 층에 속한 심볼들을 파일 단위로 묶어서, 너무 많지 않은 크기의 묶음(배치) 여러 개로 나누는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.survey_plan.plan, machine.test_survey_plan.test_같은_파일은_한_배치에, machine.test_survey_plan.test_큰_파일은_초과를_허용한다
 def pack(members: Iterable[str], file_of: Mapping[str, str | None],
          target: int) -> list[PackedBatch]:
     """같은 파일의 같은 층 심볼은 **한 배치에** 몰아넣는다 — 층 안 중복 통독을 0으로 만든다.
@@ -158,9 +179,9 @@ def pack(members: Iterable[str], file_of: Mapping[str, str | None],
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='survey_plan.plan']"/>
-# 코드 지도를 층과 배치로 나눈 계획을 만든다.
-# 쓰는 것: survey_plan.layer_of, survey_plan.pack · 쓰이는 곳: run_mode1.main
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.plan']"/>
+# 코드 지도(codegraph.json) 전체를 받아서, 어떤 순서(층)로 어떻게 묶어(배치) 조사할지 계획표를 만드는 함수다.
+# 쓰는 것: machine.survey_plan.layer_of, machine.survey_plan.pack · 쓰이는 곳: machine.survey_plan.main, machine.test_survey_plan.test_external_은_제외, machine.test_survey_plan.test_결정론, machine.test_survey_plan.test_마지막은_비노드_층, machine.test_survey_plan.test_배치는_자기_심볼의_의존_대상을_들고_있다 (+5)
 def plan(cg: CodeGraph, target: int = 8,
          only_files: Iterable[str] | None = None) -> SurveyPlan:
     """코드 지도 -> 층 · 배치 계획.
@@ -217,6 +238,9 @@ def plan(cg: CodeGraph, target: int = 8,
                        "cyclic_symbols": sum(1 for n in keep if in_cycle.get(n))}}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.main']"/>
+# 전수조사 계획을 만드는 명령줄 도구의 시작점이다.
+# 쓰는 것: machine.survey_plan.plan · 쓰이는 곳: 없음
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="전수조사를 층과 배치로 나눈다.")
     ap.add_argument("codegraph", help="prep 이 낸 codegraph.json")

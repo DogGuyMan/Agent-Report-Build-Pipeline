@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='xmldoc.py']"/>
+# 주석 본문을 .xml 한 곳에 모으고 코드에는 레퍼런스만 남기는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """xmldoc.py — 주석 본문을 .xml 한 곳에 모으고 코드에는 레퍼런스만 남긴다.
 
 **정본은 machine/terms-reading.json 이다.** comments.xml 은 파생물이라
@@ -26,6 +29,9 @@ from xml.sax.saxutils import escape, quoteattr
 
 # ── terms-reading.json 의 모양. `does` 와 `confidence` 만 선택이고 나머지는 모든 레코드에 있다.
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.Use']"/>
+# 용어 하나가 다른 무엇을 쓰는지를 담는 자료 한 칸의 모양을 정의하는 타입.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.Term
 class Use(TypedDict):
     """`uses[]` 한 칸 — 이 용어가 무엇을 쓰는가."""
     to: str
@@ -35,6 +41,9 @@ class Use(TypedDict):
     source: NotRequired[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.Term']"/>
+# 용어 하나를 표현하는 자료 구조다. 파이썬 TypedDict 로 만들어, json 의 한 항목이 어떤 필드를 갖는지 타입으로 못박은 것이다.
+# 쓰는 것: machine.xmldoc.Use · 쓰이는 곳: 없음
 class Term(TypedDict):
     """용어 하나. 열쇠 이름은 json 의 것 그대로다."""
     kind: str
@@ -77,6 +86,9 @@ DECL_KINDS = frozenset({"function", "class", "struct", "enum", "interface",
                         "delegate", "record", "file"})
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.prefix_for']"/>
+# 파일 경로를 보고 그 언어에서 쓰는 한 줄 주석 기호(# 또는 //)를 알려주는 함수.
+# 쓰는 것: machine.xmldoc.LINE_COMMENT · 쓰이는 곳: machine.xmldoc.plan_file
 def prefix_for(path: str) -> str:
     ext = os.path.splitext(path)[1]
     if ext not in LINE_COMMENT:
@@ -84,6 +96,9 @@ def prefix_for(path: str) -> str:
     return LINE_COMMENT[ext]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.split_where']"/>
+# "파일경로:줄번호" 처럼 콜론으로 합쳐진 문자열을 파일과 줄번호로 다시 나누는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.carry_lines, machine.xmldoc.collect_targets, machine.xmldoc.plan_file, machine.xmldoc.run_check
 def split_where(where: str | None) -> tuple[str | None, int | None]:
     """`file:line` -> (file, line). 위치가 없으면 (None, None)."""
     if not where:
@@ -94,6 +109,9 @@ def split_where(where: str | None) -> tuple[str | None, int | None]:
     return None, None
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.anchor_name']"/>
+# 용어 id 에서, 소스 코드 그 줄에 실제로 적혀 있을 이름만 뽑아내는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.plan_file
 def anchor_name(term_id: str) -> str:
     """앵커 줄에서 찾을 이름. 점 표기는 마지막 마디, 배열 키는 [] 를 뗀다."""
     return term_id.split(".")[-1].removesuffix("[]")
@@ -101,6 +119,9 @@ def anchor_name(term_id: str) -> str:
 
 # ---------------------------------------------------------------- XML 내보내기
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.emit_xml']"/>
+# 전수조사 결과(용어 딕셔너리)를 comments.xml 파일 내용이 될 XML 문자열로 바꾸는 함수.
+# 쓰는 것: xml.sax.saxutils.escape, xml.sax.saxutils.quoteattr · 쓰이는 곳: machine.test_xmldoc.test_check_flags_where_mismatch, machine.xmldoc.run_check, machine.xmldoc.run_inject
 def emit_xml(terms: Terms) -> str:
     # TypedDict 첨자는 열쇠가 문자열 리터럴이어야 풀린다. 열쇠 목록에 Literal 형을 박아 맞춘다.
     # 이 순서가 곧 XML 속성·본문의 출력 순서다.
@@ -153,11 +174,17 @@ def emit_xml(terms: Terms) -> str:
 COMMENTISH = ("#", "//", "/*", "*", "*/")
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.is_commentish']"/>
+# 한 줄이 주석처럼 보이는 줄인지 판정하는 함수.
+# 쓰는 것: machine.xmldoc.COMMENTISH · 쓰이는 곳: machine.xmldoc.relocate, machine.xmldoc.scan_top
 def is_commentish(line: str) -> bool:
     s = line.strip()
     return s.startswith(COMMENTISH) if s else False
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.used_by_index']"/>
+# 어떤 용어를 어떤 용어들이 쓰고 있는지, 거꾸로 찾을 수 있게 뒤집은 표를 만드는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.block_lines, machine.xmldoc.plan_file
 def used_by_index(terms: Terms) -> UsedBy:
     """{용어: 그것을 쓰는 용어들}. uses 를 거꾸로 뒤집은 것뿐이다."""
     back: dict[str, set[str]] = {}
@@ -169,6 +196,9 @@ def used_by_index(terms: Terms) -> UsedBy:
     return {k: sorted(v) for k, v in back.items()}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.name_list']"/>
+# 이름들의 목록을 사람이 읽기 좋은 한 줄 문자열로 만드는 함수.
+# 쓰는 것: machine.xmldoc.USES_SHOWN · 쓰이는 곳: machine.xmldoc.uses_line
 def name_list(names: list[str]) -> str:
     """이름들을 한 줄로. 다섯 개까지 적고 남는 건 (+n) 으로 센다."""
     seen: list[str] = []
@@ -182,11 +212,17 @@ def name_list(names: list[str]) -> str:
     return f"{line} (+{rest})" if rest > 0 else line
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.uses_line']"/>
+# 용어 하나가 무엇을 쓰고 무엇에 쓰이는지 한 줄 문자열로 만드는 함수다.
+# 쓰는 것: machine.xmldoc.name_list · 쓰이는 곳: machine.xmldoc.block_lines
 def uses_line(tid: str, terms: Terms, used_by: UsedBy) -> str:
     mine = [u.get("to") for u in (terms[tid].get("uses") or []) if u.get("to")]
     return f"쓰는 것: {name_list(mine)} · 쓰이는 곳: {name_list(used_by.get(tid, []))}"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.block_lines']"/>
+# 한 곳의 소스 코드 줄 위에 붙일 주석 블록(여러 줄)을 만드는 함수다.
+# 쓰는 것: machine.xmldoc.used_by_index, machine.xmldoc.uses_line · 쓰이는 곳: machine.test_xmldoc.test_block_caps_at_five_and_counts_the_rest, machine.test_xmldoc.test_block_is_three_lines_with_uses, machine.test_xmldoc.test_block_says_none_when_no_uses, machine.xmldoc.plan_file
 def block_lines(tids: list[str], terms: Terms, prefix: str, indent: str,
                 used_by: UsedBy | None = None) -> list[str]:
     """한 앵커에 붙일 레퍼런스 블록. 같은 줄에 여러 용어가 걸리면 함께 낸다."""
@@ -203,11 +239,17 @@ def block_lines(tids: list[str], terms: Terms, prefix: str, indent: str,
     return lines
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.file_anchor']"/>
+# 파일 전체를 설명하는 레퍼런스 블록을 어느 줄에 끼워 넣을지 정하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.plan_file
 def file_anchor(lines: list[str]) -> int:
     """kind=file 의 삽입 지점(0-based). 셔뱅이 있으면 그 아래."""
     return 1 if lines and lines[0].startswith("#!") else 0
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.in_py_string']"/>
+# 파이썬 파일에서 특정 줄이 삼중따옴표 문자열 한복판인지 대략 짐작하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.xmldoc.plan_file
 def in_py_string(path: str, lines: list[str], idx: int) -> bool:
     """파이썬 파일에서 idx 줄이 삼중 따옴표 문자열 안인가. 홀짝만 센다 — 안전판이다."""
     if not path.endswith(".py"):
@@ -216,6 +258,9 @@ def in_py_string(path: str, lines: list[str], idx: int) -> bool:
     return (head.count(chr(34) * 3) % 2 == 1) or (head.count(chr(39) * 3) % 2 == 1)
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.scan_top']"/>
+# 코드 한 줄 위에 붙어 있는 주석 덩어리가 어디서 시작하는지 찾는 함수다.
+# 쓰는 것: machine.xmldoc.is_commentish · 쓰이는 곳: machine.xmldoc.plan_file
 def scan_top(lines: list[str], anchor_idx: int) -> int:
     """선언 위에 붙어 있는 주석 덩어리의 첫 줄. 빈 줄을 만나면 멈춘다."""
     i = anchor_idx
@@ -224,6 +269,9 @@ def scan_top(lines: list[str], anchor_idx: int) -> int:
     return i
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.block_extent']"/>
+# 코드에 이미 박혀 있는 레퍼런스 블록(마커+뜻+의존 세 줄짜리 묶음)이 실제로 몇 줄을 차지하는지 세는 함수.
+# 쓰는 것: machine.xmldoc.INCLUDE_RE, machine.xmldoc.USES_LINE_RE · 쓰이는 곳: machine.xmldoc.relocate, machine.xmldoc.strip_blocks
 def block_extent(lines: list[str], i: int) -> tuple[int, int]:
     """lines[i] 가 include 줄일 때 (용어 수, 블록이 차지한 줄 수).
 
@@ -239,6 +287,9 @@ def block_extent(lines: list[str], i: int) -> tuple[int, int]:
     return c, n + u
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.relocate']"/>
+# 소스 파일에 이미 박혀 있는 레퍼런스 마커를 읽어, 용어마다 실제 선언이 몇 번째 줄에 있는지 표로 만드는 함수다.
+# 쓰는 것: machine.xmldoc.is_commentish, machine.xmldoc.block_extent · 쓰이는 곳: machine.test_xmldoc.test_relocate_reads_markers_not_arithmetic, machine.test_xmldoc.test_relocate_skips_comment_chunk_below_block, machine.xmldoc.plan_file, machine.xmldoc.run_check
 def relocate(lines: list[str]) -> dict[str, int]:
     """파일 본문에 박힌 마커를 읽어 {용어: 선언 줄(1-based)} 을 만든다.
 
@@ -270,6 +321,9 @@ def relocate(lines: list[str]) -> dict[str, int]:
     return out
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.strip_blocks']"/>
+# 소스 코드에서 이미 박혀 있는 레퍼런스 블록들을 전부 걷어내 깨끗한 코드로 되돌리는 함수다.
+# 쓰는 것: machine.xmldoc.block_extent · 쓰이는 곳: machine.test_xmldoc.test_strip_removes_legacy_two_line_block, machine.test_xmldoc.test_strip_removes_whole_block, machine.xmldoc.plan_file
 def strip_blocks(lines: list[str]) -> tuple[list[str], list[int]]:
     """이미 박힌 레퍼런스 블록을 전부 걷어낸다. (깨끗한 줄들, 각 줄 앞에서 지워진 줄 수).
 
@@ -287,6 +341,9 @@ def strip_blocks(lines: list[str]) -> tuple[list[str], list[int]]:
     return out, removed_before
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.plan_file']"/>
+# 소스 파일 한 개에 주석 블록들을 실제로 끼워 넣는 계획을 세우는 함수. 마커가 이미 박혀 있으면 그 자리를 믿고, 새 용어는 json의 위치 정보를 쓴다.
+# 쓰는 것: machine.xmldoc.relocate, machine.xmldoc.strip_blocks, machine.xmldoc.prefix_for, machine.xmldoc.used_by_index, machine.xmldoc.split_where (+5) · 쓰이는 곳: machine.xmldoc.run_inject
 def plan_file(path: str, tids: list[str], terms: Terms,
               src: str) -> tuple[str, dict[str, int], dict[int, int]]:
     """한 파일에 블록을 넣는다. 반환 (새 본문, {용어: 새 줄번호}, {옛 줄번호: 새 줄번호}).
@@ -362,6 +419,9 @@ def plan_file(path: str, tids: list[str], terms: Terms,
     return "\n".join(lines), {t: where[t] for t in tids if t in where}, moved
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.collect_targets']"/>
+# terms-reading.json 의 모든 용어를 훑어서 파일별로 묶고, 코드에 마커를 박을 수 없는 것은 따로 가려내는 함수다.
+# 쓰는 것: machine.xmldoc.split_where · 쓰이는 곳: machine.xmldoc.run_check, machine.xmldoc.run_inject
 def collect_targets(terms: Terms,
                     all_kinds: bool = False) -> tuple[dict[str, list[str]], list[tuple[str, str]]]:
     """{파일: [용어…]} 와 XML 에만 남길 용어들. where 의 파일 이름만 쓴다."""
@@ -381,6 +441,9 @@ def collect_targets(terms: Terms,
     return by_file, skipped
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.carry_lines']"/>
+# 레퍼런스 블록을 끼워 넣어서 밀린 코드 줄 번호를, 마커가 없어 스스로 제자리를 못 찾는 다른 기록에도 따라서 옮겨주는 함수다.
+# 쓰는 것: machine.xmldoc.split_where · 쓰이는 곳: machine.xmldoc.run_inject
 def carry_lines(terms: Terms, path: str, line_map: dict[int, int], skip: set[str]) -> int:
     """블록 때문에 밀린 줄을 따라 옮긴다. 마커가 있는 용어(skip)는 이미 제자리다.
 
@@ -402,6 +465,9 @@ def carry_lines(terms: Terms, path: str, line_map: dict[int, int], skip: set[str
     return n
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.run_inject']"/>
+# terms-reading.json 의 용어 레코드를 실제 소스 파일에 주석 마커로 박아 넣고, comments.xml 과 원본 json 의 where 좌표를 최신 상태로 맞추는 함수다.
+# 쓰는 것: machine.xmldoc.collect_targets, machine.xmldoc.plan_file, machine.xmldoc.carry_lines, machine.xmldoc.emit_xml · 쓰이는 곳: machine.test_xmldoc.test_check_flags_where_mismatch, machine.test_xmldoc.test_inject_carries_unmarked_where_and_uses, machine.test_xmldoc.test_inject_finds_anchor_from_marker_even_if_where_is_stale, machine.test_xmldoc.test_inject_is_idempotent
 def run_inject(dry: bool, all_kinds: bool = False) -> None:
     terms: Terms = json.load(open(READING, encoding="utf-8"))
     by_file, skipped = collect_targets(terms, all_kinds)
@@ -433,6 +499,9 @@ def run_inject(dry: bool, all_kinds: bool = False) -> None:
     print(f"  XML 에만 남은 용어 {len(skipped)}개 — {dict(why)}")
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.run_check']"/>
+# 코드에 박힌 주석 마커와 terms-reading.json 에 적힌 줄 번호가 서로 맞는지 확인하는 함수다.
+# 쓰는 것: machine.xmldoc.collect_targets, machine.xmldoc.relocate, machine.xmldoc.split_where, machine.xmldoc.emit_xml · 쓰이는 곳: machine.test_xmldoc.test_check_flags_where_mismatch, machine.test_xmldoc.test_inject_is_idempotent
 def run_check() -> int:
     """코드의 마커와 json 의 where 가 같은 자리를 가리키는지만 본다."""
     terms: Terms = json.load(open(READING, encoding="utf-8"))

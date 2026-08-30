@@ -1,4 +1,4 @@
-// <include file="machine/comments.xml" path="//term[@id='check.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='viz/check.mjs']"/>
 // 구운 보고서가 규칙을 지켰는지 보는 검사 스크립트.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // viz/check.mjs
@@ -10,18 +10,12 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
-// <include file="machine/comments.xml" path="//term[@id='countScripts']"/>
-// 산출물 HTML 의 <script> 개수를 센다. 1개까지만 허용된다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** <script> 는 pan/zoom 하나까지만 허용된다(산출물 불변식). */
 export function countScripts(html) {
   const count = (html.match(/<script/g) || []).length;
   return { ok: count <= 1, count };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='linkIntegrity']"/>
-// 결정 표의 항목과 본문 절이 1:1 인지 본다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * data.ts 의 결정 id 와 report.tsx 의 절이 1:1 인지 본다.
  * 지금은 표와 절이 어긋나도 아무도 모른다 — 이 검사가 그것을 잡는다.
@@ -34,9 +28,6 @@ export function linkIntegrity(decisionIds, reportSource) {
 }
 
 
-// <include file="machine/comments.xml" path="//term[@id='undefinedTerms']"/>
-// 본문에 쓰였는데 용어집에 정의가 없는 식별자를 찾는다.
-// 쓰는 것: C-19, calls[] · 쓰이는 곳: 없음
 /**
  * 본문에 쓰인 식별자 꼴 낱말 중 용어집에 정의가 없는 것을 찾는다.
  * **경고이지 실패가 아니다** — 탐지 규칙이 오탐을 낼 수 있어 빌드를 막지 않는다.
@@ -69,17 +60,11 @@ export function undefinedTerms(reportSource, termIds) {
   return { ok: found.size === 0, missing: [...found].sort() };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='versionMatch']"/>
-// data.ts 의 builderVersion 이 지금 버전과 같은지 본다. 달라도 경고까지다.
-// 쓰는 것: builderVersion · 쓰이는 곳: 없음
 /** builderVersion 불일치는 경고이지 실패가 아니다. */
 export function versionMatch(dataVersion, currentVersion) {
   return { ok: true, warn: dataVersion !== currentVersion };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='check.currentBuilderVersion']"/>
-// 검사 시점의 report-builder git 태그를 읽는다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 function currentBuilderVersion() {
   try {
     return execFileSync("git", ["describe", "--tags", "--abbrev=0"], {

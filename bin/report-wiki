@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // <include file="machine/comments.xml" path="//term[@id='report-wiki']"/>
 // 코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.
-// 쓰는 것: runDispatch · 쓰이는 곳: 없음
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 //   prep  : 정적 계층을 돌려 주입 재료(facts/*.md · ranking.json · codegraph.json)를 만든다
 //   (산문 작성은 CLI 의 일이 아니다 — deep-wiki 스킬이 <저장소>/docs/wiki/ 에 쓴다)
 //   build : Mermaid 를 사전 렌더 SVG 로 치환하고 VitePress 정적 사이트를 만든다

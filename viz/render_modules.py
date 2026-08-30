@@ -24,6 +24,9 @@ from typing import NotRequired, TypedDict, cast
 import networkx as nx
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.CodeNode']"/>
+# codegraph.json 파일 안의 nodes 배열에 들어 있는 항목(클래스나 함수 같은 코드 조각) 하나가 어떤 모양인지를 미리 적어 둔 설계도다. 이것도 실제로 동작하는 클래스가 아니라 타입 검사용 표시다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_modules.CodeGraph
 # ── codegraph.json (스키마 v2) 의 모양. `machine/normalize.py` 의 `_assemble` 반환부와 같다.
 #    이 선언이 없으면 pyright 가 이종(heterogeneous) dict 를 `int | list | str` 합집합으로 뭉개고,
 #    그 dict 를 받은 쪽의 첨자 접근이 전부 Unknown 으로 오염된다.
@@ -53,12 +56,18 @@ CodeEdge = TypedDict("CodeEdge", {
 })
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.CodeModule']"/>
+# codegraph.json 파일 안의 modules 배열에 들어 있는 항목 하나가 어떤 모양(어떤 필드를 가지는지)인지를 미리 적어 둔 설계도 같은 것이다. 실제로 동작하는 클래스가 아니라, 타입 검사 도구가 실수를 잡아내도록 도와주는 표시일 뿐이다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_modules.CodeGraph
 class CodeModule(TypedDict):
     """codegraph.json 의 modules[] 한 칸."""
     id: str
     depends_on: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.CodeGraph']"/>
+# codegraph.json 파일 전체가 어떤 모양인지 정해 놓은 타입 선언이다. render_classes.py 의 동명 클래스와 내용은 같지만 별개의 선언이다(파일마다 따로 정의).
+# 쓰는 것: viz.render_modules.CodeModule, viz.render_modules.CodeNode · 쓰이는 곳: 없음
 class CodeGraph(TypedDict):
     """codegraph.json 전체."""
     schema_version: int
@@ -78,26 +87,26 @@ C_EXTERNAL = "#777777"   # 외부 접촉 — depend 계열 회색
 C_BORDER = "#1f4e79"
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_modules.esc']"/>
-# DOT 문자열용 이스케이프.
-# 쓰는 것: 없음 · 쓰이는 곳: emit_dot
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.esc']"/>
+# 아무 값이나 문자열로 바꿔서 DOT 언어 안에서 안전하게 쓸 수 있게 손질해 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_modules.emit_dot
 def esc(s: object) -> str:
     """DOT 문자열용."""
     return str(s).replace("\\", "\\\\").replace('"', '\\"')
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_modules.esch']"/>
-# HTML 라벨용 이스케이프. 클래스 이름에 제네릭 꺾쇠가 실제로 들어오기 때문에 필요하다.
-# 쓰는 것: 없음 · 쓰이는 곳: node_label
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.esch']"/>
+# 아무 값이나 문자열로 바꿔서 Graphviz의 HTML 라벨 안에서 안전하게 쓸 수 있게 손질해 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_modules.node_label
 def esch(s: object) -> str:
     """HTML 라벨용. 클래스 이름에 제네릭/템플릿 꺾쇠가 실제로 들어온다
     (Action<TOwner>, UI_Base<T> 등) — DOT 이스케이프만으로는 dot 이 HTML 태그로 읽고 죽는다."""
     return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
-# <include file="machine/comments.xml" path="//term[@id='load']"/>
-# codegraph.json 을 읽는다. 스키마 판이 다르면 경고만 하고 계속한다.
-# 쓰는 것: 없음 · 쓰이는 곳: render_modules.main
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.load']"/>
+# codegraph.json 파일을 열어서 파이썬이 다룰 수 있는 데이터로 읽어 오는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_modules.main
 def load(path: str) -> CodeGraph:
     # JSON 경계라 cast 가 불가피하다 — json.load 는 Any 를 준다. 실제 스키마 대조는
     # 바로 아래 schema_version 검사가 런타임에 맡는다.
@@ -107,9 +116,9 @@ def load(path: str) -> CodeGraph:
     return g
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_modules.build']"/>
-# 모듈 층 그래프와 노드마다 붙일 부가 정보를 만든다.
-# 쓰는 것: modules[] · 쓰이는 곳: render_modules.main
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.build']"/>
+# codegraph 데이터를 가지고, 어느 모듈이 어느 모듈을 필요로 하는지를 나타내는 방향 그래프와 그 그래프를 그리는 데 필요한 여러 부가 정보를 만드는 함수다.
+# 쓰는 것: networkx.DiGraph, networkx.simple_cycles · 쓰이는 곳: viz.render_modules.main
 # ⚠ networkx 의 `DiGraph` 는 **런타임에 첨자를 받지 않는다**(`nx.DiGraph[str]` 은 TypeError).
 #   타입 스텁에서만 제네릭이므로 주석은 반드시 따옴표로 감싼다.
 def build(g: CodeGraph) -> tuple[
@@ -154,9 +163,9 @@ def build(g: CodeGraph) -> tuple[
     return G, members, ext_touch, externals, cycles, cyc_edges
 
 
-# <include file="machine/comments.xml" path="//term[@id='node_label']"/>
-# 모듈 상자 안에 넣을 이름 · 클래스 수 · 대표 이름 세 줄을 만든다.
-# 쓰는 것: render_modules.esch · 쓰이는 곳: emit_dot
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.node_label']"/>
+# 모듈 하나를 그림 상자로 그릴 때, 그 상자 안에 넣을 글자(모듈 이름, 클래스 개수, 대표 클래스 이름 몇 개)를 HTML 표 문자열로 만드는 함수다.
+# 쓰는 것: viz.render_modules.esch · 쓰이는 곳: viz.render_modules.emit_dot
 def node_label(mod: str, names: list[str]) -> str:
     """이름 + 클래스 수 + 대표 이름 3개."""
     short = sorted(names, key=lambda s: (len(s), s))
@@ -172,9 +181,9 @@ def node_label(mod: str, names: list[str]) -> str:
     )
 
 
-# <include file="machine/comments.xml" path="//term[@id='emit_dot']"/>
-# 모듈 그래프를 Graphviz DOT 문자열로 찍어 낸다.
-# 쓰는 것: node_label, render_modules.esc · 쓰이는 곳: render_modules.main
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.emit_dot']"/>
+# 이미 계산된 모듈 의존 그래프를 실제 Graphviz DOT 문법 텍스트로 바꿔주는 함수다. 그림을 그리는 규칙(색, 순서, 범례)을 전부 이 함수 안에서 정한다.
+# 쓰는 것: viz.render_modules.esc, viz.render_modules.node_label · 쓰이는 곳: viz.render_modules.main
 def emit_dot(g: CodeGraph, path_in: str, G: "nx.DiGraph[str]",
              members: dict[str, list[str]], ext_touch: dict[tuple[str, str], int],
              externals: dict[str, CodeNode], cycles: list[list[str]],
@@ -300,9 +309,9 @@ digraph modules {{
     return "\n".join(out)
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_modules.main']"/>
-# 모듈 다이어그램 도구의 명령줄 진입점.
-# 쓰는 것: load, render_modules.build, emit_dot · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='viz.render_modules.main']"/>
+# codegraph.json 하나를 읽어 모듈 의존 관계 다이어그램(svg/png/dot)을 파일로 만들어내는, 이 파일을 명령줄에서 실행했을 때 맨 처음 호출되는 함수다.
+# 쓰는 것: viz.render_modules.load, viz.render_modules.build, viz.render_modules.emit_dot · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph", help="codegraph.json")

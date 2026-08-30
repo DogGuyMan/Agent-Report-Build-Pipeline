@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='gen_readme.py']"/>
+# 소스에서 디렉토리별 README.md 를 생성하는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """gen_readme.py — 소스에서 디렉토리별 README.md 를 생성한다.
 
     python3 tools/gen_readme.py machine runner viz tools        # 쓴다
@@ -30,6 +33,9 @@ DIR_ROLE = {
 }
 
 
+# <include file="machine/comments.xml" path="//term[@id='tools.gen_readme.first_line']"/>
+# 파이썬 코드의 독스트링(설명 문구) 중 첫 줄만 뽑아내는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: tools.gen_readme.render_dir
 # 독스트링 첫 줄만 꺼낸다. 없으면 빈 문자열.
 # 쓰는 것: 없음 · 쓰이는 곳: render_dir
 def first_line(node: ast.AST) -> str:
@@ -46,12 +52,18 @@ def first_line(node: ast.AST) -> str:
     return line
 
 
+# <include file="machine/comments.xml" path="//term[@id='tools.gen_readme.cell']"/>
+# 마크다운 표 칸 안에 안전하게 넣을 수 있도록 글자를 다듬는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: tools.gen_readme.render_dir
 # 마크다운 표 칸에 넣을 수 있게 파이프를 막는다.
 # 쓰는 것: 없음 · 쓰이는 곳: render_dir
 def cell(text: str) -> str:
     return text.replace("|", "\\|")
 
 
+# <include file="machine/comments.xml" path="//term[@id='tools.gen_readme.render_dir']"/>
+# 디렉토리 하나 안의 파이썬 파일들을 훑어서 그 디렉토리의 README.md 에 들어갈 글 내용을 만드는 함수다.
+# 쓰는 것: tools.gen_readme.first_line, tools.gen_readme.cell, machine.pycalls.signature_of · 쓰이는 곳: tools.gen_readme.main, tools.test_gen_readme.test_pipe_in_signature_is_escaped, tools.test_gen_readme.test_signature_comes_from_pycalls_not_a_copy
 # 디렉토리 하나의 README 본문을 만든다.
 # 쓰는 것: first_line, cell, signature_of · 쓰이는 곳: gen_readme.main
 def render_dir(repo: str, d: str) -> str:
@@ -97,6 +109,9 @@ def render_dir(repo: str, d: str) -> str:
     return "\n".join(out) + "\n"
 
 
+# <include file="machine/comments.xml" path="//term[@id='tools.gen_readme.main']"/>
+# gen_readme 도구를 터미널에서 실행했을 때 맨 처음 불리는 함수다.
+# 쓰는 것: tools.gen_readme.render_dir · 쓰이는 곳: 없음
 # gen_readme 도구의 명령줄 진입점.
 # 쓰는 것: render_dir · 쓰이는 곳: 없음
 def main() -> int:

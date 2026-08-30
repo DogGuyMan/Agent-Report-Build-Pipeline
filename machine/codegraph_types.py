@@ -1,3 +1,6 @@
+# <include file="machine/comments.xml" path="//term[@id='codegraph_types.py']"/>
+# codegraph.json(스키마 v2)의 모양을 적어 둔 파일. 실행되는 코드가 없다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # codegraph.json(스키마 v2)의 모양을 적어 둔 파일. 실행되는 코드가 없다.
 # 쓰는 것: 없음 · 쓰이는 곳: normalize, facts, survey_plan, verify_citations, render_modules, render_classes
 """codegraph_types.py — `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳.
@@ -18,6 +21,9 @@ EdgeKind = Literal[
 ]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.codegraph_types.Node']"/>
+# 코드 지도(codegraph.json)에 찍히는 점 하나의 모양이다. 실제 타입 하나이거나, 접혀서 뭉친 외부 타입들의 섬 하나를 나타낸다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.codegraph_types.CodeGraph
 class Node(TypedDict):
     """코드 지도의 점. 1차 타입 하나 또는 접힌 외부 섬 하나."""
 
@@ -54,6 +60,9 @@ Edge = TypedDict("Edge", {
 })
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.codegraph_types.Module']"/>
+# 폴더 트리 한 칸을 나타내는 자료 모양이다. 클래스라기보다 '이 모양대로 딕셔너리를 채워라'는 설계도에 가깝다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.codegraph_types.CodeGraph
 class Module(TypedDict):
     """폴더 트리 한 칸. `depends_on` 은 클래스 간선에서 유도된 타입 의존이다.
 
@@ -64,6 +73,9 @@ class Module(TypedDict):
     depends_on: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.codegraph_types.CodeGraph']"/>
+# normalize.py 가 마지막에 만들어 내는 codegraph.json 파일 전체의 모양을 정의하는 틀이다. 실제로 실행되는 코드는 없고, 타입 검사기가 이 모양을 지키는지 확인하는 데만 쓰인다.
+# 쓰는 것: machine.codegraph_types.Node, machine.codegraph_types.Edge, machine.codegraph_types.Module · 쓰이는 곳: machine.test_normalize._load
 class CodeGraph(TypedDict):
     """`normalize.py::_assemble` 이 내는 최종 모양."""
 

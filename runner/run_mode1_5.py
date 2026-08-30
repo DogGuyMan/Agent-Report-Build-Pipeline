@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='runner/run_mode1_5.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.py']"/>
 # 용어 이해도 점검 흐름을 돌리다 사람 차례에서 멈추는 실행기.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # Mode 1.5 파이프라인을 돌리다 사람 차례에서 멈추는 파일.
@@ -123,18 +123,15 @@ ANSWERS = "answers.json"
 GRADES = "term-grades.json"
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.is_agent_stage']"/>
-# 이 단계가 큰 언어 모형을 부르는 자리인지 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.is_agent_stage']"/>
+# 어떤 단계 이름을 주면 그 단계가 LLM(에이전트)을 부르는 단계인지 참/거짓으로 답해주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.test_run_mode1_5.test_only_one_stage_calls_the_model
 # ── 1. 단계 고르기 (파일 시스템을 보지 않는 순수 함수) ──────────────────
 def is_agent_stage(stage: str) -> bool:
     """이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.plan_stages']"/>
-# 네 단계 중 무엇을 실제로 돌릴지 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def plan_stages(has_candidates: bool, has_questions: bool, has_answers: bool,
                 only: Iterable[str] | None = None,
                 skip: Iterable[str] | None = None) -> list[str]:
@@ -165,17 +162,11 @@ def plan_stages(has_candidates: bool, has_questions: bool, has_answers: bool,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.human_gate_open']"/>
-# 사람 차례가 아직 안 끝났는지 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def human_gate_open(has_answers: bool) -> bool:
     """사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다."""
     return not has_answers
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.split_new_concepts']"/>
-# 새로 나온 개념을 출제할 것과 미룰 것으로 가른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 2. 정답 미정 가르기 — 기계 규칙은 하나뿐이다 ────────────────────────
 def split_new_concepts(new_concepts: Iterable[str],
                        answer_key: dict[str, Any] | None) -> tuple[list[str], list[str]]:
@@ -198,9 +189,6 @@ def split_new_concepts(new_concepts: Iterable[str],
     return ready, held
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.validate_questions']"/>
-# 문항지가 채점할 수 있는 꼴인지 본다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 3. 문항지 검사 — quiz.mjs 는 이것을 검사하지 않는다 ─────────────────
 def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     """`questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록).
@@ -266,9 +254,6 @@ def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.unasked_known']"/>
-# 출제도 안 되고 뺀 이유도 안 적힌 용어를 낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def unasked_known(candidates: dict[str, Any] | None,
                   doc: dict[str, Any] | None) -> list[str]:
     """후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다.
@@ -283,9 +268,6 @@ def unasked_known(candidates: dict[str, Any] | None,
     return sorted(t for t in known if t not in asked and t not in noted)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.flatten_questions']"/>
-# 문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1_5.answer_sheet
 # ── 4. 문항지에서 기입란으로 곧장 잇기 ──────────────────────────────────
 def flatten_questions(doc: dict[str, Any] | None) -> list[tuple[int, str, dict[str, Any]]]:
     """중첩된 문항지를 한 줄로 펴고 `QNum` 을 1부터 매긴다. `(번호, 용어, 문항)` 목록.
@@ -305,9 +287,9 @@ def flatten_questions(doc: dict[str, Any] | None) -> list[tuple[int, str, dict[s
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.answer_sheet']"/>
-# 문항지에서 정답을 빼고 사람이 채울 기입란을 만든다.
-# 쓰는 것: run_mode1_5.flatten_questions · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.answer_sheet']"/>
+# questions.json 에서 정답을 뺀, 사람이 풀 답안지를 만드는 함수다.
+# 쓰는 것: runner.run_mode1_5.flatten_questions · 쓰이는 곳: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.main, runner.test_run_mode1_5.filled_sheet, runner.test_run_mode1_5.test_the_answer_sheet_carries_the_term_on_every_question, runner.test_run_mode1_5.test_the_answer_sheet_leaves_the_user_column_empty (+4)
 def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
     """`questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다.
 
@@ -328,9 +310,6 @@ def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
     return {"plan": str((doc or {}).get("plan") or ""), "questions": questions}
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.choice_number']"/>
-# 사람이 적은 UserAns 를 보기 번호로 읽는다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def choice_number(value: object) -> int | None:
     """`UserAns` 를 보기 번호로 읽는다. 못 읽으면 `None`.
 
@@ -346,9 +325,9 @@ def choice_number(value: object) -> int | None:
     return int(text) if text.isdigit() else None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.validate_answers']"/>
-# 채운 기입란이 문항지와 아귀가 맞는지 본다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.validate_answers']"/>
+# 사람이 채운 답안지 파일이 원래 문항지와 내용이 맞는지 검사하는 함수다.
+# 쓰는 것: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.choice_number · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_a_blank_user_answer_is_caught, runner.test_run_mode1_5.test_a_fully_filled_sheet_has_no_complaints, runner.test_run_mode1_5.test_a_missing_answer_is_caught, runner.test_run_mode1_5.test_a_number_written_as_text_is_accepted (+7)
 def validate_answers(sheet: dict[str, Any] | None,
                      doc: dict[str, Any] | None) -> list[str]:
     """채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록).
@@ -399,18 +378,15 @@ def validate_answers(sheet: dict[str, Any] | None,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5._term_script']"/>
-# 용어 점검 스크립트의 절대 경로를 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 5. 명령줄 만들기 — 경로를 박지 않는다 ───────────────────────────────
 def _term_script(root: str, name: str) -> str:
     """`runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다."""
     return os.path.join(root, "runner", "term", name)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.collect_argv']"/>
-# 후보 모으기 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.collect_argv']"/>
+# 용어 후보를 모으는 collect.mjs 를 실행할 명령줄(문자열 목록)을 만드는 함수다.
+# 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_collect_argv_names_the_plan_and_the_term_database, runner.test_run_mode1_5.test_collect_argv_works_without_a_term_database
 def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
     """`collect.mjs` 명령줄. node 는 PATH 에서 찾는다.
 
@@ -423,9 +399,9 @@ def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.grade_argv']"/>
-# 채점 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.grade_argv']"/>
+# 채점 스크립트 quiz.mjs 를 실행할 명령줄을 만드는 함수다.
+# 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts, runner.test_run_mode1_5.test_grade_argv_hands_over_both_files
 def grade_argv(root: str, answers: str, questions: str) -> list[str]:
     """`quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다.
 
@@ -435,17 +411,17 @@ def grade_argv(root: str, answers: str, questions: str) -> list[str]:
     return ["node", _term_script(root, "quiz.mjs"), answers, questions]
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.emit_argv']"/>
-# 산출 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.emit_argv']"/>
+# 결과물을 만드는 emit.mjs 를 실행할 명령줄을 만드는 함수다.
+# 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts
 def emit_argv(root: str, grades: str) -> list[str]:
     """`emit.mjs` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다."""
     return ["node", _term_script(root, "emit.mjs"), grades]
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.author_argv']"/>
-# 출제 세션의 헤드리스 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.author_argv']"/>
+# 문제를 출제하는 LLM 세션을 헤드리스로 실행할 명령줄을 만드는 함수다.
+# 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: runner.run_mode1_5.run_author, runner.test_run_mode1_5.test_author_argv_does_not_repeat_a_folder, runner.test_run_mode1_5.test_author_argv_is_headless_json_and_opens_every_folder_it_reads
 def author_argv(model: str, workdir: str, root: str, plan: str) -> list[str]:
     """출제 세션의 헤드리스 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
 
@@ -462,9 +438,6 @@ def author_argv(model: str, workdir: str, root: str, plan: str) -> list[str]:
     return M.claude_argv(model=model, repo=dirs[0], extra_dirs=dirs[1:])
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.author_prompt']"/>
-# 한 세션이 할 일 전부를 적은 글.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 def author_prompt(workdir: str, root: str, plan: str) -> str:
     """한 세션이 할 일 전부. **용어 보충과 출제를 둘 다** 여기서 시킨다.
 
@@ -555,9 +528,6 @@ def author_prompt(workdir: str, root: str, plan: str) -> str:
            choices=CHOICES_PER_QUESTION, real_choices=CHOICES_PER_QUESTION - 1)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.gate_notice']"/>
-# 사람 차례에서 화면에 낼 안내문.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 6. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
 def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
                 answer_key: str, unasked: Sequence[str] = ()) -> str:
@@ -599,9 +569,9 @@ def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
     return "\n".join(lines)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.format_run']"/>
-# 측정 표에 건너뜀과 사람 차례를 덧붙인다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.format_run']"/>
+# Mode 1.5 실행 결과를 사람이 읽을 보고 문자열로 만드는 함수다.
+# 쓰는 것: runner.run_mode1.format_report · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_a_stage_skipped_on_resume_is_marked_as_skipped_not_failed, runner.test_run_mode1_5.test_the_gate_is_appended_to_the_report_and_is_not_a_failure, runner.test_run_mode1_5.test_the_report_reuses_the_mode_1_table
 def format_run(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] | None,
                gate: str | None) -> str:
     """`run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다.
@@ -620,9 +590,6 @@ def format_run(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] | 
     return "\n".join(out)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5._read_json']"/>
-# 있으면 읽고 없거나 깨졌으면 아무것도 아닌 값을 낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 def _read_json(path: str) -> Any:
     """있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다."""
@@ -633,9 +600,9 @@ def _read_json(path: str) -> Any:
         return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.run_machine']"/>
-# 기계 단계 하나를 작업 폴더에서 부른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.run_machine']"/>
+# 기계 단계 하나(collect/grade/emit 등)를 실제로 실행시키는 함수다.
+# 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: 없음
 def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     """기계 단계 하나. 출력은 그대로 흘려보낸다.
 
@@ -647,9 +614,9 @@ def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     return p.returncode
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.run_author']"/>
-# 출제 세션을 한 번 부른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.run_author']"/>
+# 용어 이해도 점검용 객관식 문항을 출제하는 LLM 세션을 한 번 불러오는 함수다.
+# 쓰는 것: runner.run_mode1_5.author_argv, runner.run_mode1.Heartbeat, runner.run_mode1_5.author_prompt · 쓰이는 곳: runner.run_mode1_5.main
 def run_author(model: str, workdir: str, root: str, plan: str,
                timeout: float | None = None) -> tuple[int, M.AgentResult | None]:
     """출제 세션을 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`."""
@@ -666,9 +633,9 @@ def run_author(model: str, workdir: str, root: str, plan: str,
         return p.returncode, None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode1_5.main']"/>
-# 명령줄을 읽고 단계를 돌린 뒤 측정 표와 사람 차례 안내를 낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.main']"/>
+# Mode 1.5(용어 이해도 점검) 파이프라인의 진입점. 문제를 만들고 사람이 풀 때까지 멈췄다가 채점하고 결과를 낸다.
+# 쓰는 것: runner.run_mode1_5.plan_stages, runner.run_mode1_5.run_author, runner.run_mode1.agent_verdict, runner.run_mode1.normalize_usage, runner.run_mode1_5.validate_questions (+13) · 쓰이는 곳: 없음
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 1.5 파이프라인을 돌리고 단계별 시간·토큰을 잰다. 사람 차례에서 멈춘다.",

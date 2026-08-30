@@ -1,4 +1,4 @@
-// <include file="machine/comments.xml" path="//term[@id='viz/wrap-terms.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='wrap-terms.mjs']"/>
 // 다 만들어진 HTML 글자에서 용어집 용어를 찾아 뜻 카드가 뜨는 참조로 감싸는 스크립트.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // viz/wrap-terms.mjs — 빌드 후 통과. 본문 글자에 나오는 용어집 용어를 전부 term-ref 로 감싼다.
@@ -25,9 +25,6 @@ function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// <include file="machine/comments.xml" path="//term[@id='termPattern']"/>
-// 용어 이름 목록으로 본문에서 그 이름을 찾아낼 정규식을 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: wrapTerms
 /**
  * 용어 id 목록으로 매칭 정규식을 만든다. 긴 것부터 — "git blob SHA" 가 "git" 에 먼저 잘리지 않게.
  *
@@ -52,9 +49,6 @@ function skipsByClass(tag) {
   return SKIP_CLASSES.some((c) => cls.includes(c));
 }
 
-// <include file="machine/comments.xml" path="//term[@id='wrapTerms']"/>
-// HTML 글자에 나오는 용어를 전부 용어 참조 마크업으로 바꾼다.
-// 쓰는 것: termPattern · 쓰이는 곳: build.mjs
 /**
  * html 의 글자 부분에서 refs 의 키(용어 id)가 나오는 곳을 전부 refs 의 값(TermRef 마크업)으로 바꾼다.
  * refs: Map<id, markup>. markup 은 그 id 를 글자로 담은 term-ref 여야 한다 — build.mjs 가 TermRef 를 렌더해 만든다.

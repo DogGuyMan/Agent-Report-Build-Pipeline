@@ -1,6 +1,6 @@
 // <include file="machine/comments.xml" path="//term[@id='quiz.mjs']"/>
 // 객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.
-// 쓰는 것: term-grades.json · 쓰이는 곳: 없음
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // runner/term/quiz.mjs — Mode 1.5 2·3단계. 객관식 채점.
 //
 // **이 파일은 사람에게 묻지 않는다.** 채운 기입란과 문항지를 받아 대조하고 채점만 한다.
@@ -24,9 +24,6 @@ export const QUESTIONS_PER_TERM = 3;
  */
 export const CHOICES_PER_QUESTION = 5;
 
-// <include file="machine/comments.xml" path="//term[@id='flattenQuestions']"/>
-// 문항지를 용어 순 · 문항 순으로 펴고 1부터 번호를 매긴다.
-// 쓰는 것: 없음 · 쓰이는 곳: tallySheet
 /**
  * 중첩된 문항지를 한 줄로 펴고 `QNum` 을 1부터 매긴다.
  *
@@ -55,9 +52,6 @@ export function flattenQuestions(doc) {
   return out;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='choiceNumber']"/>
-// 사람이 적은 UserAns 를 보기 번호로 읽는다.
-// 쓰는 것: 없음 · 쓰이는 곳: tallySheet
 /**
  * `UserAns` 를 보기 번호로 읽는다. 못 읽으면 `null`.
  *
@@ -72,9 +66,6 @@ export function choiceNumber(value) {
   return /^\d+$/.test(text) ? Number(text) : null;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='tallySheet']"/>
-// 채운 기입란을 문항지와 대조해 용어마다 맞힌 수와 모르겠다 수를 센다.
-// 쓰는 것: flattenQuestions, choiceNumber · 쓰이는 곳: 없음
 /**
  * 채운 기입란을 문항지와 대조해 용어마다 맞힌 수를 센다.
  * `{ counts, problems }` 를 낸다 — `counts` 는 `gradeAll` 이 그대로 받는 꼴이다.
@@ -151,9 +142,6 @@ export function tallySheet(sheet, doc) {
   return { counts, problems };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='gradeOne']"/>
-// 용어 하나의 답안을 채점해 확실 · 애매 · 모름을 매긴다.
-// 쓰는 것: QUESTIONS_PER_TERM · 쓰이는 곳: gradeAll
 /**
  * 한 용어의 답안을 채점한다. 두 갈래다 — 확실 / 모름.
  * 구간은 사용자가 확정한 값이다(2026-08-29, 3문항 규칙). 임의로 바꾸지 말 것.
@@ -171,9 +159,6 @@ export function gradeOne({ correct, dontKnow }) {
   return { rate, mental };
 }
 
-// <include file="machine/comments.xml" path="//term[@id='gradeAll']"/>
-// 답안 전체를 채점한다. 입력이 같으면 출력도 같다.
-// 쓰는 것: gradeOne · 쓰이는 곳: 없음
 /** 답안 전체를 채점한다. 입력이 같으면 출력도 같다. */
 export function gradeAll(answers) {
   const out = {};

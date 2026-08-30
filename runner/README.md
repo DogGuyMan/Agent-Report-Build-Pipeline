@@ -34,6 +34,7 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `sum_usage` | `(usages: Sequence[Usage]) -> Usage` | `normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다. |
 | `agent_verdict` | `(returncode: int, result: AgentResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
 | `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]` | 헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다. |
+| `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
 | `warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
 | `dep_excerpt` | `(merged: Records, batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
 | `survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
@@ -197,6 +198,9 @@ Mode 1 실행기의 회귀 테스트.
 | `test_계획_요약은_층과_배치와_합계를_낸다` | `()` | 돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다. |
 | `test_lang_of_maps_every_collector_language_to_declmap` | `(tmp_path: Path) -> None` | 코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다. |
 | `test_every_runner_script_path_actually_exists` | `() -> None` | 세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다. |
+| `test_자기호스팅_읽기레코드_경로가_실재한다` | `() -> None` | 이 저장소 자신을 조사할 때 원본은 `machine/terms-reading.json` 이다. |
+| `test_남의_저장소는_docs_codegraph_아래를_본다` | `() -> None` |  |
+| `test_배치_프롬프트의_범위_지시문이_같은_자리를_말한다` | `() -> None` | 프롬프트가 말하는 자리와 실행기가 읽고 쓰는 자리가 갈리면 세션이 없는 파일을 찾는다. |
 
 ---
 

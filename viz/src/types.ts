@@ -4,21 +4,12 @@
 // viz/src/types.ts — props 타입만. 런타임 코드 없음.
 import type { ReactNode } from "react";
 
-// <include file="machine/comments.xml" path="//term[@id='ConfTier']"/>
-// 확신도 색 계열 세 값. green · amber · red.
-// 쓰는 것: 없음 · 쓰이는 곳: Conf
 /** E축 확신도 티어. D축은 이후 단계(소급 검증 통과 후)까지 도입하지 않는다. */
 export type ConfTier = "green" | "amber" | "red";
 
-// <include file="machine/comments.xml" path="//term[@id='StatusVariant']"/>
-// 상태 태그의 색 계열 세 값.
-// 쓰는 것: 없음 · 쓰이는 곳: Decision
 /** 상태 배지의 색 계열. 문구는 자유 문자열이므로 children 으로 받는다. */
 export type StatusVariant = "proposed" | "accepted" | "superseded";
 
-// <include file="machine/comments.xml" path="//term[@id='Conf']"/>
-// 확신도 하나의 모양. 색 계열과 숫자 앵커, 그리고 덮어쓸 이모지.
-// 쓰는 것: ConfTier · 쓰이는 곳: Decision
 export interface Conf {
   tier: ConfTier;
   /** 정수 앵커. 정본에 "실측" 같은 문자열 사례가 있어 string 도 허용한다. */
@@ -27,9 +18,6 @@ export interface Conf {
   emoji?: string;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='Decision']"/>
-// 결정 하나의 모양. 번호 · 제목 · 상태 · 확신도 · 옵션 수.
-// 쓰는 것: Conf, StatusVariant · 쓰이는 곳: ReportData
 export interface Decision {
   /** "D0", "D1" — report.tsx 의 절 제목과 대조된다(링크 무결성 검사). */
   id: string;
@@ -42,15 +30,9 @@ export interface Decision {
 }
 
 
-// <include file="machine/comments.xml" path="//term[@id='TermKind']"/>
-// 용어 분류 네 값. 결정 · 산출물 · 개념 · 도구. 그래프 노드 색을 정한다.
-// 쓰는 것: 없음 · 쓰이는 곳: Term
 /** 용어 분류. 그래프 노드의 색 계열을 정한다. */
 export type TermKind = "decision" | "artifact" | "concept" | "tool";
 
-// <include file="machine/comments.xml" path="//term[@id='Term']"/>
-// 용어 하나의 모양. 정의는 이 배열 한 곳에만 쓴다.
-// 쓰는 것: TermKind, C-19 · 쓰이는 곳: Glossary, ReportData, TermGraph, defineTerms
 /**
  * 용어 하나. **정의는 여기 한 곳에만 쓴다** — 본문·그래프·용어집이 전부 이 배열에서 나온다.
  * 읽는 사람은 배경 지식이 없다고 가정한다. `short` 와 `body` 를 그 눈높이로 쓴다.
@@ -71,9 +53,6 @@ export interface Term {
   mental?: "확실" | "애매" | "모름";
 }
 
-// <include file="machine/comments.xml" path="//term[@id='ReportData']"/>
-// 보고서 하나가 갖는 결정 데이터 전부의 모양.
-// 쓰는 것: Decision, Term, builderVersion · 쓰이는 곳: Page
 export interface ReportData {
   /** ~/report-builder 의 git 태그. build 시 현재 버전과 대조된다. */
   builderVersion: string;
@@ -91,9 +70,6 @@ export interface ReportData {
   linkRoots?: string[];
 }
 
-// <include file="machine/comments.xml" path="//term[@id='InlinedSvg']"/>
-// 인라인된 SVG 하나의 모양. 본문 문자열과 원본 가로·세로 픽셀.
-// 쓰는 것: 없음 · 쓰이는 곳: DiagramPanel
 /** viz/svg.mjs 의 반환 형태. */
 export interface InlinedSvg {
   svg: string;
@@ -101,17 +77,11 @@ export interface InlinedSvg {
   naturalHeightPx: number | null;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='DiagramPanel']"/>
-// 다이어그램 한 쪽의 모양. 제목과 SVG.
-// 쓰는 것: InlinedSvg · 쓰이는 곳: 없음
 export interface DiagramPanel {
   title: string;
   diagram: InlinedSvg;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='LegendItem']"/>
-// 다이어그램 범례 한 줄. 색과 설명.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 export interface LegendItem {
   color: string;
   label: string;

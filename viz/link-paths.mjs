@@ -1,4 +1,4 @@
-// <include file="machine/comments.xml" path="//term[@id='viz/link-paths.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='link-paths.mjs']"/>
 // 본문에 글자로 적힌 파일 경로를 그 파일을 여는 링크로 바꾸는 스크립트.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // viz/link-paths.mjs — 빌드 후 통과 둘째. 본문에 글자로 적힌 경로 꼴 낱말을 실제 로컬 파일 · 폴더의 file:// 링크로 바꾼다.
@@ -21,9 +21,6 @@ const SKIP_CLASSES = ["term-ref", "term-card", "term-groups", "term-graph", "svg
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 const EXT = "md|mjs|py|ts|tsx|json|css|html|dot|svg|yaml|yml|toml|cs|cpp|h";
 
-// <include file="machine/comments.xml" path="//term[@id='pathPattern']"/>
-// 본문에서 경로처럼 생긴 낱말을 찾아낼 정규식을 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: linkPaths
 /**
  * 경로 꼴 — `a/b.md:3` `c.json` `facts/*.md` `x.py`. 앞뒤가 낱말 · 경로 글자가 아니어야 한다.
  * URL(`http://x.com/a.md`)은 앞 글자가 `/` 나 `.` 라 lookbehind 에 막힌다.
@@ -36,9 +33,6 @@ export function pathPattern() {
   );
 }
 
-// <include file="machine/comments.xml" path="//term[@id='buildIndex']"/>
-// 저장소가 추적하는 파일들의 이름 색인을 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 저장소 추적 파일의 이름 색인. { basename -> [상대경로…] }. git 밖이면 빈 Map. */
 export function buildIndex(repoRoot) {
   const index = new Map();
@@ -71,9 +65,6 @@ const isDir = (p) => {
   }
 };
 
-// <include file="machine/comments.xml" path="//term[@id='expandRoot']"/>
-// 경로 앞머리의 물결표와 달러 변수를 실제 폴더 이름으로 편다.
-// 쓰는 것: 없음 · 쓰이는 곳: makeResolver
 /**
  * 경로 앞머리의 `~` 와 `$VAR` / `${VAR}` 를 편다.
  *
@@ -88,9 +79,6 @@ export function expandRoot(base) {
     (_, a, b) => process.env[a ?? b] ?? "");
 }
 
-// <include file="machine/comments.xml" path="//term[@id='makeResolver']"/>
-// 경로 낱말 하나를 받아 실제 파일 주소를 돌려주는 함수를 만든다.
-// 쓰는 것: expandRoot · 쓰이는 곳: 없음
 /**
  * 해석기. token(줄 번호 뗀 경로) -> { href, kind: "file"|"dir" } | null.
  * 순서: bases 를 차례로(보고서 폴더 → specs/ → 저장소 루트 → out/codegraph-raw → linkRoots) → 이름만이면 index 에서 유일할 때.
@@ -127,9 +115,6 @@ function skipsByClass(tag) {
   return SKIP_CLASSES.some((c) => cls.includes(c));
 }
 
-// <include file="machine/comments.xml" path="//term[@id='linkPaths']"/>
-// HTML 글자의 경로 낱말 중 실제로 있는 파일만 골라 링크로 감싼다.
-// 쓰는 것: pathPattern, path-link · 쓰이는 곳: build.mjs
 /**
  * html 의 글자 부분에서 경로 꼴을 찾아 resolve 가 답하는 것만 <a class="path-link" href="file://…"> 로 감싼다.
  * 글자(줄 번호 포함)는 그대로 남는다. 감싼 결과는 a 안이라 다시 훑지 않는다(멱등).

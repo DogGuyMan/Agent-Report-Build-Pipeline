@@ -4,9 +4,6 @@
 // viz/src/components/blocks.tsx — 경고·신고·분류 박스 계열
 import type { ReactNode } from "../types.js";
 
-// <include file="machine/comments.xml" path="//term[@id='NewStructNote']"/>
-// 새 구조를 들일 때 근거를 적는 상자. 구현자 수와 소비자 수를 함께 보인다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 export function NewStructNote({
   kind, implementers, consumers, deletionTest, grepEvidence,
 }: {
@@ -23,9 +20,6 @@ export function NewStructNote({
   );
 }
 
-// <include file="machine/comments.xml" path="//term[@id='Reversal']"/>
-// 옛 결정을 뒤집은 기록 상자. 이전 · 현재 · 근거 세 줄이다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 export function Reversal({
   rev, previous, now, reason,
 }: { rev: string; previous: string; now: string; reason: string }) {
@@ -39,9 +33,6 @@ export function Reversal({
   );
 }
 
-// <include file="machine/comments.xml" path="//term[@id='Correction']"/>
-// 잘못 적은 것을 바로잡는 상자. 대상과 정정 두 줄이다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 export function Correction({ target, correction }: { target: string; correction: string }) {
   return (
     <div className="correction-note">
@@ -52,18 +43,12 @@ export function Correction({ target, correction }: { target: string; correction:
   );
 }
 
-// <include file="machine/comments.xml" path="//term[@id='TriageItem']"/>
-// 먼저 볼 것 목록의 한 줄이 갖는 모양. id · 제목 · 이유.
-// 쓰는 것: 없음 · 쓰이는 곳: TriageBlock
 export interface TriageItem {
   id: string;
   title: string;
   why: string;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='TriageBlock']"/>
-// 먼저 볼 것 목록 상자. 보고서 맨 위에 놓는다.
-// 쓰는 것: TriageItem · 쓰이는 곳: 없음
 export function TriageBlock({ items }: { items: TriageItem[] }) {
   return (
     <div className="triage-block">
@@ -82,9 +67,6 @@ export function TriageBlock({ items }: { items: TriageItem[] }) {
 
 export type { ReactNode };
 
-// <include file="machine/comments.xml" path="//term[@id='EvidenceNote']"/>
-// 실측 근거와 주관 판단을 별개 행으로 갈라 놓는 상자.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * 실측 근거와 주관 판단을 **별개 행**으로 갈라놓는 주석 블록.
  * 인계 문서 §5 — "객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다" 를 마크업으로 강제한다.

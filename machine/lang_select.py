@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='lang_select.py']"/>
+# 어떤 정적 수집기를 돌릴지 고르는 도구.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """lang_select.py — 어떤 정적 수집기를 돌릴지 고른다.
 
     python3 lang_select.py <저장소> -o lang-select.json
@@ -41,6 +44,9 @@ COLLECTOR: dict[Lang, str] = {
 DOC_NAMES = ("README.md", "CLAUDE.md", "ARCHITECTURE.md", "AGENTS.md")
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.lang_select.LangSelect']"/>
+# 언어 선택 결과가 어떤 모양의 데이터인지 정해두는 타입 정의(TypedDict)다. 실제 동작하는 클래스가 아니라 값의 형태를 문서화하고 타입 검사를 돕는 틀이다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 class LangSelect(TypedDict):
     language: Lang | None
     collector: str
@@ -49,6 +55,9 @@ class LangSelect(TypedDict):
     why: str
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.lang_select.count_sources']"/>
+# 이 저장소에 어떤 프로그래밍 언어 파일이 몇 개씩 있는지 기계적으로 세는 함수다. 사람이나 모델의 판단이 들어가지 않는, 순수하게 숫자를 세는 부분이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.lang_select.select, machine.test_lang_select.test_counts_only_git_tracked_files
 # git 이 아는 파일만 확장자별로 센다.
 # 쓰는 것: 없음 · 쓰이는 곳: select
 def count_sources(repo: str) -> dict[str, int]:
@@ -66,6 +75,9 @@ def count_sources(repo: str) -> dict[str, int]:
     return out
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.lang_select.read_docs']"/>
+# 모델(LLM)에게 저장소를 소개할 때 읽힐 문서 몇 개를 모아 하나의 긴 문자열로 만들어주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.lang_select.main, machine.test_lang_select.test_read_docs_picks_root_documents
 # 모형에게 읽힐 루트 문서를 모은다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def read_docs(repo: str, limit: int = 6000) -> str:
@@ -80,6 +92,9 @@ def read_docs(repo: str, limit: int = 6000) -> str:
     return "\n\n".join(parts)
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.lang_select.select']"/>
+# 이 저장소가 C++/C#/Python/TypeScript 중 어떤 언어의 소스를 대상으로 정적 수집을 돌릴지, 그리고 어떤 수집기를 쓸지 최종적으로 고르는 함수다.
+# 쓰는 것: machine.lang_select.count_sources · 쓰이는 곳: machine.lang_select.main, machine.test_lang_select.test_empty_repo_selects_nothing, machine.test_lang_select.test_no_proposal_falls_back_to_file_counts, machine.test_lang_select.test_proposal_can_override_the_count, machine.test_lang_select.test_proposal_with_no_sources_is_rejected (+2)
 # 세어 본 것과 모형의 제안을 합쳐 수집기를 고른다.
 # 쓰는 것: count_sources · 쓰이는 곳: lang_select.main
 def select(repo: str, proposed: str | None = None) -> LangSelect:
@@ -127,6 +142,9 @@ def select(repo: str, proposed: str | None = None) -> LangSelect:
             "proposed": proposed, "why": f"제안 '{lang}' 이 검사를 통과했다{note}."}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.lang_select.main']"/>
+# lang_select.py 도구를 터미널에서 실행할 때 제일 먼저 불리는 진입점 함수다.
+# 쓰는 것: machine.lang_select.read_docs, machine.lang_select.select · 쓰이는 곳: 없음
 # lang_select 도구의 명령줄 진입점.
 # 쓰는 것: select, read_docs · 쓰이는 곳: 없음
 def main() -> int:

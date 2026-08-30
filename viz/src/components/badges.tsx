@@ -11,17 +11,11 @@ const TIER_EMOJI: Record<Conf["tier"], string> = {
   red: "💭",
 };
 
-// <include file="machine/comments.xml" path="//term[@id='ConfBadge']"/>
-// 확신도 배지 한 개를 그린다. 이모지와 숫자가 함께 나온다.
-// 쓰는 것: 없음 · 쓰이는 곳: DecisionTable
 export function ConfBadge({ conf }: { conf: Conf }) {
   const emoji = conf.emoji ?? TIER_EMOJI[conf.tier];
   return <span className={`conf-badge conf-${conf.tier}`}>{`${emoji} ${conf.anchor}`}</span>;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='StatusTag']"/>
-// 상태 태그를 그린다. 색 계열만 정해 주고 문구는 자유다.
-// 쓰는 것: 없음 · 쓰이는 곳: DecisionTable
 export function StatusTag({ variant, children }: { variant: StatusVariant; children: ReactNode }) {
   return <span className={`status-tag status-${variant}`}>{children}</span>;
 }

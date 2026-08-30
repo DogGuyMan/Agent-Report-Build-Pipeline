@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='pycalls.py']"/>
+# 파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """pycalls.py — 파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기.
 
     python3 pycalls.py machine runner --repo . -o pycalls.json
@@ -23,6 +26,9 @@ from typing import Literal, NotRequired, TypedDict
 SymbolKind = Literal["function", "method", "class"]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.PySymbol']"/>
+# 함수·메서드·클래스 같은 코드 정의 하나를 표현하는 데이터 틀(TypedDict)이다. PyCall 과 마찬가지로 실제 동작은 없고 딕셔너리의 필드 구성을 정해두는 타입 정의다.
+# 쓰는 것: machine.pycalls.signature_of · 쓰이는 곳: machine.pycalls.PyCallsDump
 class PySymbol(TypedDict):
     """정의 하나. `name` 은 모듈 경로를 앞에 붙인 완전 수식 점 이름이다."""
 
@@ -34,6 +40,9 @@ class PySymbol(TypedDict):
     signature: NotRequired[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.PyCall']"/>
+# 함수 호출 관계 하나를 표현하는 데이터 틀(TypedDict)이다. 실제 동작이 있는 클래스가 아니라 딕셔너리에 어떤 키가 들어가야 하는지 정해두는 타입 정의다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.pycalls.PyCallsDump
 class PyCall(TypedDict):
     """호출 하나. 양끝은 `PySymbol.name` 과 같은 꼴이다."""
 
@@ -43,6 +52,9 @@ class PyCall(TypedDict):
     line: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.PyCallsDump']"/>
+# pycalls.py 도구가 최종적으로 내놓는 결과 전체의 모양을 정해 둔 타입 사전(TypedDict)이다.
+# 쓰는 것: machine.pycalls.PySymbol, machine.pycalls.PyCall · 쓰이는 곳: 없음
 class PyCallsDump(TypedDict):
     tool: str
     symbols: list[PySymbol]
@@ -53,6 +65,9 @@ class PyCallsDump(TypedDict):
 _BUILTIN_CALLS = frozenset(dir(builtins))
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.module_path']"/>
+# 저장소 안의 파일 경로를 파이썬이 import 할 때 쓰는 점(.) 표기 이름으로 바꿔주는 작은 변환 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.pycalls.collect
 # 저장소 상대 경로를 파이썬 점 경로로 바꾼다.
 # 쓰는 것: 없음 · 쓰이는 곳: collect
 def module_path(rel: str) -> str:
@@ -65,6 +80,9 @@ def module_path(rel: str) -> str:
     return stem.replace(os.sep, "/").replace("/", ".")
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.signature_of']"/>
+# 파이썬 함수 정의(AST 노드)를 받아서 사람이 읽기 좋은 시그니처 문자열, 예를 들어 (a, b=1) -> int 같은 글자를 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.pycalls.PySymbol, machine.pycalls.scan_module, machine.test_external_contracts.test_python_ast_unparse_round_trips_annotations, tools.gen_readme.render_dir
 # 함수 정의에서 사람이 읽는 시그니처를 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: collect
 def signature_of(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
@@ -98,6 +116,9 @@ def signature_of(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     return "(" + ", ".join(parts) + ")" + ret
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.import_table']"/>
+# 한 파이썬 파일 안의 import 문들을 읽어서, 그 파일 안에서 짧게 부르는 이름이 실제로는 어느 모듈의 무엇을 가리키는지 알려주는 사전(딕셔너리)을 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.pycalls.scan_module
 # 모듈 하나의 import 표를 만든다. 지역 이름 -> 완전 점 경로.
 # 쓰는 것: 없음 · 쓰이는 곳: scan_module
 def import_table(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, str]:
@@ -127,6 +148,9 @@ def import_table(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, 
     return out
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.scan_module']"/>
+# 한 파이썬 파일 안에서 함수·클래스·메서드가 무엇을 부르는지 뽑아내는 함수다.
+# 쓰는 것: machine.pycalls.signature_of, machine.pycalls.import_table · 쓰이는 곳: machine.pycalls.collect
 # 한 소스 나무에서 정의와 호출을 뽑는다.
 # 쓰는 것: signature_of, import_table · 쓰이는 곳: collect
 def scan_module(tree: ast.Module, mod: str, rel: str,
@@ -197,6 +221,9 @@ def scan_module(tree: ast.Module, mod: str, rel: str,
     return syms, resolved
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.collect']"/>
+# 여러 디렉토리 아래의 모든 파이썬 파일을 읽어서 함수/클래스 정의 목록과 함수 호출 관계 목록을 만들어 내는 함수다.
+# 쓰는 것: machine.pycalls.module_path, machine.pycalls.scan_module · 쓰이는 곳: machine.pycalls.main, machine.test_pycalls.test_builtin_and_external_calls_are_dropped, machine.test_pycalls.test_flat_import_across_directories_is_resolved, machine.test_pycalls.test_merge_adds_function_nodes_and_call_edges, machine.test_pycalls.test_merge_never_makes_ownership_kinds (+6)
 # 여러 뿌리 아래의 파이썬 파일을 전부 훑어 심볼과 호출을 낸다.
 # 쓰는 것: module_path, scan_module · 쓰이는 곳: pycalls.main
 def collect(repo: str, roots: list[str]) -> PyCallsDump:
@@ -259,6 +286,9 @@ def collect(repo: str, roots: list[str]) -> PyCallsDump:
             "symbols": symbols, "calls": sorted(calls, key=lambda c: (c["caller"], c["callee"]))}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.pycalls.main']"/>
+# pycalls.py 를 명령줄에서 실행했을 때 시작점이 되는 함수다.
+# 쓰는 것: machine.pycalls.collect · 쓰이는 곳: 없음
 # pycalls 도구의 명령줄 진입점. pycalls.json 을 쓴다.
 # 쓰는 것: collect · 쓰이는 곳: 없음
 def main() -> None:

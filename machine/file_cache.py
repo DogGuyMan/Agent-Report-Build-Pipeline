@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='machine/file_cache.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='file_cache.py']"/>
 # 파일을 한 번만 통독하도록 통독 결과를 디스크에 남기는 파일.
-# 쓰는 것: _filecache/*.json · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """file_cache.py — 파일 통독 캐시.
 
 배치 세션끼리는 컨텍스트를 공유하지 못하므로, 먼저 읽은 쪽이 개요를 디스크에 남기고
@@ -22,9 +22,9 @@ import os
 import sys
 
 
-# <include file="machine/comments.xml" path="//term[@id='file_cache._paths']"/>
-# 파일의 내용 해시와 그 캐시가 놓일 자리를 함께 낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: file_cache.get, file_cache.put
+# <include file="machine/comments.xml" path="//term[@id='machine.file_cache._paths']"/>
+# 어떤 파일의 통독 캐시가 어디에 저장돼야 하는지, 그리고 그 파일이 바뀌었는지 확인할 지문(해시)을 만들어주는 도우미 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.file_cache.get, machine.file_cache.put
 def _paths(repo: str, rel: str) -> tuple[str, str]:
     """내용 해시로 캐시를 무효화한다. mtime 은 체크아웃으로 흔들려 못 믿는다."""
     with open(os.path.join(repo, rel), "rb") as f:
@@ -33,9 +33,9 @@ def _paths(repo: str, rel: str) -> tuple[str, str]:
     return h, os.path.join(repo, "out", "codegraph-raw", "_filecache", key + ".json")
 
 
-# <include file="machine/comments.xml" path="//term[@id='file_cache.get']"/>
-# 남이 남긴 통독 개요가 아직 쓸 만하면 돌려준다.
-# 쓰는 것: file_cache._paths · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.file_cache.get']"/>
+# 다른 배치 세션이 이미 통독해 남긴 파일 요약(개요)을 다시 읽어오는 함수다.
+# 쓰는 것: machine.file_cache._paths · 쓰이는 곳: machine.test_file_cache.test_내용이_바뀌면_무효, machine.test_file_cache.test_넣은_것을_그대로_돌려준다, machine.test_file_cache.test_망가진_캐시는_None, machine.test_file_cache.test_없는_파일이면_None, machine.test_file_cache.test_없으면_None (+1)
 def get(repo: str, rel: str) -> dict[str, object] | None:
     """캐시가 있고 내용 해시가 같으면 돌려준다. 아니면 None — 부르는 쪽이 통독한다.
 
@@ -50,9 +50,9 @@ def get(repo: str, rel: str) -> dict[str, object] | None:
         return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='file_cache.put']"/>
-# 통독 개요를 원자적으로 남긴다.
-# 쓰는 것: file_cache._paths · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.file_cache.put']"/>
+# 통독해서 만든 개요를 나중에 다른 세션이 읽을 수 있도록 디스크에 저장하는 함수다.
+# 쓰는 것: machine.file_cache._paths · 쓰이는 곳: machine.test_file_cache.test_내용이_바뀌면_무효, machine.test_file_cache.test_넣은_것을_그대로_돌려준다, machine.test_file_cache.test_망가진_캐시는_None, machine.test_file_cache.test_임시파일을_남기지_않는다, machine.test_file_cache.test_캐시는_out_아래에_산다 (+1)
 def put(repo: str, rel: str, outline: object) -> str:
     """개요를 남긴다. 임시 파일 + os.replace 라 원자적이다."""
     h, path = _paths(repo, rel)

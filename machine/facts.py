@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # <include file="machine/comments.xml" path="//term[@id='facts.py']"/>
 # 코드 지도에서 사람이 읽는 사실 표와 중요도 순위를 뽑는 도구.
-# 쓰는 것: codegraph.json, ranking.json, networkx · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """facts.py — codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다.
 
   ranking.json   중요도(PageRank) + 변경 hotspot(git log)
@@ -43,11 +43,17 @@ GraphNode = TypedDict("GraphNode", {
 GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str, "occurrences": NotRequired[int]})
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.GraphModule']"/>
+# codegraph.json 안에서 모듈 하나가 어떤 모양인지 정의하는 타입. 모듈 이름과 그 모듈이 의존하는 다른 모듈들의 이름 목록을 담는다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.CodeGraph
 class GraphModule(TypedDict):
     id: str
     depends_on: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.CodeGraph']"/>
+# normalize.py 가 만든 codegraph.json 중에서 facts.py 가 실제로 읽어 쓰는 부분만 골라 정의한 딕셔너리 틀이다.
+# 쓰는 것: machine.facts.GraphNode, machine.facts.GraphEdge, machine.facts.GraphModule · 쓰이는 곳: 없음
 class CodeGraph(TypedDict):
     """`normalize.py` 가 낸 codegraph.json 중 이 파일이 실제로 읽는 부분만."""
     nodes: list[GraphNode]
@@ -57,6 +63,9 @@ class CodeGraph(TypedDict):
     repo_commit: NotRequired[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.HotspotStat']"/>
+# git 이력에서 파일 하나가 얼마나 자주, 얼마나 많이 바뀌었는지를 담는 자료 모양.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.HotspotRow
 class HotspotStat(TypedDict):
     """git log 에서 센 파일 하나의 변경량."""
     commits: int
@@ -64,12 +73,18 @@ class HotspotStat(TypedDict):
     deleted: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.HotspotRow']"/>
+# HotspotStat(커밋 수·증감 줄수)에 그 값이 어느 파일·어느 모듈 것인지를 더한 딕셔너리 틀이다. ranking.json 에 그대로 실린다.
+# 쓰는 것: machine.facts.HotspotStat · 쓰이는 곳: 없음
 class HotspotRow(HotspotStat):
     """변경량에 "어느 파일 · 어느 모듈" 을 더한 것. ranking.json 에 실린다."""
     file: str
     module: str | None
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.ClassRow']"/>
+# 1차 클래스 하나에 대한 사실 행 하나의 모양. build 함수가 만들고 classes.md 등 표 여러 개가 이걸 읽어서 쓴다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.Ranking
 class ClassRow(TypedDict):
     """1차 클래스 하나의 사실 행. `build` 가 내고 표 넷이 쓴다."""
     name: str
@@ -83,6 +98,9 @@ class ClassRow(TypedDict):
     ext_touch: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.ModuleRow']"/>
+# ranking.json 에 실리는 모듈 하나의 요약 정보 모양.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.Ranking
 class ModuleRow(TypedDict):
     id: str
     classes: int
@@ -90,6 +108,9 @@ class ModuleRow(TypedDict):
     in_cycle: bool
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.HotspotBlock']"/>
+# ranking.json 안에 들어갈 hotspot(변경 많은 파일) 정보 한 뭉치의 모양을 정의하는 딕셔너리 틀이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.Ranking
 class HotspotBlock(TypedDict):
     note: str
     available: bool
@@ -97,6 +118,9 @@ class HotspotBlock(TypedDict):
     total_tracked_in_log: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.Ranking']"/>
+# ranking.json 파일 전체의 모양을 정의하는 자료형이다.
+# 쓰는 것: machine.facts.HotspotBlock, machine.facts.ModuleRow, machine.facts.ClassRow · 쓰이는 곳: 없음
 class Ranking(TypedDict):
     """ranking.json 전체."""
     language: str
@@ -108,6 +132,9 @@ class Ranking(TypedDict):
     hotspot: HotspotBlock
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.RoslynType']"/>
+# C# 전용 --detail 옵션으로 받는 roslyn-dump.json 안에서 타입(클래스) 하나가 어떤 모양인지 정의하는 타입.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.RoslynDump
 class RoslynType(TypedDict):
     """`--detail` 로 받는 roslyn-dump.json 의 타입 하나 (C# 전용)."""
     name: str
@@ -116,21 +143,24 @@ class RoslynType(TypedDict):
     unity: NotRequired[dict[str, bool]]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.RoslynDump']"/>
+# --detail 옵션으로 받는 roslyn-dump.json(C# 전용) 파일 전체의 모양을 정의하는 딕셔너리 틀이다.
+# 쓰는 것: machine.facts.RoslynType · 쓰이는 곳: 없음
 class RoslynDump(TypedDict):
     types: list[RoslynType]
 
 
-# <include file="machine/comments.xml" path="//term[@id='sh']"/>
-# 바깥 명령을 돌리고 성공했을 때만 출력을 돌려준다.
-# 쓰는 것: 없음 · 쓰이는 곳: collect_hotspot
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.sh']"/>
+# 바깥 셸 명령을 실행하고 성공했을 때만 결과를 돌려주는 도우미 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.collect_hotspot
 def sh(cmd: list[str], cwd: str) -> str | None:
     r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else None
 
 
-# <include file="machine/comments.xml" path="//term[@id='collect_hotspot']"/>
-# 파일마다 커밋 수와 늘고 준 줄 수를 git 이력에서 센다.
-# 쓰는 것: hotspot, sh · 쓰이는 곳: facts.main
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.collect_hotspot']"/>
+# 파일마다 git 이력에서 커밋 몇 번 건드려졌는지, 줄이 얼마나 늘고 줄었는지를 세는 함수다. codegraph.json 이 아니라 git log 자체에서 정보를 얻는다.
+# 쓰는 것: machine.facts.sh · 쓰이는 곳: machine.facts.main
 # ── hotspot 은 codegraph 가 아니라 git log 에서 온다.
 def collect_hotspot(repo: str) -> dict[str, HotspotStat] | None:
     """파일별 커밋 수·증감 줄수. 이름변경(old => new)은 새 경로로 귀속시킨다(단순 규칙)."""
@@ -167,9 +197,9 @@ def collect_hotspot(repo: str) -> dict[str, HotspotStat] | None:
     return dict(files)
 
 
-# <include file="machine/comments.xml" path="//term[@id='facts.build']"/>
-# 코드 지도에서 클래스 중요도와 모듈 순환을 계산한다.
-# 쓰는 것: PageRank · 쓰이는 곳: facts.main
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.build']"/>
+# 코드 지도를 읽어서 각 클래스가 얼마나 중요한지(PageRank)와 모듈 사이에 순환 의존이 있는지를 계산하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.facts.main
 def build(g: CodeGraph) -> tuple[list[ClassRow], "nx.DiGraph[str]", list[list[str]], set[str]]:
     nodes = {n["id"]: n for n in g["nodes"]}
     first = {i: n for i, n in nodes.items() if n["kind"] != "external"}
@@ -214,8 +244,8 @@ def build(g: CodeGraph) -> tuple[list[ClassRow], "nx.DiGraph[str]", list[list[st
     return rows, MG, cycles, cyc_mods
 
 
-# <include file="machine/comments.xml" path="//term[@id='cite']"/>
-# 사실 표에 붙일 (경로:줄) 꼴 인용 문자열을 만든다.
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.cite']"/>
+# 클래스 사실 행 하나를 사람이 읽는 '(파일:줄)' 인용 문자열로 바꾸는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def cite(r: ClassRow) -> str:
     return f"({r['file']}:{r['line']})" if r.get("file") else "(위치 없음)"
@@ -226,9 +256,9 @@ HEAD_NOTE = """> **기계 생성 — 손으로 고치지 말 것.** `machine/fac
 """
 
 
-# <include file="machine/comments.xml" path="//term[@id='facts.main']"/>
-# facts 도구의 명령줄 진입점. ranking.json 과 사실 표들을 쓴다.
-# 쓰는 것: facts.build, collect_hotspot, ranking.json · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.facts.main']"/>
+# facts 도구를 터미널에서 실행할 때 제일 먼저 불리는 진입점 함수다.
+# 쓰는 것: machine.facts.build, machine.facts.collect_hotspot · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph")

@@ -1,6 +1,6 @@
-// <include file="machine/comments.xml" path="//term[@id='runner/wiki/clang-doc.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='clang-doc.mjs']"/>
 // clang-doc 실행 파일을 기계에 상관없이 찾는 파일.
-// 쓰는 것: clangDocPath · 쓰이는 곳: 없음
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // `clang-doc` 실행 파일을 **기계에 상관없이** 찾는다.
 //
 // **왜 필요한가.** C++ 정적 수집기는 둘이다 — `clang-uml` 은 클래스 관계를 알고
@@ -23,9 +23,6 @@ import { delimiter, join } from "node:path";
 // 어느 formula 에 들어 있는지가 기계마다 다르다. 버전 붙은 쪽을 먼저 본다.
 const BREW_FORMULAE = ["llvm@22", "llvm"];
 
-// <include file="machine/comments.xml" path="//term[@id='clangDocCandidates']"/>
-// clang-doc 이 있을 만한 자리를 순서대로 늘어놓는다.
-// 쓰는 것: 없음 · 쓰이는 곳: clangDocPath
 /**
  * 후보 경로를 순서대로 만든다. 파일 시스템도 bash 도 보지 않는 순수 함수라 테스트가 쉽다.
  * `prefixes` 는 부르는 쪽이 구해서 넘긴다(`brewPrefixes`).
@@ -40,9 +37,6 @@ export function clangDocCandidates(env = process.env, prefixes = []) {
   return out;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='brewPrefixes']"/>
-// 꾸러미 관리자가 아는 LLVM 설치 자리를 묻는다.
-// 쓰는 것: 없음 · 쓰이는 곳: clangDocPath
 /** Homebrew 가 아는 LLVM keg 의 접두사들. brew 가 없으면 빈 배열이다. */
 export function brewPrefixes(run = spawnSync) {
   const out = [];
@@ -53,9 +47,6 @@ export function brewPrefixes(run = spawnSync) {
   return out;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='clangDocPath']"/>
-// 실제로 쓸 clang-doc 실행 파일 하나를 고른다.
-// 쓰는 것: clangDocCandidates, brewPrefixes · 쓰이는 곳: runner/wiki/clang-doc.mjs
 /** 실제로 쓸 실행 파일 하나. 없으면 `null` 이다 — 부르는 쪽이 단계를 건너뛴다. */
 export function clangDocPath(env = process.env, exists = existsSync, prefixes = null) {
   for (const c of clangDocCandidates(env, prefixes ?? brewPrefixes())) {
@@ -64,9 +55,6 @@ export function clangDocPath(env = process.env, exists = existsSync, prefixes = 
   return null;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='clangDocArgs']"/>
-// clang-doc 에 넘길 명령줄 인자를 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * `clang-doc` 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다.
  *

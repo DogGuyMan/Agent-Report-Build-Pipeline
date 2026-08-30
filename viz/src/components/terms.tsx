@@ -12,9 +12,6 @@ const KIND_LABEL: Record<TermKind, string> = {
   tool: "도구",
 };
 
-// <include file="machine/comments.xml" path="//term[@id='defineTerms']"/>
-// 용어 목록을 묶어 본문에서 쓸 인라인 참조 조각을 돌려준다.
-// 쓰는 것: Term · 쓰이는 곳: 없음
 /**
  * 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다.
  * 전역 변수도 React 컨텍스트도 쓰지 않는다 — 빌드 시점 함수 호출 하나다.
@@ -47,9 +44,6 @@ export function defineTerms(terms: Term[]) {
 
 const MENTAL_ORDER = ["모름", "애매", "확실", "미측정"] as const;
 
-// <include file="machine/comments.xml" path="//term[@id='Glossary']"/>
-// 용어집 표. 정의 전량을 한 번에 보인다.
-// 쓰는 것: Term · 쓰이는 곳: 없음
 /**
  * 용어집 — 이해도 그룹별 아코디언.
  * 모름 → 애매 → 확실 → 미측정 순. 빈 그룹은 그리지 않는다. 모름 그룹만 열린 채 시작한다.
@@ -101,9 +95,6 @@ export function Glossary({ terms }: { terms: Term[] }) {
   );
 }
 
-// <include file="machine/comments.xml" path="//term[@id='TermGraph']"/>
-// 용어 관계를 그물로 그리는 자리를 만든다. 좌표 계산은 런타임이 한다.
-// 쓰는 것: Term · 쓰이는 곳: 없음
 /**
  * 용어 관계 그물 그래프.
  *

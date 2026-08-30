@@ -1,6 +1,6 @@
-// <include file="machine/comments.xml" path="//term[@id='build.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='viz/build.mjs']"/>
 // 보고서 원고를 하나짜리 HTML 파일로 굽는 스크립트.
-// 쓰는 것: report.html, esbuild, wrapTerms, linkPaths · 쓰이는 곳: 없음
+// 쓰는 것: 없음 · 쓰이는 곳: 없음
 // viz/build.mjs
 // <프로젝트>/specs/<slug>/{data.ts, report.tsx} → out/report.html
 // esbuild 로 트랜스파일 → renderToStaticMarkup → 문자열 조립. 클라이언트 런타임 0.
@@ -16,9 +16,6 @@ import { linkPaths, makeResolver, buildIndex } from "./link-paths.mjs";
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
 
-// <include file="machine/comments.xml" path="//term[@id='build.currentBuilderVersion']"/>
-// report-builder 자신의 최신 git 태그를 읽는다. 없으면 untagged 다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** ~/report-builder 의 현재 git 태그. 없으면 "untagged". */
 function currentBuilderVersion() {
   try {

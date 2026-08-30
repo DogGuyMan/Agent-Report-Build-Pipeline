@@ -37,6 +37,9 @@ from typing import Literal, NotRequired, TypedDict, cast
 # file/line 이 null 인 노드·간선이 있다(외부 심볼). 그래서 값이 Optional 이다.
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.Node']"/>
+# codegraph.json 안에 있는 노드 하나(클래스나 함수 같은 심볼 하나)의 모양을 정의한 타입이다. 실제로 동작하는 코드가 아니라 타입 체커를 위한 설계도다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.verify_citations.CodeGraph
 class Node(TypedDict):
     id: str
     name: str
@@ -57,6 +60,9 @@ Edge = TypedDict("Edge", {
 })
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.CodeGraph']"/>
+# 이 저장소가 만드는 '코드 지도' 파일(codegraph.json)이 어떤 모양인지 파이썬 타입으로 적어 둔 것이다. 실제 동작은 없고 데이터 모양만 정의한다.
+# 쓰는 것: machine.verify_citations.Node · 쓰이는 곳: 없음
 class CodeGraph(TypedDict):
     nodes: list[Node]
     edges: list[Edge]
@@ -66,24 +72,36 @@ class CodeGraph(TypedDict):
 # 이 저장소가 만든 스키마가 아니므로 만지는 자리만 적는다.
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations._ClangMember']"/>
+# clang-uml(C++ 분석 도구)이 만든 '살 파일' 안에서 클래스의 멤버 변수나 메서드 하나를 나타내는 타입이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.verify_citations._ClangElement
 class _ClangMember(TypedDict, total=False):
     name: str
     # 위치는 중첩 딕셔너리 안이고 키가 없을 수도 있다. 열쇠 유무를 보장 못 하므로 Mapping 이다.
     source_location: Mapping[str, object]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations._ClangElement']"/>
+# clang-uml(C++ 분석 도구) 이 내놓는 '살 파일' 안에서 클래스 하나에 해당하는 부분이 어떤 모양인지 적어 둔 타입이다.
+# 쓰는 것: machine.verify_citations._ClangMember · 쓰이는 곳: machine.verify_citations._DetailFile
 class _ClangElement(TypedDict, total=False):
     display_name: str
     members: list[_ClangMember] | None
     methods: list[_ClangMember] | None
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations._RoslynType']"/>
+# roslyn-dump(C# 분석 도구)가 만든 '살 파일' 안에서 클래스나 타입 하나를 나타내는 타입이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.verify_citations._DetailFile
 class _RoslynType(TypedDict):
     name: str
     members: NotRequired[list[Mapping[str, object]] | None]
     methods: NotRequired[list[Mapping[str, object]] | None]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations._DetailFile']"/>
+# 살 파일(멤버·메서드까지 담은 원시 분석 결과) 하나가 어떤 모양인지 적어 둔 타입 정의.
+# 쓰는 것: machine.verify_citations._ClangElement, machine.verify_citations._RoslynType · 쓰이는 곳: 없음
 class _DetailFile(TypedDict, total=False):
     elements: list[_ClangElement]      # clang-uml
     types: list[_RoslynType]           # roslyn-dump
@@ -100,9 +118,9 @@ CITE = re.compile(
     r":(\d+)(?:-(\d+))?")
 
 
-# <include file="machine/comments.xml" path="//term[@id='verify_citations.short']"/>
-# 이름 대조용 마지막 조각을 남긴다. 중첩과 경로 구분자를 모두 벗긴다.
-# 쓰는 것: 없음 · 쓰이는 곳: _stem, build_index
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.short']"/>
+# 긴 심볼 이름을 이름 대조에 쓸 수 있는 짧은 마지막 조각으로 줄여주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db._stem, machine.test_normalize.test_nested_name_uses_double_hash, machine.verify_citations.build_index, machine.verify_citations.load_detail_index, machine.verify_citations.main
 def short(name: str) -> str:
     """이름 대조용 마지막 조각. `##` · `::` · `.` 로 잘라 마지막만, `<` 뒤는 버린다 (F-2)."""
     for sep in ("##", "::", "."):
@@ -110,9 +128,9 @@ def short(name: str) -> str:
     return name.split("<")[0]
 
 
-# <include file="machine/comments.xml" path="//term[@id='build_index']"/>
-# 코드 지도에서 (파일, 줄) 로 찾는 판정 색인을 만든다.
-# 쓰는 것: verify_citations.short · 쓰이는 곳: verify_citations.main
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.build_index']"/>
+# 인용 검증 도구가 codegraph.json 파일을 읽어서, '어느 파일 어느 줄에 무슨 이름이 있는지' 빠르게 찾을 수 있는 표(색인) 두 개를 만드는 함수다.
+# 쓰는 것: machine.verify_citations.short · 쓰이는 곳: machine.verify_citations.main
 def build_index(codegraph: str) -> tuple[CodeGraph, Index, Index]:
     """codegraph -> (노드 색인, 간선 색인). 둘 다 (file,line) 로 찾는다."""
     g: CodeGraph = json.load(open(codegraph, encoding="utf-8"))
@@ -132,9 +150,9 @@ def build_index(codegraph: str) -> tuple[CodeGraph, Index, Index]:
     return g, nodes, owns
 
 
-# <include file="machine/comments.xml" path="//term[@id='load_detail_index']"/>
-# 원시 분석 파일에서 멤버와 메서드의 선언 줄 색인을 만든다.
-# 쓰는 것: members[] · 쓰이는 곳: verify_citations.main
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.load_detail_index']"/>
+# clang-uml(C++) 이나 roslyn-dump(C#) 가 만든 '살(detail) 파일'을 읽어서, 멤버 변수나 메서드가 정확히 몇 번째 줄에 선언됐는지 찾는 표를 만드는 함수다.
+# 쓰는 것: machine.verify_citations.short · 쓰이는 곳: machine.verify_citations.main
 def load_detail_index(path: str) -> Index:
     """살 파일의 멤버·메서드 선언 줄 색인. clang-uml(elements)과 roslyn-dump(types) 양쪽을 안다."""
     d: _DetailFile = json.load(open(path, encoding="utf-8"))
@@ -160,9 +178,9 @@ def load_detail_index(path: str) -> Index:
     return idx
 
 
-# <include file="machine/comments.xml" path="//term[@id='verify_citations.main']"/>
-# 인용 검증 도구의 명령줄 진입점. 실패가 있을 때만 종료 코드 1 이다.
-# 쓰는 것: build_index, load_detail_index · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.verify_citations.main']"/>
+# 위키 문서에 적힌 `파일:줄` 인용이 진짜인지 확인하는 명령줄 도구의 시작점.
+# 쓰는 것: machine.verify_citations.short, machine.verify_citations.build_index, machine.verify_citations.load_detail_index · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("docs", nargs="+", help="검사할 마크다운 문서")

@@ -40,9 +40,9 @@ ENTITY = [("&lt;", "<"), ("&gt;", ">"), ("&amp;", "&"), ("&quot;", '"')]
 LABEL_BACKTICK = re.compile(r'(\["\[?)`([^`]*)`')
 
 
-# <include file="machine/comments.xml" path="//term[@id='_mmdc']"/>
-# Mermaid 원문을 SVG 파일로 굽는 바깥 명령을 부른다.
-# 쓰는 것: 없음 · 쓰이는 곳: render_mermaid
+# <include file="machine/comments.xml" path="//term[@id='viz.demermaid._mmdc']"/>
+# Mermaid 그림 원문을 실제 SVG 이미지 파일로 그려주는 외부 프로그램(mmdc)을 부르는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.demermaid.render_mermaid
 def _mmdc(src_text: str, out_svg: str) -> subprocess.CompletedProcess[str]:
     tmp = out_svg + ".mmd"
     open(tmp, "w", encoding="utf-8").write(src_text)
@@ -54,9 +54,9 @@ def _mmdc(src_text: str, out_svg: str) -> subprocess.CompletedProcess[str]:
     return r
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_mermaid']"/>
-# Mermaid 한 덩이를 SVG 로 만든다. 실패하면 알려진 문법 제약을 걷어내고 다시 시도한다.
-# 쓰는 것: _mmdc · 쓰이는 곳: process
+# <include file="machine/comments.xml" path="//term[@id='viz.demermaid.render_mermaid']"/>
+# Mermaid 그림 글 하나를 SVG 그림 파일로 바꾸되, 처음 시도가 실패하면 알려진 문법 문제를 고쳐서 한 번 더 시도하는 함수다.
+# 쓰는 것: viz.demermaid._mmdc · 쓰이는 곳: viz.demermaid.process
 def render_mermaid(src_text: str, out_svg: str) -> str | None:
     """mmdc 로 Mermaid 하나를 SVG 로 굽는다. 실패하면 None.
 
@@ -81,9 +81,9 @@ def render_mermaid(src_text: str, out_svg: str) -> str | None:
     return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='process']"/>
-# 문서 하나를 훑어 Mermaid 블록을 그림으로 바꾼 사본을 만든다.
-# 쓰는 것: render_mermaid · 쓰이는 곳: demermaid.main
+# <include file="machine/comments.xml" path="//term[@id='viz.demermaid.process']"/>
+# 위키 문서 파일 하나를 읽어서 그 안의 Mermaid 그림 블록들을 이미지로 바꾼 사본을 만드는 함수다.
+# 쓰는 것: viz.demermaid.render_mermaid · 쓰이는 곳: viz.demermaid.main
 def process(path: str, outdir: str, assets: str,
             svg_dir: str | None, rel_assets: str) -> dict[str, int]:
     lines = open(path, encoding="utf-8").read().splitlines()
@@ -140,9 +140,9 @@ def process(path: str, outdir: str, assets: str,
     return stats
 
 
-# <include file="machine/comments.xml" path="//term[@id='demermaid.main']"/>
-# demermaid 도구의 명령줄 진입점.
-# 쓰는 것: process · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='viz.demermaid.main']"/>
+# 위키 마크다운 폴더 전체를 대상으로 Mermaid 치환 작업을 시작시키는, 이 파일을 명령줄에서 실행했을 때 맨 처음 호출되는 함수다.
+# 쓰는 것: viz.demermaid.process · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("wiki", help="위키 마크다운 디렉토리")

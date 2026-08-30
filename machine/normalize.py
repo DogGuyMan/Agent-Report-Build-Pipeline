@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # <include file="machine/comments.xml" path="//term[@id='normalize.py']"/>
 # 언어별 분석 도구의 원시 출력을 공통 형식 codegraph.json 으로 바꾸는 도구.
-# 쓰는 것: codegraph.json, roslyn-dump.json · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """normalize.py — 언어별 정적 분석 산출물을 codegraph.json(스키마 v2)으로 바꾼다.
 
   python3 normalize.py --clang-uml <full_class_all.json> --repo <저장소> -o codegraph.json
@@ -25,6 +25,9 @@ from codegraph_types import CodeGraph, Edge, EdgeKind, Node
 #    clang-uml 은 이보다 훨씬 많은 열쇠를 내지만 안 읽는 것을 적어 봐야 어긋날 자리만 는다.
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.SourceLocation']"/>
+# clang-uml 이 알려주는 '소스 코드 위치'(파일 경로와 줄 번호) 한 칸을 나타내는 타입 정의(TypedDict).
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.UmlIdentity, machine.normalize.UmlMember, machine.normalize._doc_element
 class SourceLocation(TypedDict, total=False):
     """clang-uml 의 `source_location`. 남의 헤더가 아니라 이 저장소의 첫 사용 지점을
     가리키는 버릇이 있다. `is_first_party` 의 거름망 세 겹이 그것 때문이다."""
@@ -33,6 +36,9 @@ class SourceLocation(TypedDict, total=False):
     line: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.UmlMember']"/>
+# clang-uml 이 클래스의 멤버 변수 하나를 표현하는 JSON 조각을 파이썬에서 다룰 때 쓰는 자료형(TypedDict)이다. 이 자료 자체는 아무 동작도 하지 않고, 필드 두 개(name, source_location)가 있다는 약속만 적어 둔 것이다.
+# 쓰는 것: machine.normalize.SourceLocation · 쓰이는 곳: machine.normalize.UmlElement
 class UmlMember(TypedDict, total=False):
     """`elements[].members[]` 한 칸. 소유 간선의 근거 위치가 여기서 나온다."""
 
@@ -40,12 +46,18 @@ class UmlMember(TypedDict, total=False):
     source_location: SourceLocation
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.UmlTemplateParam']"/>
+# clang-uml 요소의 템플릿 매개변수 한 칸을 나타내는 타입 정의(TypedDict).
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.UmlElement
 class UmlTemplateParam(TypedDict, total=False):
     """`elements[].template_parameters[]` 한 칸. R5 투과가 `type` 을 따라 내려간다."""
 
     type: str
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.UmlIdentity']"/>
+# clang-uml 이 낸 타입 정보와 clang-doc 이 낸 타입 정보 둘 다에 공통으로 있는 최소한의 항목(이름, 표시 이름, 네임스페이스, 소스 위치)만 모아 둔 자료형이다. 서로 다른 두 도구의 출력을 같은 잣대로 비교하려고 만든 '교집합' 모양이다.
+# 쓰는 것: machine.normalize.SourceLocation · 쓰이는 곳: machine.normalize.UmlElement
 class UmlIdentity(TypedDict, total=False):
     """1차 판정에 필요한 최소한 — clang-uml 의 element 와 clang-doc 심볼의 교집합이다.
 
@@ -59,6 +71,9 @@ class UmlIdentity(TypedDict, total=False):
     source_location: SourceLocation
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.UmlElement']"/>
+# clang-uml이 낸 JSON의 elements[] 배열 한 칸을 표현하는 타입 정의(TypedDict)다. C++ 클래스 하나에 대응한다.
+# 쓰는 것: machine.normalize.UmlIdentity, machine.normalize.UmlMember, machine.normalize.UmlTemplateParam · 쓰이는 곳: 없음
 class UmlElement(UmlIdentity, total=False):
     """`elements[]` 한 칸. 위의 교집합에 clang-uml 만 갖는 열쇠를 더한 것이다."""
 
@@ -69,6 +84,9 @@ class UmlElement(UmlIdentity, total=False):
     template_parameters: list[UmlTemplateParam]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.UmlRelationship']"/>
+# clang-uml 이 알려주는 두 타입 사이의 관계(관계선) 한 칸을 나타내는 타입 정의(TypedDict).
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 class UmlRelationship(TypedDict, total=False):
     """`relationships[]` 한 칸. `type` 은 clang-uml 의 낱말이라 `CLANG_UML_KIND` 를 거쳐야 한다."""
 
@@ -107,9 +125,9 @@ CPP_PRIMITIVES = {
 }
 
 
-# <include file="machine/comments.xml" path="//term[@id='git_commit']"/>
-# 대상 저장소의 현재 커밋을 짧은 해시로 읽는다. 실패하면 빈 값이다.
-# 쓰는 것: 없음 · 쓰이는 곳: _assemble
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.git_commit']"/>
+# 어떤 저장소 폴더가 지금 가리키는 git 커밋을 짧은 해시 문자열로 알려주는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize._assemble
 def git_commit(repo: str) -> str | None:
     try:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo,
@@ -118,9 +136,9 @@ def git_commit(repo: str) -> str | None:
         return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='module_of']"/>
-# C++ 파일 경로에서 모듈 이름을 정한다. 모듈 경계는 폴더 트리다.
-# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc, normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.module_of']"/>
+# C++ 소스 파일 경로를 보고 그 파일이 속한 모듈(폴더 단위 묶음) 이름을 정하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.merge_clang_doc, machine.normalize.merge_py_calls, machine.normalize.normalize_cpp, machine.normalize.normalize_python, machine.test_normalize.test_cpp_module_of (+1)
 def module_of(path: str | None) -> str | None:
     """모듈 경계 = 폴더 트리. C# 쪽(`cs_module_of`)과 축이 같다.
 
@@ -136,9 +154,9 @@ def module_of(path: str | None) -> str | None:
     return parts[0]
 
 
-# <include file="machine/comments.xml" path="//term[@id='load_clang_uml']"/>
-# clang-uml 이 낸 JSON 을 열어 elements · relationships · metadata 로 나눠 준다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize.main
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.load_clang_uml']"/>
+# clang-uml 이라는 외부 분석 도구가 만든 JSON 결과 파일을 읽어서 세 부분으로 나눠주는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.main
 def load_clang_uml(path: str) -> tuple[list[UmlElement], list[UmlRelationship], dict[str, Any]]:
     d: dict[str, Any] = json.load(open(path, encoding="utf-8"))
     return d["elements"], d["relationships"], d.get("metadata", {})
@@ -156,9 +174,9 @@ NEVER_FIRST_PARTY_NS = ("std", "__gnu_cxx", "__cxxabiv1")
 DEFINES_RE_CACHE: dict[str, re.Pattern[str]] = {}
 
 
-# <include file="machine/comments.xml" path="//term[@id='defines_at']"/>
-# 그 줄이 이 타입을 실제로 정의하는지 본다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.defines_at']"/>
+# clang-uml 이 알려준 파일:줄이 실제로 그 타입을 정의하는 줄인지(전방 선언이나 그냥 사용하는 줄이 아니라) 확인하는 함수.
+# 쓰는 것: machine.normalize.DEFINES_RE_CACHE · 쓰이는 곳: machine.normalize.is_first_party
 def defines_at(repo: str, rel_file: str | None, line_no: int | None, name: str) -> bool:
     """`source_location` 이 가리키는 줄이 실제로 그 타입을 정의하는지 본다.
 
@@ -194,9 +212,9 @@ def defines_at(repo: str, rel_file: str | None, line_no: int | None, name: str) 
     return bool(rx.search(stripped))
 
 
-# <include file="machine/comments.xml" path="//term[@id='tracked_set']"/>
-# 판 관리가 아는 파일 집합을 얻는다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.tracked_set']"/>
+# git 이 실제로 추적(관리)하고 있는 파일들의 절대경로 집합을 구하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
 def tracked_set(repo: str) -> set[str] | None:
     """git 이 추적하는 파일 집합. 1차 판정의 급소다 — 남의 헤더는 추적되지 않는다."""
     r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
@@ -205,9 +223,9 @@ def tracked_set(repo: str) -> set[str] | None:
     return {os.path.abspath(os.path.join(repo, f)) for f in r.stdout.split("\n") if f}
 
 
-# <include file="machine/comments.xml" path="//term[@id='is_first_party']"/>
-# 이 타입이 우리 코드인지 네임스페이스로 가른다. 경로가 아니라 네임스페이스가 기준이다.
-# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc, normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.is_first_party']"/>
+# C++ 에서 찾아낸 타입(클래스 등) 하나가 '우리가 직접 쓴 코드'인지, 아니면 Qt·OpenCV·표준 라이브러리처럼 '남이 만든 코드'인지 참/거짓으로 가려내는 함수다.
+# 쓰는 것: machine.normalize.defines_at · 쓰이는 곳: machine.normalize.merge_clang_doc, machine.normalize.normalize_cpp, machine.test_declmap.test_first_party_accepts_tracked_global_namespace_type, machine.test_declmap.test_first_party_rejects_qt_type_seen_inside_repo, machine.test_normalize.test_first_party_accepts_nested_type (+8)
 def is_first_party(el: UmlIdentity, repo: str | None = None,
                    ns: tuple[str, ...] = CPP_FIRST_PARTY_NS,
                    tracked: set[str] | None = None) -> bool:
@@ -249,9 +267,9 @@ def is_first_party(el: UmlIdentity, repo: str | None = None,
                       el.get("name") or el.get("display_name") or "")
 
 
-# <include file="machine/comments.xml" path="//term[@id='external_group']"/>
-# 외부 타입을 라이브러리 이름 하나로 접는다. 외부 하나에 노드 하나다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.external_group']"/>
+# 저장소 바깥(외부 라이브러리)의 C++ 타입을 어떤 그룹 이름 하나로 뭉뚱그리는 함수 (R2 규칙: 외부 하나 = 노드 하나).
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
 def external_group(el: UmlElement) -> str:
     """R2 — 외부 하나 = 노드 하나. 입도는 라이브러리·서브모듈 이름이다."""
     root = (el.get("namespace") or "").split("::")[0]
@@ -272,9 +290,9 @@ STD_TRANSPARENT = {
 }
 
 
-# <include file="machine/comments.xml" path="//term[@id='is_transparent_wrapper']"/>
-# vector 나 unique_ptr 같은 담는 그릇인지 본다. 그릇은 노드로 만들지 않고 통과시킨다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.is_transparent_wrapper']"/>
+# vector 나 unique_ptr 처럼 '속에 다른 타입을 담기만 하는 그릇' 타입인지 판단하는 함수 (R5 규칙: 그릇은 노드로 만들지 않고 통과시킨다).
+# 쓰는 것: machine.normalize.STD_TRANSPARENT · 쓰이는 곳: machine.normalize.normalize_cpp, machine.test_normalize.test_r5_cpp_is_list_based_not_all_std_templates, machine.test_normalize.test_r5_cpp_requires_std_namespace
 def is_transparent_wrapper(el: UmlElement) -> bool:
     """R5 — 컨테이너·스마트포인터는 노드로 만들지 않고 투과시킨다.
 
@@ -283,9 +301,9 @@ def is_transparent_wrapper(el: UmlElement) -> bool:
     return (el.get("namespace") or "").split("::")[0] == "std" and el.get("name") in STD_TRANSPARENT
 
 
-# <include file="machine/comments.xml" path="//term[@id='member_location']"/>
-# 간선의 근거가 되는 멤버 선언 줄을 찾는다.
-# 쓰는 것: members[] · 쓰이는 곳: normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.member_location']"/>
+# 두 타입 사이의 관계(간선)가 어느 멤버 변수 선언 때문에 생겼는지 그 위치(파일, 줄)를 찾는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
 def member_location(src_el: UmlElement | None, label: str | None) -> tuple[str | None, int | None]:
     """간선의 근거 위치. label(멤버 이름)로 members[] 를 정확히 찾는다.
 
@@ -303,17 +321,17 @@ def member_location(src_el: UmlElement | None, label: str | None) -> tuple[str |
     return loc.get("file"), loc.get("line")
 
 
-# <include file="machine/comments.xml" path="//term[@id='node_name']"/>
-# 노드에 쓸 이름을 고른다. 중첩 타입은 구분자가 :: 가 아니라 ## 이다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_cpp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.node_name']"/>
+# clang-uml 요소 하나에 붙일 노드 이름을 고르는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
 def node_name(el: UmlElement) -> str:
     """중첩 타입의 name 은 구분자가 :: 가 아니라 ## 이고 바깥 클래스가 namespace 에 없다."""
     return el.get("display_name") or el.get("name")
 
 
-# <include file="machine/comments.xml" path="//term[@id='doc_qualified_name']"/>
-# clang-doc 심볼의 완전한 이름을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.doc_qualified_name']"/>
+# clang-doc 이 찾아낸 심볼(함수·클래스 등)의 완전한 이름(네임스페이스 포함)을 만드는 함수.
+# 쓰는 것: machine.clang_doc.Symbol · 쓰이는 곳: machine.normalize.merge_clang_doc
 def doc_qualified_name(sym: Symbol) -> str:
     """clang-doc 심볼의 완전 수식 이름. clang-uml 의 `display_name` 과 같은 축으로 맞춘다.
 
@@ -322,9 +340,9 @@ def doc_qualified_name(sym: Symbol) -> str:
     return f"{sym['namespace']}::{sym['name']}" if sym["namespace"] else sym["name"]
 
 
-# <include file="machine/comments.xml" path="//term[@id='_doc_element']"/>
-# clang-doc 심볼을 1차 판정 함수가 읽는 꼴로 옮긴다.
-# 쓰는 것: 없음 · 쓰이는 곳: merge_clang_doc
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize._doc_element']"/>
+# clang-doc 심볼 하나를 1차 코드 판정 함수(is_first_party)가 읽을 수 있는 모양으로 옮겨주는 함수.
+# 쓰는 것: machine.clang_doc.Symbol, machine.normalize.SourceLocation · 쓰이는 곳: machine.normalize.merge_clang_doc
 def _doc_element(sym: Symbol) -> UmlIdentity:
     """clang-doc 심볼을 `is_first_party` 가 읽는 꼴로 옮긴다.
 
@@ -335,9 +353,9 @@ def _doc_element(sym: Symbol) -> UmlIdentity:
             "source_location": {"file": sym["file"], "line": sym["line"]}}
 
 
-# <include file="machine/comments.xml" path="//term[@id='merge_clang_doc']"/>
-# clang-doc 이 찾은 심볼을 clang-uml 이 만든 노드 표에 합친다.
-# 쓰는 것: is_first_party, doc_qualified_name, _doc_element, module_of · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.merge_clang_doc']"/>
+# clang-doc가 찾아낸 C++ 심볼들을 clang-uml이 이미 만들어 둔 노드 표에 합쳐 넣는 함수다.
+# 쓰는 것: machine.normalize.module_of, machine.normalize.is_first_party, machine.normalize.doc_qualified_name, machine.normalize._doc_element · 쓰이는 곳: machine.normalize.normalize_cpp
 def merge_clang_doc(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] | None,
                     repo: str, tracked: set[str] | None, stats: Counter[str]) -> None:
     """clang-doc 의 심볼을 clang-uml 이 만든 노드 표에 합친다.
@@ -384,9 +402,9 @@ def merge_clang_doc(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] | None
             node["doc"] = sym["doc"]
 
 
-# <include file="machine/comments.xml" path="//term[@id='normalize_cpp']"/>
-# C++ 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
-# 쓰는 것: is_transparent_wrapper, node_name, is_first_party, module_of, external_group (+2) · 쓰이는 곳: normalize.main
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.normalize_cpp']"/>
+# clang-uml 이 뽑아낸 C++ 클래스와 관계 목록을 이 도구의 공통 코드 지도 형식으로 바꾸는 함수다.
+# 쓰는 것: machine.normalize.module_of, machine.normalize.tracked_set, machine.normalize.is_first_party, machine.normalize.external_group, machine.normalize.is_transparent_wrapper (+4) · 쓰이는 곳: machine.normalize.main, machine.test_normalize.test_clang_doc_adds_function_nodes, machine.test_normalize.test_clang_doc_carries_signature_and_author_comment, machine.test_normalize.test_clang_doc_does_not_add_edges, machine.test_normalize.test_clang_doc_symbols_go_through_is_first_party (+2)
 def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationship],
                   repo: str, source_tool: str,
                   doc_symbols: Sequence[Symbol] = ()) -> tuple[CodeGraph, Counter[str]]:
@@ -507,9 +525,9 @@ def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationshi
     return _assemble(nodes, edges, stats, language="cpp", source_tool=source_tool, repo=repo)
 
 
-# <include file="machine/comments.xml" path="//term[@id='_assemble']"/>
-# 두 언어 파서가 함께 쓰는 마무리. 최종 codegraph.json 모양으로 조립한다.
-# 쓰는 것: nodes[], edges[], modules[], git_commit · 쓰이는 곳: normalize_cpp, normalize_csharp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize._assemble']"/>
+# C++·C#·Python 세 언어별 파서가 각자 다 만든 노드·간선 데이터를 마지막에 한 곳으로 모아 최종 codegraph.json 모양(딕셔너리)으로 포장하는 '마무리' 함수다. 세 파서 모두 마지막에는 이 함수를 거쳐 나간다.
+# 쓰는 것: machine.normalize.git_commit · 쓰이는 곳: machine.normalize.normalize_cpp, machine.normalize.normalize_csharp, machine.normalize.normalize_python
 def _assemble(nodes: dict[str, Node], edges: dict[tuple[str, str, str], Edge],
               stats: Counter[str], *, language: str, source_tool: str,
               repo: str) -> tuple[CodeGraph, Counter[str]]:
@@ -560,6 +578,9 @@ def _assemble(nodes: dict[str, Node], edges: dict[tuple[str, str, str], Edge],
 #    자리라 None 을 받으면 codegraph.json 계약(`Node.name: str`)이 깨진다.
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.RoslynCompilation']"/>
+# C# 분석 결과(roslyn-dump.json) 안의 '컴파일 요약 정보'를 나타내는 타입 정의(TypedDict). 참조 집합이 제대로 잡혔는지 확인하는 F5 게이트가 이걸 본다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.RoslynDump
 class RoslynCompilation(TypedDict):
     """`compilation` — F5 게이트가 보는 곳."""
 
@@ -568,6 +589,9 @@ class RoslynCompilation(TypedDict):
     unresolved_types: int
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.RoslynType']"/>
+# C# 타입(클래스·구조체·열거형 등) 하나를 나타내는 타입 정의(TypedDict). 1차 코드 판정은 file 유무가 아니라 assembly 값으로 한다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.RoslynDump
 class RoslynType(TypedDict, total=False):
     """`types[]` 한 칸. 1차 판정은 file 유무가 아니라 `assembly` 다."""
 
@@ -581,6 +605,9 @@ class RoslynType(TypedDict, total=False):
     type_args: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.RoslynRelation']"/>
+# C# 두 타입 사이의 관계(상속·의존 등) 하나를 나타내는 타입 정의(TypedDict). 필드 origin 과 attrs 는 C# 만 갖는 정보다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.RoslynDump
 class RoslynRelation(TypedDict, total=False):
     """`relations[]` 한 칸. `origin` 과 `attrs` 는 C# 만 갖는 비대칭 기록이다."""
 
@@ -595,6 +622,9 @@ class RoslynRelation(TypedDict, total=False):
     line: int | None
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.RoslynDump']"/>
+# roslyn-dump.json 파일 전체의 모양을 나타내는 최상위 타입 정의(TypedDict).
+# 쓰는 것: machine.normalize.RoslynCompilation, machine.normalize.RoslynType, machine.normalize.RoslynRelation · 쓰이는 곳: 없음
 class RoslynDump(TypedDict, total=False):
     """`roslyn-dump.json` 통째. `tool` 은 없을 수 있어 `main` 이 기본값을 준다."""
 
@@ -633,9 +663,9 @@ CS_KIND: dict[str, EdgeKind] = {"inherit": "inheritance", "realize": "realizatio
                                 "assoc": "association", "depend": "dependency"}
 
 
-# <include file="machine/comments.xml" path="//term[@id='cs_module_of']"/>
-# C# 파일 경로에서 모듈 이름을 정한다. 여기서도 경계는 폴더 트리다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_csharp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.cs_module_of']"/>
+# C# 소스 파일 경로에서 모듈(폴더 단위 묶음) 이름을 정하는 함수. module_of 의 C# 버전.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_csharp, machine.test_normalize.test_cs_module_of
 def cs_module_of(path: str | None) -> str | None:
     """모듈 경계 = 폴더 트리. `module_of`(C++)와 축이 같다."""
     if not path:
@@ -648,9 +678,9 @@ def cs_module_of(path: str | None) -> str | None:
     return parts[0]
 
 
-# <include file="machine/comments.xml" path="//term[@id='cs_asm2pkg']"/>
-# 어셈블리 이름을 유니티 패키지 이름으로 바꿔 줄 사전을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_csharp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.cs_asm2pkg']"/>
+# C# 어셈블리(assembly) 이름을 유니티 패키지 이름으로 바꿔주는 사전(dict)을 만드는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_csharp
 def cs_asm2pkg(repo: str) -> dict[str, str]:
     """어셈블리 이름 -> 패키지 id. `Library/PackageCache/<pkg>@<hash>/**/*.asmdef` 의
     name 이 어셈블리이고, 경로의 `@` 앞이 패키지다."""
@@ -672,9 +702,9 @@ def cs_asm2pkg(repo: str) -> dict[str, str]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='cs_external_group']"/>
-# C# 외부 타입을 패키지 이름 하나로 접는다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize_csharp
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.cs_external_group']"/>
+# C# 외부(우리 코드가 아닌) 타입을 패키지 이름 하나로 묶는 함수. external_group 의 C# 버전 (R2 규칙).
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_csharp, machine.test_normalize.test_cs_external_group_naming
 def cs_external_group(asm: str | None, asm2pkg: dict[str, str]) -> str:
     """R2 — 외부 하나 = 노드 하나. 입도는 패키지 이름."""
     import re as _re
@@ -697,9 +727,9 @@ def cs_external_group(asm: str | None, asm2pkg: dict[str, str]) -> str:
     return f"(벤더링) {asm}"
 
 
-# <include file="machine/comments.xml" path="//term[@id='normalize_csharp']"/>
-# C# 분석 결과를 공통 형식의 노드와 간선으로 바꾼다.
-# 쓰는 것: cs_asm2pkg, cs_module_of, cs_external_group, _assemble · 쓰이는 곳: normalize.main
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.normalize_csharp']"/>
+# roslyn-dump가 뽑아낸 C# 타입·관계 정보를 이 프로젝트 공통의 코드 지도(노드+간선) 형태로 바꾸는 함수다.
+# 쓰는 것: machine.normalize._assemble, machine.normalize.cs_module_of, machine.normalize.cs_asm2pkg, machine.normalize.cs_external_group · 쓰이는 곳: machine.normalize.main
 def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Counter[str]]:
     # F5 게이트 — 참조 집합이 틀리면 dst 가 통째로 쓰레기가 된다.
     comp = dump["compilation"]
@@ -832,6 +862,9 @@ def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Counter[st
 #    식 객체가 아니라 맨 문자열로 오므로 `GriffeExpr` 가 `str` 과의 합집합이다.
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.GriffeExprNode']"/>
+# griffe 가 파이썬 타입 주석을 트리(재귀 구조)로 표현할 때 쓰는 '식 노드' 한 칸의 모양을 설명하는 타입 정의(TypedDict). 실행되는 코드가 아니라 데이터 모양 약속이다.
+# 쓰는 것: machine.normalize.GriffeExpr · 쓰이는 곳: 없음
 class GriffeExprNode(TypedDict, total=False):
     """식 트리 한 마디. `cls` 가 어느 마디인지 말하고, 나머지 열쇠는 마디마다 다르다."""
 
@@ -847,6 +880,9 @@ class GriffeExprNode(TypedDict, total=False):
 GriffeExpr = str | GriffeExprNode
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.GriffeParam']"/>
+# griffe 덤프에서 함수 매개변수 하나를 나타내는 타입 정의(TypedDict).
+# 쓰는 것: machine.normalize.GriffeExpr · 쓰이는 곳: 없음
 class GriffeParam(TypedDict, total=False):
     """`parameters[]` 한 칸. `self`·`cls` 와 주석 없는 매개변수는 호출부가 거른다."""
 
@@ -854,6 +890,9 @@ class GriffeParam(TypedDict, total=False):
     annotation: "GriffeExpr | None"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.GriffeObject']"/>
+# 파이썬 코드를 훑는 외부 도구 griffe 가 모듈·클래스·속성·함수를 전부 하나의 같은 JSON 모양으로 내보내기 때문에, 그 하나의 모양을 파이썬 자료형(TypedDict)으로 옮겨 적은 것이다. 실제로 무엇인지는 안에 있는 kind 필드 값(예: "module", "class", "function")으로 나중에 구분한다.
+# 쓰는 것: machine.normalize.GriffeExpr · 쓰이는 곳: 없음
 class GriffeObject(TypedDict, total=False):
     """모듈·클래스·속성·함수를 한 형으로 받는다 — griffe 가 `kind` 로만 가르기 때문이다.
 
@@ -902,6 +941,9 @@ PY_TRANSPARENT = {
 PY_KIND: dict[str, EdgeKind] = {"base": "inheritance", "attr": "association", "sig": "dependency"}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.py_external_group']"/>
+# 파이썬 외부(표준 라이브러리 포함) 타입을 배포 이름 하나로 묶는 함수. external_group 의 파이썬 버전 (R2 규칙).
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_python, machine.test_normalize.test_py_external_group_folds_stdlib_into_one
 # 파이썬 외부 타입을 배포 이름 하나로 접는다.
 # 쓰는 것: 없음 · 쓰이는 곳: normalize_python
 def py_external_group(target: str) -> str:
@@ -918,6 +960,9 @@ def py_external_group(target: str) -> str:
     return root
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.py_expr_name']"/>
+# griffe 가 만든 타입 표현식 트리에서 '점으로 이어진 단순한 이름'을 문자열로 뽑아내는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.py_walk_expr, machine.test_normalize.test_py_expr_name_reads_name_and_dotted_attribute
 # 타입 식 트리에서 쓰인 그대로의 점 이름을 꺼낸다.
 # 쓰는 것: 없음 · 쓰이는 곳: py_walk_expr
 def py_expr_name(expr: GriffeExpr | None) -> str | None:
@@ -938,6 +983,9 @@ def py_expr_name(expr: GriffeExpr | None) -> str | None:
     return None
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.py_resolve']"/>
+# 파이썬 코드에서 짧게(예: import 로 줄여) 쓰인 타입 이름을 완전한(모듈 경로 포함) 이름으로 풀어내는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.py_walk_expr, machine.test_normalize.test_py_resolve_prefers_import_table_then_same_module
 # 식 안의 짧은 이름을 완전 수식 이름으로 편다.
 # 쓰는 것: 없음 · 쓰이는 곳: py_walk_expr
 def py_resolve(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str:
@@ -953,6 +1001,9 @@ def py_resolve(name: str, mod_path: str, imports: dict[str, str], first_party: s
     return same if same in first_party else name
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.py_walk_expr']"/>
+# 파이썬 타입 주석 하나(예: `dict[str, Node] | None`)를 griffe 가 준 트리 구조에서 재귀적으로 파고들어, 실제로 '관계'로 쳐줄 만한 타입 이름들만 뽑아내는 함수다. 사람이 정규식으로 문자열을 파싱하는 대신, griffe 가 이미 만들어 준 트리를 타고 내려간다.
+# 쓰는 것: machine.normalize.py_expr_name, machine.normalize.py_resolve · 쓰이는 곳: machine.normalize.normalize_python, machine.test_normalize._walk, machine.test_normalize.test_py_r5_does_not_unwrap_abstract_interface, machine.test_normalize.test_py_r5_nests_two_levels_deep, machine.test_normalize.test_py_r5_unwraps_builtin_generic (+5)
 # 타입 식 하나에서 노드가 될 이름들을 뽑는다. R5 투과와 R7 거르기가 여기 있다.
 # 쓰는 것: py_expr_name, py_resolve · 쓰이는 곳: normalize_python
 def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str],
@@ -1009,6 +1060,9 @@ def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str]
     return [key]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.normalize_python']"/>
+# griffe가 뽑아낸 파이썬 클래스 정보(와 선택적으로 pycalls가 뽑아낸 호출 정보)를 이 프로젝트 공통의 코드 지도로 바꾸는 함수다.
+# 쓰는 것: machine.normalize.module_of, machine.normalize._assemble, machine.normalize.py_external_group, machine.normalize.py_walk_expr, machine.normalize.merge_py_calls · 쓰이는 곳: machine.normalize.main, machine.test_normalize.test_golden_python_external_nodes_have_no_location, machine.test_normalize.test_golden_python_fixture_counts, machine.test_normalize.test_golden_python_ownership_edges_are_absent, machine.test_normalize.test_golden_python_r5_recovered_first_party_through_containers (+11)
 # griffe 덤프를 공통 형식의 노드와 간선으로 바꾼다.
 # 쓰는 것: module_of, py_external_group, py_walk_expr, _assemble · 쓰이는 곳: normalize.main
 def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
@@ -1150,6 +1204,9 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     return _assemble(nodes, edges, stats, language="python", source_tool=source_tool, repo=repo)
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.merge_py_calls']"/>
+# griffe 는 파이썬의 클래스·상속·타입주석은 알지만 '어느 함수가 어느 함수를 호출하는지'는 전혀 모른다. 그 빈틈을, 저장소가 직접 만든 도구 pycalls.py 가 뽑아낸 함수·메서드 목록과 호출 관계를 받아서 griffe 가 만든 노드 표에 합쳐 넣는 함수다.
+# 쓰는 것: machine.normalize.module_of · 쓰이는 곳: machine.normalize.normalize_python
 # pycalls 의 심볼과 호출을 griffe 가 만든 노드 표에 합친다.
 # 쓰는 것: module_of · 쓰이는 곳: normalize_python
 def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
@@ -1204,9 +1261,9 @@ def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
         stats["호출 간선"] += 1
 
 
-# <include file="machine/comments.xml" path="//term[@id='build_parser']"/>
-# normalize 도구의 명령줄 규약을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.build_parser']"/>
+# normalize.py 명령줄 도구가 받는 옵션들을 정의하는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.main, machine.test_normalize.test_cli_accepts_clang_uml_and_clang_doc_together, machine.test_normalize.test_cli_clang_doc_is_optional, machine.test_normalize.test_cli_griffe_dump_conflicts_with_other_sources, machine.test_normalize.test_cli_griffe_dump_is_a_third_source
 def build_parser() -> argparse.ArgumentParser:
     """명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다.
 
@@ -1227,9 +1284,9 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-# <include file="machine/comments.xml" path="//term[@id='normalize.main']"/>
-# normalize 도구의 명령줄 진입점. codegraph.json 을 쓴다.
-# 쓰는 것: load_clang_uml, normalize_cpp, normalize_csharp, codegraph.json · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.normalize.main']"/>
+# 이 파일을 명령줄에서 직접 실행했을 때 맨 처음 불리는 함수다. C++/C#/Python 세 갈래 중 사용자가 어느 것을 돌리라고 했는지 보고 그 갈래대로 코드 지도를 만든다.
+# 쓰는 것: machine.normalize.build_parser, machine.normalize.load_clang_uml, machine.clang_doc.load_clang_doc, machine.normalize.normalize_cpp, machine.normalize.normalize_csharp (+1) · 쓰이는 곳: 없음
 def main() -> None:
     a = build_parser().parse_args()
     syms: list[Symbol] = []

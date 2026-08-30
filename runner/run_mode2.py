@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# <include file="machine/comments.xml" path="//term[@id='runner/run_mode2.py']"/>
+# <include file="machine/comments.xml" path="//term[@id='run_mode2.py']"/>
 # 설계 검토 보고서를 짓는 흐름을 한 번에 돌리며 시간과 토큰을 재는 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # Mode 2 파이프라인을 한 번에 돌리면서 단계마다 걸린 시간과 쓴 토큰을 재는 파일.
@@ -85,18 +85,18 @@ PROJECT_STAGES = {"init", "agent"}
 SPEC_FILENAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.report_dir']"/>
-# 보고서가 사는 폴더를 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.report_dir']"/>
+# 보고서 파일들이 들어 있는 폴더의 경로를 만들어 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode2.agent_prompt, runner.run_mode2.main, runner.test_run_mode2.test_report_dir_is_specs_slash_slug
 # ── 1. 자리 잡기 — 어디에서 무엇을 도는가 ────────────────────────────────
 def report_dir(project: str, slug: str) -> str:
     """보고서가 사는 폴더. 프로젝트 뿌리 아래 `specs/<slug>/` 다."""
     return os.path.join(project, "specs", slug)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.stage_cwd']"/>
-# 단계 하나를 어느 폴더에서 돌릴지 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.stage_cwd']"/>
+# 네 단계(init/agent/build/check) 중 하나를 어느 작업 디렉토리에서 실행해야 하는지 정해 주는 함수다.
+# 쓰는 것: runner.run_mode2.STAGES, runner.run_mode2.PROJECT_STAGES · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode2.test_build_and_check_run_inside_the_report_folder, runner.test_run_mode2.test_init_runs_at_the_project_root, runner.test_run_mode2.test_stage_cwd_rejects_an_unknown_stage, runner.test_run_mode2.test_the_agent_also_runs_at_the_project_root
 def stage_cwd(stage: str, project: str, report_dir: str) -> str:
     """단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.**
 
@@ -109,17 +109,17 @@ def stage_cwd(stage: str, project: str, report_dir: str) -> str:
     return project if stage in PROJECT_STAGES else report_dir
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.is_agent_stage']"/>
-# 이 단계가 큰 언어 모형을 부르는 자리인지 답한다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.is_agent_stage']"/>
+# 이 단계가 LLM(큰 언어 모형)을 실제로 부르는 자리인지 참/거짓으로 답해 주는 함수다.
+# 쓰는 것: runner.run_mode2.AGENT_STAGES · 쓰이는 곳: runner.test_run_mode2.test_only_one_stage_calls_the_model
 def is_agent_stage(stage: str) -> bool:
     """이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.plan_stages']"/>
-# 네 단계 중 무엇을 실제로 돌릴지 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.plan_stages']"/>
+# init, agent, build, check 네 단계 중 이번에 실제로 돌릴 단계들만 골라 순서대로 나열해 주는 함수다. 파일이나 네트워크를 건드리지 않고 입력값만으로 답을 정한다.
+# 쓰는 것: runner.run_mode2.STAGES · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode2.test_only_one_stage_calls_the_model, runner.test_run_mode2.test_plan_keeps_init_even_when_the_manuscript_exists, runner.test_run_mode2.test_plan_only_and_skip_are_honoured, runner.test_run_mode2.test_plan_rejects_an_unknown_stage (+2)
 # ── 2. 단계 고르기 (파일 시스템을 보지 않는 순수 함수) ────────────────────
 def plan_stages(has_manuscript: bool, only: Iterable[str] | None = None,
                 skip: Iterable[str] | None = None) -> list[str]:
@@ -146,9 +146,9 @@ def plan_stages(has_manuscript: bool, only: Iterable[str] | None = None,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.manuscript_is_written']"/>
-# 원고가 이미 채워졌는지 글자로 가른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.manuscript_is_written']"/>
+# data.ts 와 report.tsx 두 파일의 글자 내용을 보고 원고(보고서 본문)가 이미 다 채워졌는지 판단하는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode2.test_a_filled_data_and_report_is_a_manuscript, runner.test_run_mode2.test_a_fresh_skeleton_is_not_a_manuscript, runner.test_run_mode2.test_decisions_without_matching_sections_is_not_a_manuscript, runner.test_run_mode2.test_missing_files_are_not_a_manuscript
 def manuscript_is_written(data_source: str | None, report_source: str | None) -> bool:
     """원고가 이미 채워졌는가. 뼈대와 채워진 글을 **글자로** 가른다.
 
@@ -162,9 +162,9 @@ def manuscript_is_written(data_source: str | None, report_source: str | None) ->
     return bool(re.search(r'<Section\s+title="D\d', report_source))
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.find_spec']"/>
-# 설계 문서 목록에서 이 이름표의 것을 찾는다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.find_spec']"/>
+# 여러 설계 문서 파일 이름 중에서 지금 다루는 slug 에 정확히 맞는 파일을 찾아 주는 함수다.
+# 쓰는 것: runner.run_mode2.SPEC_FILENAME_RE · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode2.test_find_spec_does_not_match_a_partial_slug, runner.test_run_mode2.test_find_spec_returns_nothing_for_an_unknown_slug, runner.test_run_mode2.test_find_spec_returns_the_date_from_the_filename
 def find_spec(filenames: Iterable[str], slug: str) -> dict[str, str] | None:
     """설계 문서 파일 목록에서 이 slug 의 것을 찾는다. 없으면 `None`.
 
@@ -178,9 +178,9 @@ def find_spec(filenames: Iterable[str], slug: str) -> dict[str, str] | None:
     return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.script_argv']"/>
-# 기계 단계 하나를 부르는 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.script_argv']"/>
+# 기계 단계 하나(node 로 실행하는 viz/*.mjs 스크립트)를 부르기 위한 명령줄 인자 목록을 만들어 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists, runner.test_run_mode2.test_only_init_takes_the_slug_on_the_command_line, runner.test_run_mode2.test_script_argv_points_at_the_renderer_scripts
 # ── 3. 기계 단계의 명령줄 ────────────────────────────────────────────────
 def script_argv(root: str, stage: str, slug: str) -> list[str]:
     """`viz/<단계>.mjs` 하나를 부른다. node 는 PATH 에서 찾는다.
@@ -194,9 +194,9 @@ def script_argv(root: str, stage: str, slug: str) -> list[str]:
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.agent_prompt']"/>
-# 원고를 쓰는 한 세션이 할 일 전부를 적은 글.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.agent_prompt']"/>
+# 설계 검토 보고서를 쓰는 LLM 에이전트에게 줄 지시문 전체를 만드는 함수다.
+# 쓰는 것: runner.run_mode2.report_dir · 쓰이는 곳: runner.run_mode2.run_agent, runner.test_run_mode2._prompt
 # ── 4. 에이전트 프롬프트 — 검사가 잡아주지 않는 규율을 여기서 말한다 ──────
 def agent_prompt(project: str, slug: str, spec_file: str, root: str,
                  terms_json: str | None = None) -> str:
@@ -279,9 +279,9 @@ Mode 1.5(용어 이해도 점검)가 낸 파일이다. `{{ "용어": {{ TermMean
            root=root, terms_block=terms_block)
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.run_agent']"/>
-# 모형을 한 번 부르고 결과 기록을 돌려준다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.run_agent']"/>
+# 설계 검토 보고서를 실제로 작성하는 LLM 세션(claude -p)을 한 번 불러오는 함수다.
+# 쓰는 것: runner.run_mode2.agent_prompt · 쓰이는 곳: runner.run_mode2.main
 # ── 5. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
               terms_json: str | None = None,
@@ -305,9 +305,9 @@ def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
         return p.returncode, None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.run_machine']"/>
-# 기계 단계 하나를 정해진 폴더에서 부른다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.run_machine']"/>
+# init 을 제외한 기계 단계(build, check) 하나를 정해진 작업 폴더에서 실제로 실행하는 함수다.
+# 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: 없음
 def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     """기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다."""
     with Heartbeat(label, every=60.0):
@@ -315,8 +315,8 @@ def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     return p.returncode
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2._read']"/>
-# 파일을 읽어 글자로 준다.
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2._read']"/>
+# 파일 하나를 열어 그 안의 글자를 통째로 읽어 오는 작은 도우미 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def _read(path: str) -> str | None:
     """파일을 읽어 문자열로. 없으면 `None` — 순수 함수에 존재 여부를 떠넘기지 않는다."""
@@ -327,9 +327,9 @@ def _read(path: str) -> str | None:
         return None
 
 
-# <include file="machine/comments.xml" path="//term[@id='run_mode2.main']"/>
-# 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.main']"/>
+# Mode 2(설계 검토 보고서) 파이프라인의 진입점. 스펙 문서를 찾아서 보고서를 만드는 네 단계(init→agent→build→check)를 순서대로 돌린다.
+# 쓰는 것: runner.run_mode2.find_spec, runner.run_mode2.report_dir, runner.run_mode2.manuscript_is_written, runner.run_mode2.plan_stages, runner.run_mode2.stage_cwd (+7) · 쓰이는 곳: 없음
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 2 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",

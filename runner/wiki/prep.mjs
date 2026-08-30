@@ -1,4 +1,4 @@
-// <include file="machine/comments.xml" path="//term[@id='runner/wiki/prep.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='prep.mjs']"/>
 // 정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // report-wiki prep <저장소> — 정적 계층을 돌려 deep-wiki 스킬이 읽을 재료를 만든다.
@@ -14,9 +14,6 @@ import { clangDocPath, clangDocArgs } from "./clang-doc.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
-// <include file="machine/comments.xml" path="//term[@id='prepPlan']"/>
-// 무엇을 어떤 순서로 돌릴지 정한다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * 무엇을 어떤 순서로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수라 테스트가 쉽다.
  * 막히면 steps 는 비고 blocked 에 사람이 읽을 사유가 담긴다.

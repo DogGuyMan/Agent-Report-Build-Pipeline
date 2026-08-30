@@ -25,9 +25,9 @@ BARE = re.compile(r"(?<![/\w.])([A-Za-z_][A-Za-z0-9_]*\.(?:cs|h|hpp|cpp|cc|py|mj
 SKIP_DIRS = {".git", "Library", "Temp", "obj", "bin", "node_modules", "out"}
 
 
-# <include file="machine/comments.xml" path="//term[@id='index_repo']"/>
-# 저장소를 훑어 파일명마다 상대경로 목록을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: fix_citation_paths.main
+# <include file="machine/comments.xml" path="//term[@id='machine.fix_citation_paths.index_repo']"/>
+# 저장소 안에 있는 소스 파일들의 이름과 실제 위치를 정리한 전화번호부 같은 것을 만드는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.fix_citation_paths.main
 def index_repo(repo: str) -> dict[str, list[str]]:
     """파일명 -> 저장소 기준 상대경로 목록."""
     idx: defaultdict[str, list[str]] = defaultdict(list)
@@ -39,9 +39,9 @@ def index_repo(repo: str) -> dict[str, list[str]]:
     return idx
 
 
-# <include file="machine/comments.xml" path="//term[@id='fix_citation_paths.main']"/>
-# 인용 경로 보강 도구의 명령줄 진입점.
-# 쓰는 것: index_repo · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.fix_citation_paths.main']"/>
+# 이 스크립트를 터미널에서 실행했을 때 시작되는 지점으로, 문서 안의 '파일명만 있는 인용'을 저장소 안의 전체 경로로 고쳐주는 일을 총괄한다.
+# 쓰는 것: machine.fix_citation_paths.index_repo · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("docs", nargs="+")

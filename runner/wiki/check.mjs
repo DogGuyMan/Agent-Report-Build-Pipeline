@@ -14,9 +14,6 @@ import { pythonPath } from "../../tools/python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
-// <include file="machine/comments.xml" path="//term[@id='checkArgs']"/>
-// 검증기에 넘길 인자를 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** verify_citations.py 에 넘길 인자를 만든다. 순수 함수라 테스트가 쉽다. */
 export function checkArgs({ repo, codegraph, detail, docs }) {
   const out = ["--repo", repo, "--codegraph", codegraph];

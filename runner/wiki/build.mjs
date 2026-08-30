@@ -14,9 +14,6 @@ import { pythonPath } from "../../tools/python.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
-// <include file="machine/comments.xml" path="//term[@id='sidebarFrom']"/>
-// 마크다운 파일 목록을 옆 차림표 항목으로 바꾼다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 마크다운 파일 목록 -> VitePress 사이드바 항목. index 는 뺀다(홈이 따로 링크한다). */
 export function sidebarFrom(files) {
   return files
@@ -26,9 +23,6 @@ export function sidebarFrom(files) {
     .map((name) => ({ text: name, link: `/${name}` }));
 }
 
-// <include file="machine/comments.xml" path="//term[@id='vitepressConfig']"/>
-// 사이트 설정 파일의 글자를 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * VitePress 설정 파일 본문. 제목은 JSON.stringify 로 이스케이프한다.
  *

@@ -1,3 +1,6 @@
+# <include file="machine/comments.xml" path="//term[@id='test_declmap.py']"/>
+# 선언·문서주석 추출기의 회귀 시험.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """test_declmap.py — 선언·문서주석 추출기의 회귀 시험."""
 import os
 import sys
@@ -7,10 +10,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import declmap as D  # noqa: E402
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap._doc']"/>
+# 시험 코드에서 declmap 모듈의 문서 주석 추출 함수를 짧게 부르기 위한 도우미 함수다.
+# 쓰는 것: machine.declmap.doc_above, machine.declmap.LANGS · 쓰이는 곳: machine.test_declmap.test_cpp_doc_strips_comment_marker, machine.test_declmap.test_cs_doc_skips_attribute_between_comment_and_decl, machine.test_declmap.test_cs_doc_strips_slashes_and_xml_tags, machine.test_declmap.test_doc_has_a_ceiling, machine.test_declmap.test_doc_stops_at_code
 def _doc(lines: list[str], i: int, lang: str) -> str:
     return D.doc_above(lines, i, D.LANGS[lang])
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cs_decl_catches_modifiers_and_generics']"/>
+# C# 선언 줄 앞에 public static partial 같은 수식어가 여러 개 붙어도 declmap 이 여전히 class 선언으로 잡아내는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: 없음
 # ── 1. 선언을 잡는가
 def test_cs_decl_catches_modifiers_and_generics() -> None:
     """수식어가 여러 개 붙고 들여쓰여 있어도 종류와 이름을 뽑는다."""
@@ -18,18 +27,27 @@ def test_cs_decl_catches_modifiers_and_generics() -> None:
     assert m and m.group(1) == "class" and m.group(2).strip() == "Factory"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cs_decl_catches_interface_with_constraint']"/>
+# 제네릭 제약절(where T : Enum)이 뒤에 붙은 C# interface 선언도 declmap 이 놓치지 않는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: 없음
 def test_cs_decl_catches_interface_with_constraint() -> None:
     """제네릭 제약절이 뒤에 붙은 인터페이스 선언도 잡는다."""
     m = D.LANGS["cs"]["decl"].match("public interface IStatableUI<T> where T : Enum")
     assert m and m.group(1) == "interface"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cpp_decl_catches_enum_class']"/>
+# C++ 의 'enum class' 처럼 두 낱말로 된 종류 이름도 declmap 이 한 종류로 묶어서 잡는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: 없음
 def test_cpp_decl_catches_enum_class() -> None:
     """`enum class` 는 두 낱말이 한 종류다."""
     m = D.LANGS["cpp"]["decl"].match("\tenum class E_MOTION_MODEL : uint")
     assert m and m.group(1) == "enum class" and m.group(2) == "E_MOTION_MODEL"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_py_decl_catches_def_and_class']"/>
+# 파이썬의 def 와 class 선언 둘 다 declmap 이 이름을 두 번째 그룹에 담아 잡아내는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: 없음
 def test_py_decl_catches_def_and_class() -> None:
     """def 와 class 를 모두 잡고 이름을 두 번째 그룹에 둔다."""
     fn = D.LANGS["py"]["decl"].match("def build_terms(x):")
@@ -38,12 +56,18 @@ def test_py_decl_catches_def_and_class() -> None:
     assert cls and cls.group(2) == "Fact"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_ts_decl_catches_export_function']"/>
+# TypeScript 에서 export 가 앞에 붙은 함수 선언도 declmap 이 이름과 종류를 잡아내는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: 없음
 def test_ts_decl_catches_export_function() -> None:
     """export 가 앞에 붙은 함수 선언을 잡는다."""
     m = D.LANGS["ts"]["decl"].match("export function wikiPaths(repo) {")
     assert m and m.group(1) == "function" and m.group(2) == "wikiPaths"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cs_doc_strips_slashes_and_xml_tags']"/>
+# C# 문서 주석에서 슬래시와 XML 태그가 잘 벗겨지는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.test_declmap._doc · 쓰이는 곳: 없음
 # ── 2. 문서 주석을 벗기는가
 def test_cs_doc_strips_slashes_and_xml_tags() -> None:
     """`///` 와 XML 태그를 벗기고 본문만 남긴다."""
@@ -51,24 +75,36 @@ def test_cs_doc_strips_slashes_and_xml_tags() -> None:
     assert _doc(lines, 3, "cs") == "싱글톤"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cs_doc_skips_attribute_between_comment_and_decl']"/>
+# 문서 주석과 실제 선언 사이에 속성(attribute) 줄이 끼어 있어도 주석을 놓치지 않는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.test_declmap._doc · 쓰이는 곳: 없음
 def test_cs_doc_skips_attribute_between_comment_and_decl() -> None:
     """주석과 선언 사이에 낀 속성 줄을 건너뛴다."""
     lines = ["/// 음식 데이터", "[System.Serializable]", "public struct SerialDataFood"]
     assert _doc(lines, 2, "cs") == "음식 데이터"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_cpp_doc_strips_comment_marker']"/>
+# C++ 스타일 `//` 주석 표시가 잘 벗겨지는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.test_declmap._doc · 쓰이는 곳: 없음
 def test_cpp_doc_strips_comment_marker() -> None:
     """`//` 표시를 벗기고 본문만 남긴다."""
     lines = ["// 한 겹을 세 겹으로 편다", "cv::Mat3f BroadcastChannels("]
     assert _doc(lines, 1, "cpp") == "한 겹을 세 겹으로 편다"
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_doc_stops_at_code']"/>
+# 주석이 아닌 코드 줄을 만나면 더 위로 올라가 다른 함수의 주석을 잘못 끌어오지 않는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.test_declmap._doc · 쓰이는 곳: 없음
 def test_doc_stops_at_code() -> None:
     """주석이 아닌 코드 줄을 만나면 멈춘다 — 위쪽 딴 함수의 주석을 끌어오지 않는다."""
     lines = ["// 딴 함수 주석", "int other() { return 0; }", "", "void target()"]
     assert _doc(lines, 3, "cpp") == ""
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_doc_has_a_ceiling']"/>
+# 아무리 주석이 길게 이어져도 정해진 줄 수(`DOC_MAX_LINES`)까지만 거슬러 올라가는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.test_declmap._doc · 쓰이는 곳: 없음
 def test_doc_has_a_ceiling() -> None:
     """아무리 긴 주석 더미라도 정해진 줄 수까지만 거슬러 올라간다."""
     lines = ["// 줄%d" % i for i in range(40)] + ["void target()"]
@@ -76,6 +112,9 @@ def test_doc_has_a_ceiling() -> None:
     assert got and len(got.split()) <= D.DOC_MAX_LINES
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_skip_dirs_covers_build_and_cache']"/>
+# 빌드 산출물이나 캐시 디렉토리(node_modules 등)를 declmap 이 훑지 않도록 거름망 목록에 들어 있는지 확인하는 테스트다.
+# 쓰는 것: machine.declmap.SKIP_DIRS · 쓰이는 곳: 없음
 # ── 3. 파일 거르기
 def test_skip_dirs_covers_build_and_cache() -> None:
     """빌드 산출물과 캐시 디렉토리가 거름망에 들어 있다."""
@@ -87,6 +126,9 @@ def test_skip_dirs_covers_build_and_cache() -> None:
 import normalize as N  # noqa: E402
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_first_party_rejects_qt_type_seen_inside_repo']"/>
+# 저장소 경로 안에서 발견됐어도 git 이 추적하지 않는 파일에 속한 타입은 '1차(우리 코드)'로 치지 않는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.normalize.is_first_party · 쓰이는 곳: 없음
 def test_first_party_rejects_qt_type_seen_inside_repo() -> None:
     """저장소 안에서 보였어도 git 이 추적하지 않는 파일의 타입은 1차가 아니다."""
     el: N.UmlIdentity = {"namespace": "", "name": "QWidget",
@@ -95,6 +137,9 @@ def test_first_party_rejects_qt_type_seen_inside_repo() -> None:
     assert N.is_first_party(el, "/repo", tracked=tracked) is False
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.test_declmap.test_first_party_accepts_tracked_global_namespace_type']"/>
+# git 이 추적하는 파일에서 정의된, 네임스페이스 없는(전역) 타입은 '1차'로 인정되는지 확인하는 테스트 함수다.
+# 쓰는 것: machine.normalize.is_first_party · 쓰이는 곳: 없음
 def test_first_party_accepts_tracked_global_namespace_type(tmp_path: Path) -> None:
     """git 이 추적하는 파일에서 정의된 전역 네임스페이스 타입은 1차다."""
     d = tmp_path / "app"

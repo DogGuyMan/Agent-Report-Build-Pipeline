@@ -24,6 +24,9 @@ from typing import NotRequired, TypedDict, cast
 import networkx as nx
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.CodeNode']"/>
+# codegraph.json 파일 안의 nodes 목록에서 항목(클래스나 함수 하나) 하나가 어떤 모양인지 정해두는 타입 틀이다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.CodeGraph
 # ── codegraph.json (스키마 v2) 의 모양. `machine/normalize.py` 의 `_assemble` 반환부가 원본이다.
 #    이 선언이 없으면 pyright 가 이종(heterogeneous) dict 를 `int | list | str` 합집합으로 뭉개고,
 #    그 dict 를 받은 쪽의 첨자 접근이 전부 Unknown 으로 오염된다.
@@ -54,12 +57,18 @@ CodeEdge = TypedDict("CodeEdge", {
 })
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.CodeModule']"/>
+# codegraph.json 파일 안의 modules 목록에서 항목 하나가 어떤 모양인지 정해두는 타입 틀이다. 코드를 직접 실행하지는 않고, 타입 검사기가 실수를 미리 잡아내도록 돕는 선언일 뿐이다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.CodeGraph
 class CodeModule(TypedDict):
     """codegraph.json 의 modules[] 한 칸."""
     id: str
     depends_on: list[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.CodeGraph']"/>
+# codegraph.json 파일 전체가 어떤 모양인지 정해 놓은 타입 선언이다.
+# 쓰는 것: viz.render_classes.CodeModule, viz.render_classes.CodeNode · 쓰이는 곳: 없음
 class CodeGraph(TypedDict):
     """codegraph.json 전체."""
     schema_version: int
@@ -72,6 +81,9 @@ class CodeGraph(TypedDict):
     modules: list[CodeModule]
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.Member']"/>
+# 클래스 안의 멤버 변수 하나가 어떤 모양인지 정해두는 타입 틀이다. clang-uml 과 roslyn-dump 두 원본 형식이 마침 name/type/access 라는 같은 키 이름을 쓰기 때문에 하나의 틀로 둘 다 표현할 수 있다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.ClangElement, viz.render_classes.Detail, viz.render_classes.RoslynType
 # ── 원시 산출물(clang-uml / roslyn-dump)의 모양. 3분할의 "살" 로 실제로 만지는 키만 적는다.
 #    나머지 키는 total=False 라 있어도 그만이다.
 class Member(TypedDict, total=False):
@@ -81,6 +93,9 @@ class Member(TypedDict, total=False):
     access: str
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.Method']"/>
+# 클래스 안의 메서드(함수) 하나가 어떤 모양인지 정해두는 타입 틀이다. pick_methods 함수와 node_html 함수가 실제로 들여다보는 필드만 담는다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.ClangElement, viz.render_classes.Detail, viz.render_classes.RoslynMethod
 class Method(TypedDict, total=False):
     """`pick_methods` 와 `node_html` 이 실제로 보는 메서드 필드만."""
     name: str
@@ -94,6 +109,9 @@ class Method(TypedDict, total=False):
     parameters: Sequence[object]
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.Detail']"/>
+# clang-uml(C++)과 roslyn-dump(C#)라는 서로 다른 두 원시 분석 파일 형식을 하나로 맞춘 공통 모양을 정해 놓은 타입 선언이다.
+# 쓰는 것: viz.render_classes.Member, viz.render_classes.Method · 쓰이는 곳: viz.render_classes.load_detail
 class Detail(TypedDict):
     """`load_detail` 이 두 원시 형식을 맞춰 내는 공통 모양."""
     members: list[Member]
@@ -101,6 +119,9 @@ class Detail(TypedDict):
     abstract: bool
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.ClangElement']"/>
+# clang-uml 이라는 C++ 분석 도구가 뱉는 JSON 파일 안의 elements[] 배열 원소 하나가 어떤 모양인지 정해 놓은 타입 선언이다.
+# 쓰는 것: viz.render_classes.Member, viz.render_classes.Method · 쓰이는 곳: viz.render_classes.DetailFile
 class ClangElement(TypedDict, total=False):
     """clang-uml(-g json) 의 elements[] 한 칸."""
     display_name: str
@@ -109,6 +130,9 @@ class ClangElement(TypedDict, total=False):
     is_abstract: bool
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.RoslynMethod']"/>
+# C# 분석 도구(roslyn-dump)가 내놓는 메서드 정보 하나가 어떤 모양인지 정해두는 타입 틀이다. C++ 쪽 clang-uml 과는 키 이름이 달라서 따로 정의했다.
+# 쓰는 것: viz.render_classes.Method · 쓰이는 곳: viz.render_classes.RoslynType
 class RoslynMethod(TypedDict):
     """roslyn-dump 의 types[].methods[] 한 칸. 키 이름이 clang-uml 과 다르다.
 
@@ -121,6 +145,9 @@ class RoslynMethod(TypedDict):
     param_count: NotRequired[int]
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.RoslynType']"/>
+# roslyn-dump 라는 C# 분석 도구가 뱉는 JSON 파일 안의 types[] 배열 원소 하나가 어떤 모양인지 정해 놓은 타입 선언이다.
+# 쓰는 것: viz.render_classes.Member, viz.render_classes.RoslynMethod · 쓰이는 곳: viz.render_classes.DetailFile
 class RoslynType(TypedDict, total=False):
     """roslyn-dump 의 types[] 한 칸."""
     name: str
@@ -129,6 +156,9 @@ class RoslynType(TypedDict, total=False):
     is_abstract: bool
 
 
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.DetailFile']"/>
+# --detail 옵션으로 들어오는 원시 파일 하나가 어떤 모양일 수 있는지 정의한 타입이다. 두 가지 서로 다른 도구(clang-uml, roslyn-dump)가 만든 파일을 같은 이름으로 받기 위한 틀이다.
+# 쓰는 것: viz.render_classes.ClangElement, viz.render_classes.RoslynType · 쓰이는 곳: viz.render_classes.load_detail
 class DetailFile(TypedDict, total=False):
     """`--detail` 로 들어오는 파일. 둘 중 어느 갈래인지는 키 유무로 가른다."""
     elements: list[ClangElement]
@@ -150,23 +180,23 @@ BACKBONE = {"inheritance", "realization", "composition", "aggregation"}
 C_CYCLE = "#D50000"
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_classes.esch']"/>
-# HTML 라벨에 넣을 문자열의 꺾쇠와 앰퍼샌드를 안전하게 바꾼다.
-# 쓰는 것: 없음 · 쓰이는 곳: node_html
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.esch']"/>
+# 글자 안에 있는 <, >, & 기호를 안전한 문자로 바꿔주는 함수다. HTML 표에 이름을 적을 때 그 기호가 태그로 오해받지 않게 한다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.main, viz.render_classes.node_html
 def esch(s: object) -> str:
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_classes.esc']"/>
-# DOT 문자열에 넣을 따옴표와 역슬래시를 안전하게 바꾼다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.esc']"/>
+# 글자 안에 있는 역슬래시와 큰따옴표를 안전한 문자로 바꿔주는 함수다. DOT 파일 문법에서 문자열은 큰따옴표로 감싸므로, 그 안에 큰따옴표가 그대로 들어가면 문법이 깨진다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.main
 def esc(s: object) -> str:
     return str(s).replace("\\", "\\\\").replace('"', '\\"')
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_classes.short']"/>
-# 긴 이름에서 마지막 조각만 남긴다. 클러스터가 이미 맥락을 주기 때문이다.
-# 쓰는 것: 없음 · 쓰이는 곳: node_html
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.short']"/>
+# SJH::Scene::Component 처럼 길게 이어진 이름에서 맨 마지막 조각만 남기는 함수다. 클래스 그림에서 이름표가 이미 어느 모듈인지 보여주므로 앞부분을 반복할 필요가 없어서다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.main, viz.render_classes.node_html
 def short(name: str) -> str:
     """SJH::Scene::Component -> Component. 모듈 클러스터가 이미 맥락을 준다."""
     return name.split("::")[-1].split(".")[-1]
@@ -176,9 +206,9 @@ def short(name: str) -> str:
 ACCESS: dict[str | None, str] = {"public": "+", "protected": "#", "private": "-"}
 
 
-# <include file="machine/comments.xml" path="//term[@id='load_detail']"/>
-# 원시 분석 파일에서 이름마다 멤버 · 메서드 · 추상 여부를 뽑는다.
-# 쓰는 것: 없음 · 쓰이는 곳: render_classes.main
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.load_detail']"/>
+# 원본 분석 파일(--detail 로 넘긴 파일)을 읽어서, 클래스 이름마다 멤버 변수·메서드·추상 클래스 여부를 정리해 담아주는 함수다. 이 파일은 두 가지 형태 중 하나일 수 있다 — C++ 분석 도구(clang-uml)가 낸 것이거나 C# 분석 도구(roslyn-dump)가 낸 것이다.
+# 쓰는 것: viz.render_classes.Detail, viz.render_classes.DetailFile · 쓰이는 곳: viz.render_classes.main
 def load_detail(path: str) -> dict[str | None, Detail]:
     """원문에서 이름 -> (members, methods, is_abstract) 를 뽑는다.
 
@@ -221,9 +251,9 @@ def load_detail(path: str) -> dict[str | None, Detail]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='pick_methods']"/>
-# 그림에 실을 만한 메서드만 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: node_html
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.pick_methods']"/>
+# 메서드 목록 중에서 그림에 실을 만큼 중요한 것만 골라내는 함수다. 생성자나 단순히 값만 돌려주는 getter 처럼 구조를 설명해주지 않는 메서드는 빼고, 최대 6개까지만 남긴다.
+# 쓰는 것: 없음 · 쓰이는 곳: viz.render_classes.node_html
 def pick_methods(methods: list[Method], limit: int = 6) -> tuple[list[Method], int]:
     """책임을 전달하는 메서드만. 사소한 getter/setter·연산자·특수멤버는 뺀다."""
     out: list[Method] = []
@@ -240,9 +270,9 @@ def pick_methods(methods: list[Method], limit: int = 6) -> tuple[list[Method], i
     return out[:limit], max(0, len(out) - limit)
 
 
-# <include file="machine/comments.xml" path="//term[@id='node_html']"/>
-# 클래스 하나를 이름 · 멤버 · 메서드 3분할 상자로 그린다.
-# 쓰는 것: render_classes.esch, render_classes.short, pick_methods · 쓰이는 곳: render_classes.main
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.node_html']"/>
+# 클래스 하나를 그림 상자로 그릴 때, 그 상자 안에 들어갈 HTML 표 문자열(이름 칸 / 멤버 칸 / 메서드 칸 세 줄)을 만드는 함수다. UML 클래스 다이어그램의 3분할 상자를 흉내낸다.
+# 쓰는 것: viz.render_classes.esch, viz.render_classes.short, viz.render_classes.pick_methods · 쓰이는 곳: viz.render_classes.main
 def node_html(name: str, det: Detail | None, own_note: dict[str, str]) -> str:
     """UML 3분할 — 이름(+스테레오타입) / 멤버(+소유권 노트) / 메서드."""
     rows: list[str] = []
@@ -285,9 +315,9 @@ def node_html(name: str, det: Detail | None, own_note: dict[str, str]) -> str:
             + "".join(rows) + "</TABLE>>")
 
 
-# <include file="machine/comments.xml" path="//term[@id='render_classes.main']"/>
-# 클래스 다이어그램 도구의 명령줄 진입점.
-# 쓰는 것: load_detail, node_html · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='viz.render_classes.main']"/>
+# 클래스 다이어그램 스크립트를 커맨드라인에서 실행할 때 맨 처음 불리는 함수다. 인자를 읽고 그림을 그려 파일로 저장하는 전체 과정을 순서대로 진행한다.
+# 쓰는 것: viz.render_classes.esch, viz.render_classes.esc, viz.render_classes.short, viz.render_classes.load_detail, viz.render_classes.node_html · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("codegraph")

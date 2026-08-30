@@ -1,4 +1,4 @@
-// <include file="machine/comments.xml" path="//term[@id='runner/wiki/compdb.mjs']"/>
+// <include file="machine/comments.xml" path="//term[@id='compdb.mjs']"/>
 // C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.
 // 쓰는 것: 없음 · 쓰이는 곳: 없음
 // C++ 저장소의 compile_commands.json 을 **전부 찾아 하나로 합친다.**
@@ -19,9 +19,6 @@ export const EXTERNAL_MARKERS = [
 // 도구가 자기용으로 만든 축약본. 원본과 겹쳐 세면 중복이다.
 const SIDECAR_DIRS = [".qtc_clangd", ".cache"];
 
-// <include file="machine/comments.xml" path="//term[@id='findCompdbs']"/>
-// 저장소 안의 컴파일 명령 파일을 전부 찾는다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 저장소 안의 compile_commands.json 을 전부 찾는다. 외부 라이브러리 트리는 안 본다. */
 export function findCompdbs(repo, readDir = readdirSync, isDir = (p) => statSync(p).isDirectory()) {
   const out = [];
@@ -45,9 +42,6 @@ export function findCompdbs(repo, readDir = readdirSync, isDir = (p) => statSync
   return (primary.length ? primary : out).sort();
 }
 
-// <include file="machine/comments.xml" path="//term[@id='mergeEntries']"/>
-// 여러 목록을 합치고 중복과 남의 코드를 걷어 낸다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * 여러 compdb 의 엔트리를 합친다. 파일 경로로 중복을 지우고 외부·생성물을 뺀다.
  * 순수 함수라 테스트가 쉽다.
@@ -68,17 +62,11 @@ export function mergeEntries(lists, repo) {
   return out;
 }
 
-// <include file="machine/comments.xml" path="//term[@id='relativeFiles']"/>
-// 합친 목록에서 저장소 기준 상대 경로만 뽑아 정렬한다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 합친 엔트리에서 저장소 상대 경로 목록을 만든다. 정렬해 결정론을 지킨다. */
 export function relativeFiles(entries, repo) {
   return [...new Set(entries.map((e) => e.file.slice(repo.length + 1)))].sort();
 }
 
-// <include file="machine/comments.xml" path="//term[@id='clangUmlConfig']"/>
-// 정적 수집기 설정 글자를 만든다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /**
  * clang-uml 설정 본문. **글로브를 쓰지 않고 파일을 열거한다.**
  *
@@ -108,9 +96,6 @@ export function clangUmlConfig({ compdbDir, repo, outDir, files, flags, paths })
   return lines.join("\n") + "\n";
 }
 
-// <include file="machine/comments.xml" path="//term[@id='readAuthorConfig']"/>
-// 저자가 쓴 설정에서 컴파일 깃발과 포함 경로만 읽어 온다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
 /** 저자의 `.clang-uml` 에서 컴파일 플래그와 include 경로만 읽어 온다. */
 export function readAuthorConfig(path) {
   if (!existsSync(path)) return { flags: [], paths: [] };

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # <include file="machine/comments.xml" path="//term[@id='terms_db.py']"/>
 # 코드베이스의 용어를 한 곳에 모은 사전을 만드는 도구. Mode 1.5 의 재료가 여기서 나온다.
-# 쓰는 것: terms-db.json, terms-reading.json · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """terms_db.py — 코드베이스 용어 전수 수집.
 
 입력은 normalize.py 가 낸 codegraph.json 이며 그 실제 키를 따른다.
@@ -54,6 +54,9 @@ READING_WINS: tuple[Literal["means", "does"], ...] = ("means", "does")
 #      label    상속처럼 멤버가 없는 간선은 None 이다
 #    `Term`/`Use` 는 둘 다 `str` 이라 물려받을 수 없다(TypedDict 는 필드 형을 넓히지 못한다).
 
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.DbUse']"/>
+# 용어 사전 레코드 안의 uses 리스트에 들어가는 항목 하나가 어떤 모양이어야 하는지 정의하는 타입 틀(TypedDict)이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.TermRecord
 class DbUse(TypedDict):
     """레코드의 `uses[]` 한 칸. `source` 는 merge_terms 가 LLM 이 보탠 간선에만 남긴다."""
     to: str
@@ -63,6 +66,9 @@ class DbUse(TypedDict):
     source: NotRequired[str]
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.TermRecord']"/>
+# 용어 사전(terms-db.json) 안에 들어가는 레코드 하나의 모양을 정해 놓은 타입 틀(TypedDict)이다.
+# 쓰는 것: machine.terms_db.DbUse · 쓰이는 곳: machine.terms_db.merge_terms
 class TermRecord(TypedDict):
     """용어 하나. `id` 는 codegraph 에서 온 레코드에만 있다 — reading 레코드는 키가 곧 이름이다."""
     kind: str
@@ -82,9 +88,9 @@ class TermRecord(TypedDict):
 TermsDb = dict[str, TermRecord]
 
 
-# <include file="machine/comments.xml" path="//term[@id='_where']"/>
-# 노드의 파일과 줄을 합쳐 경로:줄 꼴 위치 문자열로 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: build_terms
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._where']"/>
+# 코드 지도의 노드나 간선 하나가 파일의 어디에 있는지를 사람이 읽기 쉬운 문자열로 바꾸는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.build_terms
 def _where(node: Node | Edge) -> str:
     """`file:line` 위치 문자열. 파일이 없으면(외부 노드) 빈 문자열."""
     f = node.get("file") or ""
@@ -94,9 +100,9 @@ def _where(node: Node | Edge) -> str:
     return f"{f}:{ln}" if ln else f
 
 
-# <include file="machine/comments.xml" path="//term[@id='_split_where']"/>
-# 경로:줄 문자열을 다시 파일과 줄 번호로 가른다.
-# 쓰는 것: 없음 · 쓰이는 곳: check_terms, project_codegraph
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._split_where']"/>
+# "파일경로:줄번호" 꼴 문자열을 다시 파일 경로와 줄 번호 두 조각으로 나누는 함수다. _where 의 반대 방향이다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.check_terms, machine.terms_db.project_codegraph
 def _split_where(where: str) -> tuple[str | None, int | None]:
     """`file:line` -> (file, line). 빈 문자열이면 (None, None). 줄 번호가 없으면 (file, None)."""
     if not where:
@@ -107,9 +113,9 @@ def _split_where(where: str) -> tuple[str | None, int | None]:
     return where, None
 
 
-# <include file="machine/comments.xml" path="//term[@id='_recompute_neighbors']"/>
-# 방향이 있는 uses 에서 방향 없는 이웃 목록을 다시 센다.
-# 쓰는 것: 없음 · 쓰이는 곳: build_terms, merge_terms
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._recompute_neighbors']"/>
+# 용어 사전 전체를 훑어서 각 용어가 누구와 이웃인지(서로 연결돼 있는지)를 다시 계산하는 함수다. uses 는 방향이 있는 관계이고 neighbors 는 방향이 없는 관계다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.build_terms, machine.terms_db.merge_terms
 def _recompute_neighbors(db: TermsDb) -> None:
     """uses(방향 있음)에서 neighbors(방향 없음)를 다시 센다.
 
@@ -128,9 +134,9 @@ def _recompute_neighbors(db: TermsDb) -> None:
         rec["neighbors"] = sorted(x for x in near[key] if x)
 
 
-# <include file="machine/comments.xml" path="//term[@id='build_terms']"/>
-# 코드 지도에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
-# 쓰는 것: _where, _recompute_neighbors · 쓰이는 곳: terms_db.main
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.build_terms']"/>
+# codegraph.json(정적 코드 지도)을 읽어서 용어 사전(딕셔너리) 하나로 만드는 함수다.
+# 쓰는 것: machine.terms_db._where, machine.terms_db._recompute_neighbors · 쓰이는 곳: machine.terms_db.main, machine.test_normalize.test_terms_db_extracts_modules_and_classes, machine.test_normalize.test_terms_db_is_deterministic, machine.test_normalize.test_terms_db_means_is_never_empty, machine.test_terms_db.test_build_terms_keeps_id_and_typed_uses (+8)
 def build_terms(graph: CodeGraph, facts: Mapping[str, object],
                 hotspot: Sequence[Mapping[str, str]]) -> TermsDb:
     """codegraph.json 에서 용어 사전을 만든다. 입력이 같으면 출력도 같다.
@@ -221,9 +227,9 @@ def build_terms(graph: CodeGraph, facts: Mapping[str, object],
     return dict(sorted(db.items()))
 
 
-# <include file="machine/comments.xml" path="//term[@id='project_codegraph']"/>
-# 용어 사전에서 codegraph.json 을 되돌려 만든다.
-# 쓰는 것: _split_where · 쓰이는 곳: terms_db.main
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.project_codegraph']"/>
+# 용어 사전을 거꾸로 codegraph.json 모양으로 되돌리는 함수다.
+# 쓰는 것: machine.terms_db._split_where · 쓰이는 곳: machine.terms_db.main, machine.test_terms_db.test_project_drops_terms_that_are_not_code, machine.test_terms_db.test_project_golden_is_superset_of_real_codegraph, machine.test_terms_db.test_project_round_trips_synthetic_graph
 def project_codegraph(db: TermsDb, language: str = "unknown",
                       repo_commit: str = "") -> CodeGraph:
     """terms-db -> codegraph.json (schema_version 2). codegraph 는 terms-db 의 부분집합이다.
@@ -285,9 +291,9 @@ def project_codegraph(db: TermsDb, language: str = "unknown",
     }
 
 
-# <include file="machine/comments.xml" path="//term[@id='_stem']"/>
-# 인용 대조에 쓸 이름 조각을 만든다.
-# 쓰는 것: verify_citations.short · 쓰이는 곳: check_terms
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._stem']"/>
+# 용어 이름에서 인용 대조에 쓸 짧은 조각을 뽑아내는 함수다.
+# 쓰는 것: machine.verify_citations.short · 쓰이는 곳: machine.terms_db.check_terms
 def _stem(key: str, kind: str) -> str:
     """L3 대조용 이름 조각. `calls[]` -> `calls`, `Outer::Inner` -> `Inner`, `terms_db.main` -> `main`.
     파일 · 산출물 · 키 · 개념 · 모듈은 글자 그대로 (`codegraph.json` 을 `.` 로 쪼개면 안 된다)."""
@@ -297,9 +303,9 @@ def _stem(key: str, kind: str) -> str:
     return short(k)
 
 
-# <include file="machine/comments.xml" path="//term[@id='_written_by_llm']"/>
-# 이 간선을 LLM 이 썼는지 가른다. 표시가 없으면 정적 도구가 낸 것이다.
-# 쓰는 것: 없음 · 쓰이는 곳: check_terms
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._written_by_llm']"/>
+# 용어 사전의 한 uses 항목(간선)이 LLM(전수조사)이 쓴 것인지, 아니면 정적 분석 도구가 자동으로 만든 것인지를 가려내는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.check_terms
 def _written_by_llm(rec_source: str, use: DbUse) -> bool:
     """이 간선을 LLM 이 썼는가. 표시가 없는 간선은 정적 도구가 낸 것이다.
 
@@ -309,9 +315,9 @@ def _written_by_llm(rec_source: str, use: DbUse) -> bool:
     return rec_source == "reading" or use.get("source") == "reading"
 
 
-# <include file="machine/comments.xml" path="//term[@id='check_terms']"/>
-# LLM 이 쓴 인용을 3값으로 판정한다. 실패 · 근거 없음 · (아무 말 없으면) 통과다.
-# 쓰는 것: _split_where, _written_by_llm, _stem · 쓰이는 곳: terms_db.main
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.check_terms']"/>
+# 용어 사전(terms-db) 안에서 사람(LLM)이 직접 쓴 부분이 실제 코드 위치와 맞는지 검사하는 함수다. 기계가 자동으로 만든 부분은 다시 검사하지 않는다.
+# 쓰는 것: machine.terms_db._split_where, machine.terms_db._stem, machine.terms_db._written_by_llm · 쓰이는 곳: machine.terms_db.main, machine.test_terms_db.test_check_does_not_judge_edge_kinds_that_came_from_codegraph, machine.test_terms_db.test_check_flags_unknown_uses_target, machine.test_terms_db.test_check_l1_missing_file_is_failure, machine.test_terms_db.test_check_l2_line_past_eof_is_failure (+4)
 def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
     """3값 판정 목록 [(등급, 용어, 사유)]. 등급은 "실패" | "근거 없음". 비어 있으면 전부 통과.
 
@@ -385,9 +391,9 @@ def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
 STRUCTURE_FIELDS = ("id", "kind", "module", "where")
 
 
-# <include file="machine/comments.xml" path="//term[@id='merge_terms']"/>
-# LLM 이 읽은 것을 코드 지도가 만든 사전에 합친다.
-# 쓰는 것: _recompute_neighbors · 쓰이는 곳: terms_db.main
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.merge_terms']"/>
+# LLM 이 읽고 쓴 용어 레코드(reading)를 codegraph 가 만든 기본 사전(base)에 합치는 함수다.
+# 쓰는 것: machine.terms_db._recompute_neighbors, machine.terms_db.TermRecord · 쓰이는 곳: machine.terms_db.main, machine.test_terms_db.test_check_does_not_judge_edge_kinds_that_came_from_codegraph, machine.test_terms_db.test_check_flags_unknown_uses_target, machine.test_terms_db.test_check_l1_missing_file_is_failure, machine.test_terms_db.test_check_l2_line_past_eof_is_failure (+6)
 def merge_terms(base: TermsDb, reading: Terms) -> TermsDb:
     """reading(LLM 이 쓴 것)을 base(codegraph 가 만든 것)에 합친다. 구조 필드는 codegraph 가 이긴다.
 
@@ -423,9 +429,9 @@ def merge_terms(base: TermsDb, reading: Terms) -> TermsDb:
     return dict(sorted(db.items()))
 
 
-# <include file="machine/comments.xml" path="//term[@id='_git_commit']"/>
-# 저장소 HEAD 해시를 읽는다. git 이 없어도 실패시키지 않는다.
-# 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db._git_commit']"/>
+# 주어진 저장소 경로에서 현재 git 커밋 해시(HEAD)를 읽어오는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.terms_db.main
 def _git_commit(repo: str) -> str:
     """저장소 HEAD. git 이 없거나 저장소가 아니면 빈 문자열 — 실패시키지 않는다."""
     try:
@@ -435,9 +441,9 @@ def _git_commit(repo: str) -> str:
         return ""
 
 
-# <include file="machine/comments.xml" path="//term[@id='terms_db.main']"/>
-# 용어 사전 도구의 명령줄 진입점.
-# 쓰는 것: build_terms, merge_terms, check_terms, terms-db.json, project_codegraph · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='machine.terms_db.main']"/>
+# terms_db.py 를 명령줄에서 실행했을 때 시작점이 되는 함수다.
+# 쓰는 것: machine.terms_db.build_terms, machine.terms_db.project_codegraph, machine.terms_db.check_terms, machine.terms_db.merge_terms, machine.terms_db._git_commit · 쓰이는 곳: 없음
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("codegraph", nargs="?", help="normalize.py 가 낸 codegraph.json. 없으면 --reading 만으로 만든다")

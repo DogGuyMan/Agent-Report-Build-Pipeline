@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # <include file="machine/comments.xml" path="//term[@id='clang_doc.py']"/>
 # clang-doc 가 여러 파일로 흩뿌린 결과를 심볼 목록 하나로 모으는 도구.
-# 쓰는 것: load_clang_doc · 쓰이는 곳: 없음
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 """clang_doc.py — clang-doc 이 흩뿌린 JSON 을 평평한 심볼 목록 하나로 모은다.
 
 clang-uml 은 클래스 도구라 네임스페이스 안 자유 함수를 내지 않는다. clang-doc 이
@@ -36,6 +36,9 @@ GLOBAL_NAMESPACE = "GlobalNamespace"
 RECORD_KIND = {"class": "class", "struct": "struct", "union": "union"}
 
 
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc.Symbol']"/>
+# clang-doc 이 하나의 심볼(클래스·함수·열거형 등)에서 뽑아낸 정보를 담는 딕셔너리 틀이다. 파이썬의 TypedDict 로 만들어서, 이 딕셔너리에 어떤 키가 들어가야 하는지 타입 검사기가 미리 알 수 있게 한다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.normalize._doc_element, machine.normalize.doc_qualified_name, machine.test_normalize._doc
 class Symbol(TypedDict):
     """이 파일이 내는 심볼 하나. `normalize.py::merge_clang_doc` 이 그대로 받아 읽는 꼴이다.
 
@@ -51,9 +54,9 @@ class Symbol(TypedDict):
     doc: str
 
 
-# <include file="machine/comments.xml" path="//term[@id='qualified_namespace']"/>
-# 심볼이 속한 이름 공간을 바깥부터 이어 한 낱말로 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: _symbol
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc.qualified_namespace']"/>
+# 심볼이 속한 네임스페이스(이름공간) 이름을 하나의 문자열로 합쳐 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.clang_doc._symbol
 def qualified_namespace(item: dict[str, Any]) -> str:
     """`Namespace` 배열을 바깥부터의 `A::B::C` 로 편다.
 
@@ -66,9 +69,9 @@ def qualified_namespace(item: dict[str, Any]) -> str:
     return "::".join(parts)
 
 
-# <include file="machine/comments.xml" path="//term[@id='flatten_description']"/>
-# 저자가 코드에 단 설명 글을 한 줄로 편다.
-# 쓰는 것: 없음 · 쓰이는 곳: _symbol
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc.flatten_description']"/>
+# 코드에 저자가 남긴 문서 주석(예: 함수 설명)을 한 줄짜리 짧은 문자열로 펴 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.clang_doc._symbol
 def flatten_description(desc: Any) -> str:
     """저자 문서 주석에서 글자만 순서대로 뽑아 한 줄로 잇는다.
 
@@ -96,9 +99,9 @@ def flatten_description(desc: Any) -> str:
     return " ".join(p for p in out if p).strip()
 
 
-# <include file="machine/comments.xml" path="//term[@id='function_signature']"/>
-# 함수가 무엇을 받고 무엇을 돌려주는지 한 줄로 적는다.
-# 쓰는 것: 없음 · 쓰이는 곳: load_clang_doc
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc.function_signature']"/>
+# 함수 하나가 어떤 값을 받고 어떤 값을 돌려주는지 사람이 읽기 좋은 한 줄 문자열(시그니처)로 만들어 주는 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.clang_doc.load_clang_doc
 def function_signature(item: dict[str, Any]) -> str:
     """사람이 읽는 한 줄 시그니처. `bool ApplyHomography(const cv::Mat & image, …)`."""
     ret_type: dict[str, Any] = item.get("ReturnType") or {}
@@ -114,9 +117,9 @@ def function_signature(item: dict[str, Any]) -> str:
     return f"{head}({', '.join(args)})"
 
 
-# <include file="machine/comments.xml" path="//term[@id='_symbol']"/>
-# 도구가 낸 항목 하나를 우리 공통 꼴로 옮긴다.
-# 쓰는 것: qualified_namespace, flatten_description · 쓰이는 곳: load_clang_doc
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc._symbol']"/>
+# clang-doc 이 뱉은 항목 하나(클래스든 함수든)를 공통된 Symbol 딕셔너리 모양으로 바꿔 주는 함수다.
+# 쓰는 것: machine.clang_doc.qualified_namespace, machine.clang_doc.flatten_description · 쓰이는 곳: machine.clang_doc.load_clang_doc
 def _symbol(item: dict[str, Any], kind: str, signature: str = "") -> Symbol | None:
     """공통 꼴로 옮긴다. 급소 ② — 위치가 없으면 None 을 돌려 버리게 한다."""
     loc: dict[str, Any] = item.get("Location") or {}
@@ -135,18 +138,18 @@ def _symbol(item: dict[str, Any], kind: str, signature: str = "") -> Symbol | No
     }
 
 
-# <include file="machine/comments.xml" path="//term[@id='_json_root']"/>
-# 결과가 실제로 놓인 폴더를 고른다.
-# 쓰는 것: 없음 · 쓰이는 곳: load_clang_doc
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc._json_root']"/>
+# clang-doc 산출물이 실제로 어느 폴더에 있는지 찾아 주는 작은 도우미 함수다.
+# 쓰는 것: 없음 · 쓰이는 곳: machine.clang_doc.load_clang_doc
 def _json_root(out_dir: str) -> str:
     """`clang-doc --output <D>` 는 `<D>/json/` 을 만든다. 둘 중 어느 쪽을 받아도 되게 한다."""
     nested = os.path.join(out_dir, "json")
     return nested if os.path.isdir(nested) else out_dir
 
 
-# <include file="machine/comments.xml" path="//term[@id='load_clang_doc']"/>
-# 흩어진 결과를 모아 평평한 심볼 목록으로 만든다.
-# 쓰는 것: _json_root, _symbol, function_signature · 쓰이는 곳: clang_doc.py
+# <include file="machine/comments.xml" path="//term[@id='machine.clang_doc.load_clang_doc']"/>
+# clang-doc 가 여러 json 파일에 흩어 놓은 결과를 한 개의 평평한 목록으로 모으는 함수다.
+# 쓰는 것: machine.clang_doc._json_root, machine.clang_doc._symbol, machine.clang_doc.function_signature · 쓰이는 곳: machine.normalize.main, machine.test_clang_doc._golden, machine.test_clang_doc.test_accepts_the_parent_directory_of_json, machine.test_clang_doc.test_description_absent_gives_empty_doc, machine.test_clang_doc.test_description_nested_text_is_flattened (+9)
 def load_clang_doc(out_dir: str) -> list[Symbol]:
     """clang-doc 의 흩어진 산출물을 모아 평평한 심볼 목록으로 만든다.
 
