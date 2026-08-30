@@ -32,7 +32,7 @@ flowchart LR
     TOO["tools/ 어느 축도 아닌 것"]
   end
   subgraph TGT["대상 저장소 — 원고와 산출물"]
-    MS["specs/&lt;slug&gt;/data.ts · report.tsx"]
+    MS["specs/<slug>/data.ts · report.tsx"]
     WK["docs/wiki/*.md"]
     OUT["out/ — 재생성물"]
   end
@@ -106,23 +106,25 @@ flowchart LR
 
 ### 세 갈래의 단계 — 파랑은 기계, 주황은 LLM, 초록은 사람
 
-flowchart LR  
-  subgraph M1["Mode 1 — 코드베이스 위키"]  
-    P1["prep"] --&gt; W1["warmup"] --&gt; SP1["survey-plan&lt;br/&gt;층·배치 계산"] --&gt; A1["survey&lt;br/&gt;층별 배치 N세션"]  
-    A1 --&gt; S1["warmup-save"] --&gt; T1["terms"] --&gt; A1b["wiki&lt;br/&gt;목차 1 + 장 N세션"] --&gt; B1["build"] --&gt; C1["check"]  
-  end  
-  subgraph M15["Mode 1.5 — 용어 이해도"]  
-    CO["collect"] --&gt; AU["author"] --&gt; H(["사람이 답안"]) --&gt; GR["grade"] --&gt; EM["emit"]  
-  end  
-  subgraph M2["Mode 2 — 설계 검토 보고서"]  
-    I2["init"] --&gt; A2["agent"] --&gt; B2["build"] --&gt; C2["check"]  
-  end  
-  classDef machine fill:#e8f0fe,stroke:#4a6fa5,color:#123  
-  classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px  
-  classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px  
-  class P1,W1,SP1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine  
-  class A1,A1b,AU,A2 llm  
+```mermaid
+flowchart LR
+  subgraph M1["Mode 1 — 코드베이스 위키"]
+    P1["prep"] --> W1["warmup"] --> SP1["survey-plan<br/>층·배치 계산"] --> A1["survey<br/>층별 배치 N세션"]
+    A1 --> S1["warmup-save"] --> T1["terms"] --> A1b["wiki<br/>목차 1 + 장 N세션"] --> B1["build"] --> C1["check"]
+  end
+  subgraph M15["Mode 1.5 — 용어 이해도"]
+    CO["collect"] --> AU["author"] --> H(["사람이 답안"]) --> GR["grade"] --> EM["emit"]
+  end
+  subgraph M2["Mode 2 — 설계 검토 보고서"]
+    I2["init"] --> A2["agent"] --> B2["build"] --> C2["check"]
+  end
+  classDef machine fill:#e8f0fe,stroke:#4a6fa5,color:#123
+  classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px
+  classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px
+  class P1,W1,SP1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
+  class A1,A1b,AU,A2 llm
   class H human
+```
 
 단계 목록은 상수로 못 박혀 있고 레지스트리나 플러그인 구조를 만들지 않는다
 (세 실행기의 `STAGES`). LLM 칸은 Mode 1.5 와 Mode 2 가 하나씩이고, **Mode 1 만 둘**이다

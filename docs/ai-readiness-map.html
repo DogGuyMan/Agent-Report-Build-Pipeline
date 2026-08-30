@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>report-builder · AI 준비도 지도</title>
+    <title>report-builder · AI-Readiness Map</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -587,15 +587,18 @@
       <header class="header">
         <div>
           <div class="eyebrow">레포지토리 감사 · AI 준비도 · v2 루브릭</div>
-          <h1>report-builder — AI 준비도 지도</h1>
+          <h1>GrowthNote — AI 준비도 지도</h1>
           <div class="sub">
             7개 카테고리 채점 · 구조 지도 · ROI 우선순위 액션
           </div>
         </div>
         <div class="header-meta">
-          <div>점수 측정 <strong>2026-08-30</strong></div>
-          <div>브랜치 <strong>main</strong> · 성격축 분리 직후</div>
-          <div>모듈 <strong>5</strong> · 컨텍스트 파일 <strong>10</strong></div>
+  <span class="meta-item">Scored 2026-08-31</span>
+  <span class="meta-item">5 modules</span>
+  <span class="meta-item">14 context files</span>
+</div>
+          <div>브랜치 <strong>feat/1-blog</strong></div>
+          <div>모듈 <strong>4</strong> · 컨텍스트 파일 <strong>8</strong></div>
         </div>
       </header>
 
@@ -604,34 +607,33 @@
         <div class="score-hero">
           <div class="label">AI 준비도 지수</div>
           <div class="value">
-            <span class="num">77</span><span class="denom">/ 100</span>
+            <span class="num">32</span><span class="denom">/ 100</span>
           </div>
           <div class="grade-row">
-            <span class="grade-badge">
-              <span class="grade-dot"></span> AI-Ready · 에이전트 친화
+            <span class="grade-badge" style="background: var(--red-soft); color: var(--red)">
+              <span class="grade-dot" style="background: var(--red)"></span> AI-Hostile · 에이전트 비친화
             </span>
           </div>
           <div class="desc">
-            자동 채점 <strong>72</strong> + 수동 보정 <strong>+5</strong>.
-            보정은 셋 — 채점기가 놓친 mermaid(D&nbsp;+3), 전수 재검증으로
-            <strong>진짜 0건</strong>이 확인된 경로 경고(E1&nbsp;+1),
-            추적 안 되는 실측 기록(G&nbsp;+1). 남은 최약점은
-            <strong>B 문서 품질 10/20</strong> 과 <strong>F 자가 유지보수
-            6/10</strong> — 게이트를 만들어 놓고 아직 훅에 걸지 않았다.
+            7개 카테고리 · 가중치 차등 (A 15 · B 20 · C 20 · D 15 · E 15
+            · F 10 · G 5). 가장 약한 영역은 <strong>C 암묵지 외부화
+            (2/20)</strong> 와 <strong>D 의존성 매핑 (2/15)</strong>.
+            <strong>컨텍스트 파일에 존재하지 않는 경로 27건</strong>이
+            E1 검증 항목을 무너뜨리는 핵심 원인.
           </div>
           <hr />
           <div class="mini-stats">
             <div class="mini-stat">
               <div class="k">컨텍스트 보유 모듈</div>
-              <div class="v" style="color: var(--green)">5 / 5</div>
+              <div class="v">3 / 4</div>
             </div>
             <div class="mini-stat">
-              <div class="k">진짜 깨진 경로</div>
-              <div class="v" style="color: var(--green)">0</div>
+              <div class="k">잘못된 경로</div>
+              <div class="v" style="color: var(--red)">27</div>
             </div>
             <div class="mini-stat">
               <div class="k">300줄 초과 파일</div>
-              <div class="v">13</div>
+              <div class="v">20</div>
             </div>
           </div>
         </div>
@@ -653,55 +655,9 @@
             <div class="idx">A</div>
             <div>
               <div class="title">AI 탐색 & 커버리지</div>
-              <div class="sub">다섯 모듈 전부 CLAUDE.md 보유 · <code>runner</code> <code>tools</code> <code>docs</code> 신설분 포함</div>
-            </div>
-            <div class="bar bar-good">
-              <span style="width: 100%"></span>
-            </div>
-            <div class="num">15/15</div>
-          </div>
-
-          <div class="rule-row">
-            <div class="idx">B</div>
-            <div>
-              <div class="title">컨텍스트 문서 품질</div>
-              <div class="sub">256·221·143·132줄 넷이 100줄 초과 · 상호 링크 1/4 · bash 블록 부족</div>
-            </div>
-            <div class="bar bar-warn">
-              <span style="width: 50%"></span>
-            </div>
-            <div class="num">10/20</div>
-          </div>
-
-          <div class="rule-row">
-            <div class="idx">C</div>
-            <div>
-              <div class="title">암묵지 외부화</div>
-              <div class="sub">ADR 6건 · Owns/Deps/Gotchas 절 다섯 모듈 전부 · 변경 패턴 절만 2/5</div>
-            </div>
-            <div class="bar bar-good">
-              <span style="width: 90%"></span>
-            </div>
-            <div class="num">18/20</div>
-          </div>
-
-          <div class="rule-row">
-            <div class="idx">D</div>
-            <div>
-              <div class="title">모듈 간 의존성 매핑</div>
-              <div class="sub">ARCHITECTURE.md + mermaid 성격축 그림 · 의존 절 6개 <span style='color:var(--amber)'>(mermaid 는 수동 보정)</span></div>
-            </div>
-            <div class="bar bar-good">
-              <span style="width: 87%"></span>
-            </div>
-            <div class="num">13/15</div>
-          </div>
-
-          <div class="rule-row">
-            <div class="idx">E</div>
-            <div>
-              <div class="title">검증 & 품질 게이트</div>
-              <div class="sub">경고 12건 <strong style='color:var(--green)'>전수 재검증 → 진짜 0건</strong> · PR 서식 신설 · CI 없음</div>
+              <div class="sub">
+                4개 핵심 모듈 중 3개에 컨텍스트 보유 · <code>scripts/</code> 미커버
+              </div>
             </div>
             <div class="bar bar-warn">
               <span style="width: 73%"></span>
@@ -710,27 +666,87 @@
           </div>
 
           <div class="rule-row">
+            <div class="idx">B</div>
+            <div>
+              <div class="title">컨텍스트 문서 품질</div>
+              <div class="sub">
+                길이 초과 1건 · 명령어 블록 · 주의사항 마커 부족
+              </div>
+            </div>
+            <div class="bar bar-bad">
+              <span style="width: 30%"></span>
+            </div>
+            <div class="num">6/20</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">C</div>
+            <div>
+              <div class="title">암묵지 외부화</div>
+              <div class="sub">
+                MEMORY.md / ADR 부재 · Five-Question 통과 1/5
+              </div>
+            </div>
+            <div class="bar bar-bad">
+              <span style="width: 10%"></span>
+            </div>
+            <div class="num">2/20</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">D</div>
+            <div>
+              <div class="title">모듈 간 의존성 매핑</div>
+              <div class="sub">
+                ARCHITECTURE.md · mermaid · 의존성 섹션 모두 부재
+              </div>
+            </div>
+            <div class="bar bar-bad">
+              <span style="width: 13%"></span>
+            </div>
+            <div class="num">2/15</div>
+          </div>
+
+          <div class="rule-row">
+            <div class="idx">E</div>
+            <div>
+              <div class="title">검증 & 품질 게이트</div>
+              <div class="sub">
+                <strong style="color: var(--red)">⚠ 잘못된 경로 27/31 참조</strong> · CODEOWNERS · evals 부재
+              </div>
+            </div>
+            <div class="bar bar-bad">
+              <span style="width: 33%"></span>
+            </div>
+            <div class="num">5/15</div>
+          </div>
+
+          <div class="rule-row">
             <div class="idx">F</div>
             <div>
               <div class="title">신선도 & 자가 유지보수</div>
-              <div class="sub">drift 0% · <strong style='color:var(--amber)'>게이트는 있으나 훅·CI 에 안 걸림</strong></div>
+              <div class="sub">
+                drift 0% · husky pre-push 존재 · CI 검증 단계 부재
+              </div>
             </div>
-            <div class="bar bar-warn">
-              <span style="width: 60%"></span>
+            <div class="bar bar-good">
+              <span style="width: 80%"></span>
             </div>
-            <div class="num">6/10</div>
+            <div class="num">8/10</div>
           </div>
 
           <div class="rule-row">
             <div class="idx">G</div>
             <div>
               <div class="title">에이전트 성과 측정</div>
-              <div class="sub"><code>evals/runs/</code> 실측 기록 보유 · telemetry 없음</div>
+              <div class="sub">
+                evals/ · benchmarks/ 부재 · 측정 인프라 전무
+              </div>
             </div>
-            <div class="bar bar-good">
-              <span style="width: 80%"></span>
+            <div class="bar bar-bad">
+              <span style="width: 0%"></span>
             </div>
-            <div class="num">4/5</div>
+            <div class="num">0/5</div>
           </div>
         </div>
       </section>
@@ -741,8 +757,8 @@
           <div>
             <h2>구조 지도</h2>
             <div class="sub">
-              2026-08-30 성격축 분리 후 구조. 가르는 질문은 언어가 아니라
-              <strong>시키는가 · 계산하는가 · 그리는가</strong>
+              노드 = 디렉터리 · 엣지 = 의존성 · 카드 내부 수치는 해당
+              영역의 AI 준비도 지표
             </div>
           </div>
           <div class="map-legend">
@@ -765,14 +781,14 @@
                 class="legend-square"
                 style="background: var(--red-soft); border: 1px solid var(--red)"
               ></span>
-              500줄 초과
+              400줄 초과
             </span>
             <span>
               <span
                 class="legend-line"
                 style="border-color: var(--accent)"
               ></span>
-              자식 프로세스
+              타입 연결
             </span>
             <span>
               <span
@@ -785,102 +801,417 @@
         </div>
 
         <div class="map-body">
-          <svg viewBox="0 0 1180 560" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 1180 640" xmlns="http://www.w3.org/2000/svg">
+            <!-- subtle grid -->
             <g class="grid-bg">
-              <path d="M0,80 H1180"/><path d="M0,160 H1180"/><path d="M0,240 H1180"/>
-              <path d="M0,320 H1180"/><path d="M0,400 H1180"/><path d="M0,480 H1180"/>
-              <path d="M100,0 V560"/><path d="M300,0 V560"/><path d="M500,0 V560"/>
-              <path d="M700,0 V560"/><path d="M900,0 V560"/><path d="M1100,0 V560"/>
-            </g>
-            <text x="200" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">러너축 · 시키는가</text>
-            <text x="590" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">기계축 · 계산하는가</text>
-            <text x="980" y="30" text-anchor="middle" class="node-meta" style="font-size:11px;fill:var(--text-2);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">시각축 · 그리는가</text>
-
-            <g transform="translate(440,50)">
-              <rect class="node-card accent" width="300" height="62" rx="8"/>
-              <circle cx="22" cy="21" r="13" class="claude-ring"/><circle cx="22" cy="21" r="6" class="claude-dot"/>
-              <text x="44" y="24" class="node-title">CLAUDE.md (root) · 나침반</text>
-              <text x="44" y="41" class="node-meta">다섯 모듈 문서로 라우팅 · 성격축 표</text>
-              <text x="284" y="24" text-anchor="end" class="node-kpi" style="fill:var(--amber)">256 ln</text>
+              <path d="M0,80 H1180" />
+              <path d="M0,160 H1180" />
+              <path d="M0,240 H1180" />
+              <path d="M0,320 H1180" />
+              <path d="M0,400 H1180" />
+              <path d="M0,480 H1180" />
+              <path d="M0,560 H1180" />
+              <path d="M100,0 V640" />
+              <path d="M300,0 V640" />
+              <path d="M500,0 V640" />
+              <path d="M700,0 V640" />
+              <path d="M900,0 V640" />
+              <path d="M1100,0 V640" />
             </g>
 
-            <g transform="translate(60,150)">
-              <rect class="node-card accent" width="280" height="150" rx="8"/>
-              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
-              <text x="42" y="26" class="node-title">runner/</text>
-              <text x="264" y="26" text-anchor="end" class="node-kpi" style="fill:var(--green)">신설</text>
-              <text x="16" y="56" class="node-meta">run_mode1 · 1_5 · 2 · dispatch · wiki/ · term/</text>
-              <g transform="translate(16,66)"><rect class="hot" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">run_mode1.py</text>
-                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">1319</text></g>
-              <g transform="translate(16,88)"><rect class="hot" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">run_mode1_5.py</text>
-                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">842</text></g>
-              <g transform="translate(16,110)"><rect fill="var(--grid)" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--text-2)">wiki/ 6 · term/ 3 (.mjs)</text></g>
+            <!-- Column headers -->
+            <text
+              x="200"
+              y="32"
+              text-anchor="middle"
+              class="node-meta"
+              style="font-size: 11px; fill: var(--text-2); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;"
+            >
+              프런트엔드 · apps/web
+            </text>
+            <text
+              x="590"
+              y="32"
+              text-anchor="middle"
+              class="node-meta"
+              style="font-size: 11px; fill: var(--text-2); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;"
+            >
+              백엔드 · apps/api
+            </text>
+            <text
+              x="980"
+              y="32"
+              text-anchor="middle"
+              class="node-meta"
+              style="font-size: 11px; fill: var(--text-2); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;"
+            >
+              데이터 · supabase
+            </text>
+
+            <!-- ============ ROOT CLAUDE.md (top center) ============ -->
+            <g transform="translate(440,60)">
+              <rect
+                class="node-card accent"
+                width="300"
+                height="70"
+                rx="8"
+              />
+              <circle cx="22" cy="22" r="14" class="claude-ring" />
+              <circle cx="22" cy="22" r="6" class="claude-dot" />
+              <text x="44" y="26" class="node-title">
+                CLAUDE.md (root)
+              </text>
+              <text x="44" y="42" class="node-meta">
+                프로젝트 개요 · 아키텍처 · API 엔드포인트 맵
+              </text>
+              <text x="44" y="58" class="node-meta" style="fill: var(--text-2)">
+                60 lines
+              </text>
+              <text
+                x="284"
+                y="26"
+                text-anchor="end"
+                class="node-kpi"
+                style="fill: var(--accent)"
+              >
+                루트
+              </text>
             </g>
 
-            <g transform="translate(450,150)">
-              <rect class="node-card accent" width="280" height="150" rx="8"/>
-              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
-              <text x="42" y="26" class="node-title">machine/</text>
-              <text x="264" y="26" text-anchor="end" class="node-kpi">13 py</text>
-              <text x="16" y="56" class="node-meta">normalize · facts · terms_db · xmldoc · roslyn-dump</text>
-              <g transform="translate(16,66)"><rect class="hot" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--red);font-weight:600">normalize.py</text>
-                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--red);font-weight:600">868</text></g>
-              <g transform="translate(16,88)"><rect class="warm" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--amber);font-weight:600">roslyn-dump/Program.cs</text>
-                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--amber);font-weight:600">527</text></g>
-              <g transform="translate(16,110)"><rect fill="var(--grid)" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--text-2)">terms-reading.json · comments.xml</text></g>
+            <!-- ============ apps/web column ============ -->
+            <!-- web CLAUDE.md -->
+            <g transform="translate(60,180)">
+              <rect class="node-card accent" width="280" height="64" rx="8" />
+              <circle cx="22" cy="22" r="12" class="claude-ring" />
+              <circle cx="22" cy="22" r="5" class="claude-dot" />
+              <text x="42" y="26" class="node-title">apps/web/CLAUDE.md</text>
+              <text x="42" y="42" class="node-meta">
+                디렉터리 규약 · 네이밍 · TanStack Query 패턴
+              </text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi">
+                360 ln
+              </text>
             </g>
 
-            <g transform="translate(840,150)">
-              <rect class="node-card accent" width="280" height="150" rx="8"/>
-              <circle cx="22" cy="22" r="11" class="claude-ring"/><circle cx="22" cy="22" r="5" class="claude-dot"/>
-              <text x="42" y="26" class="node-title">viz/</text>
-              <text x="264" y="26" text-anchor="end" class="node-kpi">+ src/</text>
-              <text x="16" y="56" class="node-meta">build · check · init · svg · render_*.py · demermaid.py</text>
-              <g transform="translate(16,66)"><rect class="warm" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--amber);font-weight:600">src/runtime/term-graph.ts</text>
-                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill:var(--amber);font-weight:600">482</text></g>
-              <g transform="translate(16,88)"><rect fill="var(--accent-soft)" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--accent);font-weight:600">render_classes · render_modules (py)</text></g>
-              <g transform="translate(16,110)"><rect fill="var(--accent-soft)" width="248" height="18" rx="3"/>
-                <text x="8" y="13" class="node-meta" style="fill:var(--accent);font-weight:600">src/ 컴포넌트 17 + theme.css</text></g>
+            <!-- src/app -->
+            <g transform="translate(60,268)">
+              <rect class="node-card" width="280" height="110" rx="8" />
+              <text x="16" y="24" class="node-title">apps/web/src/app</text>
+              <text x="16" y="40" class="node-meta">
+                Next.js App Router · (app) (auth) (blog)
+              </text>
+
+              <!-- file row: manual -->
+              <g transform="translate(16,52)">
+                <rect class="hot" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--red); font-weight:600">
+                  manual/page.tsx
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--red); font-weight:600">
+                  557
+                </text>
+              </g>
+
+              <!-- file row: upload -->
+              <g transform="translate(16,74)">
+                <rect class="hot" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--red); font-weight:600">
+                  upload/page.tsx
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--red); font-weight:600">
+                  502
+                </text>
+              </g>
             </g>
 
-            <g transform="translate(60,350)">
-              <rect class="node-card accent" width="280" height="62" rx="8"/>
-              <circle cx="22" cy="21" r="11" class="claude-ring"/><circle cx="22" cy="21" r="5" class="claude-dot"/>
-              <text x="42" y="25" class="node-title">tools/ · 어느 축도 아닌 것</text>
-              <text x="16" y="50" class="node-meta">python.mjs · doctor.mjs · scrub_local_paths.py</text>
+            <!-- src/components -->
+            <g transform="translate(60,402)">
+              <rect class="node-card" width="280" height="130" rx="8" />
+              <text x="16" y="24" class="node-title">apps/web/src/components</text>
+              <text x="16" y="40" class="node-meta">
+                dashboard · blog · product · upload · layout
+              </text>
+
+              <!-- BlueCard -->
+              <g transform="translate(16,52)">
+                <rect class="hot" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--red); font-weight:600">
+                  dashboard/BlueCard.tsx
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--red); font-weight:600">
+                  449
+                </text>
+              </g>
+
+              <!-- NotionRenderer -->
+              <g transform="translate(16,74)">
+                <rect class="warm" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  blog/NotionRenderer.tsx
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  366
+                </text>
+              </g>
+
+              <!-- RedCard -->
+              <g transform="translate(16,96)">
+                <rect class="warm" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  dashboard/RedCard.tsx
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  323
+                </text>
+              </g>
             </g>
 
-            <g transform="translate(450,350)">
-              <rect class="node-card" width="280" height="62" rx="8"/>
-              <circle cx="22" cy="21" r="9" fill="var(--green-soft)"/><circle cx="22" cy="21" r="5" class="test-dot"/>
-              <text x="42" y="25" class="node-title">게이트</text>
-              <text x="16" y="50" class="node-meta">npm test 178 · pytest 287 · tsc 통과</text>
+            <!-- src/lib + tests (colocated) -->
+            <g transform="translate(60,556)">
+              <rect class="node-card" width="280" height="64" rx="8" />
+              <circle cx="22" cy="22" r="10" fill="var(--green-soft)" />
+              <circle cx="22" cy="22" r="5" class="test-dot" />
+              <text x="42" y="26" class="node-title">
+                apps/web/src/lib &amp; __tests__
+              </text>
+              <text x="42" y="42" class="node-meta">
+                코로케이션 테스트 ✓ · format · backend · notion · blog
+              </text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi" style="fill: var(--green)">
+                5 suites
+              </text>
             </g>
 
-            <g transform="translate(840,350)">
-              <rect class="node-card accent" width="280" height="62" rx="8"/>
-              <circle cx="22" cy="21" r="11" class="claude-ring"/><circle cx="22" cy="21" r="5" class="claude-dot"/>
-              <text x="42" y="25" class="node-title">docs/ · 보관소</text>
-              <text x="16" y="50" class="node-meta">첨부 없이 열지 않는다 · ADR 6건</text>
+            <!-- ============ apps/api column ============ -->
+            <!-- api CLAUDE.md -->
+            <g transform="translate(450,180)">
+              <rect class="node-card accent" width="280" height="64" rx="8" />
+              <circle cx="22" cy="22" r="12" class="claude-ring" />
+              <circle cx="22" cy="22" r="5" class="claude-dot" />
+              <text x="42" y="26" class="node-title">apps/api/CLAUDE.md</text>
+              <text x="42" y="42" class="node-meta">
+                파서 레이아웃 · Red/Blue Box · Template Method
+              </text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi">
+                89 ln
+              </text>
             </g>
 
-            <path class="edge edge-dash" d="M500,112 C 500,132 200,130 200,150"/>
-            <path class="edge edge-dash" d="M590,112 V150"/>
-            <path class="edge edge-dash" d="M680,112 C 680,132 980,130 980,150"/>
-            <path class="edge edge-type" d="M340,215 H450"/>
-            <text x="395" y="208" text-anchor="middle" class="node-meta" style="fill:var(--accent);font-weight:600">부른다</text>
-            <path class="edge edge-type" d="M730,240 C 780,240 790,240 840,240"/>
-            <text x="785" y="233" text-anchor="middle" class="node-meta" style="fill:var(--accent);font-weight:600">부른다</text>
-            <path class="edge edge-dash" d="M200,300 V350"/>
-            <text x="240" y="330" class="node-meta" style="fill:var(--text-2)">해석기 탐색</text>
+            <!-- app/routers -->
+            <g transform="translate(450,268)">
+              <rect class="node-card" width="280" height="110" rx="8" />
+              <text x="16" y="24" class="node-title">apps/api/app/routers</text>
+              <text x="16" y="40" class="node-meta">
+                upload · dashboard · costs · prices · admin
+              </text>
+
+              <!-- upload.py -->
+              <g transform="translate(16,52)">
+                <rect class="hot" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--red); font-weight:600">
+                  upload.py
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--red); font-weight:600">
+                  539
+                </text>
+              </g>
+
+              <!-- dashboard.py -->
+              <g transform="translate(16,74)">
+                <rect fill="var(--grid)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--text-2)">
+                  dashboard.py
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--text-2)">
+                  269
+                </text>
+              </g>
+            </g>
+
+            <!-- app/services -->
+            <g transform="translate(450,402)">
+              <rect class="node-card" width="280" height="130" rx="8" />
+              <text x="16" y="24" class="node-title">apps/api/app/services</text>
+              <text x="16" y="40" class="node-meta">
+                aggregation · blue_box · file_processor · auth
+              </text>
+
+              <!-- aggregation.py -->
+              <g transform="translate(16,52)">
+                <rect class="hot" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--red); font-weight:600">
+                  aggregation.py
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--red); font-weight:600">
+                  446
+                </text>
+              </g>
+              <!-- file_processor.py -->
+              <g transform="translate(16,74)">
+                <rect class="warm" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  file_processor.py
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--amber); font-weight:600">
+                  345
+                </text>
+              </g>
+              <!-- blue_box.py -->
+              <g transform="translate(16,96)">
+                <rect fill="var(--grid)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--text-2)">
+                  blue_box.py · pure fn
+                </text>
+                <text x="240" y="13" text-anchor="end" class="node-meta" style="fill: var(--text-2)">
+                  210
+                </text>
+              </g>
+            </g>
+
+            <!-- api/tests separate -->
+            <g transform="translate(450,556)">
+              <rect
+                class="node-card"
+                width="280"
+                height="64"
+                rx="8"
+                stroke-dasharray="4 3"
+              />
+              <circle cx="22" cy="22" r="10" fill="var(--green-soft)" />
+              <circle cx="22" cy="22" r="5" class="test-dot" />
+              <text x="42" y="26" class="node-title">
+                apps/api/tests &nbsp;<tspan style="fill: var(--amber); font-weight: 500;">(separate tree)</tspan>
+              </text>
+              <text x="42" y="42" class="node-meta">
+                17 test files · parsers · router · aggregation
+              </text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi" style="fill: var(--green)">
+                17 suites
+              </text>
+            </g>
+
+            <!-- ============ supabase column ============ -->
+            <!-- supabase CLAUDE.md -->
+            <g transform="translate(840,180)">
+              <rect class="node-card accent" width="280" height="64" rx="8" />
+              <circle cx="22" cy="22" r="12" class="claude-ring" />
+              <circle cx="22" cy="22" r="5" class="claude-dot" />
+              <text x="42" y="26" class="node-title">supabase/CLAUDE.md</text>
+              <text x="42" y="42" class="node-meta">
+                스키마 규칙 · RLS · staleness 트리거
+              </text>
+              <text x="264" y="26" text-anchor="end" class="node-kpi">
+                50 ln
+              </text>
+            </g>
+
+            <!-- schema.sql -->
+            <g transform="translate(840,268)">
+              <rect class="node-card" width="280" height="110" rx="8" />
+              <text x="16" y="24" class="node-title">supabase/schema.sql</text>
+              <text x="16" y="40" class="node-meta">
+                canonical DDL · BIGINT KRW · RLS policies
+              </text>
+              <g transform="translate(16,52)">
+                <rect fill="var(--grid)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--text-2)">
+                  8 tables · 단일 RLS 패턴
+                </text>
+              </g>
+              <g transform="translate(16,74)">
+                <rect fill="var(--grid)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--text-2)">
+                  staleness triggers · ON DELETE CASCADE
+                </text>
+              </g>
+            </g>
+
+            <!-- docs/ -->
+            <g transform="translate(840,402)">
+              <rect class="node-card" width="280" height="110" rx="8" />
+              <text x="16" y="24" class="node-title">docs/ · MEMORY.md</text>
+              <text x="16" y="40" class="node-meta">
+                설계 문서 · 계산 로직 · 의사결정 "Why:"
+              </text>
+              <g transform="translate(16,52)">
+                <rect fill="var(--accent-soft)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--accent); font-weight:600">
+                  dashboard-calculation-logic
+                </text>
+              </g>
+              <g transform="translate(16,74)">
+                <rect fill="var(--accent-soft)" width="248" height="18" rx="3" />
+                <text x="8" y="13" class="node-meta" style="fill: var(--accent); font-weight:600">
+                  blue-box-logic · parser-system
+                </text>
+              </g>
+            </g>
+
+            <!-- =================== EDGES =================== -->
+            <!-- Root CLAUDE.md → each sub CLAUDE.md -->
+            <path
+              class="edge edge-dash"
+              d="M500,130 C 500,160 200,160 200,180"
+            />
+            <path
+              class="edge edge-dash"
+              d="M590,130 C 590,160 590,160 590,180"
+            />
+            <path
+              class="edge edge-dash"
+              d="M680,130 C 680,160 980,160 980,180"
+            />
+
+            <!-- Type sync edge: web/src/app ↔ api/routers (thicker) -->
+            <path
+              class="edge edge-type"
+              d="M340,300 C 400,300 400,300 450,300"
+            />
+            <text
+              x="395"
+              y="293"
+              text-anchor="middle"
+              class="node-meta"
+              style="fill: var(--accent); font-weight: 600"
+            >
+              HTTP · JWT 인증
+            </text>
+
+            <!-- Type sync warning: web/lib/types ↔ api/models/schemas -->
+            <path
+              class="edge edge-warn edge-dash"
+              d="M340,588 C 400,540 400,500 450,460"
+            />
+            <text
+              x="395"
+              y="528"
+              text-anchor="middle"
+              class="node-meta"
+              style="fill: var(--amber); font-weight: 600"
+            >
+              types ↔ schemas (manual)
+            </text>
+
+            <!-- api/services → supabase schema -->
+            <path
+              class="edge edge-dash"
+              d="M730,460 C 790,460 790,320 840,320"
+            />
+            <text
+              x="790"
+              y="395"
+              text-anchor="middle"
+              class="node-meta"
+              style="fill: var(--text-2)"
+            >
+              DB 입출력
+            </text>
+
+            <!-- docs ← CLAUDE.md root -->
+            <path
+              class="edge edge-dash"
+              d="M740,95 C 900,95 980,95 980,402"
+            />
           </svg>
         </div>
       </section>
@@ -896,37 +1227,43 @@
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat A</span>
-                다섯 모듈 전부 컨텍스트 보유 — 15/15
+                root + 3 module CLAUDE.md 체계
               </div>
-              <div class="note">성격축 분리로 <code>runner/</code> <code>tools/</code> 가 생기며 각자 CLAUDE.md 를 얻었고, <code>docs/</code> 도 보관소 선언 문서를 받았다. 커버리지 3/4 → 5/5.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat E1</span>
-                경로 경고 12건 — 전수 재검증 결과 <strong>진짜 0건</strong>
+              <div class="note">
+                root → web → api → supabase. 에이전트가 상위에서 하위로
+                드릴다운하며 필요한 만큼만 context 로드 가능.
               </div>
-              <div class="note">재생성물 <code>out/</code> 8건, <code>$GRAPHICS_REPO</code> 트리 2건, 앞 점 탈락 1건, 그리고 채점기 정규식이 <code>.json</code>/<code>.tsx</code> 를 <code>.js</code>/<code>.ts</code> 로 자른 6건. <strong>같은 교대-순서 버그를 이 저장소 게이트도 처음에 냈고</strong>, 잠금을 걸어 함정 자체를 테스트로 박았다.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat C</span>
-                암묵지 18/20 — ADR 과 모듈 소유권이 문서에 산다
-              </div>
-              <div class="note"><code>docs/decisions/</code> 6건이 기각·취소 사유를 보존하고, 다섯 모듈 전부 Owns / Cross-module / Gotchas 절을 갖는다. 에이전트가 죽은 방향을 재제안하기 어렵다.</div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat F</span>
-                context drift 0% — 다섯 모듈 전부 신선
+                Context drift 0% · husky pre-push 가동
               </div>
-              <div class="note">각 CLAUDE.md 의 mtime 이 담당 디렉토리의 최근 변경보다 뒤다. 오늘 축을 갈면서 문서를 같이 옮긴 결과다.</div>
+              <div class="note">
+                CLAUDE.md mtime 이 최근 코드 변경보다 신선함. pre-push
+                hook 으로 빌드 게이트 가동 중.
+              </div>
             </li>
             <li>
               <div class="head">
-                <span class="tag tag-rule">Cat E</span>
-                게이트가 이번 이동에서 실제로 결함 3건을 잡았다
+                <span class="tag tag-rule">Cat E3</span>
+                Build/test infra 완비
               </div>
-              <div class="note"><code>machine/CLAUDE.md</code> 의 죽은 <code>../src/CLAUDE.md</code>, 그리고 <code>viz/src/</code> 가 한 단계 깊어지며 생긴 상대경로 깊이 오류 2건. <strong>합성이 아니라 진짜 이동에서 나온 회귀다.</strong></div>
+              <div class="note">
+                <code>turbo.json</code> + 각 앱의 <code>package.json</code>
+                / <code>pyproject.toml</code>. agent가 변경 후 검증
+                가능한 명령 즉시 실행 가능.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat A</span>
+                Monorepo 3-province 경계
+              </div>
+              <div class="note">
+                apps/web · apps/api · supabase 가 명확히 분리되어 병렬
+                agent run 시 충돌 없음.
+              </div>
             </li>
           </ul>
         </section>
@@ -937,62 +1274,57 @@
             <span class="count">우선순위 정렬</span>
           </div>
           <ul class="panel-list">
-            <li>
-              <div class="head">
-                <span class="tag tag-rule" style="background: var(--red-soft); color: var(--red)">Cat F · S</span>
-                게이트를 pre-commit / CI 에 건다
-              </div>
-              <div class="note"><strong>Effort 1.0 hr · Impact 9/10.</strong> <code>test/docs-citations.test.mjs</code> 가 이미 178개를 돌리는데 <strong>훅에 걸려 있지 않다.</strong> 만들어 놓고 안 쓰는 상태 — F 6→9. 오늘 잡은 3건 같은 회귀를 머지 시점에 막는다.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat B · M</span>
-                루트 CLAUDE.md 를 나침반 크기로 (256 → ~80줄)
-              </div>
-              <div class="note"><strong>Effort 2.0 hr · Impact 7/10.</strong> 문서 자신이 "지도가 아니라 나침반"이라 선언했는데 오늘 축 표가 붙어 더 길어졌다. Phase 기각 서술과 실측 표를 <code>docs/decisions/</code> 로 옮기고 링크만 남긴다.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat B · S</span>
-                모듈 문서 사이 상호 링크 보강 (B5 1/4)
-              </div>
-              <div class="note"><strong>Effort 1.0 hr · Impact 6/10.</strong> 축이 셋으로 갈리며 <code>runner ↔ machine ↔ viz</code> 왕복이 늘었는데 문서 링크가 그걸 못 따라간다. 표기 작업에 가깝다.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule" style="background: var(--amber-soft); color: var(--amber)">Cat B · S</span>
-                machine/CLAUDE.md 를 축 분리에 맞춰 다시 쓴다
-              </div>
-              <div class="note"><strong>Effort 1.0 hr · Impact 7/10.</strong> 제목이 아직 <code>codegraph/</code> 이고 "세 실행기" 절이 통째로 남아 있다 — 그 셋은 <code>runner/</code> 로 갔다. <strong>경로만 치환하고 내용은 안 고친 상태.</strong></div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat C · S</span>
-                축 분리를 ADR 로 남긴다 (0007)
-              </div>
-              <div class="note"><strong>Effort 0.5 hr · Impact 6/10.</strong> 이 저장소 규약은 구조 결정을 <code>docs/decisions/</code> 에 적는 것인데 오늘 셋으로 가른 결정은 기록이 없다. C 의 남은 감점(변경 패턴 절 2/5)과 함께 처리.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat E · M</span>
-                xmldoc 레퍼런스 34건 정합
-              </div>
-              <div class="note"><strong>Effort 2.0 hr · Impact 5/10.</strong> 전부 <code>run_mode1.py</code> 줄 밀림이다. <code>terms-reading.json</code> 의 <code>where</code> 를 다시 잡아야 풀린다.</div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat B · L</span>
-                god file 분할 — run_mode1.py 1319줄 외 6건
-              </div>
-              <div class="note"><strong>Effort 17.5 hr · Impact 6/10 · 우선순위 최하.</strong> 💭 <strong>보류를 권한다</strong> — 오늘 성격축으로 이미 갈랐고, 기계적 분할은 그 축을 흐릴 위험이 있다. 편집 정확도 문제가 실제로 관측될 때 착수.</div>
-            </li>
-          </ul>
+<ul class="panel-list">
+
+    <li>
+      <div class="head">
+        <span class="tag tag-rule">Cat E · S</span>
+        context의 hallucinated path 14건 수정 (referential trust)
+      </div>
+      <div class="note">
+        <strong>Effort 0.5 hr · Impact 10/10.</strong>
+        agent의 잘못된 path-following 방지 — stale = worse than missing
+      </div>
+    </li>
+    
+    <li>
+      <div class="head">
+        <span class="tag tag-rule">Cat F · S</span>
+        CI 또는 pre-push hook에 context path 검증 추가
+      </div>
+      <div class="note">
+        <strong>Effort 1.0 hr · Impact 8/10.</strong>
+        stale reference를 코드 머지 시점에 차단 — 회귀 방지
+      </div>
+    </li>
+    
+    <li>
+      <div class="head">
+        <span class="tag tag-rule">Cat B · M</span>
+        과도한 CLAUDE.md를 25-35 lines로 압축 (compass-not-encyclopedia)
+      </div>
+      <div class="note">
+        <strong>Effort 2.0 hr · Impact 7/10.</strong>
+        agent context 로드 시간 단축 + 핵심 정보 가시성 ↑
+      </div>
+    </li>
+    
+    <li>
+      <div class="head">
+        <span class="tag tag-rule">Cat B · L</span>
+        god file 9개 분할 (>500 lines): runner/run_mode1.py (1390), machine/normalize.py (1358), machine/test_normalize.py (1201)
+      </div>
+      <div class="note">
+        <strong>Effort 22.5 hr · Impact 6/10.</strong>
+        파일당 ~5K-10K token 절감 + 편집 정확도 ↑
+      </div>
+    </li>
+    </ul>
+</ul>
         </section>
       </div>
 
-      <footer>
-        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30
-      </footer>
+      <footer>report-builder · AI-Readiness v2 · scored 2026-08-31</footer>
     </div>
   </body>
 </html>
