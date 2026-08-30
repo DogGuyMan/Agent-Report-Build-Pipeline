@@ -126,3 +126,27 @@ def test_이_저장소_실측():
     for L in p["layers"]:
         seen = collections.Counter(f for b in L.get("batches", []) for f in b["files"])
         assert [f for f, n in seen.items() if n > 1] == []
+
+
+def test_간선은_from_이_의존하는_쪽이다():
+    """🔴 이 방향을 뒤집어 읽으면 정렬이 **정반대**가 된다.
+
+    `{from: A, to: B}` = "A 가 B 에 의존". 그래서 out_deg 0(아무것도 안 끌어옴)이 층0 이고,
+    in_deg 0(아무도 안 씀 = 진입점)이 맨 위층이다. 2026-08-30 에 실제로 헷갈린 자리라
+    시험으로 못 박는다.
+    """
+    # main 이 util 을 부른다  ->  (main, util)
+    lv, _ = layer_of({"main": 1, "util": 1}, [("main", "util")])
+    assert lv["util"] == 0, "의존받기만 하는 util 이 층0 이어야 한다"
+    assert lv["main"] == 1, "남을 부르는 main 은 위층이어야 한다"
+
+
+def test_진입점은_맨_위층이다():
+    """in_deg 0 은 아무도 안 쓰는 것 = 진입점이다. 거기서 시작하면 top-down 이 된다."""
+    lv, _ = layer_of({"main": 1, "mid": 1, "leaf": 1},
+                     [("main", "mid"), ("mid", "leaf")])
+    진입점 = [n for n in ("main", "mid", "leaf")
+              if not any(d == n for _, d in [("main", "mid"), ("mid", "leaf")])]
+    assert 진입점 == ["main"]
+    assert lv["main"] == max(lv.values())      # 진입점이 맨 위
+    assert lv["leaf"] == 0                     # 잎이 맨 아래

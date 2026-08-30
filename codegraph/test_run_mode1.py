@@ -28,7 +28,7 @@ import run_mode1 as R  # noqa: E402
 
 
 # ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
-def test_빈_저장소면_여덟_단계를_순서대로_돈다():
+def test_빈_저장소면_아홉_단계를_순서대로_돈다():
     """예전 이름은 `test_plan_runs_everything_on_an_empty_repo` 였다.
 
     warmup 배선까지는 일곱이었다(prep warmup agent warmup-save terms build check).
@@ -37,7 +37,8 @@ def test_빈_저장소면_여덟_단계를_순서대로_돈다():
     재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
     """
     assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
+        "prep", "warmup", "survey-plan", "survey", "warmup-save",
+        "terms", "wiki", "build", "check"]
 
 
 def test_warmup_관문이_survey_를_감싼다():
@@ -77,7 +78,7 @@ def test_산출물이_있는_LLM_단계만_각자_빠진다():
     assert "survey" not in both and "wiki" not in both
     # warmup 두 칸은 남는다 — 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
     # 매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다(warmup 배선의 규칙 그대로).
-    assert both == ["prep", "warmup", "warmup-save", "terms", "build", "check"]
+    assert both == ["prep", "warmup", "survey-plan", "warmup-save", "terms", "build", "check"]
 
     only_reading = R.plan_stages(True, True, False)
     assert "survey" not in only_reading and "wiki" in only_reading
@@ -106,7 +107,7 @@ def test_skip_은_새_여덟_흐름_기준으로_걸러낸다():
     걸러내는 필터로 옳게 동작하는지만 본다.
     """
     p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
-    assert p == ["prep", "survey", "terms", "wiki", "build", "check"]
+    assert p == ["prep", "survey-plan", "survey", "terms", "wiki", "build", "check"]
 
 
 def test_plan_keeps_prep_even_when_codegraph_exists():
@@ -645,3 +646,37 @@ def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path):
     assert 한번 == 두번 == {"가": {"where": "a.py:1", "means": "뜻"}}
     # 앞선 결과를 다시 넘겨도(잘못된 사용) 최소한 개명은 일어나지 않아야 한다
     assert R.merge_shards(d, 한번) == 한번
+
+
+# ── 16. 층 계획은 기계다 — LLM 이 하는 일처럼 보이면 안 된다 (2026-08-30 신설)
+def test_층_계획은_LLM_단계가_아니다():
+    """`survey-plan` 은 `AGENT_STAGES` 에 없다.
+
+    층 오름차순은 `survey_plan.py` 가 codegraph.json 하나로 **결정론**으로 낸다 —
+    의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**다(K1). 이 사실이 표에서
+    안 보이면 읽는 사람이 층 매기기까지 모형이 하는 줄 안다. 그래서 자기 칸을 준다.
+    """
+    stages = R.plan_stages(False, False, False)
+    assert "survey-plan" in stages
+    assert not R.is_agent_stage("survey-plan")
+    assert [s for s in stages if R.is_agent_stage(s)] == ["survey", "wiki"]
+
+
+def test_층_계획은_조사와_산문보다_먼저다():
+    """계획이 없으면 배치도 페이지 층도 만들 수 없다."""
+    p = R.plan_stages(False, False, False)
+    assert p.index("survey-plan") < p.index("survey") < p.index("wiki")
+    assert p.index("warmup") < p.index("survey-plan")      # 증분 목록을 받아야 한다
+
+
+def test_계획_요약은_층과_배치와_합계를_낸다():
+    """돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다."""
+    plan = {"layers": [
+        {"level": 0, "symbol_count": 5, "file_count": 3,
+         "batches": [{"id": "L0-B00"}, {"id": "L0-B01"}]},
+        {"level": 1, "kind": "non-node", "batches": []},
+    ], "totals": {"symbols": 5, "levels": 1}}
+    lines = R.plan_summary(plan)
+    assert "층0 — 심볼 5 · 파일 3 · 배치 2" in lines[0]
+    assert "비노드" in lines[1]
+    assert "배치 2" in lines[-1] and "심볼 5" in lines[-1]

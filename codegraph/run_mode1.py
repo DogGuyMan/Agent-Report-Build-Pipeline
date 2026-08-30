@@ -10,16 +10,20 @@
 목적은 파이프라인을 자동화하는 것이 아니라 **단계마다 벽시계 시간과 토큰을 붙들어
 표로 내는 것**이다. 자동화는 그것을 재기 위한 수단이다.
 
-## 여덟 단계 — LLM 이 도는 칸은 **둘**이다
+## 아홉 단계 — LLM 이 도는 칸은 **둘**뿐이다
 
-    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
-    기계    기계       LLM 층별   기계           기계     LLM 층별  기계     기계
+    prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+    기계    기계       기계            LLM 층별   기계           기계     LLM 층별  기계     기계
+
+**층을 매기는 것은 기계다.** `survey-plan` 이 자기 칸을 갖는 이유가 그것이다 —
+한 칸에 묶어 두면 "의존 위상 층 오름차순" 이 모형의 판단처럼 읽힌다.
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `scripts/wiki/prep.mjs` |
 | `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `codegraph/warmup.py` |
-| `survey` | 전수조사. **의존 위상 층 오름차순 · 층 안 병렬** | `claude -p` 배치마다 1회 |
+| `survey-plan` | **기계.** 코드 지도를 의존 위상 층과 배치로 나눈다. 모형을 부르지 않는다 | `codegraph/survey_plan.py` |
+| `survey` | 전수조사. 위 계획의 **층 오름차순 · 층 안 병렬**로 배치를 돌린다 | `claude -p` 배치마다 1회 |
 | `warmup-save` | **전수조사가** 해낸 뒤에만 매니페스트를 **확정**한다 | `codegraph/warmup.py` |
 | `terms` | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `codegraph/terms_db.py` |
 | `wiki`  | 위키 산문. 목차 1회 + 장마다 1회, 같은 층 순서 | `claude -p` 장마다 1회 |
@@ -33,7 +37,12 @@
 **2026-08-30 사용자가 그 결정을 뒤집었다.** 심볼의 뜻은 그것이 의존하는 심볼의 뜻 위에 서므로
 아무 순서로나 읽으면 아직 안 읽은 것을 가리키게 되고 그 자리가 추론으로 메워진다.
 그래서 **의존 대상이 없는 것부터** 한 겹씩 올라가고(K1), 같은 층은 서로 의존하지 않으므로
-병렬로 읽는다(K2 · K4). 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5),
+병렬로 읽는다(K2 · K4).
+
+⚠ **축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다.** 의존
+하나만 가진 심볼도 그 하나가 3층이면 4층이다. 🔵 2026-08-30 이 저장소 실측 — out_deg 1
+무리(31개) 안에 위상 깊이 1·2·3·4 가 전부 섞여 있었고, out_deg 2 무리(15개)도 같았다.
+out_deg 로 정렬하면 아직 안 읽은 것을 가리키게 된다. 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5),
 위키도 같은 층 순서(K6), 고립 노드는 층0(K7)이다.
 
 **비용은 아직 재지 않았다.** 쪼개면 캐시가 나빠지는 대신 배치마다 읽는 양이 훨씬 적다.
@@ -121,8 +130,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 확정한다 — 에이전트가 실패했는데 확정하면 읽지 않은 파일이 '유효' 로 남는다.
 # 확정은 **레코드를 만드는 `survey` 바로 뒤**다. `wiki` 뒤에 두면 산문 실패가
 # 다음 실행의 전량 재조사를 부른다(J6).
-# 단계는 여덟 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
-STAGES = ["prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
+# `survey-plan` 은 **기계**다. 층 오름차순이 LLM 의 판단처럼 보이지 않도록 자기 칸을 준다 —
+# 층은 `survey_plan.py` 가 codegraph.json 하나로 결정론으로 낸다(모형을 부르지 않는다).
+# 단계는 아홉 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
+STAGES = ["prep", "warmup", "survey-plan", "survey", "warmup-save",
+          "terms", "wiki", "build", "check"]
 
 # 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
 AGENT_STAGES = {"survey", "wiki"}
@@ -711,6 +723,28 @@ def format_report(rows, wall_seconds=None):
     return "\n".join(out)
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.plan_summary']"/>
+# 층 계획을 사람이 읽는 줄들로 만드는 함수.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def plan_summary(plan):
+    """층·배치·동시 물결 수를 줄 목록으로. **돈을 쓰기 전에** 몇 세션이 뜨는지 보여 주려는 것이다.
+
+    `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. 순수 함수라 시험이 쉽다.
+    """
+    out = []
+    for L in plan.get("layers", []):
+        if L.get("kind") == "non-node":
+            out.append("  층%d — 비노드 용어 (한 세션)" % L["level"])
+        else:
+            n = len(L.get("batches", []))
+            out.append("  층%d — 심볼 %d · 파일 %d · 배치 %d"
+                       % (L["level"], L["symbol_count"], L["file_count"], n))
+    총배치 = sum(len(L.get("batches", [])) for L in plan.get("layers", []))
+    out.append("  합계 — 심볼 %d · 층 %d · 배치 %d (LLM 세션이 그만큼 뜬다)"
+               % (plan["totals"]["symbols"], plan["totals"]["levels"], 총배치))
+    return out
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.stage_totals']"/>
 # 배치 행들을 단계 단위로 접어 소계를 내는 함수.
 # 쓰는 것: run_mode1.sum_usage · 쓰이는 곳: run_mode1.main
@@ -1130,6 +1164,13 @@ def main(argv=None):
     print("이미 있는 것 — 코드지도 %s · 읽기레코드 %s · 산문 %s"
           % (os.path.exists(codegraph), os.path.exists(reading), has_prose))
     if a.dry_run:
+        # 돈을 쓰기 전에 **몇 세션이 뜨는지** 보여 준다. 층 계산은 결정론이라 지금 해도 같다.
+        if "survey-plan" in stages and os.path.exists(codegraph):
+            with open(codegraph, encoding="utf-8") as f:
+                미리 = survey_plan.plan(json.load(f), a.target)
+            print("\n층 계획 (기계가 결정론으로 낸다 — 모형을 부르지 않는다)")
+            for L in plan_summary(미리):
+                print(L)
         return 0
 
     # warmup 이 앞칸에서 담아 두고 뒤칸이 꺼내 쓴다. 같은 프로세스 안이라 파일로 넘길 이유가 없다.
@@ -1150,6 +1191,27 @@ def main(argv=None):
             ok, why = save_warmup(warmup_cache, entries, rows)
             rows.append({"stage": stage, "seconds": time.monotonic() - t0,
                          "usage": normalize_usage(None), "ok": ok, "why": why})
+        elif stage == "survey-plan":
+            # **기계 단계다. 모형을 부르지 않는다.** 층은 codegraph.json 하나로 결정론이다 —
+            # 의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**로 매긴다. 🔵 실측에서
+            # out_deg 1 무리 안에 깊이 1·2·3·4 가 섞여 있었다(K1).
+            if not os.path.exists(codegraph):
+                ok, why = False, "코드 지도가 없다 — prep 이 먼저다: %s" % codegraph
+            else:
+                with open(codegraph, encoding="utf-8") as f:
+                    # warmup 이 판정한 목록이 있으면 그 파일의 심볼만 남긴다(증분 조사).
+                    # 층 번호는 **전체 그래프 기준으로 매긴 뒤** 걸러진다 —
+                    # 거르고 나서 매기면 사라진 의존 대상 때문에 층이 잘못 내려간다.
+                    plan_json = survey_plan.plan(json.load(f), a.target, only_files=targets)
+                with open(survey_plan_path, "w", encoding="utf-8") as f:
+                    json.dump(plan_json, f, ensure_ascii=False, indent=1)
+                print("%s%s" % (survey_plan_path,
+                                " (증분: warmup 이 준 %d파일)" % len(targets) if targets else ""))
+                for L in plan_summary(plan_json):
+                    print(L)
+                ok, why = True, ""
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": normalize_usage(None), "ok": ok, "why": why})
         elif stage in AGENT_STAGES:
             if stage == "survey" and not should_call_agent(targets, os.path.exists(reading)):
                 rows.append({"stage": stage, "seconds": time.monotonic() - t0,
@@ -1158,22 +1220,14 @@ def main(argv=None):
                 print("%s — 건너뜀 (바뀐 파일 0개)" % stage, flush=True)
                 continue
             if plan_json is None:
-                if not os.path.exists(codegraph):
-                    print("에러 — 코드 지도가 없다: %s (prep 이 먼저다)" % codegraph,
+                # `--only survey` 처럼 앞칸을 건너뛰고 불렀을 때다. 디스크에 있으면 그것을 쓴다.
+                if not os.path.exists(survey_plan_path):
+                    print("에러 — 층 계획이 없다: %s (survey-plan 이 먼저다)" % survey_plan_path,
                           file=sys.stderr)
                     return 1
-                with open(codegraph, encoding="utf-8") as f:
-                    # warmup 이 판정한 목록이 있으면 그 파일의 심볼만 남긴다(증분 조사).
-                    # 층 번호는 **전체 그래프 기준으로 매긴 뒤** 걸러진다 —
-                    # 거르고 나서 매기면 사라진 의존 대상 때문에 층이 잘못 내려간다.
-                    plan_json = survey_plan.plan(json.load(f), a.target, only_files=targets)
-                with open(survey_plan_path, "w", encoding="utf-8") as f:
-                    json.dump(plan_json, f, ensure_ascii=False, indent=1)
-                print("배치 계획 %s — 심볼 %d · 층 %d%s"
-                      % (survey_plan_path, plan_json["totals"]["symbols"],
-                         plan_json["totals"]["levels"],
-                         " (증분: warmup 이 준 %d파일)" % len(targets) if targets else ""),
-                      flush=True)
+                with open(survey_plan_path, encoding="utf-8") as f:
+                    plan_json = json.load(f)
+                print("층 계획을 디스크에서 읽었다 — %s" % survey_plan_path, flush=True)
             if stage == "survey":
                 got = run_survey(a.model, repo, ROOT, plan_json, a.concurrency,
                                  a.timeout, reading, targets, tracked_n)

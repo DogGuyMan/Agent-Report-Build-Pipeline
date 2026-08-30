@@ -28,7 +28,8 @@
 자동화는 수단이고, 목적은 **단계마다 벽시계 시간과 토큰을 붙들어 표로 내는 것**이다.
 
 ```
-Mode 1    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+Mode 1    prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+#                              ↑ 기계(survey_plan.py)   ↑ LLM 층별
 Mode 1.5  collect ─▶ author ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ agent ─▶ build ─▶ check
 ```
@@ -86,7 +87,15 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 
 | # | 결정 |
 |---|---|
-| K1 | 정렬 축은 **위상 깊이** (out_deg 가 아니다 — 🔵 실측에서 out_deg 1 무리 안에 깊이 1·2·3·4 가 섞여 있었다) |
+**⚠ 간선 방향** — `codegraph.json` 의 `{from: A, to: B}` 는 **"A 가 B 에 의존"** 이다
+(레코드의 `uses[].to` 가 그대로 `to` 다). 🔵 2026-08-30 실측 — 105건 전부 이 방향, 반대 0건.
+그러므로 **`out_deg` = 내가 끌어오는 수**(0이면 층0, 여기서 시작), **`in_deg` = 남이 나를
+끌어가는 수**(0이면 진입점, 맨 나중). 🔵 층0(110개) 평균 out_deg 0.00 · 층3(7개) 3.14.
+**`in_deg` 0 부터 시작하면 top-down 이 되어 이 도구가 막으려는 사고가 그대로 난다** —
+`main` 이 부르는 것들이 아직 안 읽힌 채로 `main` 의 뜻을 적게 된다.
+
+| K1 | 정렬 축은 **위상 깊이**. 🔵 out_deg 로는 안 된다 — 이 저장소 실측에서 out_deg 1 무리(31개)와 2 무리(15개) 안에 깊이 1·2·3·4 가 전부 섞여 있었다. 의존 하나만 가져도 그 하나가 3층이면 4층이다 |
+| — | 층 매기기는 **기계**다(`survey_plan.py`). `survey-plan` 이 `STAGES` 에서 자기 칸을 갖는 이유 — 한 칸에 묶으면 층 오름차순이 모형의 판단처럼 읽힌다 |
 | K2 | 층 안은 병렬, 층 사이는 순차 |
 | K3 · K4 | 배치는 8심볼, 한 층에 동시 8배치 |
 | K5 | 비노드 용어(file · module · artifact · key · concept)는 맨 마지막 별도 층 |

@@ -95,8 +95,8 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph M1["Mode 1 — 코드베이스 위키"]
-    P1["prep"] --> W1["warmup"] --> A1["survey<br/>층별 배치 N세션"] --> S1["warmup-save"]
-    S1 --> T1["terms"] --> A1b["wiki<br/>목차 1 + 장 N세션"] --> B1["build"] --> C1["check"]
+    P1["prep"] --> W1["warmup"] --> SP1["survey-plan<br/>층·배치 계산"] --> A1["survey<br/>층별 배치 N세션"]
+    A1 --> S1["warmup-save"] --> T1["terms"] --> A1b["wiki<br/>목차 1 + 장 N세션"] --> B1["build"] --> C1["check"]
   end
   subgraph M15["Mode 1.5 — 용어 이해도"]
     CO["collect"] --> AU["author"] --> H(["사람이 답안"]) --> GR["grade"] --> EM["emit"]
@@ -107,7 +107,7 @@ flowchart LR
   classDef machine fill:#e8f0fe,stroke:#4a6fa5,color:#123
   classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px
   classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px
-  class P1,W1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
+  class P1,W1,SP1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
   class A1,A1b,AU,A2 llm
   class H human
 ```
@@ -127,6 +127,7 @@ Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운�
 |---|---|---|---|
 | `prep` | 기계 | `scripts/wiki/prep.mjs` | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
 | `warmup` | 기계 | `codegraph/warmup.py` | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다) |
+| `survey-plan` | 기계 | `codegraph/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/survey-plan.json` (층·배치. **모형을 부르지 않는다**) |
 | `survey` | **LLM 층별 N회** | `claude -p` 배치마다 | 소스 + `facts/*.md` + `survey-plan.json` → `_shards/*.json` → 합쳐서 `docs/codegraph/terms-reading.json` |
 | `warmup-save` | 기계 | `codegraph/warmup.py` | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**전수조사가 성공했을 때만**) |
 | `terms` | 기계 | `codegraph/terms_db.py` | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
