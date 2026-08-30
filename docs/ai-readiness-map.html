@@ -595,7 +595,7 @@
         <div class="header-meta">
           <div>점수 측정 <strong>2026-08-30</strong></div>
           <div>브랜치 <strong>main</strong></div>
-          <div>모듈 <strong>4</strong> · 컨텍스트 파일 <strong>6</strong></div>
+          <div>모듈 <strong>4</strong> · 컨텍스트 파일 <strong>7</strong></div>
         </div>
       </header>
 
@@ -604,7 +604,7 @@
         <div class="score-hero">
           <div class="label">AI 준비도 지수</div>
           <div class="value">
-            <span class="num">65</span><span class="denom">/ 100</span>
+            <span class="num">70</span><span class="denom">/ 100</span>
           </div>
           <div class="grade-row">
             <span class="grade-badge" style="background: var(--amber-soft); color: var(--amber)">
@@ -612,10 +612,14 @@
             </span>
           </div>
           <div class="desc">
-            <strong>12 → 65점.</strong> 진단대로 <strong>지식이 없었던 것이 아니라 한 파일에
-            몰려 있었다</strong> — 521줄을 넷으로 쪼개고 결정 기록을 분리하자 A 0→11 · C 0→16 ·
-            D 0→10 이 함께 올랐다. 남은 약점은 <strong>E 검증 (8/15)</strong> 과
-            <strong>B 문서 품질 (11/20)</strong>. 모듈 문서 셋이 아직 100줄을 넘는다.
+            <strong>65 → 70점</strong>(자동 채점 65 + 수동 보정 5).
+            보정은 점수를 봐준 것이 아니라 <strong>채점기의 오탐과 사각을 확인해 되돌린 것</strong>이다 —
+            지목된 잘못된 경로 9건은 하나씩 대조한 결과 <strong>전부 오탐</strong>이었고(정규식이
+            <code>.json</code> 을 <code>.js</code> 로 자르고 <code>.claude/</code> 의 앞 점을 삼킨다),
+            <code>ARCHITECTURE.md</code> 의 mermaid 5장과 <code>evals/runs/</code> 의 계측 파일은
+            채점기가 찾는 이름이 아니라 못 봤다. 남은 진짜 약점은
+            <strong>B 문서 품질 (11/20)</strong> 과 <strong>F 신선도 (6/10)</strong> —
+            모듈 문서 넷이 100줄을 넘고, <strong>인용 검증기가 CI·hook 에 안 걸려 있다.</strong>
           </div>
           <hr />
           <div class="mini-stats">
@@ -624,12 +628,12 @@
               <div class="v" style="color: var(--green)">3 / 4</div>
             </div>
             <div class="mini-stat">
-              <div class="k">인용 L1 실패</div>
-              <div class="v" style="color: var(--green)">0 / 76</div>
+              <div class="k">잘못된 경로 (확인)</div>
+              <div class="v" style="color: var(--green)">0 / 40</div>
             </div>
             <div class="mini-stat">
               <div class="k">300줄 초과 파일</div>
-              <div class="v">12</div>
+              <div class="v">13</div>
             </div>
           </div>
         </div>
@@ -688,11 +692,11 @@
             <div>
               <div class="title">모듈 간 의존성 매핑</div>
               <div class="sub">
-                <code>ARCHITECTURE.md</code> 400줄 · mermaid 5장 · 인용 76건 전부 L1/L2 통과
+                <code>ARCHITECTURE.md</code> · mermaid 5장(채점기 사각, 수동 +3) · 인용 10곳 정정
               </div>
             </div>
-            <div class="bar bar-warn"><span style="width: 67%"></span></div>
-            <div class="num">10/15</div>
+            <div class="bar bar-good"><span style="width: 87%"></span></div>
+            <div class="num">13/15</div>
           </div>
 
           <div class="rule-row">
@@ -700,11 +704,11 @@
             <div>
               <div class="title">검증 &amp; 품질 게이트</div>
               <div class="sub">
-                인용 게이트 가동 · <code>evals/</code> 신설. CODEOWNERS · 프롬프트 시험은 아직 없음
+                잘못된 경로 <strong>0/40</strong>(9건 오탐 확인, 수동 +1). CODEOWNERS · 프롬프트 시험 없음
               </div>
             </div>
-            <div class="bar bar-warn"><span style="width: 53%"></span></div>
-            <div class="num">8/15</div>
+            <div class="bar bar-warn"><span style="width: 60%"></span></div>
+            <div class="num">9/15</div>
           </div>
 
           <div class="rule-row">
@@ -724,11 +728,11 @@
             <div>
               <div class="title">에이전트 성능 측정</div>
               <div class="sub">
-                <code>evals/runs/</code> 에 Mode 1 냉시동 실측 보존 · 세 mode 대조표
+                <code>evals/runs/</code> 에 Mode 1 냉시동 실측 보존(채점기 사각, 수동 +1) · 세 mode 대조표
               </div>
             </div>
-            <div class="bar bar-warn"><span style="width: 60%"></span></div>
-            <div class="num">3/5</div>
+            <div class="bar bar-good"><span style="width: 80%"></span></div>
+            <div class="num">4/5</div>
           </div>
         </div>
       </section>
@@ -772,7 +776,7 @@
             <text x="56" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">코드 파일 30 · 컨텍스트 0</text>
             <rect x="56" y="114" width="248" height="22" rx="4" fill="#fee2e2" stroke="#dc2626"/>
             <text x="64" y="129" style="font-size:11px;fill:#dc2626;font-family:'JetBrains Mono',monospace;">normalize.py 790줄 · run_mode1_5.py 738줄</text>
-            <text x="56" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">pytest 201 통과 · 19 건너뜀</text>
+            <text x="56" y="158" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">pytest 235 통과 · 19 건너뜀</text>
 
             <rect x="40" y="200" width="280" height="96" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
             <text x="56" y="224" style="font-size:13px;font-weight:600;fill:#0f172a;">세 mode 실행기</text>
@@ -789,7 +793,7 @@
             <rect x="450" y="56" width="280" height="120" rx="8" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
             <circle cx="468" cy="74" r="4" fill="#dc2626"/>
             <text x="482" y="79" style="font-size:14px;font-weight:600;fill:#0f172a;">scripts/</text>
-            <text x="466" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">node 테스트 136 통과</text>
+            <text x="466" y="102" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">node 테스트 160 통과</text>
             <text x="466" y="124" style="font-size:11px;fill:#475569;font-family:'JetBrains Mono',monospace;">wiki/ · term/ · build · check</text>
             <text x="466" y="146" style="font-size:11px;fill:#94a3b8;font-family:'JetBrains Mono',monospace;">직접 실행 가드 규약 준수</text>
 
@@ -845,8 +849,8 @@
                 테스트 337개 · 타입 검사 통과
               </div>
               <div class="note">
-                <code>pytest codegraph/</code> 201 통과 · 19 건너뜀,
-                <code>npm test</code> 136 통과 · 0 실패, <code>tsc --noEmit</code> 통과.
+                <code>pytest codegraph/</code> 235 통과 · 19 건너뜀,
+                <code>npm test</code> 160 통과 · 0 실패, <code>tsc --noEmit</code> 통과.
                 건너뜀 19개는 골든 저장소 환경변수 부재로 실패가 아니다.
               </div>
             </li>
@@ -881,19 +885,37 @@
               <div class="note">
                 세 <code>run_mode*.py</code> 가 단계마다 벽시계·토큰·비용·턴을 잰다.
                 🔵 실측 — Mode 1 냉시동 27분 08초 · 17,925,770 토큰 · $15.4991.
-                <code>evals/</code> 로 승격시킬 재료가 이미 쌓이고 있다.
+                <code>evals/runs/</code> 에 냉시동 실측이 커밋돼 있다.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat D</span>
+                LLM 칸의 입력 범위를 정적 도구가 좁힌다
+              </div>
+              <div class="note">
+                2026-08-30 <code>warmup</code> 배선(<code>1e5d766</code>). 판정(<code>warmup</code>)과
+                확정(<code>warmup-save</code>)이 <strong>레코드를 만드는 LLM 단계를 감싼다</strong>.
+                <strong>둘로 가른 것이 급소</strong> — 한 칸이면 에이전트가 실패해도 그 파일이
+                "유효" 로 남는다. 🔵 아무것도 안 바뀐 실행에서 그 단계가
+                <strong>건너뜀 · 토큰 0 · $0</strong>. 확률론(LLM)과 결정론(정적 도구)의
+                경계를 코드로 그은 자리다. <em>채점 직후 파이프라인이 아홉 단계로 다시 갈렸다
+                (<code>7b234c5</code> — <code>agent</code> → <code>survey</code> + <code>wiki</code>);
+                이 관문 구조는 그대로 유지된다.</em>
               </div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat E1</span>
-                지목된 잘못된 경로 7건은 전부 오탐이었다
+                지목된 잘못된 경로 9건은 전부 오탐이었다 — 원인이 셋
               </div>
               <div class="note">
-                직접 확인 — <code>out/report.html</code> 은 빌드 산출물(gitignore),
-                <code>measure_citation_origin.py</code> 는 <strong>부재를 근거로 인용</strong>한 것,
-                <code>superpowers/specs/…</code> 는 <code>$GRAPHICS_REPO</code> 기준 상대경로다.
-                실제 깨진 참조는 <strong>0건</strong>.
+                한 건씩 대조했다. ① <code>out/report.html</code> 4건은 git 제외 빌드 산출물이라
+                <strong>부재가 정상</strong>. ② <code>superpowers/specs/…</code> 2건은 코드 블록에서
+                <code>$GRAPHICS_REPO/doc/</code> 아래 들여쓴 줄이다. ③ 나머지 3건은
+                <strong>채점기 정규식 결함</strong> — 확장자 교대에서 <code>js</code> 가
+                <code>json</code> 보다 앞이라 <code>.json</code> 이 잘리고,
+                <code>.claude/</code> 의 앞 점이 삼켜진다. 실제 깨진 참조 <strong>0건</strong>.
               </div>
             </li>
           </ul>
@@ -908,76 +930,80 @@
             <li>
               <div class="head">
                 <span class="tag tag-rule" style="background: var(--red-soft); color: var(--red)">Cat F · S</span>
-                이미 있는 검증기를 자기 문서에 건다
+                인용 검증기를 pre-push hook 에 건다
               </div>
               <div class="note">
-                <strong>Effort 0.5 hr · Impact 10/10.</strong>
-                <code>verify_citations.py</code> 를 <code>CLAUDE.md</code> 에 돌리면
-                지금 <strong>L1 실패 3건</strong>이 나온다(전부 경로 <em>모양</em>을 설명하는
-                예시 문자열). 예시를 인용에서 빼거나 검증기에 예외를 주고,
-                <code>npm test</code> 의 하위 단계로 넣는다.
-                <strong>이 저장소는 검증기를 만들어 놓고 자기에게 안 걸고 있다.</strong>
+                <strong>Effort 1.0 hr · Impact 10/10.</strong>
+                <code>test/docs-citations.test.mjs</code> 는 이미 <code>npm test</code> 안에서 돈다.
+                그런데 <strong>아무것도 그것을 push 전에 강제하지 않는다.</strong>
+                이번 회차에만 낡은 줄 번호 인용 <strong>10곳</strong>이 나왔다
+                (<code>run_mode1.py:65</code> 같은 것들이 코드가 밀리며 전부 어긋났다).
+                F 6→9점. <strong>이 저장소는 검증기를 만들어 놓고 자기 push 에 안 걸고 있다.</strong>
               </div>
             </li>
             <li>
               <div class="head">
-                <span class="tag tag-rule">Cat A+B · M</span>
-                521줄 <code>CLAUDE.md</code> 를 모듈별로 쪼갠다
+                <span class="tag tag-rule">Cat A · S</span>
+                <code>docs/</code> 에 CLAUDE.md 신설 — 마지막 빈칸
               </div>
               <div class="note">
-                <strong>Effort 3.0 hr · Impact 9/10.</strong>
-                루트는 60줄 나침반으로 줄이고 <code>codegraph/</code>(30파일)
-                · <code>src/</code>(12파일) · <code>scripts/</code> 에 각각 CLAUDE.md.
-                A 0→11점, B 7→14점이 함께 오른다. 에이전트가 매 세션 521줄을
-                통째로 지고 다니지 않아도 된다.
+                <strong>Effort 0.5 hr · Impact 8/10.</strong>
+                네 모듈 중 <code>docs/</code> 만 나침반이 없다. 그런데 거기에
+                <code>handoffs/</code> · <code>decisions/</code> · <code>superpowers/plans/</code> 가
+                섞여 있어 <strong>새 세션이 무엇부터 읽어야 하는지 알 수 없다</strong>.
+                A 11→14점. 이번 세션도 계획서를 찾는 데 사람의 지시가 필요했다.
               </div>
             </li>
             <li>
               <div class="head">
-                <span class="tag tag-rule">Cat D · M</span>
-                <code>ARCHITECTURE.md</code> — 그림은 이미 만들 수 있다
+                <span class="tag tag-rule">Cat G · S</span>
+                계획서 Task 9 — warmup 절감률을 실제로 잰다
               </div>
               <div class="note">
-                <strong>Effort 1.5 hr · Impact 8/10.</strong>
-                <code>render_modules.py</code> 가 이미 모듈 관계도 SVG 를 낸다.
-                세 mode 파이프라인 그림 + 두 저장소에 걸친 구조를 한 장으로.
-                D 0→10점.
-              </div>
-            </li>
-            <li>
-              <div class="head">
-                <span class="tag tag-rule">Cat G · M</span>
-                <code>evals/</code> — 계측값을 버리지 말고 쌓는다
-              </div>
-              <div class="note">
-                <strong>Effort 2.0 hr · Impact 7/10.</strong>
-                <code>run_mode*.py --json</code> 산출물을 <code>evals/</code> 에 날짜별로
-                모으고 회귀표를 만든다. warmup 배선의 절감률을 재는 데
-                <strong>그대로 필요한 인프라</strong>다.
+                <strong>Effort 0.5 hr + LLM 비용 · Impact 8/10.</strong>
+                배선은 끝났으나 <strong>증분 실행의 절감폭은 아직 숫자가 없다.</strong>
+                냉시동 기준선 27분 08초 · 17,925,770 토큰 · $15.4991 이 유일한 값이다.
+                재지 않으면 이 배선이 값을 하는지 말할 수 없다 — G 4→5점이자
+                <strong>warmup 작업 전체의 정당화</strong>다.
               </div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat E2 · S</span>
-                CODEOWNERS + PR 템플릿
+                PR 템플릿에 "🔵 는 실제 출력인가" 체크박스
               </div>
               <div class="note">
-                <strong>Effort 0.5 hr · Impact 5/10.</strong>
-                1인 저장소라 리뷰어 배정 가치는 낮으나, PR 템플릿에
-                "검증 명령의 실제 출력을 붙였는가" 를 체크박스로 두면
-                이 저장소의 규율(🔵 는 실제 출력만)이 구조로 강제된다.
+                <strong>Effort 0.5 hr · Impact 6/10.</strong>
+                1인 저장소라 CODEOWNERS 가치는 낮다. 그러나 이 저장소의 핵심 규율은
+                <strong>"🔵 는 이번 세션에서 실제로 돌린 명령의 출력만"</strong> 이고,
+                지금 그것을 강제하는 구조가 없다. E 9→11점.
+              </div>
+            </li>
+            <li>
+              <div class="head">
+                <span class="tag tag-rule">Cat B · M</span>
+                모듈 문서 넷을 100줄 아래로 — <em>단, 조건부</em>
+              </div>
+              <div class="note">
+                <strong>Effort 2.0 hr · Impact 5/10.</strong>
+                루브릭은 100줄을 넘기지 말라 하고 넷 다 넘는다(240 · 172 · 137 · 132).
+                B 11→15점. 다만 이 저장소는 <strong>521줄을 넷으로 쪼갠 것이 이미 한 번의 개선</strong>이었고,
+                더 줄이려면 내용을 버려야 한다. <strong>줄 수보다 "두 군데 살면 어긋난다" 원칙이 우선</strong>이므로
+                기계적 감축이 아니라 중복 제거로만 접근한다.
               </div>
             </li>
             <li>
               <div class="head">
                 <span class="tag tag-rule">Cat B · L</span>
-                790줄 <code>normalize.py</code> 분할
+                god file 분할 — <strong>지금은 권하지 않는다</strong>
               </div>
               <div class="note">
-                <strong>Effort 6.0 hr · Impact 4/10 — 지금은 권하지 않는다.</strong>
-                C++ 경로와 C# 경로가 한 파일에 있고 골든 시험이 231노드/540간선을
-                못박고 있다. <strong>거울 함정 경계</strong> — 소비자가 늘기 전에
-                쪼개면 이 저장소가 잡으려는 과잉 설계를 스스로 하는 것이 된다.
+                <strong>Effort 15.0 hr · Impact 4/10.</strong>
+                <code>run_mode1_5.py</code> 842 · <code>normalize.py</code> 790 ·
+                <code>run_mode1.py</code> 687줄. 루브릭은 쪼개라 하지만 이 저장소의
+                <code>CLAUDE.md</code> 는 <strong>구현자 1 · 소비자 1이면 인터페이스를 만들지 말라</strong>고
+                못박아 두었다(거울 함정). 골든 시험이 노드·간선 수를 고정하고 있어 위험도 크다.
+                <strong>루브릭과 저장소 결정이 충돌하는 유일한 항목 — 저장소 결정을 따른다.</strong>
               </div>
             </li>
           </ul>
@@ -985,7 +1011,7 @@
       </div>
 
       <footer>
-        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30 · 개선 후 재채점
+        report-builder · AI 준비도 감사 · v2 루브릭 (7 카테고리 / 100점) · 측정일 2026-08-30 (warmup 배선 직후 재채점) · 자동 65 + 수동 보정 5
       </footer>
     </div>
   </body>
