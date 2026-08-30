@@ -601,3 +601,47 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
 def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
     p = R.wiki_page_prompt("/r", "/root", {"file": "index.md", "title": "머리", "symbols": []}, "")
     assert "첫 장" in p
+
+
+# ── 15. 병렬이면 행의 초 합계는 벽시계가 아니다 (2026-08-30 신설)
+def test_보고표는_진짜_벽시계를_따로_받는다():
+    """8개가 동시에 돌면 행의 초를 더한 값이 사람이 기다린 시간의 8배가 된다.
+
+    `wall_seconds` 를 주면 합계 줄이 그 값을 쓴다. 안 주면 예전처럼 행을 더한다 —
+    `run_mode2.py` 와 `run_mode1_5.py` 가 인자 없이 부르므로 기본값이 있어야 한다.
+    """
+    rows = [{"stage": "survey/L0-B00", "seconds": 100.0, "ok": True,
+             "usage": R.normalize_usage(None)},
+            {"stage": "survey/L0-B01", "seconds": 100.0, "ok": True,
+             "usage": R.normalize_usage(None)}]
+    assert "3분 20.0초" in R.format_report(rows)              # 100+100, 예전 방식
+    assert "1분 45.0초" in R.format_report(rows, wall_seconds=105.0)
+
+
+def test_단계별_소계를_낸다():
+    """어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다."""
+    rows = [
+        {"stage": "prep", "seconds": 1.0, "usage": R.normalize_usage(None), "ok": True},
+        {"stage": "survey/L0-B00", "seconds": 10.0, "ok": True,
+         "usage": R.normalize_usage({"usage": {"output_tokens": 5}, "num_turns": 2})},
+        {"stage": "survey/L1-B00", "seconds": 20.0, "ok": True,
+         "usage": R.normalize_usage({"usage": {"output_tokens": 7}, "num_turns": 3})},
+    ]
+    got = R.stage_totals(rows)
+    assert got["survey"]["total"] == 12 and got["survey"]["turns"] == 5
+    assert got["prep"]["total"] == 0
+
+
+def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path):
+    """🔴 층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다.
+
+    `is not` 으로 충돌을 보면 다시 읽은 새 객체를 남으로 착각해 개명한다 —
+    🔵 2026-08-30 연기 시험에서 레코드 수가 38 -> 27 로 줄어드는 것으로 드러났다.
+    같은 입력이면 몇 번을 합쳐도 같은 결과여야 한다(멱등).
+    """
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1", "means": "뜻"}})
+    한번 = R.merge_shards(d, {})
+    두번 = R.merge_shards(d, {})
+    assert 한번 == 두번 == {"가": {"where": "a.py:1", "means": "뜻"}}
+    # 앞선 결과를 다시 넘겨도(잘못된 사용) 최소한 개명은 일어나지 않아야 한다
+    assert R.merge_shards(d, 한번) == 한번

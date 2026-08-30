@@ -57,6 +57,7 @@
 다섯 단계 흐름 그대로 돌아 대조군이 된다.
 """
 import argparse
+import collections
 import json
 import os
 import subprocess
@@ -69,6 +70,7 @@ from concurrent.futures import ThreadPoolExecutor
 # 시험이 import 할 때는 시험 파일이 넣어 준다. 어느 쪽이든 확실하도록 여기서도 넣는다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import declmap  # noqa: E402
+import survey_plan  # noqa: E402
 import warmup  # noqa: E402
 
 # 이 파일은 <ROOT>/codegraph/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
@@ -621,8 +623,13 @@ def _hms(seconds):
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.format_report']"/>
 # 단계별 측정값을 표 한 장으로 만든다.
 # 쓰는 것: run_mode1.sum_usage, run_mode1._hms · 쓰이는 곳: run_mode1.main
-def format_report(rows):
-    """단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다."""
+def format_report(rows, wall_seconds=None):
+    """단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다.
+
+    `wall_seconds` 는 **병렬 때문에** 생겼다. 층 안에서 배치 8개가 동시에 돌면
+    행의 초를 더한 값이 사람이 기다린 시간의 8배까지 부푼다. 진짜 벽시계를 부르는 쪽이
+    재서 넘긴다. 안 넘기면 예전처럼 행을 더한다 — Mode 1.5 와 Mode 2 는 병렬이 아니라 그게 맞다.
+    """
     head = ["단계", "상태", "시간", "입력", "출력", "캐시읽기", "캐시생성", "합계", "턴", "비용($)"]
     body = []
     for r in rows:
@@ -636,8 +643,10 @@ def format_report(rows):
             "{:,}".format(u["total"]), str(u["turns"]), "%.4f" % u["cost_usd"],
         ])
     tot = sum_usage([r["usage"] for r in rows])
+    total_seconds = (sum(float(r["seconds"]) for r in rows)
+                     if wall_seconds is None else float(wall_seconds))
     body.append([
-        "합계", "", _hms(sum(float(r["seconds"]) for r in rows)),
+        "합계", "", _hms(total_seconds),
         "{:,}".format(tot["input"]), "{:,}".format(tot["output"]),
         "{:,}".format(tot["cache_read"]), "{:,}".format(tot["cache_write"]),
         "{:,}".format(tot["total"]), str(tot["turns"]), "%.4f" % tot["cost_usd"],
@@ -659,6 +668,22 @@ def format_report(rows):
         elif not r.get("ok"):
             out.append("실패 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
     return "\n".join(out)
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.stage_totals']"/>
+# 배치 행들을 단계 단위로 접어 소계를 낸다.
+# 쓰는 것: run_mode1.sum_usage · 쓰이는 곳: run_mode1.main
+def stage_totals(rows):
+    """`survey/L0-B00` 같은 행을 `survey` 로 접는다. `{단계: 합친 usage}`.
+
+    배치가 스물이 넘으면 표를 눈으로 훑어 "어느 단계가 비쌌나" 를 못 본다.
+    `ARCHITECTURE.md` 의 여덟 줄짜리 표와 대조할 수 있는 모양이 이것이다.
+    """
+    byname = collections.OrderedDict()
+    for r in rows:
+        name = r["stage"].split("/")[0]
+        byname.setdefault(name, []).append(r["usage"])
+    return collections.OrderedDict((k, sum_usage(v)) for k, v in byname.items())
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1._Heartbeat']"/>
@@ -763,6 +788,14 @@ def merge_shards(shard_dir, existing):
 
     **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 결과를 버리지 않는다.
     무엇을 건너뛰었는지는 stderr 에 적어 사람이 다시 돌릴 수 있게 한다.
+
+    ⚠ **`existing` 에는 누적본이 아니라 조사 이전의 원본을 준다.** 이 함수는 층마다 불리고
+    그때마다 샤드 전부를 다시 읽는다. 누적본을 넘기면 이미 합쳐 둔 레코드를 **자기 자신과의
+    충돌**로 보고 개명해 버린다 — 🔵 2026-08-30 연기 시험에서 레코드 수가 38 -> 27 로
+    줄어드는 것으로 드러났다. 샤드가 진실의 원본이고 이 함수는 그 순수 함수다.
+
+    충돌 판정에 `!=` 를 쓰는 것도 같은 이유다. `is not` 은 같은 샤드를 다시 읽은 새 객체를
+    남으로 본다.
     """
     got = dict(existing or {})
     if not os.path.isdir(shard_dir):
@@ -777,7 +810,7 @@ def merge_shards(shard_dir, existing):
             print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
             continue
         for key, rec in shard.items():
-            if key in got and got[key] is not rec:
+            if key in got and got[key] != rec:
                 # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
                 old = got.pop(key)
                 got[_qualified(key, old)] = old
@@ -885,6 +918,121 @@ def save_warmup(cache_path, entries, rows):
     return True, ""
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_survey']"/>
+# 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합친다.
+# 쓰는 것: run_mode1.run_layer, run_mode1.merge_shards, run_mode1.survey_batch_prompt, run_mode1.nonnode_prompt, run_mode1.dep_excerpt · 쓰이는 곳: run_mode1.main
+def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
+               targets=None, total=0):
+    """층 사이는 순차, 층 안은 병렬(K2). `[행, …]` 을 낸다.
+
+    **층이 끝날 때마다 병합해서 디스크에 쓴다.** 다음 층의 배치가 아래층 레코드를 발췌해
+    받아야 하고, 중간에 죽어도 거기까지는 남아야 한다.
+
+    **샤드가 이미 있는 배치는 건너뛴다(J4).** 재시도 구조를 만들지 않고도 `--only survey` 로
+    다시 돌리면 실패한 배치만 다시 돈다.
+    """
+    shard_dir = os.path.join(repo, "out", "codegraph-raw", "_shards")
+    os.makedirs(shard_dir, exist_ok=True)
+    # **조사 이전의 원본**을 따로 붙들어 둔다. 층마다 `merge_shards` 에 이것을 준다 —
+    # 누적본을 주면 이미 합친 레코드를 자기 자신과의 충돌로 보고 개명한다(위 경고).
+    baseline = {}
+    if os.path.exists(reading_path):
+        with open(reading_path, encoding="utf-8") as f:
+            baseline = json.load(f)
+    merged = dict(baseline)
+
+    rows = []
+    for L in plan["layers"]:
+        if L.get("kind") == "non-node":
+            jobs = [("NONNODE", nonnode_prompt(repo, root))]
+            label_of = {"NONNODE": "survey/L%d-비노드" % L["level"]}
+        else:
+            jobs, label_of = [], {}
+            for b in L["batches"]:
+                jobs.append((b["id"], survey_batch_prompt(
+                    repo, root, b, dep_excerpt(merged, b), targets, total)))
+                label_of[b["id"]] = "survey/" + b["id"]
+        jobs = [(bid, pr) for bid, pr in jobs
+                if not os.path.exists(os.path.join(shard_dir, bid + ".json"))]
+        if not jobs:
+            print("  층%d — 샤드가 이미 다 있다. 건너뛴다." % L["level"], flush=True)
+            continue
+
+        print("  층%d — 배치 %d개를 동시 %d 로 돌린다"
+              % (L["level"], len(jobs), concurrency), flush=True)
+        with _Heartbeat("survey 층%d" % L["level"]):
+            got = run_layer(model, repo, root, jobs, concurrency, timeout)
+        for bid, seconds, rc, result in got:
+            ok, why = agent_verdict(rc, result)
+            rows.append({"stage": label_of[bid], "seconds": seconds,
+                         "usage": normalize_usage(result), "ok": ok, "why": why})
+
+        merged = merge_shards(shard_dir, baseline)
+        os.makedirs(os.path.dirname(reading_path), exist_ok=True)
+        with open(reading_path, "w", encoding="utf-8") as f:
+            json.dump(merged, f, ensure_ascii=False, indent=1, sort_keys=True)
+        print("  층%d 끝 — 레코드 %d개" % (L["level"], len(merged)), flush=True)
+        if not all(r["ok"] for r in rows):
+            print("층%d 에 실패한 배치가 있다. 다음 층으로 가지 않는다 — "
+                  "아래층이 비면 위층이 추론으로 메운다." % L["level"], file=sys.stderr)
+            break
+    return rows
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_wiki']"/>
+# 위키 목차를 받고 장들을 층 오름차순으로 쓰게 한다.
+# 쓰는 것: run_mode1.run_layer, run_mode1.wiki_catalogue_prompt, run_mode1.wiki_page_prompt, run_mode1.page_layers, run_mode1.symbol_layers · 쓰이는 곳: run_mode1.main
+def run_wiki(model, repo, root, plan, concurrency, timeout):
+    """카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6).
+
+    목차를 기계가 못 만드는 이유는 deep-wiki 의 장이 심볼도 모듈도 아닌 **주제** 단위라서다.
+    그래서 이 한 세션만 먼저 돈다.
+    """
+    raw = os.path.join(repo, "out", "codegraph-raw")
+    wiki_plan_path = os.path.join(raw, "wiki-plan.json")
+    rows = []
+
+    if not os.path.exists(wiki_plan_path):
+        with _Heartbeat("wiki 목차"):
+            got = run_layer(model, repo, root,
+                            [("catalogue", wiki_catalogue_prompt(repo, root))], 1, timeout)
+        _, seconds, rc, result = got[0]
+        ok, why = agent_verdict(rc, result)
+        rows.append({"stage": "wiki/목차", "seconds": seconds,
+                     "usage": normalize_usage(result), "ok": ok, "why": why})
+        if not ok:
+            return rows
+    if not os.path.exists(wiki_plan_path):
+        rows.append({"stage": "wiki/목차", "seconds": 0.0, "usage": normalize_usage(None),
+                     "ok": False, "why": "wiki-plan.json 이 나오지 않았다"})
+        return rows
+
+    with open(wiki_plan_path, encoding="utf-8") as f:
+        pages = json.load(f)["pages"]
+    lv = page_layers(pages, symbol_layers(plan))
+    done = []
+    for k in sorted(set(lv.values())):
+        here = [pg for pg in pages if lv[pg["file"]] == k
+                and not os.path.exists(os.path.join(repo, "docs", "wiki", pg["file"]))]
+        if not here:
+            continue
+        lower = "\n".join("  - %s — %s" % (pg["file"], pg.get("title") or pg["file"])
+                          for pg in done)
+        jobs = [(pg["file"], wiki_page_prompt(repo, root, pg, lower)) for pg in here]
+        print("  층%d — 장 %d개를 동시 %d 로 쓴다" % (k, len(jobs), concurrency), flush=True)
+        with _Heartbeat("wiki 층%d" % k):
+            got = run_layer(model, repo, root, jobs, concurrency, timeout)
+        for fname, seconds, rc, result in got:
+            ok, why = agent_verdict(rc, result)
+            rows.append({"stage": "wiki/" + fname, "seconds": seconds,
+                         "usage": normalize_usage(result), "ok": ok, "why": why})
+        done += here
+        if not all(r["ok"] for r in rows):
+            print("층%d 에 실패한 장이 있다. 다음 층으로 가지 않는다." % k, file=sys.stderr)
+            break
+    return rows
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.main']"/>
 # 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
 # 쓰는 것: run_mode1.plan_stages, run_mode1.run_agent, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup (+2) · 쓰이는 곳: 없음
@@ -893,7 +1041,16 @@ def main(argv=None):
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo", help="대상 저장소 경로")
-    ap.add_argument("--model", default="opus", help="에이전트가 쓸 모형 (기본: opus)")
+    # 🔴 서브에이전트 모델은 Claude Sonnet 5 다. 별명(`sonnet`)이 아니라 정확한 ID 를 적는다 —
+    #    별명은 최신판을 따라 움직여 측정이 흔들린다. 예전 기본값은 `opus` 였다.
+    #    이 값이 main -> run_survey/run_wiki -> run_layer -> run_agent_with -> claude_argv
+    #    사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지 않는다.**
+    ap.add_argument("--model", default="claude-sonnet-5",
+                    help="배치·장 세션이 쓸 모형 (기본: claude-sonnet-5)")
+    ap.add_argument("--concurrency", type=int, default=8,
+                    help="한 층에서 동시에 띄울 세션 수 (기본 8 = K4)")
+    ap.add_argument("--target", type=int, default=8,
+                    help="배치당 목표 심볼 수 (기본 8 = K3)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
@@ -938,29 +1095,54 @@ def main(argv=None):
     #   targets  에이전트가 읽을 파일 목록. None 이면 판정을 못 했다는 뜻이다(= 전량 조사)
     #   entries  갱신될 매니페스트. 에이전트가 성공한 뒤에만 쓴다
     targets, entries, warmup_cache, tracked_n = None, None, None, 0
+    survey_plan_path = os.path.join(raw, "survey-plan.json")
+    plan_json = None
     rows, t_all = [], time.monotonic()
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
         if stage == "warmup":
             targets, entries, warmup_cache, tracked_n, ok, why = run_warmup(repo, codegraph, a.hops)
-            usage = normalize_usage(None)
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": normalize_usage(None), "ok": ok, "why": why})
         elif stage == "warmup-save":
             ok, why = save_warmup(warmup_cache, entries, rows)
-            usage = normalize_usage(None)
-        elif stage == "agent":
-            if not should_call_agent(targets, os.path.exists(reading)):
-                ok, why, usage = True, "바뀐 파일 0개 — 지난 조사 결과를 그대로 쓴다", normalize_usage(None)
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": normalize_usage(None), "ok": ok, "why": why})
+        elif stage in AGENT_STAGES:
+            if stage == "survey" and not should_call_agent(targets, os.path.exists(reading)):
                 rows.append({"stage": stage, "seconds": time.monotonic() - t0,
-                             "usage": usage, "ok": ok, "why": why, "skipped": True})
-                print("%s — 건너뜀 (%s)" % (stage, why), flush=True)
+                             "usage": normalize_usage(None), "ok": True, "skipped": True,
+                             "why": "바뀐 파일 0개 — 지난 조사 결과를 그대로 쓴다"})
+                print("%s — 건너뜀 (바뀐 파일 0개)" % stage, flush=True)
                 continue
-            rc, result = run_agent(a.model, repo, ROOT, targets=targets,
-                                   total=tracked_n, timeout=a.timeout)
-            ok, why = agent_verdict(rc, result)
-            usage = normalize_usage(result)
-            if result and result.get("result"):
-                print(result["result"])
+            if plan_json is None:
+                if not os.path.exists(codegraph):
+                    print("에러 — 코드 지도가 없다: %s (prep 이 먼저다)" % codegraph,
+                          file=sys.stderr)
+                    return 1
+                with open(codegraph, encoding="utf-8") as f:
+                    # warmup 이 판정한 목록이 있으면 그 파일의 심볼만 남긴다(증분 조사).
+                    # 층 번호는 **전체 그래프 기준으로 매긴 뒤** 걸러진다 —
+                    # 거르고 나서 매기면 사라진 의존 대상 때문에 층이 잘못 내려간다.
+                    plan_json = survey_plan.plan(json.load(f), a.target, only_files=targets)
+                with open(survey_plan_path, "w", encoding="utf-8") as f:
+                    json.dump(plan_json, f, ensure_ascii=False, indent=1)
+                print("배치 계획 %s — 심볼 %d · 층 %d%s"
+                      % (survey_plan_path, plan_json["totals"]["symbols"],
+                         plan_json["totals"]["levels"],
+                         " (증분: warmup 이 준 %d파일)" % len(targets) if targets else ""),
+                      flush=True)
+            if stage == "survey":
+                got = run_survey(a.model, repo, ROOT, plan_json, a.concurrency,
+                                 a.timeout, reading, targets, tracked_n)
+            else:
+                got = run_wiki(a.model, repo, ROOT, plan_json, a.concurrency, a.timeout)
+            rows += got
+            ok = bool(got) and all(r["ok"] for r in got)
+            print("%s — %s (%s · 세션 %d개)"
+                  % (stage, "성공" if ok else "실패", _hms(time.monotonic() - t0), len(got)),
+                  flush=True)
         else:
             if stage == "terms":
                 # 없는 파일은 넘기지 않는다 — terms_argv 는 순수 함수라 존재를 모른다
@@ -971,25 +1153,31 @@ def main(argv=None):
                 cmd = node_argv(ROOT, stage + ".mjs", repo)
             rc = run_machine(cmd, stage)
             ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
-            usage = normalize_usage(None)
-        seconds = time.monotonic() - t0
-        rows.append({"stage": stage, "seconds": seconds, "usage": usage,
-                     "ok": ok, "why": why})
-        print("%s — %s (%s)" % (stage, "성공" if ok else "실패", _hms(seconds)), flush=True)
-        if not ok:
+            seconds = time.monotonic() - t0
+            rows.append({"stage": stage, "seconds": seconds, "usage": normalize_usage(None),
+                         "ok": ok, "why": why})
+            print("%s — %s (%s)" % (stage, "성공" if ok else "실패", _hms(seconds)), flush=True)
+        if not all(r["ok"] for r in rows):
             print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
             break
 
+    wall = time.monotonic() - t_all
     print("\n" + "=" * 72)
-    print("Mode 1 측정 — 전체 %s" % _hms(time.monotonic() - t_all))
+    print("Mode 1 측정 — 전체 %s" % _hms(wall))
     print("=" * 72)
-    print(format_report(rows))
+    print(format_report(rows, wall_seconds=wall))
+    print("\n단계 소계 — 병렬이라 행의 초 합계는 벽시계가 아니다")
+    for name, u in stage_totals(rows).items():
+        print("  %-12s 토큰 %12s · 턴 %3d · 비용 $%.4f"
+              % (name, "{:,}".format(u["total"]), u["turns"], u["cost_usd"]))
 
     if a.json_out:
         with open(a.json_out, "w", encoding="utf-8") as f:
             json.dump({"repo": repo, "model": a.model, "stages": rows,
+                       "stage_totals": stage_totals(rows),
+                       "concurrency": a.concurrency, "target": a.target,
                        "total": sum_usage([r["usage"] for r in rows]),
-                       "wall_seconds": time.monotonic() - t_all},
+                       "wall_seconds": wall},
                       f, ensure_ascii=False, indent=1)
         print("\n측정값 %s" % a.json_out)
 
