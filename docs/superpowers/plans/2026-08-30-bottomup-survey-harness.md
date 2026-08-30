@@ -6,7 +6,7 @@
 
 **이 계획은 파이프라인을 실제로 돌리지 않는다.** `ARCHITECTURE.md:155-166` 의 `agent` 벽시계 26분 53.1초를 줄였는지 확인하는 A/B 실측은 **계획 밖의 후속 작업**이다(맨 아래 절). 계획 단계에서 27분·$15 짜리 실행을 돌리는 것은 계획이 하는 일이 아니다.
 
-**Architecture:** 다섯 단계 `prep → agent → terms → build → check` 를 여섯 단계 `prep → survey → terms → wiki → build → check` 로 가른다. `survey` 와 `wiki` 는 둘 다 LLM 칸이고, 각각 **층 오름차순으로 여러 번** `claude -p` 를 부른다. 층 안에서는 `ThreadPoolExecutor` 로 최대 8개를 동시에 띄우고, 층 사이는 순차다. 층을 계산하는 것은 새 결정론 스크립트 `codegraph/survey_plan.py` 이고, 층 경계에서 같은 파일을 다시 통독하지 않도록 `codegraph/file_cache.py` 가 디스크 캐시를 놓는다. 배치 세션은 자기 샤드에만 쓰고, 키 충돌 해소와 병합은 전역을 보는 오케스트레이터(파이썬)만 한다.
+**Architecture:** 일곱 단계 `prep → warmup → agent → warmup-save → terms → build → check`(warmup 배선이 이미 만든 것)에서 `agent` 한 칸을 갈라 여덟 단계 `prep → warmup → survey → warmup-save → terms → wiki → build → check` 로 만든다. `survey` 와 `wiki` 는 둘 다 LLM 칸이고, 각각 **층 오름차순으로 여러 번** `claude -p` 를 부른다. 층 안에서는 `ThreadPoolExecutor` 로 최대 8개를 동시에 띄우고, 층 사이는 순차다. 층을 계산하는 것은 새 결정론 스크립트 `codegraph/survey_plan.py` 이고, 층 경계에서 같은 파일을 다시 통독하지 않도록 `codegraph/file_cache.py` 가 디스크 캐시를 놓는다. 배치 세션은 자기 샤드에만 쓰고, 키 충돌 해소와 병합은 전역을 보는 오케스트레이터(파이썬)만 한다.
 
 **Tech Stack:** Python 3 (`.venv/bin/python`) · `networkx`(이미 있다) · 표준 라이브러리 `concurrent.futures` · `pytest`. **새 파이썬 의존성 0개.** Node 쪽은 건드리지 않는다.
 
@@ -25,6 +25,34 @@
 > - `survey` 의 비노드 층 세션 (`nonnode_prompt`)
 > - `wiki` 의 목차 세션 (`wiki_catalogue_prompt`)
 > - `wiki` 의 장 세션 (`wiki_page_prompt`)
+>
+> ## 책임 소재 — **`A1` 이 진다**
+>
+> `ARCHITECTURE.md:98` 의 mermaid 에서 `subgraph M1["Mode 1 — 코드베이스 위키"]` 안의
+> **`A1` 노드(LLM 칸)가 서브에이전트를 띄우는 주체**다. 그러므로 **서브에이전트를 Sonnet 5 로
+> 띄울 책임은 `A1` 에 있다.** 이 계획이 `A1` 을 `survey` 와 `wiki` 둘로 가르므로,
+> **그 책임도 둘 다 승계한다.**
+>
+> ```
+>   A1 (agent)  ──이 계획──▶  survey  (층별 배치 N세션)   ← 각 세션이 claude-sonnet-5
+>                             wiki    (목차 1 + 장 N세션) ← 각 세션이 claude-sonnet-5
+> ```
+>
+> 책임을 실제로 이행하는 경로는 이 한 줄이다 — **다른 자리는 없다:**
+>
+> ```
+>   main()  --model 기본값 claude-sonnet-5
+>     └─ run_survey / run_wiki   (a.model 을 그대로 넘긴다)
+>          └─ run_layer          (model 을 그대로 넘긴다)
+>               └─ run_agent_with
+>                    └─ claude_argv(model=...)  →  claude -p --model claude-sonnet-5
+> ```
+>
+> **이 사슬 어디에서도 모형을 바꾸지 않는다.** 중간에 다른 기본값을 끼워 넣으면 책임이 끊긴다.
+>
+> 🔵 이번 세션 확인 — 그 세션들이 **다시 띄우는** deep-wiki 서브에이전트 셋
+> (`wiki-architect` · `wiki-researcher` · `wiki-writer`, `~/.claude/plugins/cache/skills/deep-wiki/2.0.0/agents/`)은
+> 이미 frontmatter 가 `model: sonnet` 이라 같은 계열로 돈다. **그 파일은 플러그인 캐시라 고치지 않는다.**
 >
 > **코드에 박히는 자리 — `run_mode1.py` 의 `main()` 인자 기본값 한 곳뿐이다:**
 > ```python
@@ -56,9 +84,11 @@
 
 ## ⚠ warmup 배선 위에 합친다 — 단계는 **여덟**이다 (2026-08-30 사용자 확정)
 
-**이 계획을 쓰는 동안 다른 세션이 `2026-08-30-warmup-mode1-wiring.md` 를 작업 트리에 구현했다.**
+**이 계획을 쓰는 동안 다른 세션이 `2026-08-30-warmup-mode1-wiring.md` 를 구현하고 커밋했다**
+(🔵 `1e5d766` 배선 · `da3bf20` 회귀 시험 20건 · `d4c0d96` 실행 기록).
 사용자가 **그 작업의 완료를 보장**했고 **`warmup.py` 를 고쳐도 좋다**고 했다. 그러므로
-되돌리지 않고 **그 위에 합친다.**
+되돌리지 않고 **그 위에 합친다.** 🔵 이번 세션 확인 — `STAGES` 는 일곱이고
+`pytest codegraph/ -q` 는 **235 통과 · 19 건너뜀**이다.
 
 | | 다섯 단계(옛) | 일곱 단계(warmup 배선, 지금 트리) | **여덟 단계(이 계획의 결과)** |
 |---|---|---|---|
@@ -230,7 +260,8 @@ Task 8 에서 `r["stage"].split("/")[0] == "survey"` 로 고치고, 그것을 �
 | J2 | `agent_prompt()` 와 `run_agent()` 를 **지운다**(껍질로 남기지 않는다) | `git grep` 확인 — `run_mode2.py` 와 `run_mode1_5.py` 는 `M.normalize_usage` `M._hms` `M._Heartbeat` `M.sum_usage` `M.format_report` `M.claude_argv` `M.agent_verdict` 만 쓴다. 둘 다 자기 `agent_prompt`/`run_agent` 를 따로 갖는다. 남기면 아무도 안 부르는 죽은 코드다 |
 | J3 | `wiki` 단계는 **카탈로그 세션 1개**를 먼저 돌린다 | K6 의 "페이지가 인용하는 심볼" 을 알려면 페이지 목록과 그 인용 대상이 먼저 있어야 한다. deep-wiki 의 페이지는 심볼도 모듈도 아닌 **주제** 단위라 기계가 결정론으로 못 만든다 |
 | J4 | 배치는 **샤드가 이미 있으면 건너뛴다** | 재시도 구조를 만들지 않고도 재개가 된다. `--only survey` 로 다시 돌리면 실패한 배치만 다시 돈다. 코드 두 줄이고 추상화가 아니다 |
-| J5 | Task 마다 커밋한다 (`personal-commit-messages` — 소문자 `[tag] : 제목` 한 줄, 한국어, 본문 없음) | 🔵 이번 세션 확인 — `git status --porcelain` 이 1줄(이 계획서의 원본 PROMPT 문서)뿐이라 트리가 깨끗하다. 입력 PROMPT 의 "커밋 금지" 는 트리가 39개 파일 더러웠을 때 쓴 것이고 그 전제가 사라졌다 |
+| J5 | Task 마다 커밋하되 **`git add` 는 그 Task 가 명시한 파일만** (`personal-commit-messages` — 소문자 `[tag] : 제목` 한 줄, 한국어, 본문 없음) | 2026-08-30 사용자 확정. 트리에 남의 변경이 함께 있으므로 `git add -A` 나 `git add .` 를 **절대 쓰지 않는다.** 남의 파일을 내 커밋에 넣으면 되돌릴 기준점이 사라진다 |
+| J6 | `warmup-save` 를 `wiki` 가 아니라 **`survey` 바로 뒤**에 둔다 | 관문이 감싸야 하는 것은 레코드를 만드는 단계다. `wiki` 뒤에 두면 산문 실패가 다음 실행의 전량 재조사를 부른다 — 비용 회귀다 (위 절) |
 
 ---
 
@@ -247,6 +278,10 @@ Task 8 에서 `r["stage"].split("/")[0] == "survey"` 로 고치고, 그것을 �
 | `.agents/skills/codebase-terms-survey/SKILL.md` | 절차의 정본. `.claude/skills/` 는 여기로 가는 심볼릭 링크다 | 개조 |
 | `codegraph/CLAUDE.md` · `ARCHITECTURE.md` · `docs/codegraph/terms-reading.json` | 코드와 어긋나지 않게 | 개조 |
 
+**`codegraph/warmup.py` 는 고칠 일이 없다.** 사용자가 고쳐도 좋다고 했지만, 이 계획이 쓰는 것은
+`warmup.status` · `warmup.blast_radius` · `warmup.save` 셋뿐이고 셋 다 지금 모양 그대로 맞는다.
+`run_mode1.py` 안의 `run_warmup` · `save_warmup` · `changed_seed` 만 손댄다.
+
 **여섯 파일 규칙의 예외 2건** — 입력 PROMPT 는 작업 파일을 6개로 못 박았으나, `test_file_cache.py`(테스트 없는 새 모듈을 만들지 않는다) 와 `ARCHITECTURE.md`(done 조건이 그 표의 갱신이다)를 더한다. `terms-reading.json` · `comments.xml` 은 저장소 규약상 새 함수를 만들면 반드시 따라오는 파생물이다.
 
 ---
@@ -257,7 +292,7 @@ Task 8 에서 `r["stage"].split("/")[0] == "survey"` 로 고치고, 그것을 �
 - Create: `codegraph/survey_plan.py`
 - Test: `codegraph/test_survey_plan.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `codegraph/test_survey_plan.py` 를 새로 만든다:
 
@@ -392,7 +427,7 @@ def test_이_저장소_실측():
         assert [f for f, n in seen.items() if n > 1] == []
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 cd /Users/escatrgot/LLM-Tools/report-builder
@@ -401,7 +436,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 
 기대: `ModuleNotFoundError: No module named 'survey_plan'` 로 수집 단계에서 실패.
 
-- [ ] **Step 3: `codegraph/survey_plan.py` 를 만든다**
+- [x] **Step 3: `codegraph/survey_plan.py` 를 만든다**
 
 ```python
 #!/usr/bin/env python3
@@ -571,7 +606,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_survey_plan.py -q
@@ -579,7 +614,7 @@ if __name__ == "__main__":
 
 기대: `14 passed`.
 
-- [ ] **Step 5: 실제 코드 지도로 돌려 층 분포를 눈으로 본다**
+- [x] **Step 5: 실제 코드 지도로 돌려 층 분포를 눈으로 본다**
 
 ```bash
 .venv/bin/python codegraph/survey_plan.py out/codegraph-raw/codegraph.json
@@ -598,7 +633,7 @@ if __name__ == "__main__":
   층5 — 비노드 용어 (한 세션)
 ```
 
-- [ ] **Step 6: 결정론과 층 안 파일 중복을 확인한다**
+- [x] **Step 6: 결정론과 층 안 파일 중복을 확인한다**
 
 ```bash
 .venv/bin/python codegraph/survey_plan.py out/codegraph-raw/codegraph.json -o /tmp/p1.json
@@ -614,7 +649,7 @@ for L in p['layers']:
 
 기대: `결정론 OK` 가 찍히고, 모든 층이 `중복 없음`.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add codegraph/survey_plan.py codegraph/test_survey_plan.py
@@ -631,7 +666,7 @@ git commit -m "[feat] : 전수조사를 의존 위상 층과 배치로 나누는
 - Create: `codegraph/file_cache.py`
 - Test: `codegraph/test_file_cache.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `codegraph/test_file_cache.py` 를 새로 만든다:
 
@@ -714,7 +749,7 @@ def test_망가진_캐시는_None(tmp_path):
     assert FC.get(repo, "src/a.py") is None
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_file_cache.py -q
@@ -722,7 +757,7 @@ def test_망가진_캐시는_None(tmp_path):
 
 기대: `ModuleNotFoundError: No module named 'file_cache'`.
 
-- [ ] **Step 3: `codegraph/file_cache.py` 를 만든다**
+- [x] **Step 3: `codegraph/file_cache.py` 를 만든다**
 
 ```python
 #!/usr/bin/env python3
@@ -809,7 +844,7 @@ if __name__ == "__main__":
         sys.exit("모르는 명령 %s" % cmd)
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_file_cache.py -q
@@ -817,7 +852,7 @@ if __name__ == "__main__":
 
 기대: `8 passed`.
 
-- [ ] **Step 5: CLI 를 손으로 한 번 돌려 본다**
+- [x] **Step 5: CLI 를 손으로 한 번 돌려 본다**
 
 ```bash
 echo '{"imports":["os"],"symbols":[]}' > /tmp/outline.json
@@ -827,7 +862,14 @@ echo '{"imports":["os"],"symbols":[]}' > /tmp/outline.json
 
 기대: `put` 이 `out/codegraph-raw/_filecache/<해시>.json` 경로를 찍고, `get` 이 그 JSON 을 되돌려준다.
 
-- [ ] **Step 6: 커밋**
+⚠ **끝나면 그 가짜 개요를 지운다.** 캐시는 내용 해시로 판정하므로, 남겨 두면 나중에
+배치 세션이 이 손 확인용 쓰레기를 `survey_plan.py` 의 진짜 통독 개요로 읽는다.
+
+```bash
+rm -f out/codegraph-raw/_filecache/*.json && rmdir out/codegraph-raw/_filecache
+```
+
+- [x] **Step 6: 커밋**
 
 ```bash
 git add codegraph/file_cache.py codegraph/test_file_cache.py
@@ -836,26 +878,66 @@ git commit -m "[feat] : 층 경계 중복 통독을 막는 파일 통독 캐시"
 
 ---
 
-## Task 3: 단계를 여섯으로 가른다 — 잠긴 결정을 테스트로 뒤집는다
+## Task 3: 단계를 여덟으로 가른다 — 잠긴 결정을 테스트로 뒤집는다
 
 **Files:**
-- Modify: `codegraph/run_mode1.py:64-104` (`STAGES` · `AGENT_STAGES` · `plan_stages`)
-- Modify: `codegraph/test_run_mode1.py:30-53` (갈아 끼운다)
+- Modify: `codegraph/run_mode1.py:81-84` (`STAGES` · `AGENT_STAGES`), `:161-186` (`plan_stages`)
+- Modify: `codegraph/test_run_mode1.py` (warmup 배선이 쓴 시험 넷을 갈아 끼운다)
 
-- [ ] **Step 1: 옛 결정을 지키던 시험을 새 결정을 지키는 시험으로 갈아 끼운다**
+⚠ 줄 번호는 **warmup 배선이 들어간 지금 트리 기준**이다. 옛 다섯 단계 기준이 아니다.
 
-`codegraph/test_run_mode1.py` 에서 `test_plan_runs_everything_on_an_empty_repo`(`:30`) · `test_only_one_stage_calls_the_model`(`:36`) · `test_plan_skips_the_agent_when_its_output_already_exists`(`:42`) · `test_plan_keeps_the_agent_when_only_half_its_work_is_done`(`:49`) 네 개를 아래로 **교체**한다. **지우지 말고 갈아 끼운다** — 무엇이 왜 바뀌었는지가 docstring 에 남아야 한다.
+- [x] **Step 1: 옛 결정을 지키던 시험을 새 결정을 지키는 시험으로 갈아 끼운다**
+
+`codegraph/test_run_mode1.py` 에서 `test_plan_runs_everything_on_an_empty_repo` · `test_only_one_stage_calls_the_model` · `test_plan_skips_the_agent_when_its_output_already_exists` · `test_plan_keeps_the_agent_when_only_half_its_work_is_done` · `test_the_two_warmup_gates_straddle_the_agent` · `test_skipping_warmup_restores_the_old_five_stage_flow` 여섯 개를 아래로 **교체**한다. **지우지 말고 갈아 끼운다** — 무엇이 왜 바뀌었는지가 docstring 에 남아야 한다.
+
+⚠ **여섯 번째가 하나 더 있다** (🔵 2026-08-30 실행 중 발견 — 계획 초안이 빠뜨렸다).
+`test_skipping_warmup_restores_the_old_five_stage_flow` 는
+`skip=["warmup","warmup-save"]` 가 `["prep","agent","terms","build","check"]` 를 낸다고 단언한다.
+`agent` 가 `STAGES` 에서 사라지므로 **그 값은 물리적으로 나올 수 없다.** 함께 갈아 끼운다:
 
 ```python
-def test_빈_저장소면_여섯_단계를_순서대로_돈다():
-    """예전에는 다섯이었다(prep agent terms build check).
+def test_skip_은_새_여덟_흐름_기준으로_걸러낸다():
+    """예전 이름은 `test_skipping_warmup_restores_the_old_five_stage_flow` 였다.
 
-    2026-08-30 사용자 결정으로 `agent` 가 `survey` 와 `wiki` 로 갈리고 `terms` 가 그 사이로 왔다.
+    옛 시험은 `skip=["warmup", "warmup-save"]` 가 **다섯 단계 시절의 대조군**을
+    되살린다고 단언했다. 이 계획이 `agent` 를 지웠으므로 그 값 자체가 더는 나올 수 없다.
+
+    **다섯 단계 대조군은 이 코드로 만드는 것이 아니다.** 옛 코드가 필요한 대조군은
+    `git worktree add /tmp/rb-old 9223143` 로 커밋을 통째로 떼어 돌린다.
+    이 시험은 `skip` 이 새 여덟 단계 목록에서도 필터로 옳게 동작하는지만 본다.
+    """
+    p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
+    assert p == ["prep", "survey", "terms", "wiki", "build", "check"]
+```
+
+정확한 자리는 이렇게 찾는다:
+
+```bash
+grep -n "def test_plan_runs_everything\|def test_only_one_stage\|def test_plan_skips_the_agent\|def test_plan_keeps_the_agent\|def test_the_two_warmup_gates\|def test_skipping_warmup" codegraph/test_run_mode1.py
+```
+
+```python
+def test_빈_저장소면_여덟_단계를_순서대로_돈다():
+    """warmup 배선까지는 일곱이었다(prep warmup agent warmup-save terms build check).
+
+    2026-08-30 사용자 결정으로 `agent` 가 `survey` 와 `wiki` 로 갈렸고, `terms` 가 그 둘 사이로 왔다.
     `terms` 를 가운데 둔 이유는 산문 세션이 **인용 검사를 통과한** terms-db.json 을
     재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
     """
     assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "prep", "survey", "terms", "wiki", "build", "check"]
+        "prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
+
+
+def test_warmup_관문이_survey_를_감싼다():
+    """예전 이름은 `test_the_two_warmup_gates_straddle_the_agent` 였다.
+
+    관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `survey` 가 레코드를 만들고
+    `wiki` 는 산문을 쓴다. `wiki` 뒤에 확정을 두면 산문 실패가 다음 실행의 전량 재조사를
+    부른다 — 레코드는 멀쩡한데 27분을 다시 쓰는 비용 회귀다 (J6).
+    """
+    p = R.plan_stages(False, False, False)
+    assert p.index("warmup") < p.index("survey") < p.index("warmup-save")
+    assert p.index("warmup-save") < p.index("wiki")
 
 
 def test_두_단계가_모형을_부른다():
@@ -877,7 +959,9 @@ def test_산출물이_있는_LLM_단계만_각자_빠진다():
     """
     both = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
     assert "survey" not in both and "wiki" not in both
-    assert both == ["prep", "terms", "build", "check"]
+    # warmup 두 칸은 남는다 — 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
+    # 매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다(warmup 배선의 규칙 그대로).
+    assert both == ["prep", "warmup", "warmup-save", "terms", "build", "check"]
 
     only_reading = R.plan_stages(True, True, False)
     assert "survey" not in only_reading and "wiki" in only_reading
@@ -888,25 +972,29 @@ def test_산출물이_있는_LLM_단계만_각자_빠진다():
 
 `test_plan_only_and_skip_are_honoured`(`:60`) 의 `only=["prep", "check"]` 는 그대로 통과한다. 고치지 않는다.
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
 ```
 
-기대: 위 세 개가 `AssertionError` 로 실패. `survey` 가 아직 `STAGES` 에 없으므로 `plan_stages` 는 여전히 다섯을 낸다.
+기대: 갈아 낀 것들이 `AssertionError` 로 실패. `survey` 가 아직 `STAGES` 에 없으므로 `plan_stages` 는 여전히 일곱을 낸다.
 
-- [ ] **Step 3: `run_mode1.py:64-68` 의 상수를 고친다**
+- [x] **Step 3: `run_mode1.py:78-84` 의 상수를 고친다**
 
 ```python
-# 단계는 여섯 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
-STAGES = ["prep", "survey", "terms", "wiki", "build", "check"]
+# warmup 이 **둘**인 것이 이 흐름의 급소다. 앞(warmup)은 판정만 하고, 뒤(warmup-save)가
+# 확정한다 — 에이전트가 실패했는데 확정하면 읽지 않은 파일이 '유효' 로 남는다.
+# 확정은 **레코드를 만드는 `survey` 바로 뒤**다. `wiki` 뒤에 두면 산문 실패가
+# 다음 실행의 전량 재조사를 부른다(J6).
+# 단계는 여덟 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
+STAGES = ["prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
 
 # 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
 AGENT_STAGES = {"survey", "wiki"}
 ```
 
-- [ ] **Step 4: `plan_stages` 의 걸러내는 분기를 고친다**
+- [x] **Step 4: `plan_stages` 의 걸러내는 분기를 고친다**
 
 `run_mode1.py:83-104` 의 docstring 과 루프를 아래로 바꾼다. 시그니처는 **그대로 둔다** — 부르는 쪽(`main`)과 시험이 이미 그 이름을 쓴다.
 
@@ -929,6 +1017,7 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     for s in STAGES:
         if s in set(skip or []):
             continue
+        # warmup 두 칸은 빼지 않는다(warmup 배선의 규칙 그대로).
         if s == "survey" and has_reading:
             continue
         if s == "wiki" and has_prose:
@@ -937,7 +1026,7 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
     return out
 ```
 
-- [ ] **Step 5: 시험이 통과하는지 확인한다**
+- [x] **Step 5: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q
@@ -946,12 +1035,12 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
 기대: 실패가 남는다 — `main()` 이 아직 `stage == "agent"` 를 보고, `agent_prompt` 를 쓰는 `test_the_prompt_names_both_halves_of_the_one_agent_job` 도 살아 있다. **`plan_stages` 관련 시험 세 개가 통과하는 것만 확인하고 다음 Task 로 간다:**
 
 ```bash
-.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "단계 or 모형을_부른다 or 산출물이_있는"
+.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "단계 or 모형을_부른다 or 산출물이_있는 or warmup_관문"
 ```
 
-기대: `3 passed`.
+기대: `4 passed`.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -970,7 +1059,7 @@ git commit -m "[refactor] : mode 1 의 에이전트 칸을 survey 와 wiki 로 �
 - Modify: `codegraph/run_mode1.py` (`run_agent` 를 `run_agent_with` 로 가르고 `run_layer` 를 더한다)
 - Modify: `codegraph/test_run_mode1.py` (새 시험을 더한다)
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `codegraph/test_run_mode1.py` 맨 아래에 절을 하나 더한다:
 
@@ -1040,7 +1129,7 @@ import sys
 import time
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "run_layer or 빈_층"
@@ -1048,7 +1137,7 @@ import time
 
 기대: `AttributeError: module 'run_mode1' has no attribute 'run_layer'` 로 4건 실패.
 
-- [ ] **Step 3: `run_mode1.py:355-370` 의 `run_agent` 를 가른다**
+- [x] **Step 3: `run_mode1.py:355-370` 의 `run_agent` 를 가른다**
 
 기존 `run_agent` 를 **지우고**(J2 — `run_mode2.py` 와 `run_mode1_5.py` 는 자기 것을 따로 갖는다) 아래 둘을 넣는다:
 
@@ -1116,7 +1205,7 @@ def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
 from concurrent.futures import ThreadPoolExecutor
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "run_layer or 빈_층"
@@ -1124,7 +1213,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 기대: `4 passed`.
 
-- [ ] **Step 5: 다른 두 실행기가 안 깨졌는지 확인한다**
+- [x] **Step 5: 다른 두 실행기가 안 깨졌는지 확인한다**
 
 `run_agent` 를 지웠으므로 확인이 필요하다.
 
@@ -1135,7 +1224,7 @@ grep -n "M\.run_agent\b\|M\.agent_prompt\b" codegraph/run_mode2.py codegraph/run
 
 기대: `grep` 이 아무것도 못 찾고(종료 코드 1), 두 시험 파일이 전부 통과.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -1152,7 +1241,7 @@ git commit -m "[feat] : 층 하나를 동시에 도는 실행기와 배치별 �
 - Modify: `codegraph/run_mode1.py` (`merge_shards` 를 더한다)
 - Modify: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `codegraph/test_run_mode1.py` 에 이어 붙인다:
 
@@ -1207,7 +1296,7 @@ def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path):
     assert R.merge_shards(str(tmp_path / "없다"), {"가": {}}) == {"가": {}}
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "샤드 or 키가_겹치면 or 아래층 or 이미_있는_키"
@@ -1215,7 +1304,7 @@ def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path):
 
 기대: `AttributeError: … has no attribute 'merge_shards'` 로 6건 실패.
 
-- [ ] **Step 3: `merge_shards` 를 만든다**
+- [x] **Step 3: `merge_shards` 를 만든다**
 
 `run_mode1.py` 의 `run_layer` 아래에 넣는다:
 
@@ -1232,6 +1321,11 @@ def merge_shards(shard_dir, existing):
 
     **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 결과를 버리지 않는다.
     무엇을 건너뛰었는지는 stderr 에 적어 사람이 다시 돌릴 수 있게 한다.
+
+    ⚠ **`existing` 에는 누적본이 아니라 조사 이전의 원본을 준다.** 이 함수는 층마다 불리고
+    그때마다 샤드 전부를 다시 읽는다. 누적본을 넘기면 이미 합쳐 둔 레코드를 **자기 자신과의
+    충돌**로 보고 개명해 버린다 — 🔵 2026-08-30 연기 시험에서 레코드 수가 38 -> 27 로
+    줄어드는 것으로 드러났다. 충돌 판정에 `!=` 를 쓰는 것도 같은 이유다.
     """
     got = dict(existing or {})
     if not os.path.isdir(shard_dir):
@@ -1246,7 +1340,7 @@ def merge_shards(shard_dir, existing):
             print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
             continue
         for key, rec in shard.items():
-            if key in got and got[key] is not rec:
+            if key in got and got[key] != rec:
                 # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
                 old = got.pop(key)
                 got[_qualified(key, old)] = old
@@ -1266,7 +1360,7 @@ def _qualified(key, rec):
     return "%s.%s" % (stem, key) if stem else key
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "샤드 or 키가_겹치면 or 아래층 or 이미_있는_키"
@@ -1274,7 +1368,7 @@ def _qualified(key, rec):
 
 기대: `6 passed`.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -1289,7 +1383,7 @@ git commit -m "[feat] : 배치 샤드를 합치고 키 충돌을 전원 개명�
 - Modify: `codegraph/run_mode1.py` (`agent_prompt` 를 지우고 `dep_excerpt` · `survey_batch_prompt` · `nonnode_prompt` 를 넣는다)
 - Modify: `codegraph/test_run_mode1.py:140-145` (`test_the_prompt_names_both_halves_of_the_one_agent_job` 을 갈아 끼운다)
 
-- [ ] **Step 1: 옛 시험을 갈아 끼우고 새 시험을 더한다**
+- [x] **Step 1: 옛 시험을 갈아 끼우고 새 시험을 더한다**
 
 `codegraph/test_run_mode1.py:140` 의 `test_the_prompt_names_both_halves_of_the_one_agent_job` 을 **지우고** 그 자리에 넣는다:
 
@@ -1316,6 +1410,18 @@ def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
     assert "file_cache.py" in p                     # 통독 캐시를 먼저 본다
     assert "이름으로 보아" in p                       # 금지표
     assert "confidence" in p
+
+
+def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
+    """warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
+    기존 레코드의 means/does 를 함부로 다시 쓰지 않는다."""
+    batch = {"id": "L0-B00", "files": ["a.py"],
+             "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
+                          "kind": "function", "in_cycle": False, "depends_on": []}]}
+    전량 = R.survey_batch_prompt("/r", "/root", batch, "")
+    증분 = R.survey_batch_prompt("/r", "/root", batch, "", targets=["a.py"], total=40)
+    assert len(증분) > len(전량)
+    assert "a.py" in 증분
 
 
 def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다():
@@ -1351,15 +1457,15 @@ def test_의존_발췌는_아무것도_없으면_빈_문자열():
     assert R.dep_excerpt({}, {"symbols": [{"id": "a", "depends_on": []}]}) == ""
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "배치_프롬프트 or 비노드 or 의존_발췌"
 ```
 
-기대: `AttributeError: … has no attribute 'survey_batch_prompt'` 로 5건 실패.
+기대: `AttributeError: … has no attribute 'survey_batch_prompt'` 로 6건 실패.
 
-- [ ] **Step 3: `agent_prompt` 를 지우고 세 함수를 넣는다**
+- [x] **Step 3: `agent_prompt` 를 지우고 세 함수를 넣는다**
 
 `run_mode1.py:181-240` 의 `agent_prompt` 를 통째로 **지우고**(J2) 그 자리에 넣는다:
 
@@ -1382,11 +1488,16 @@ def dep_excerpt(merged, batch):
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.survey_batch_prompt']"/>
 # 배치 하나를 맡을 세션에게 줄 글을 만든다.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.main
-def survey_batch_prompt(repo, root, batch, dep_records):
+def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
     """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
 
     `dep_records` 는 **아래층에서 이미 완성된** 레코드 중 이 배치의 심볼이 의존하는 것만
     발췌한 것이다(`dep_excerpt`). 전량을 주입하면 층이 올라갈수록 프롬프트가 부푼다.
+
+    `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
+    `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다 — 배치 세션이 그것을 알아야
+    기존 레코드의 `means` `does` 를 함부로 다시 쓰지 않는다
+    (`codebase-terms-survey` SKILL.md 의 증분 규칙). `None` 이면 전량 조사다.
     """
     syms = "\n".join(
         "  - %s (%s) %s:%s   의존 -> %s"
@@ -1453,7 +1564,8 @@ def survey_batch_prompt(repo, root, batch, dep_records):
 
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
 """.format(repo=repo, root=root, bid=batch["id"], n=len(batch["symbols"]),
-           syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)")
+           syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)") \
+        + warmup_section(targets, total, repo)
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.nonnode_prompt']"/>
@@ -1512,15 +1624,15 @@ def nonnode_prompt(repo, root):
 """.format(repo=repo, root=root)
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "배치_프롬프트 or 비노드 or 의존_발췌"
 ```
 
-기대: `5 passed`.
+기대: `6 passed`.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -1541,7 +1653,7 @@ git commit -m "[feat] : 배치와 비노드 층의 전수조사 프롬프트"
 - Modify: `codegraph/run_mode1.py` (`symbol_layers` · `page_layers` · `wiki_catalogue_prompt` · `wiki_page_prompt`)
 - Modify: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 ```python
 # ── 9. 위키도 같은 층 순서로 (K6)
@@ -1591,6 +1703,7 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
     assert "protocol.md — 프로토콜" in p
     assert "deep-wiki" in p
     assert "사이트 조립은 하지" in p       # 그건 report-wiki build 의 일이다
+    assert "Sonnet 5" in p                # 서브에이전트를 띄운다면 같은 계열로
     assert "(경로:줄)" in p               # 로컬 인용 규격
 
 
@@ -1599,7 +1712,7 @@ def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
     assert "첫 장" in p
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "심볼_층 or 페이지_층 or 카탈로그 or 페이지_프롬프트 or 인용_심볼 or 모르는_심볼"
@@ -1607,7 +1720,7 @@ def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
 
 기대: `AttributeError: … has no attribute 'symbol_layers'` 로 7건 실패.
 
-- [ ] **Step 3: 네 함수를 넣는다**
+- [x] **Step 3: 네 함수를 넣는다**
 
 `run_mode1.py` 의 `nonnode_prompt` 아래에 넣는다:
 
@@ -1733,6 +1846,7 @@ def wiki_page_prompt(repo, root, page, lower_pages):
 - 확인 못 한 것은 `(Unknown - verify in <파일>)` 로 남긴다. 지어내지 않는다
 - 읽는 사람은 배경 지식이 없다고 가정한다(객체지향을 갓 배운 대학 1학년 눈높이)
 - 한국어로 쓰고 영문 기술용어를 병기한다. 약어와 압축 표현을 피한다
+- **네가 서브에이전트를 띄운다면 Sonnet 5 계열로 띄운다.** deep-wiki 의 것들은 이미 그렇게 돼 있다
 
 **대상 저장소의 소스는 읽기만 한다. 쓰는 곳은 위 파일 하나뿐이다. 커밋하지 마라.**
 
@@ -1742,7 +1856,7 @@ def wiki_page_prompt(repo, root, page, lower_pages):
            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "심볼_층 or 페이지_층 or 카탈로그 or 페이지_프롬프트 or 인용_심볼 or 모르는_심볼"
@@ -1750,7 +1864,7 @@ def wiki_page_prompt(repo, root, page, lower_pages):
 
 기대: `7 passed`.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -1765,7 +1879,7 @@ git commit -m "[feat] : 위키 산문도 같은 층 순서로 쓰는 프롬프�
 - Modify: `codegraph/run_mode1.py` (`format_report` · `stage_totals` · `main`)
 - Modify: `codegraph/test_run_mode1.py`
 
-- [ ] **Step 1: 보고 표 시험을 먼저 쓴다**
+- [x] **Step 1: 보고 표 시험을 먼저 쓴다**
 
 배치가 병렬로 돌면 **행의 초를 다 더한 값은 사람이 기다린 시간이 아니다.** 층 안에서 8개가 동시에 돌았으면 합계가 벽시계의 8배까지 부푼다. 그래서 진짜 벽시계를 따로 받는 칸이 필요하다.
 
@@ -1785,6 +1899,31 @@ def test_보고표는_진짜_벽시계를_따로_받는다():
     assert "1분 45.0초" in R.format_report(rows, wall_seconds=105.0)
 
 
+def test_survey_가_실패하면_매니페스트를_갱신하지_않는다():
+    """🔴 이 계획이 만드는 조용한 버그를 막는 시험이다.
+
+    warmup 배선의 `save_warmup` 은 `r["stage"] == "agent"` 로 실패를 찾았다. 이 계획이
+    행 라벨을 `survey/L0-B00` 꼴로 바꾸므로 그 비교가 **영원히 거짓**이 되어, survey 가
+    실패해도 매니페스트가 갱신된다 — warmup 배선이 막으려던 바로 그 사고다.
+    """
+    saved = []
+    import warmup as W
+    orig = W.save
+    W.save = lambda path, entries: saved.append(path)
+    try:
+        rows = [{"stage": "survey/L0-B00", "ok": True, "usage": R.normalize_usage(None)},
+                {"stage": "survey/L1-B00", "ok": False, "why": "터졌다",
+                 "usage": R.normalize_usage(None)}]
+        R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+        assert saved == [], "survey 가 실패했는데 매니페스트를 갱신했다"
+
+        rows[1]["ok"] = True
+        R.save_warmup("/캐시/경로.json", {"a.py": {}}, rows)
+        assert saved == ["/캐시/경로.json"]
+    finally:
+        W.save = orig
+
+
 def test_단계별_소계를_낸다():
     """어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다.
     `ARCHITECTURE.md` 의 표와 대조할 수 있는 모양이 이것이다."""
@@ -1800,15 +1939,15 @@ def test_단계별_소계를_낸다():
     assert got["prep"]["total"] == 0
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 확인한다**
+- [x] **Step 2: 시험이 실패하는지 확인한다**
 
 ```bash
-.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "벽시계 or 단계별_소계"
+.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "벽시계 or 단계별_소계 or 매니페스트"
 ```
 
-기대: `TypeError: format_report() got an unexpected keyword argument 'wall_seconds'` 와 `AttributeError: … 'stage_totals'`.
+기대: `TypeError: format_report() got an unexpected keyword argument 'wall_seconds'` · `AttributeError: … 'stage_totals'` · 그리고 매니페스트 시험이 `AssertionError: survey 가 실패했는데 매니페스트를 갱신했다` 로 실패(옛 비교가 `agent` 를 찾기 때문이다).
 
-- [ ] **Step 3: `format_report` 에 칸을 더하고 `stage_totals` 를 넣는다**
+- [x] **Step 3: `format_report` 에 칸을 더하고 `stage_totals` 를 넣는다**
 
 `run_mode1.py:287-288` 의 시그니처와 합계 줄을 고친다. **인자를 빼거나 뜻을 바꾸지 않는다** — `run_mode2.py:75` 가 `format_report = M.format_report` 로 그대로 물려받고 `test_run_mode2.py:237` 이 동일성을 단언한다.
 
@@ -1861,7 +2000,7 @@ def stage_totals(rows):
 import collections
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 확인한다**
+- [x] **Step 4: 시험이 통과하는지 확인한다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "벽시계 or 단계별_소계"
@@ -1870,7 +2009,29 @@ import collections
 
 기대: 앞이 `2 passed`, 뒤가 전부 통과(기본값 덕분에 부르는 쪽이 안 깨진다).
 
-- [ ] **Step 5: `main()` 의 단계 루프를 갈아 끼운다**
+- [x] **Step 4b: 🔴 `save_warmup` 의 실패 판정을 고친다**
+
+`run_mode1.py:557` 근처의 한 줄이다. **이걸 빼먹으면 survey 가 실패해도 매니페스트가 갱신된다.**
+
+```python
+    # 행 라벨이 `survey/L0-B00` 꼴이라 `== "survey"` 로는 못 잡는다. 단계 이름만 떼어 본다.
+    실패한_조사 = [r for r in rows
+                   if r["stage"].split("/")[0] == "survey" and not r.get("ok")]
+    if 실패한_조사:
+        print("매니페스트를 갱신하지 않는다 — 전수조사가 실패했다. "
+              "지금 갱신하면 읽지 않은 파일이 '유효' 로 남는다.", file=sys.stderr)
+        return True, ""
+```
+
+docstring 의 "에이전트" 도 "전수조사(`survey`)" 로 고친다.
+
+```bash
+.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "매니페스트"
+```
+
+기대: `1 passed`.
+
+- [x] **Step 5: `main()` 의 단계 루프를 갈아 끼운다**
 
 `run_mode1.py:428-455` 의 `for stage in stages:` 루프를 아래로 바꾼다. `survey` 와 `wiki` 를 각각 도우미 함수로 빼서 `main` 이 부풀지 않게 한다.
 
@@ -1880,7 +2041,8 @@ import collections
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_survey']"/>
 # 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합친다.
 # 쓰는 것: run_mode1.run_layer, run_mode1.merge_shards, run_mode1.survey_batch_prompt, run_mode1.nonnode_prompt, run_mode1.dep_excerpt · 쓰이는 곳: run_mode1.main
-def run_survey(model, repo, root, plan, concurrency, timeout, reading_path):
+def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
+               targets=None, total=0):
     """층 사이는 순차, 층 안은 병렬(K2). `[(행 라벨, 초, 종료코드, 결과), …]` 를 낸다.
 
     **층이 끝날 때마다 병합해서 디스크에 쓴다.** 다음 층의 배치가 아래층 레코드를 발췌해
@@ -1891,10 +2053,12 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path):
     """
     shard_dir = os.path.join(repo, "out", "codegraph-raw", "_shards")
     os.makedirs(shard_dir, exist_ok=True)
-    merged = {}
+    # **조사 이전의 원본**을 따로 붙들어 둔다(멱등성 — 위 merge_shards 경고).
+    baseline = {}
     if os.path.exists(reading_path):
         with open(reading_path, encoding="utf-8") as f:
-            merged = json.load(f)
+            baseline = json.load(f)
+    merged = dict(baseline)
 
     rows = []
     for L in plan["layers"]:
@@ -1904,7 +2068,8 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path):
         else:
             jobs, label_of = [], {}
             for b in L["batches"]:
-                jobs.append((b["id"], survey_batch_prompt(repo, root, b, dep_excerpt(merged, b))))
+                jobs.append((b["id"], survey_batch_prompt(
+                    repo, root, b, dep_excerpt(merged, b), targets, total)))
                 label_of[b["id"]] = "survey/" + b["id"]
         jobs = [(bid, p) for bid, p in jobs
                 if not os.path.exists(os.path.join(shard_dir, bid + ".json"))]
@@ -1921,7 +2086,7 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path):
             rows.append({"stage": label_of[bid], "seconds": seconds,
                          "usage": normalize_usage(result), "ok": ok, "why": why})
 
-        merged = merge_shards(shard_dir, merged)
+        merged = merge_shards(shard_dir, baseline)   # 누적본이 아니라 원본을 준다
         os.makedirs(os.path.dirname(reading_path), exist_ok=True)
         with open(reading_path, "w", encoding="utf-8") as f:
             json.dump(merged, f, ensure_ascii=False, indent=1, sort_keys=True)
@@ -1993,23 +2158,42 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
     rows, t_all = [], time.monotonic()
     survey_plan_path = os.path.join(raw, "survey-plan.json")
     plan_json = None
+    targets, entries, cache_path, 추적파일수 = None, None, None, 0
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
-        if stage in AGENT_STAGES:
+        if stage == "warmup":
+            # warmup 배선이 만든 관문 ①. 판정만 하고 매니페스트는 쓰지 않는다.
+            targets, entries, cache_path, 추적파일수, ok, why = run_warmup(
+                repo, codegraph, a.hops)
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": normalize_usage(None), "ok": ok, "why": why})
+        elif stage == "warmup-save":
+            ok, why = save_warmup(cache_path, entries, rows)
+            rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                         "usage": normalize_usage(None), "ok": ok, "why": why})
+        elif stage in AGENT_STAGES:
             if plan_json is None:
                 if not os.path.exists(codegraph):
                     print("에러 — 코드 지도가 없다: %s (prep 이 먼저다)" % codegraph,
                           file=sys.stderr)
                     return 1
                 with open(codegraph, encoding="utf-8") as f:
-                    plan_json = survey_plan.plan(json.load(f), a.target)
+                    # warmup 이 판정한 목록이 있으면 그 파일의 심볼만 남긴다(증분 조사).
+                    # 층 번호는 **전체 그래프 기준으로 매긴 뒤** 걸러진다 —
+                    # 거르고 나서 매기면 사라진 의존 대상 때문에 층이 잘못 내려간다.
+                    plan_json = survey_plan.plan(json.load(f), a.target,
+                                                 only_files=targets)
                 with open(survey_plan_path, "w", encoding="utf-8") as f:
                     json.dump(plan_json, f, ensure_ascii=False, indent=1)
-                print("배치 계획 %s" % survey_plan_path, flush=True)
+                print("배치 계획 %s — 심볼 %d · 층 %d%s"
+                      % (survey_plan_path, plan_json["totals"]["symbols"],
+                         plan_json["totals"]["levels"],
+                         " (증분: warmup 이 준 %d파일)" % len(targets) if targets else ""),
+                      flush=True)
             if stage == "survey":
-                got = run_survey(a.model, repo, ROOT, plan_json,
-                                 a.concurrency, a.timeout, reading)
+                got = run_survey(a.model, repo, ROOT, plan_json, a.concurrency,
+                                 a.timeout, reading, targets, 추적파일수)
             else:
                 got = run_wiki(a.model, repo, ROOT, plan_json, a.concurrency, a.timeout)
             rows += got
@@ -2087,30 +2271,30 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import survey_plan  # noqa: E402
 ```
 
-- [ ] **Step 6: dry-run 으로 단계 목록을 확인한다**
+- [x] **Step 6: dry-run 으로 단계 목록을 확인한다**
 
 ```bash
 .venv/bin/python codegraph/run_mode1.py . --dry-run
 ```
 
-기대: `모형 claude-sonnet-5 · 단계 prep -> survey -> terms -> wiki -> build -> check` 가 찍힌다.
+기대: `모형 claude-sonnet-5 · 단계 prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check` 가 찍힌다.
 **모형이 `opus` 로 나오면 기본값을 안 바꾼 것이다.** (이 저장소는 `docs/codegraph/terms-reading.json` 이 있으므로 실제로는 `survey` 가 빠진 목록이 나올 수 있다 — 그때는 `--skip` 없이 빈 임시 폴더로 확인한다:)
 
 ```bash
 mkdir -p /tmp/빈저장소 && .venv/bin/python codegraph/run_mode1.py /tmp/빈저장소 --dry-run
 ```
 
-기대: 여섯 단계가 모두 나온다.
+기대: 여덟 단계가 모두 나온다.
 
-- [ ] **Step 7: 전체 시험을 돌린다**
+- [x] **Step 7: 전체 시험을 돌린다**
 
 ```bash
 .venv/bin/python -m pytest codegraph/ -q
 ```
 
-기대: 실패 0. 통과 수가 **201 + (더한 시험 수)** 로 늘어야 한다. **줄어들면 무언가를 조용히 깬 것이다.**
+기대: 실패 0. 통과 수가 **235 + (더한 시험 수)** 로 늘어야 한다. **줄어들면 무언가를 조용히 깬 것이다.**
 
-- [ ] **Step 8: 커밋**
+- [x] **Step 8: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/test_run_mode1.py
@@ -2129,24 +2313,29 @@ git commit -m "[feat] : mode 1 실행기가 층을 순차로 배치를 병렬로
 - Modify: `ARCHITECTURE.md`
 - Modify: `docs/codegraph/terms-reading.json` · `docs/codegraph/comments.xml`
 
-- [ ] **Step 1: `run_mode1.py` 의 모듈 docstring 을 고친다**
+- [x] **Step 1: `run_mode1.py` 의 모듈 docstring 을 고친다**
 
 `:13-28` 의 다섯 단계 그림과 "에이전트를 하나로 묶은 것이 이 설계의 급소다" 문단을 바꾼다:
 
 ```
-## 여섯 단계 — LLM 이 도는 칸은 **둘**이다
+## 여덟 단계 — LLM 이 도는 칸은 **둘**이다
 
-    prep ──▶ survey ──▶ terms ──▶ wiki ──▶ build ──▶ check
-    기계     LLM 층별     기계     LLM 층별   기계      기계
+    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+    기계    기계       LLM 층별   기계           기계     LLM 층별  기계     기계
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `prep`   | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `scripts/wiki/prep.mjs` |
+| `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `codegraph/warmup.py` |
 | `survey` | 전수조사. **의존 위상 층 오름차순 · 층 안 병렬** | `claude -p` 배치마다 1회 |
+| `warmup-save` | 전수조사가 해낸 뒤에만 매니페스트를 **확정**한다 | `codegraph/warmup.py` |
 | `terms`  | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `codegraph/terms_db.py` |
 | `wiki`   | 위키 산문. 목차 1회 + 장마다 1회, 같은 층 순서 | `claude -p` 장마다 1회 |
 | `build`  | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `scripts/wiki/build.mjs` |
 | `check`  | 산문의 인용을 저장소 실물과 대조한다 | `scripts/wiki/check.mjs` |
+
+**확정(`warmup-save`)이 `survey` 바로 뒤인 것이 중요하다.** 관문이 감싸야 하는 것은
+레코드를 만드는 단계다. `wiki` 뒤에 두면 산문 실패가 다음 실행의 전량 재조사를 부른다.
 
 **⚠ 이 파일의 이전 판은 "에이전트를 하나로 묶은 것이 이 설계의 급소다" 라고 적었다.**
 이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
@@ -2158,7 +2347,11 @@ git commit -m "[feat] : mode 1 실행기가 층을 순차로 배치를 병렬로
 
 **비용은 아직 재지 않았다.** 쪼개면 캐시가 나빠지는 대신 배치마다 읽는 양이 훨씬 적다.
 어느 쪽이 큰지는 **모른다.** 이 파일 자신이 재는 도구이므로 A/B 를 돌려 숫자로 답한다.
-그 전에는 "더 싸졌다" "더 빨라졌다" 를 쓰지 않는다.
+그 전에는 "더 싸졌다" "더 빨라졌다" 를 쓰지 않는다. 게다가 기준선은 **opus 한 세션**이고
+지금은 **claude-sonnet-5 여러 세션**이라 변수가 둘이다 — 무엇 덕분인지 귀속할 수 없다.
+
+`warmup` 이 판정한 목록은 `survey_plan.plan(..., only_files=…)` 로 들어가 층 계획 자체를
+좁힌다. 증분 조사에서는 배치 수가 줄어드는 것으로 절감이 나타난다.
 
 `terms` 가 `survey` 와 `wiki` 사이로 온 이유 — 산문을 쓰는 세션이 **인용 검사를 통과한**
 `terms-db.json` 을 재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
@@ -2172,13 +2365,17 @@ git commit -m "[feat] : mode 1 실행기가 층을 순차로 배치를 병렬로
                                             [--json 측정.json] [--dry-run]
 ```
 
-- [ ] **Step 2: `codegraph/CLAUDE.md` 의 같은 주장을 고친다**
+- [x] **Step 2: `codegraph/CLAUDE.md` 의 같은 주장을 고친다**
 
 "세 실행기 — 재는 것이 목적이다" 절의 파이프라인 그림에서 Mode 1 줄을 바꾼다:
 
 ```
-Mode 1    prep ─▶ survey ─▶ terms ─▶ wiki ─▶ build ─▶ check
+Mode 1    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
 ```
+
+⚠ `codegraph/CLAUDE.md` 는 warmup 배선 커밋에서 **이미 일곱 단계로 고쳐져 있다.**
+`agent` 를 `survey … terms … wiki` 로 다시 가르는 것만 하면 된다. 그 파일의
+"WarmUp 의 판정 네 갈래" 절과 배선 문단은 **그대로 둔다** — 남의 작업이고 여전히 맞다.
 
 그 아래 "무엇이 여기 있나" 표에 두 줄을 보탠다:
 
@@ -2211,23 +2408,70 @@ Mode 1    prep ─▶ survey ─▶ terms ─▶ wiki ─▶ build ─▶ check
 순환 0개, 고립 노드 42개. 층 경계 중복 통독은 유일 파일 41개에 층별 합계 84개(**중복 43회**)다.
 ```
 
-- [ ] **Step 3: `ARCHITECTURE.md` 의 Mode 1 그림을 고친다**
+- [x] **Step 3: `ARCHITECTURE.md` 의 Mode 1 그림을 고친다**
 
 `ARCHITECTURE.md:155-166` 의 **실측 표는 건드리지 않는다** — 그건 옛 다섯 단계로 잰 값이고, 새 값은 A/B 를 돌린 뒤에 붙는다. 대신 그 표 **아래**에 한 문단을 더한다:
 
 ```markdown
-⚠ **위 표는 옛 다섯 단계(`prep agent terms build check`)로 잰 값이다.** 2026-08-30 에
-`agent` 가 `survey` 와 `wiki` 로 갈리고 층 병렬이 됐다(`codegraph/CLAUDE.md` 의 K1~K7).
+⚠ **위 표는 옛 다섯 단계(`prep agent terms build check`)를 opus 한 세션으로 잰 값이다.**
+2026-08-30 에 두 번 바뀌었다 — 먼저 warmup 두 관문이 붙어 일곱이 됐고(`1e5d766`),
+이어서 `agent` 가 `survey` 와 `wiki` 로 갈려 **여덟**이 됐다(`codegraph/CLAUDE.md` 의 K1~K7).
+배치·장 세션은 **`claude-sonnet-5`** 로 돈다.
 **새 구조의 값은 아직 재지 않았다.** 재면 `evals/runs/` 에 쌓고 이 표를 갱신한다.
+기준선과 모형이 다르므로 **"층 병렬 덕분"이라고 귀속할 수 없다**는 것도 함께 적는다.
 ```
 
-그리고 `ARCHITECTURE.md` 안의 Mode 1 파이프라인 그림들(mermaid 포함)에서 `agent` 한 칸을 `survey … terms … wiki` 로 고친다. 어디에 있는지는 이렇게 찾는다:
+- [x] **Step 3b: `ARCHITECTURE.md:97-98` 의 mermaid 를 고친다**
+
+지금 이렇다:
+
+```
+  subgraph M1["Mode 1 — 코드베이스 위키"]
+    P1["prep"] --> W1["warmup"] --> A1["agent"] --> S1["warmup-save"] --> T1["terms"] --> B1["build"] --> C1["check"]
+  end
+```
+
+이렇게 바꾼다. **`A1` 이 둘로 갈리고 둘 다 LLM 칸이다** — `class` 줄에 `A1b` 를 빠뜨리면
+새 칸이 기계 색으로 칠해져 그림이 거짓말을 한다:
+
+```
+  subgraph M1["Mode 1 — 코드베이스 위키"]
+    P1["prep"] --> W1["warmup"] --> A1["survey<br/>층별 배치 N세션"] --> S1["warmup-save"]
+    S1 --> T1["terms"] --> A1b["wiki<br/>목차 1 + 장 N세션"] --> B1["build"] --> C1["check"]
+  end
+```
+
+그리고 아래 `class` 줄 둘을 고친다:
+
+```
+  class P1,W1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
+  class A1,A1b,AU,A2 llm
+```
+
+**그림 아래에 책임 한 줄을 붙인다:**
+
+```markdown
+Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
+**`claude-sonnet-5` 로 띄울 책임은 이 두 칸에 있고**, 실제 경로는 `run_mode1.py` 의
+`--model` 기본값 하나다(`main` → `run_survey`/`run_wiki` → `run_layer` → `run_agent_with`
+→ `claude_argv`). 사슬 중간에서 모형을 바꾸지 않는다.
+```
+
+그 아래 문장 둘도 이제 틀렸으니 고친다:
+
+- `LLM 칸도 갈래마다 하나뿐이다 (...)` → **Mode 1 만 둘**이 됐다고 적는다
+- 단계 표의 `| \`agent\` | **LLM 1회** | ...` 줄을 `survey` · `wiki` 두 줄로 가른다.
+  `survey` 는 `소스 + facts/*.md → docs/codegraph/terms-reading.json`,
+  `wiki` 는 `terms-db.json + facts/*.md → docs/wiki/*.md` 다
+- `warmup-save` 줄의 `(**에이전트가 성공했을 때만**)` 을 `(**전수조사가 성공했을 때만**)` 으로
+
+찾는 법:
 
 ```bash
-grep -n "prep.*agent.*terms\|agent" ARCHITECTURE.md
+grep -n "subgraph M1\|class A1\|LLM 칸도 갈래마다\|\`agent\` | \*\*LLM\|에이전트가 성공했을 때만" ARCHITECTURE.md
 ```
 
-- [ ] **Step 4: 새 함수의 레코드를 쓰고 주석 블록을 박는다**
+- [x] **Step 4: 새 함수의 레코드를 쓰고 주석 블록을 박는다**
 
 `docs/codegraph/terms-reading.json` 에서 **지운 것을 지우고**:
 
@@ -2262,7 +2506,7 @@ PY
 }
 ```
 
-- [ ] **Step 5: 마커를 맞춘다**
+- [x] **Step 5: 마커를 맞춘다**
 
 ```bash
 .venv/bin/python codegraph/xmldoc.py emit
@@ -2272,7 +2516,7 @@ PY
 
 기대: `check` 가 **문제 0건**. 걸리면 `where` 의 줄 번호나 `<include>` 마커의 `@id` 가 레코드 키와 다른 것이다.
 
-- [ ] **Step 6: 인용 검사를 돌린다**
+- [x] **Step 6: 인용 검사를 돌린다**
 
 ```bash
 .venv/bin/python codegraph/terms_db.py out/codegraph-raw/codegraph.json \
@@ -2281,7 +2525,7 @@ PY
 
 기대: 마지막 줄이 **실패 0**. "근거 없음" 은 경고이지 실패가 아니다.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add codegraph/run_mode1.py codegraph/CLAUDE.md ARCHITECTURE.md \
@@ -2298,7 +2542,7 @@ git commit -m "[docs] : 층 병렬로 뒤집힌 결정을 코드 문서 레코�
 **Files:**
 - Modify: `.agents/skills/codebase-terms-survey/SKILL.md`
 
-- [ ] **Step 1: Workflow 5단계를 갈아 끼운다**
+- [x] **Step 1: Workflow 5단계를 갈아 끼운다**
 
 `SKILL.md:105` 의 `5. **레코드를 쓴다** — 파일 순서, 파일 안은 줄 순서.` 를 아래로 바꾸고, 기존 6·7·8 단계는 번호만 8·9·10 으로 민다. `## Workflow — 8단계` 라는 제목도 `## Workflow — 10단계` 로 고친다.
 
@@ -2322,7 +2566,7 @@ git commit -m "[docs] : 층 병렬로 뒤집힌 결정을 코드 문서 레코�
    심볼이 전부 읽힌 뒤라야 파일 레코드가 그 안 심볼들의 완성 레코드를 재료로 쓸 수 있다.
 ```
 
-- [ ] **Step 2: `## 산출물` 표에 두 줄을 보탠다**
+- [x] **Step 2: `## 산출물` 표에 두 줄을 보탠다**
 
 ```markdown
 | `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |
@@ -2330,7 +2574,7 @@ git commit -m "[docs] : 층 병렬로 뒤집힌 결정을 코드 문서 레코�
 | `<repo>/out/codegraph-raw/_shards/*.json` | 배치 세션 | 배치별 레코드 조각. gitignore, 재생성 |
 ```
 
-- [ ] **Step 3: `## Common pitfalls` 에 세 줄을 보탠다**
+- [x] **Step 3: `## Common pitfalls` 에 세 줄을 보탠다**
 
 ```markdown
 - **out_deg 로 정렬** — 그건 위상 깊이가 아니다. 🔵 실측에서 out_deg 1 무리 안에 깊이 1·2·3·4 가
@@ -2339,7 +2583,7 @@ git commit -m "[docs] : 층 병렬로 뒤집힌 결정을 코드 문서 레코�
 - **배치가 terms-reading.json 을 직접 고침** — 동시 쓰기로 서로를 지운다. 샤드에만 쓴다
 ```
 
-- [ ] **Step 4: 새 절 하나를 붙인다**
+- [x] **Step 4: 새 절 하나를 붙인다**
 
 ```markdown
 ## deep-wiki 산문도 같은 층 순서로 (K6)
@@ -2355,7 +2599,7 @@ git commit -m "[docs] : 층 병렬로 뒤집힌 결정을 코드 문서 레코�
 덮인다. 우리 프롬프트(`run_mode1.py` 의 `wiki_page_prompt`)가 감싸서 지시한다.
 ```
 
-- [ ] **Step 5: 심볼릭 링크가 여전히 링크인지 확인한다**
+- [x] **Step 5: 심볼릭 링크가 여전히 링크인지 확인한다**
 
 ```bash
 ls -la .claude/skills/codebase-terms-survey
@@ -2363,7 +2607,7 @@ ls -la .claude/skills/codebase-terms-survey
 
 기대: `... -> ../../.agents/skills/codebase-terms-survey` 로 나온다. 실제 파일이 됐으면 원본이 아니라 사본을 고친 것이다 — 되돌린다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add .agents/skills/codebase-terms-survey/SKILL.md
@@ -2378,16 +2622,16 @@ git commit -m "[docs] : 전수조사 스킬에 층 순서와 병렬 배치 절�
 
 **Files:** 없음 (검증만)
 
-- [ ] **Step 1: 파이썬 시험 전량**
+- [x] **Step 1: 파이썬 시험 전량**
 
 ```bash
 cd /Users/escatrgot/LLM-Tools/report-builder
 .venv/bin/python -m pytest codegraph/ -q 2>&1 | tail -3
 ```
 
-기대: 실패 0. 🔵 기준선은 골든 변수 없이 **201 통과 · 19 건너뜀**이다. 통과 수는 더한 만큼 늘어야 한다 — **줄어들면 무언가를 조용히 깬 것이다.**
+기대: 실패 0. 🔵 기준선은 골든 변수 없이 **235 통과 · 19 건너뜀**이다(warmup 배선 `da3bf20` 이후). 통과 수는 더한 만큼 늘어야 한다 — **줄어들면 무언가를 조용히 깬 것이다.**
 
-- [ ] **Step 2: Node 쪽이 그대로인지**
+- [x] **Step 2: Node 쪽이 그대로인지**
 
 ```bash
 npm test 2>&1 | tail -5
@@ -2395,7 +2639,7 @@ npm test 2>&1 | tail -5
 
 기대: 통과 수가 **바뀌지 않는다**(145개). 이 계획은 `scripts/` 와 `src/` 를 건드리지 않았다. 숫자가 움직였으면 건드리면 안 될 것을 건드린 것이다.
 
-- [ ] **Step 3: 층 계획의 결정론과 층 안 중복 0**
+- [x] **Step 3: 층 계획의 결정론과 층 안 중복 0**
 
 ```bash
 .venv/bin/python codegraph/survey_plan.py out/codegraph-raw/codegraph.json -o /tmp/p1.json
@@ -2411,15 +2655,15 @@ for L in p['layers']:
 
 기대: `결정론 OK` + 모든 층 `중복 없음`.
 
-- [ ] **Step 4: 단계 목록**
+- [x] **Step 4: 단계 목록**
 
 ```bash
 mkdir -p /tmp/빈저장소 && .venv/bin/python codegraph/run_mode1.py /tmp/빈저장소 --dry-run
 ```
 
-기대: `단계 prep -> survey -> terms -> wiki -> build -> check`.
+기대: `단계 prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check`.
 
-- [ ] **Step 5: 마커와 인용**
+- [x] **Step 5: 마커와 인용**
 
 ```bash
 .venv/bin/python codegraph/xmldoc.py check
@@ -2429,10 +2673,10 @@ mkdir -p /tmp/빈저장소 && .venv/bin/python codegraph/run_mode1.py /tmp/빈�
 
 기대: `check` 는 문제 0건, `terms_db` 는 실패 0.
 
-- [ ] **Step 6: 건드리면 안 될 것을 안 건드렸는지**
+- [x] **Step 6: 건드리면 안 될 것을 안 건드렸는지**
 
 ```bash
-git diff --name-only 9223143..HEAD | sort
+git diff --name-only d4c0d96..HEAD | sort
 ```
 
 기대 목록에 **없어야** 하는 것 — `scripts/wiki/*` · `codegraph/{normalize,facts,render_modules,clang_doc,terms_db,demermaid,verify_citations}.py` · `src/*` · `scripts/{build,check}.mjs` · `~/.claude/plugins/` 아래 무엇이든.
@@ -2443,7 +2687,7 @@ git status --short
 
 기대: 깨끗하거나, 계획서 자신과 `out/`(gitignore) 뿐.
 
-- [ ] **Step 7: 커밋 (필요하면)**
+- [x] **Step 7: 커밋 (필요하면)**
 
 Step 1~6 에서 고칠 것이 나왔으면 고치고 커밋한다. 아무것도 안 나왔으면 커밋할 것이 없다.
 
@@ -2460,6 +2704,60 @@ Step 1~6 에서 고칠 것이 나왔으면 고치고 커밋한다. 아무것도 
 - 기록은 `evals/runs/$(date +%F)-mode1-qtvisionedit-layered-opus.json` 으로 `--json` 을 준다. `evals/README.md` 의 표에도 한 줄 보탠다.
 - **판정은 벽시계만이다(K8).** 토큰·비용은 기록하되 판정에 넣지 않는다.
 - 🔵 이번 세션 실측 — 그 저장소의 층 구조는 층0 에 84%가 몰려 있고 층1~4 는 배치가 1개씩이다. **임계 경로가 최소 7 세션 깊이**라 병렬 이득이 크지 않을 수 있다. 결과가 나쁘면 `--target` 과 `--concurrency` 를 조절해 재측정하고, **그래도 나쁘면 그 숫자를 그대로 보고한다.**
+
+---
+
+## 실행 기록 — 2026-08-30 (Task 1~11 완료)
+
+| Task | 커밋 | 누가 |
+|---|---|---|
+| 1 `survey_plan.py` | `23b63c3` | 서브에이전트 |
+| 2 `file_cache.py` | `1b94af2` | 서브에이전트 |
+| 3 단계 여덟으로 | `5036960` | 서브에이전트 |
+| — **fail-open 수정**(보안 검토 지적, Task 8 Step 4b 를 앞당김) | `8495035` | 오케스트레이터 |
+| 4 층 병렬 실행기 | `ae0da50` | 오케스트레이터 |
+| 5 `merge_shards` | `16cc635` | 오케스트레이터 |
+| 6 전수조사 프롬프트 | `d8272bb` | 오케스트레이터 |
+| 7 위키 프롬프트 | `920b4b3` | 오케스트레이터 |
+| 8 `main()` 배선 | `98ad4ed` | 오케스트레이터 |
+| 9 문서·레코드 정합 | `c385b89` | 오케스트레이터 |
+| 10 `SKILL.md` | `d35c720` | 오케스트레이터 |
+| 11 게이트 | (검증만) | 오케스트레이터 |
+
+Task 4 부터는 서브에이전트가 세션 한도(429)에 걸려 오케스트레이터가 직접 했다.
+
+### 계획이 빠뜨렸던 것 셋 — 실행 중 드러났다
+
+1. **여섯 번째 시험** `test_skipping_warmup_restores_the_old_five_stage_flow` (Task 3 에 반영 완료)
+2. **`save_warmup` 의 fail-open** — 행 라벨이 `survey/L0-B00` 이 되면서 `== "agent"` 비교가
+   영원히 거짓이 됐다. 조사가 실패해도 매니페스트가 갱신된다. 배경 보안 검토도 같은 곳을 짚었다
+3. **`merge_shards` 가 멱등이 아니었다** — 층마다 부르며 누적본을 다시 넘기면, 같은 샤드를
+   다시 읽은 새 객체를 `is not` 이 남으로 보고 자기 자신과 충돌했다고 판정해 개명한다.
+   🔵 가짜 모형 연기 시험에서 레코드 수가 `16→20→38→27→42→30` 으로 오르내리는 것으로 드러났다.
+   **단위 시험 6개가 전부 통과하는데도 남아 있던 버그다** — 시험이 `merge_shards` 를 한 번만
+   불렀기 때문이다. 고친 뒤 `16→20→22→23→24→25` 로 단조 증가한다
+
+### 게이트 최종 (🔵 2026-08-30 실측)
+
+```
+pytest codegraph/ -q        282 passed, 19 skipped     (기준선 235 → +47)
+npm test                    160 pass, 0 fail           (변동 없음 — Node 쪽을 안 건드렸다)
+survey_plan 결정론          diff 없음
+층 안 파일 중복             전 층 없음
+--dry-run                   prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check
+모형                        claude-sonnet-5
+xmldoc check                레퍼런스 291건 · 문제 0건
+terms_db                    용어 344개 / 실패 0 / 근거 없음 14
+심볼릭 링크                 ../../.agents/skills/codebase-terms-survey (유지)
+```
+
+**건드린 파일 11개 — 금지 목록(`scripts/**` · `src/**` · `normalize.py` · `facts.py` ·
+`terms_db.py` · `warmup.py` 등)은 하나도 섞이지 않았다.**
+
+### 아직 안 한 것
+
+**A/B 실측.** 하네스만 섰고 파이프라인을 실제로 돌리지 않았다. `ARCHITECTURE.md:155-166` 의
+`agent` 26분 53.1초가 줄었는지는 **모른다** — 아래 "계획이 끝난 뒤" 절대로 진행한다.
 
 ---
 
@@ -2483,4 +2781,14 @@ Step 1~6 에서 고칠 것이 나왔으면 고치고 커밋한다. 아무것도 
 
 **사양에 있었으나 이 계획이 뺀 것 1건** — `agent_prompt` 를 "얇은 껍질로 남긴다"(STEP 3-4 의 권고). `git grep` 으로 아무도 안 부르는 것을 확인해 지우기로 했다(J2). 남기면 죽은 코드다.
 
-**사양에 없어서 계획이 채운 것 2건** — `wiki` 목차 세션(J3, K6 을 실행 가능하게 만드는 데 필요하다)과 `format_report(wall_seconds=)`(병렬이면 행의 초 합계가 벽시계가 아니다).
+**사양에 없어서 계획이 채운 것 5건**
+
+1. `wiki` 목차 세션(J3) — K6 의 "인용 심볼의 최대 층" 을 알려면 페이지 목록이 먼저 있어야 한다
+2. `format_report(wall_seconds=)` — 병렬이면 행의 초 합계가 사람이 기다린 시간이 아니다
+3. **서브에이전트 모델 `claude-sonnet-5`** — 사용자 지시(2026-08-30). 사양은 모형을 안 정했다
+4. **warmup 배선과의 합치기** — 사양이 쓰일 때 그 배선이 없었다. 단계가 여섯이 아니라 **여덟**이 되고,
+   `save_warmup` 의 실패 판정에 조용한 버그가 생기며, `targets` 가 `only_files` 로 흘러든다
+5. **층 안 파일 배타성 게이트 시험 둘** — lock 없는 설계의 전제인데 사양의 시험은 합성 자료뿐이었다
+
+**사양의 작은 결함 1건을 고쳤다** — `pack()` 이 `file` 없는 노드를 `byfile[""]` 로 묶어
+배치의 `files` 에 빈 이름이 섞인다. 🔵 두 저장소 모두 지금은 해당 노드가 0개다.
