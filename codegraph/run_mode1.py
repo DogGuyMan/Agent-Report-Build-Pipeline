@@ -10,24 +10,46 @@
 목적은 파이프라인을 자동화하는 것이 아니라 **단계마다 벽시계 시간과 토큰을 붙들어
 표로 내는 것**이다. 자동화는 그것을 재기 위한 수단이다.
 
-## 일곱 단계 — LLM 은 그중 **하나**뿐이다
+## 여덟 단계 — LLM 이 도는 칸은 **둘**이다
 
-    prep ──▶ warmup ──▶ agent ──▶ warmup-save ──▶ terms ──▶ build ──▶ check
-    기계      기계        LLM 1개   기계            기계      기계      기계
+    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+    기계    기계       LLM 층별   기계           기계     LLM 층별  기계     기계
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `scripts/wiki/prep.mjs` |
 | `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `codegraph/warmup.py` |
-| `agent` | **전수조사와 위키 산문을 한 세션에서 이어 한다** | `claude -p` 1회 |
-| `warmup-save` | 에이전트가 해낸 뒤에만 매니페스트를 **확정**한다 | `codegraph/warmup.py` |
+| `survey` | 전수조사. **의존 위상 층 오름차순 · 층 안 병렬** | `claude -p` 배치마다 1회 |
+| `warmup-save` | **전수조사가** 해낸 뒤에만 매니페스트를 **확정**한다 | `codegraph/warmup.py` |
 | `terms` | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `codegraph/terms_db.py` |
+| `wiki`  | 위키 산문. 목차 1회 + 장마다 1회, 같은 층 순서 | `claude -p` 장마다 1회 |
 | `build` | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `scripts/wiki/build.mjs` |
 | `check` | 산문의 인용을 저장소 실물과 대조한다 | `scripts/wiki/check.mjs` |
 
-**에이전트를 하나로 묶은 것이 이 설계의 급소다.** 전수조사와 산문을 두 세션으로 쪼개면
-두 번째 세션이 저장소를 처음부터 다시 읽는다 — 프롬프트 캐시가 새로 서서 토큰이 부풀고,
-그러면 "Mode 1 한 바퀴에 얼마가 드는가" 라는 측정값의 뜻이 달라진다.
+**⚠ 이 파일의 이전 판은 "에이전트를 하나로 묶은 것이 이 설계의 급소다" 라고 적었다.**
+이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
+측정값이 파이프라인 비용이 아니라 세션 수의 함수가 된다.
+
+**2026-08-30 사용자가 그 결정을 뒤집었다.** 심볼의 뜻은 그것이 의존하는 심볼의 뜻 위에 서므로
+아무 순서로나 읽으면 아직 안 읽은 것을 가리키게 되고 그 자리가 추론으로 메워진다.
+그래서 **의존 대상이 없는 것부터** 한 겹씩 올라가고(K1), 같은 층은 서로 의존하지 않으므로
+병렬로 읽는다(K2 · K4). 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5),
+위키도 같은 층 순서(K6), 고립 노드는 층0(K7)이다.
+
+**비용은 아직 재지 않았다.** 쪼개면 캐시가 나빠지는 대신 배치마다 읽는 양이 훨씬 적다.
+어느 쪽이 큰지는 **모른다.** 이 파일 자신이 재는 도구이므로 A/B 를 돌려 숫자로 답한다.
+그 전에는 "더 싸졌다" "더 빨라졌다" 를 쓰지 않는다. 게다가 기준선은 **opus 한 세션**이고
+지금은 **claude-sonnet-5 여러 세션**이라 변수가 둘이다 — 무엇 덕분인지 귀속할 수 없다.
+
+**확정(`warmup-save`)이 `survey` 바로 뒤인 것이 중요하다.** 관문이 감싸야 하는 것은
+레코드를 만드는 단계다. `wiki` 뒤에 두면 산문 실패가 다음 실행의 전량 재조사를 부른다.
+
+`terms` 가 `survey` 와 `wiki` 사이에 있는 이유 — 산문을 쓰는 세션이 **인용 검사를 통과한**
+`terms-db.json` 을 재료로 받게 하려는 것이다. 예전에는 산문이 검사 전 레코드를 봤다.
+
+**서브에이전트 모형은 `claude-sonnet-5` 다.** `main` 의 `--model` 기본값 하나가
+`run_survey`/`run_wiki` -> `run_layer` -> `run_agent_with` -> `claude_argv` 사슬을 그대로
+타고 내려간다. **중간에서 모형을 바꾸지 않는다.**
 
 ## 재는 자리 넷
 
@@ -49,12 +71,14 @@
 
 ## 쓰는 법
 
-    .venv/bin/python codegraph/run_mode1.py <저장소> [--model opus] [--only prep,check]
-                                            [--skip agent] [--json 측정.json] [--dry-run]
-                                            [--hops 1]
+    .venv/bin/python codegraph/run_mode1.py <저장소> [--model claude-sonnet-5]
+                                            [--only prep,check] [--skip wiki]
+                                            [--concurrency 8] [--target 8]
+                                            [--json 측정.json] [--dry-run] [--hops 1]
 
-**증분 조사를 끄려면** `--skip warmup,warmup-save` 를 준다. 그러면 2026-08-30 에 잰
-다섯 단계 흐름 그대로 돌아 대조군이 된다.
+**증분 조사를 끄려면** `--skip warmup,warmup-save` 를 준다. **다섯 단계 시절의 대조군은
+이 옵션으로 만들 수 없다** — 그건 `git worktree add /tmp/rb-old 9223143` 으로 옛 커밋을
+통째로 떼어 돌린다.
 """
 import argparse
 import collections
@@ -217,7 +241,7 @@ def normalize_usage(result):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.sum_usage']"/>
 # 단계별 사용량을 하나로 합친다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.format_report, run_mode1.stage_totals
 def sum_usage(usages):
     """단계별 사용량을 하나로 합친다. 표 맨 아래 '합계' 줄이 이것이다."""
     keys = ["input", "output", "cache_read", "cache_write", "total", "turns", "api_ms"]
@@ -248,7 +272,7 @@ def agent_verdict(returncode, result):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.claude_argv']"/>
 # 헤드리스 모형 호출의 명령줄을 만든다.
-# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_agent
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_agent_with
 # ── 4. 에이전트 호출 ────────────────────────────────────────────────────
 def claude_argv(model, repo, extra_dirs):
     """헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
@@ -298,7 +322,7 @@ def warmup_section(targets, total, repo=""):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.dep_excerpt']"/>
-# 이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만든다.
+# 이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
 def dep_excerpt(merged, batch):
     """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
@@ -313,7 +337,7 @@ def dep_excerpt(merged, batch):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.survey_batch_prompt']"/>
-# 배치 하나를 맡을 세션에게 줄 글을 만든다.
+# 배치 하나를 맡을 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: run_mode1.warmup_section · 쓰이는 곳: run_mode1.run_survey
 def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
     """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
@@ -395,7 +419,7 @@ def survey_batch_prompt(repo, root, batch, dep_records, targets=None, total=0):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.nonnode_prompt']"/>
-# 지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만든다.
+# 지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_survey
 def nonnode_prompt(repo, root):
     """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
@@ -451,7 +475,7 @@ def nonnode_prompt(repo, root):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.symbol_layers']"/>
-# 배치 계획에서 심볼마다 몇 층인지만 뽑아 표로 만든다.
+# 배치 계획에서 심볼마다 몇 층인지만 뽑아 표로 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
 def symbol_layers(plan):
     """`survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다."""
@@ -462,7 +486,7 @@ def symbol_layers(plan):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.page_layers']"/>
-# 위키 페이지마다 몇 번째로 써야 하는지 층을 매긴다.
+# 위키 페이지마다 몇 번째로 써야 하는지 층을 매기는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
 def page_layers(pages, sym_layer):
     """K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층.
@@ -481,7 +505,7 @@ def page_layers(pages, sym_layer):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.wiki_catalogue_prompt']"/>
-# 위키에 어떤 장을 둘지 정하는 세션에게 줄 글을 만든다.
+# 위키에 어떤 장을 둘지 정하는 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
 def wiki_catalogue_prompt(repo, root):
     """페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다.
@@ -529,7 +553,7 @@ Getting Started / Deep Dive 계열, 최대 4단, 절당 자식 8장 이하.
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.wiki_page_prompt']"/>
-# 위키 한 장을 맡을 세션에게 줄 글을 만든다.
+# 위키 한 장을 맡을 세션에게 줄 글을 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.run_wiki
 def wiki_page_prompt(repo, root, page, lower_pages):
     """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다.
@@ -671,7 +695,7 @@ def format_report(rows, wall_seconds=None):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.stage_totals']"/>
-# 배치 행들을 단계 단위로 접어 소계를 낸다.
+# 배치 행들을 단계 단위로 접어 소계를 내는 함수.
 # 쓰는 것: run_mode1.sum_usage · 쓰이는 곳: run_mode1.main
 def stage_totals(rows):
     """`survey/L0-B00` 같은 행을 `survey` 로 접는다. `{단계: 합친 usage}`.
@@ -717,7 +741,7 @@ class _Heartbeat:
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_agent_with']"/>
-# 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 낸다.
+# 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 내는 함수.
 # 쓰는 것: run_mode1.claude_argv · 쓰이는 곳: run_mode1.run_layer
 def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
     """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
@@ -743,8 +767,8 @@ def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_layer']"/>
-# 한 층의 배치들을 동시에 돌리고 각각의 측정값을 모은다.
-# 쓰는 것: run_mode1.run_agent_with · 쓰이는 곳: run_mode1.main
+# 한 층의 배치들을 동시에 돌리고 각각의 측정값을 모으는 함수.
+# 쓰는 것: run_mode1.run_agent_with · 쓰이는 곳: run_mode1.run_survey, run_mode1.run_wiki
 def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
     """한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2).
 
@@ -777,7 +801,7 @@ def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.merge_shards']"/>
-# 배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푼다.
+# 배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푸는 함수.
 # 쓰는 것: run_mode1._qualified · 쓰이는 곳: run_mode1.run_survey
 def merge_shards(shard_dir, existing):
     """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
@@ -821,7 +845,7 @@ def merge_shards(shard_dir, existing):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1._qualified']"/>
-# 겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만든다.
+# 겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만드는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: run_mode1.merge_shards
 def _qualified(key, rec):
     """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
@@ -919,7 +943,7 @@ def save_warmup(cache_path, entries, rows):
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_survey']"/>
-# 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합친다.
+# 전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합치는 함수.
 # 쓰는 것: run_mode1.run_layer, run_mode1.merge_shards, run_mode1.survey_batch_prompt, run_mode1.nonnode_prompt, run_mode1.dep_excerpt · 쓰이는 곳: run_mode1.main
 def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
                targets=None, total=0):
@@ -980,7 +1004,7 @@ def run_survey(model, repo, root, plan, concurrency, timeout, reading_path,
 
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_wiki']"/>
-# 위키 목차를 받고 장들을 층 오름차순으로 쓰게 한다.
+# 위키 목차를 받고 장들을 층 오름차순으로 쓰게 하는 함수.
 # 쓰는 것: run_mode1.run_layer, run_mode1.wiki_catalogue_prompt, run_mode1.wiki_page_prompt, run_mode1.page_layers, run_mode1.symbol_layers · 쓰이는 곳: run_mode1.main
 def run_wiki(model, repo, root, plan, concurrency, timeout):
     """카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6).
@@ -1035,7 +1059,7 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
 
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.main']"/>
 # 명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.
-# 쓰는 것: run_mode1.plan_stages, run_mode1.run_agent, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup (+2) · 쓰이는 곳: 없음
+# 쓰는 것: run_mode1.plan_stages, run_mode1.terms_argv, run_mode1.format_report, run_mode1.run_warmup, run_mode1.save_warmup (+4) · 쓰이는 곳: 없음
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",

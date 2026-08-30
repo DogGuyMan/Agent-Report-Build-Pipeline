@@ -95,7 +95,8 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph M1["Mode 1 — 코드베이스 위키"]
-    P1["prep"] --> W1["warmup"] --> A1["agent"] --> S1["warmup-save"] --> T1["terms"] --> B1["build"] --> C1["check"]
+    P1["prep"] --> W1["warmup"] --> A1["survey<br/>층별 배치 N세션"] --> S1["warmup-save"]
+    S1 --> T1["terms"] --> A1b["wiki<br/>목차 1 + 장 N세션"] --> B1["build"] --> C1["check"]
   end
   subgraph M15["Mode 1.5 — 용어 이해도"]
     CO["collect"] --> AU["author"] --> H(["사람이 답안"]) --> GR["grade"] --> EM["emit"]
@@ -107,23 +108,29 @@ flowchart LR
   classDef llm fill:#fde8c8,stroke:#c07a1e,color:#321,stroke-width:2px
   classDef human fill:#e6f4ea,stroke:#3a7d44,color:#123,stroke-width:2px
   class P1,W1,S1,T1,B1,C1,CO,GR,EM,I2,B2,C2 machine
-  class A1,AU,A2 llm
+  class A1,A1b,AU,A2 llm
   class H human
 ```
 
 단계 목록은 상수로 못 박혀 있고 레지스트리나 플러그인 구조를 만들지 않는다
-(`codegraph/run_mode1.py:81`, `codegraph/run_mode1_5.py:107`, `codegraph/run_mode2.py:80`).
-LLM 칸도 갈래마다 하나뿐이다 (`codegraph/run_mode1.py:84`, `codegraph/run_mode1_5.py:111`, `codegraph/run_mode2.py:83`).
+(세 실행기의 `STAGES`). LLM 칸은 Mode 1.5 와 Mode 2 가 하나씩이고, **Mode 1 만 둘**이다
+(`run_mode1.py` 의 `AGENT_STAGES = {"survey", "wiki"}` — 2026-08-30 에 `agent` 한 칸이 갈렸다).
+
+Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
+**`claude-sonnet-5` 로 띄울 책임은 이 두 칸에 있고**, 실제 경로는 `run_mode1.py` 의
+`--model` 기본값 하나다(`main` → `run_survey`/`run_wiki` → `run_layer` → `run_agent_with`
+→ `claude_argv`). 사슬 중간에서 모형을 바꾸지 않는다.
 
 **Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
 
 | 단계 | 기계/LLM | 부르는 것 | 읽는 것 → 쓰는 것 |
 |---|---|---|---|
-| `prep` | 기계 | `scripts/wiki/prep.mjs` (`codegraph/run_mode1.py:359`) | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
-| `warmup` | 기계 | `codegraph/warmup.py` (`codegraph/run_mode1.py:505`) | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다) |
-| `agent` | **LLM 1회** | `claude -p` | 소스 + `facts/*.md` → `docs/codegraph/terms-reading.json` · `docs/wiki/*.md` |
-| `warmup-save` | 기계 | `codegraph/warmup.py` (`codegraph/run_mode1.py:557`) | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**에이전트가 성공했을 때만**) |
-| `terms` | 기계 | `codegraph/terms_db.py` (`codegraph/run_mode1.py:367`) | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
+| `prep` | 기계 | `scripts/wiki/prep.mjs` | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
+| `warmup` | 기계 | `codegraph/warmup.py` | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다) |
+| `survey` | **LLM 층별 N회** | `claude -p` 배치마다 | 소스 + `facts/*.md` + `survey-plan.json` → `_shards/*.json` → 합쳐서 `docs/codegraph/terms-reading.json` |
+| `warmup-save` | 기계 | `codegraph/warmup.py` | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**전수조사가 성공했을 때만**) |
+| `terms` | 기계 | `codegraph/terms_db.py` | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
+| `wiki` | **LLM 층별 N회** | `claude -p` 목차 1 + 장마다 | `terms-db.json` + `facts/*.md` → `wiki-plan.json` → `docs/wiki/*.md` |
 | `build` | 기계 | `scripts/wiki/build.mjs` | `docs/wiki/*.md` → VitePress 정적 사이트 |
 | `check` | 기계 | `scripts/wiki/check.mjs` | 산문 → 인용 판정 표 (표준 출력) |
 
@@ -166,6 +173,13 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 | **합계** | **27분 08.1초** | 17,925,770 |
 
 시간의 **99.1%**, 토큰의 **100%** 가 `agent` 한 칸에 있다. 기계 네 단계를 다 합쳐 약 15.1초다.
+
+⚠ **위 표는 옛 다섯 단계(`prep agent terms build check`)를 opus 한 세션으로 잰 값이다.**
+2026-08-30 에 두 번 바뀌었다 — 먼저 warmup 두 관문이 붙어 일곱이 됐고, 이어서 `agent` 가
+`survey` 와 `wiki` 로 갈려 **여덟**이 됐다(`codegraph/CLAUDE.md` 의 K1~K8).
+배치·장 세션은 **`claude-sonnet-5`** 로 돈다.
+**새 구조의 값은 아직 재지 않았다.** 재면 `evals/runs/` 에 쌓고 이 표를 갱신한다.
+기준선과 모형이 다르므로 **"층 병렬 덕분" 이라고 귀속할 수 없다.**
 
 🔵 Mode 2 도 같은 모양이다. 같은 실행기로 잰 연습 실행(haiku)에서 전체 149.2초 중 `agent` 가 147.98초로
 **99.2%**, 기계 세 단계 합은 약 1.2초였다. (이 측정 기록은 실행 산출물이라 저장소에 커밋돼 있지 않다.
