@@ -1,20 +1,27 @@
-# scripts/ — Node 배선
+# viz/ — 시각축. 보이는 것을 만든다
 
-> 루트 나침반은 `../CLAUDE.md`. 이 문서는 **Node 쪽 배선만** 다룬다.
-> 파이썬 파이프라인은 `../codegraph/CLAUDE.md`, 컴포넌트는 `../src/CLAUDE.md`.
+> 루트 나침반은 `../CLAUDE.md`. 이 문서는 **산출물을 그리는 코드만** 다룬다.
+> 결정론 기계는 `../machine/CLAUDE.md`, 러너는 `../runner/CLAUDE.md`, 컴포넌트는 `src/CLAUDE.md`.
+
+**이 폴더의 기준은 언어가 아니라 성격이다** (2026-08-30 축 분리). `.mjs` 든 `.py` 든
+**사람이 볼 것을 만들면** 여기 산다. 그래서 Graphviz 를 부르는 파이썬 셋이 여기 함께 있다.
 
 ## 무엇이 여기 있나
 
 | 자리 | 하는 일 |
 |---|---|
-| `dispatch.mjs` | `bin/` 진입점 넷이 공유하는 명령 갈림길 |
-| `init.mjs` · `build.mjs` · `check.mjs` | Mode 2 (`report-spec`) |
-| `wiki/` | Mode 1 (`report-wiki`) — `prep` · `build` · `check` · `compdb` · `clang-doc` · `paths` |
-| `term/` | Mode 1.5 (`report-term`) — `collect` · `quiz` · `emit` |
+| `src/` | React 컴포넌트 17개 · `theme.css` · 브라우저 런타임 |
+| `init.mjs` · `build.mjs` · `check.mjs` | Mode 2 (`report-spec`) 의 세 단계 |
 | `svg.mjs` · `wrap-terms.mjs` · `link-paths.mjs` | 빌드 후처리 세 통과 |
-| `python.mjs` · `doctor.mjs` · `lib.mjs` | 환경 탐색과 테스트 번들 |
+| `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
+| `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
+| `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
+| `patch-legacy.mjs` | Phase 1 잔재. 옛 HTML 을 깁던 일회용 |
 
-### `scripts/*.mjs` 는 직접 실행 가드를 둔다 — 규약
+**Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를
+불러 **그림을 굽는 것**이다. 코드 지도를 계산하지 않고 이미 계산된 것을 그린다.
+
+### `viz/*.mjs` 는 직접 실행 가드를 둔다 — 규약
 
 ```js
 if (process.argv[1] && process.argv[1].endsWith("check.mjs")) { /* CLI 본체 */ }
@@ -30,8 +37,8 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 
 | | 담당 | 가리키는 곳 |
 |---|---|---|
-| 런타임 | `scripts/build.mjs` 의 esbuild `alias` | `src/index.ts` · `src/types.ts` · **`scripts/svg.mjs`** |
-| 타입 | `scripts/check.mjs` 가 **임시 생성**하는 tsconfig 의 `paths` | 같음. 단 svg 는 **`scripts/svg.d.mts`** (선언 파일) |
+| 런타임 | `viz/build.mjs` 의 esbuild `alias` | `viz/src/index.ts` · `viz/src/types.ts` · **`viz/svg.mjs`** |
+| 타입 | `viz/check.mjs` 가 **임시 생성**하는 tsconfig 의 `paths` | 같음. 단 svg 는 **`viz/svg.d.mts`** (선언 파일) |
 
 `paths` 가 `.mjs` 를 직접 가리키면 TypeScript 가 형제 `.d.mts` 를 찾지 않아 `TS7016` 이 난다.
 같은 이유로 임시 tsconfig 는 `typeRoots: [<ROOT>/node_modules/@types]` 를 명시한다 —
@@ -52,13 +59,13 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 `report.tsx` → esbuild 트랜스파일 → 동적 import → `renderToStaticMarkup` → `<style>` 에 `theme.css`
 문자열 삽입 → `out/report.html`. **React 는 빌드 시점 Node 에만 존재하고 산출물은 순수 HTML+CSS 다.**
 
-**용어 자동 참조 (2026-08-29 신설).** `data.ts` 에 `terms` 가 있으면 `renderToStaticMarkup` 결과에 `scripts/wrap-terms.mjs` 를
+**용어 자동 참조 (2026-08-29 신설).** `data.ts` 에 `terms` 가 있으면 `renderToStaticMarkup` 결과에 `viz/wrap-terms.mjs` 를
 한 번 더 통과시켜 본문 글자에 나오는 용어 id 의 **모든 등장**을 `TermRef` 마크업으로 감싼다(마크업은 그 컴포넌트를 실제로 렌더한
 문자열 — 출처 하나). 건너뛰는 곳: 이미 감싼 곳 · 카드 안 · `.mono` `<code>` `<pre>` · `h1~h3` · `th` · `summary` · 용어집 · 관계도 · SVG.
 긴 id 먼저, ASCII id 는 낱말 경계, 한글 id 는 조사까지. **저자는 `<T id>` 를 심지 않는다** — `defineTerms` 는 남아 있으나 선택이다.
 왜 여기인가: 본문 산문 대부분이 props 로 들어가 React 트리 순회로는 닿지 않고, 전역·컨텍스트는 쓰지 않기 때문이다.
 
-**경로 링크 (2026-08-29 신설).** 같은 자리에서 둘째 통과 `scripts/link-paths.mjs` 가 본문(코드 글꼴 `.mono` **포함**)의 경로 꼴 낱말을
+**경로 링크 (2026-08-29 신설).** 같은 자리에서 둘째 통과 `viz/link-paths.mjs` 가 본문(코드 글꼴 `.mono` **포함**)의 경로 꼴 낱말을
 실제 로컬 파일·폴더의 `file://` 링크로 바꾼다(**새 탭**). 잡는 꼴 넷 — `docs/handoffs/` 아래 마크다운 이름,
 `-design.md` 로 끝나는 이름, `HANDOFF-` 로 시작하는 이름, `facts/` 아래 글로브. 각각 뒤에 `:줄번호` 가 붙어도 된다.
 (이 문단에 그 꼴을 **실물로 적지 않는다** — 적으면 인용 검사기가 진짜 인용으로 오인한다. `test/docs-citations.test.mjs` 참조.)
@@ -66,7 +73,7 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 저장소 루트 → `out/codegraph-raw` → `git ls-files` 이름 유일. **없는 파일은 링크하지 않는다** — 계획에만 있는 파일이 링크되면 독자가 속는다.
 용어(`term-ref`) 안은 건너뛴다 — 용어는 뜻 카드, 코드 글꼴은 파일 링크로 역할이 갈린다.
 
-### Graphviz SVG 인라인 규칙 (`scripts/svg.mjs`)
+### Graphviz SVG 인라인 규칙 (`viz/svg.mjs`)
 
 - `dot -Tsvg_inline` 사용 — `<?xml?>`·DOCTYPE 없이 나와 HTML 본문 삽입에 맞다.
 - `width`/`height` 제거, `viewBox` 유지.
@@ -96,20 +103,19 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 
 ## 이 모듈이 소유하는 것 (Owns)
 
-`scripts/**` 와 `bin/**`. **소유하지 않는 것** — `codegraph/*.py` 는 부르기만 하고 고치지 않는다.
-`src/*` 는 esbuild 로 번들할 뿐 내용을 모른다.
+`viz/**` 전부 — `src/` 포함. **소유하지 않는 것** — `../machine/*.py` 는 결과만 읽고 고치지 않는다.
+`bin/**` 은 러너축의 것이다.
 
 ## 다른 모듈과의 의존 (Cross-module dependencies)
 
 | 방향 | 무엇 |
 |---|---|
-| `bin/*` → 여기 | 진입점 넷이 전부 `dispatch.mjs` 의 `runDispatch` 를 쓴다 (`report-wiki` 제외) |
-| 여기 → `codegraph/*.py` | `wiki/prep.mjs` · `wiki/check.mjs` · `wiki/build.mjs` 가 자식 프로세스로 부른다 |
-| 여기 → `src/*` | `build.mjs` 의 esbuild `alias`, `check.mjs` 의 임시 tsconfig `paths` |
-| `codegraph/run_mode*.py` → 여기 | 세 실행기가 `node scripts/…mjs` 를 부른다 (**되돌아오는 방향**) |
+| `../runner/*` → 여기 | `runner/wiki/build.mjs` 가 `demermaid.py` 를, `runner/wiki/prep.mjs` 가 `render_modules.py` 를 자식 프로세스로 부른다 |
+| `../runner/dispatch.mjs` → 여기 | `report-spec` 의 명령표가 `viz/init.mjs` · `viz/build.mjs` · `viz/check.mjs` 를 가리킨다 |
+| 여기 → `src/` | `build.mjs` 의 esbuild `alias`, `check.mjs` 의 임시 tsconfig `paths` |
+| 여기 → 바깥 명령 | `dot`(Graphviz) · `npx mmdc`(Mermaid) 를 PATH 로 부른다 |
 
-**순환처럼 보이지만 아니다** — 파이썬 실행기는 최상위 오케스트레이터이고, `scripts/` 는 그 아래
-단계다. 같은 프로세스 안에서 서로 부르는 것이 아니라 자식 프로세스 경계로 갈려 있다.
+**여기서 나가는 화살표는 없다시피 하다** — 시각축은 잎이다. 부르는 쪽은 언제나 러너다.
 
 ## 흔한 변경 패턴 (Common modification patterns)
 
@@ -117,7 +123,7 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 # 새 .mjs 를 더했다 — 직접 실행 가드부터 넣는다
 node --test test/<해당>.test.mjs      # 가드가 없으면 import 순간 process.exit 로 러너가 죽는다
 
-# src/ 를 고쳤는데 테스트가 옛 동작을 보인다 — .tmp/lib.mjs 가 낡았다
+# viz/src/ 를 고쳤는데 테스트가 옛 동작을 보인다 — .tmp/lib.mjs 가 낡았다
 npm test                              # pretest 가 다시 번들한다
 
 # 새 mode 명령을 더한다 — bin 의 table 한 줄과 scripts 파일 하나

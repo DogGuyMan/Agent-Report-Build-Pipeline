@@ -22,7 +22,7 @@
 | **필수** | Graphviz (`dot`) | 모듈·클래스 다이어그램 |
 | **필수** | git | 커밋 해시와 파일 목록을 읽는다 |
 | 선택 | `clang-uml` | C++ 저장소를 분석할 때만 |
-| 선택 | .NET SDK | C# 저장소를 분석할 때만 (`codegraph/roslyn-dump`) |
+| 선택 | .NET SDK | C# 저장소를 분석할 때만 (`machine/roslyn-dump`) |
 | 선택 | `clangd` | C++ 역참조를 뽑을 때만 |
 | 선택 | `@mermaid-js/mermaid-cli` | 위키의 Mermaid 를 SVG 로 구울 때 (npm 의존성에 들어 있다) |
 

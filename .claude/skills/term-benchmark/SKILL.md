@@ -38,7 +38,7 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 코드베이스 용어 DB 를 만드는 명령(Mode 1 의 마지막 단계):
 
 ```bash
-.venv/bin/python codegraph/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
+.venv/bin/python machine/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
 # → <출력디렉토리>/terms-db.json
 ```
 

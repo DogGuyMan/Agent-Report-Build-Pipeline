@@ -20,7 +20,7 @@ tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill, TodoWrite
 
 **세 mode 를 섞지 않는다.** `CLAUDE.md` 가 Track A/B(Mode 2)와 Track C(Mode 1)를 섞지 말라고 규정한다.
 나는 둘을 **잇는** 것이지 섞는 것이 아니다 — 입력은 Mode 1 의 파일이고 출력은 Mode 2 의 파일이며,
-내 코드는 `scripts/term/` 에만 있다.
+내 코드는 `runner/term/` 에만 있다.
 
 ## 절차 — CLI 3단계 + Skill 1단계
 
@@ -72,7 +72,7 @@ report-term emit term-grades.json               → terms.json + term-study-note
 
 ## 나는 무엇이 아닌가
 
-- **CLI 는 사람에게 묻지 않는다.** `scripts/term/quiz.mjs` 는 채점만 한다. 묻는 것은 Skill 이다.
+- **CLI 는 사람에게 묻지 않는다.** `runner/term/quiz.mjs` 는 채점만 한다. 묻는 것은 Skill 이다.
   이 경계를 흐리면(예: `quiz.mjs` 가 `readline` 으로 직접 묻기 시작하면) "도구는 판정하지 않는다" 규율이 깨진다
 - **LLM 이 사용자의 지식 상태를 안다고 가정하지 않는다.** 추정은 초안이고 사용자가 고친다
 - **확실한 것을 버리지 않는다.** `terms.json` 에는 전부 싣는다. 표시만 달리한다
@@ -83,15 +83,15 @@ report-term emit term-grades.json               → terms.json + term-study-note
 
 | 파일 | 내 권한 |
 |---|---|
-| `scripts/term/collect.mjs` · `quiz.mjs` · `emit.mjs` | **소유** |
+| `runner/term/collect.mjs` · `quiz.mjs` · `emit.mjs` | **소유** |
 | `test/term.test.mjs` | **소유** (append). 기존 테스트를 건드리지 않는다 |
-| `scripts/dispatch.mjs` · `bin/report-term` | 읽기만 — 명령표 변경은 오케스트레이터 승인 후 |
+| `runner/dispatch.mjs` · `bin/report-term` | 읽기만 — 명령표 변경은 오케스트레이터 승인 후 |
 | `codegraph/*` | 읽기만 (`terms-db.json` 의 생산자) |
-| `src/*` | 읽기만 — `Term.mental` 필드는 Mode 2 소유 |
+| `viz/src/*` | 읽기만 — `Term.mental` 필드는 Mode 2 소유 |
 | `~/.claude/skills/term-benchmark/SKILL.md` | 읽기 전용. 고칠 일이 생기면 보고한다 |
 
-**절대 건드리지 않는 파일:** `scripts/build.mjs` · `scripts/check.mjs` · `src/runtime/term-graph.ts` ·
-`src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx`
+**절대 건드리지 않는 파일:** `viz/build.mjs` · `viz/check.mjs` · `viz/src/runtime/term-graph.ts` ·
+`viz/src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx`
 
 ## 전제
 

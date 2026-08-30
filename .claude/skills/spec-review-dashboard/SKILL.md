@@ -80,7 +80,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 결정 상세 절은 `<Section title="D0 …">` 로 연다 — **`title` 이 `D<숫자>` 로 시작해야 한다.**
 `check.mjs` 의 링크 무결성 검사가 `data.ts` 의 `id` 와 이 제목을 1:1 로 대조한다
-(`scripts/check.mjs:21`). 어긋나면 "절이 없는 결정" / "결정이 없는 절" 로 실패한다.
+(`viz/check.mjs:21`). 어긋나면 "절이 없는 결정" / "결정이 없는 절" 로 실패한다.
 
 ## 컴포넌트 전량 17개 — 이 밖의 것을 쓰지 않는다
 
@@ -102,7 +102,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | `EvidenceNote` | `measured: ReactNode[]`, `judged?: ReactNode[]` |
 | `BeforeAfter` | `id`, `before: DiagramPanel`, `after: DiagramPanel`, `legend: LegendItem[]` |
 | `VerdictFooter` | `note?: string` |
-| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`scripts/wrap-terms.mjs`). 손으로 `<T id>` 를 심지 않는다 |
+| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`viz/wrap-terms.mjs`). 손으로 `<T id>` 를 심지 않는다 |
 | `Glossary` | `terms: Term[]` — 이해도 그룹 아코디언(모름 → 애매 → 확실 → 미측정, 모름만 열림) |
 | `TermGraph` | `terms: Term[]`, `height?: number` |
 
@@ -129,7 +129,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 파이프라인이 **기계로 강제**하는 것 — 어길 수 없다:
 
 - `<script>` 는 **1개까지.** `terms` 가 있으면 용어 그래프 런타임(d3-force, 약 65KB)이 그 한 칸을 쓴다.
-  없으면 0개. **예산이 찼으므로 새 런타임은 `src/runtime/term-graph.ts` 번들에 합쳐야 한다** (`report build` 가 초과 시 exit 1)
+  없으면 0개. **예산이 찼으므로 새 런타임은 `viz/src/runtime/term-graph.ts` 번들에 합쳐야 한다** (`report build` 가 초과 시 exit 1)
 - 외부 리소스 0건 — `theme.css` 가 `<style>` 로 통째 삽입된다. 폰트·CDN 로드 경로 자체가 없다
 - 라이트 단일 테마 — `theme.css` 가 정본. **다크모드를 만들지 않는다**
 
@@ -171,7 +171,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
   시도는 후퇴다 — 2026-08-28 에 그 방향의 Phase 셋이 취소됐다. 현재 컴포넌트 출력이 기준이다
 - **용어집이 실제 독자에게 읽히는지는 미검증이다.** Mode 1.5(용어 이해도 벤치마크)가 붙으면 `Term.mental`
   필드로 실측이 들어온다. 그전까지 용어 선정은 저자의 감이다
-- **D축(결정 불확실성)은 도입 전이다.** `src/types.ts` 에 필드가 없다. 소급 검증(A1)을 통과하기
+- **D축(결정 불확실성)은 도입 전이다.** `viz/src/types.ts` 에 필드가 없다. 소급 검증(A1)을 통과하기
   전까지 D축 컬럼·테두리색을 **만들지 않는다**
 - `.status-badge` / `.status-dot` 은 `theme.css:25-27` 에 정의돼 있으나 **쓰는 컴포넌트가 없다**
   (헤더 전체 상태 배지 자리). 필요하면 컴포넌트 후보로 보고할 것 — 인라인으로 직접 쓰지 않는다

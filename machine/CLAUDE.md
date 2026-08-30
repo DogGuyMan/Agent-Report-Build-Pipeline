@@ -1,7 +1,7 @@
 # codegraph/ — 파이썬 파이프라인
 
 > 루트 나침반은 `../CLAUDE.md`. 이 문서는 **파이썬 쪽만** 다룬다.
-> Node 배선은 `../scripts/CLAUDE.md`, 컴포넌트는 `../src/CLAUDE.md`.
+> Node 배선은 `../viz/CLAUDE.md`, 컴포넌트는 `../src/CLAUDE.md`.
 
 이 저장소에서 가장 큰 모듈이다(파이썬 30파일). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
@@ -45,7 +45,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 절차의 정본은 **`codebase-terms-survey` 스킬**이다(저장소 사본 `.agents/skills/`).
 여기서는 규약만 적는다:
 
-- 원본은 `<repo>/docs/codegraph/terms-reading.json`. 꼴은 `{키: 레코드}`
+- 원본은 `<repo>/machine/terms-reading.json`. 꼴은 `{키: 레코드}`
 - 레코드 계약 `{kind, module, where, means, does, uses[], confidence, source}`
 - **`where` 는 실제 `파일:줄`** — `terms_db.py` 가 L1(파일) L2(줄) L3(근처에 그 이름) 로 검사한다
 - `kind` 가 `file` `artifact` `key` `concept` `module` 이면 **이름이 그 줄에 글자 그대로** 있어야 한다
@@ -130,7 +130,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 
 | 변수 | 가리키는 곳 | 값이 없으면 |
 |---|---|---|
-| `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 (`scripts/python.mjs`) |
+| `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 (`tools/python.mjs`) |
 | `$REPO_ROOT` | 이 저장소 | 문서 표기 전용 — 동작에 영향 없음 |
 | `$TOOLS_ROOT` · `$DEV_ROOT` | 개인 작업 폴더 두 곳 | 같음 |
 | `$GRAPHICS_REPO` | C++ 골든 저장소 (clang-uml 표본) | **골든 테스트 15개가 건너뛴다.** 실패가 아니다 |
@@ -151,12 +151,12 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 **상대경로**가 되어 이 저장소의 산출물을 골든으로 착각해 읽는다(실제로 겪었다). 그래서
 `… or "/골든저장소_미지정/<변수>"` 로 절대 존재할 수 없는 경로를 준다.
 
-`data.ts` 의 `linkRoots` 도 같은 규약을 쓴다 — `scripts/link-paths.mjs` 의 `expandRoot()` 가
+`data.ts` 의 `linkRoots` 도 같은 규약을 쓴다 — `viz/link-paths.mjs` 의 `expandRoot()` 가
 `$VAR` 와 `~` 를 편다. 변수가 없는 독자에게는 그 링크만 조용히 안 걸린다.
 
 **새 문서에도 이 규약을 쓴다** — 홈 아래 경로를 적을 일이 생기면 위 변수 중 하나로 적는다.
 
-**코드에도 경로를 박지 않는다.** 파이썬 해석기는 `scripts/python.mjs` 의 `pythonPath()` 로 찾고,
+**코드에도 경로를 박지 않는다.** 파이썬 해석기는 `tools/python.mjs` 의 `pythonPath()` 로 찾고,
 바깥 명령(`git` · `dot` · `clang-uml` · `dotnet` · `clangd` · `mmdc`)은 PATH 로 부른다.
 새 기계에서 무엇이 빠졌는지는 **`npm run doctor`** 가 한 화면으로 말한다 — 필수가 없으면 exit 1.
 파이썬 의존성은 `requirements.txt` 에 있다(🔵 실측 — `networkx` `numpy` `scipy` `pytest` 넷이면 전량이 돈다).
@@ -167,9 +167,9 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 ```bash
 cd $REPO_ROOT
 .venv/bin/python -m pytest codegraph/ -q          # 골든 변수가 없으면 일부 건너뛴다
-.venv/bin/python codegraph/xmldoc.py check        # 마커와 json 이 맞는가
-.venv/bin/python codegraph/terms_db.py out/codegraph-raw/codegraph.json \
-  --repo . --reading docs/codegraph/terms-reading.json
+.venv/bin/python machine/xmldoc.py check        # 마커와 json 이 맞는가
+.venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json \
+  --repo . --reading machine/terms-reading.json
 #   기대: 실패 0. "근거 없음" 은 경고이지 실패가 아니다
 ```
 
@@ -178,19 +178,19 @@ cd $REPO_ROOT
 
 ## 이 모듈이 소유하는 것 (Owns)
 
-`codegraph/**` 전부와 `docs/codegraph/terms-reading.json`(전수조사 원본), 그리고
-`out/codegraph-raw/**`(재생성 대상이라 판 관리 밖). **소유하지 않는 것** — `src/*` ·
-`scripts/build.mjs` · `scripts/check.mjs` 는 Mode 2 의 것이라 읽기만 한다.
+`codegraph/**` 전부와 `machine/terms-reading.json`(전수조사 원본), 그리고
+`out/codegraph-raw/**`(재생성 대상이라 판 관리 밖). **소유하지 않는 것** — `viz/src/*` ·
+`viz/build.mjs` · `viz/check.mjs` 는 Mode 2 의 것이라 읽기만 한다.
 
 ## 다른 모듈과의 의존 (Cross-module dependencies)
 
 | 방향 | 무엇 |
 |---|---|
-| `scripts/wiki/*.mjs` → 여기 | `prep` 이 `normalize.py` · `facts.py` · `render_modules.py` 를 자식 프로세스로 부른다 |
-| `scripts/wiki/check.mjs` → 여기 | `verify_citations.py` 를 부른다 |
-| `scripts/wiki/build.mjs` → 여기 | `demermaid.py` 를 부른다 |
+| `runner/wiki/*.mjs` → 여기 | `prep` 이 `normalize.py` · `facts.py` · `render_modules.py` 를 자식 프로세스로 부른다 |
+| `runner/wiki/check.mjs` → 여기 | `verify_citations.py` 를 부른다 |
+| `runner/wiki/build.mjs` → 여기 | `demermaid.py` 를 부른다 |
 | 여기 → `scripts/*` | `run_mode*.py` 가 `node scripts/…mjs` 를 부른다 (**되돌아오는 방향**) |
-| 여기 → `src/*` | **없다.** 파이썬은 컴포넌트를 모른다 |
+| 여기 → `viz/src/*` | **없다.** 파이썬은 컴포넌트를 모른다 |
 
 ⚠ **`normalize.py` 의 출력 키는 간접 의존이다.** `terms_db.py` 가 `from`/`to` · `id`/`depends_on`
 를 읽는다. 코드에 명시돼 있지 않아 바꾸면 조용히 깨진다. 키를 바꾸는 변경이면 멈추고 보고한다.
@@ -199,12 +199,12 @@ cd $REPO_ROOT
 
 ```bash
 # 새 함수를 더했다 — 레코드도 그 자리에서 쓴다
-$EDITOR docs/codegraph/terms-reading.json     # {kind, module, where, means, does, uses[], confidence}
-.venv/bin/python codegraph/xmldoc.py emit && .venv/bin/python codegraph/xmldoc.py inject
-.venv/bin/python codegraph/xmldoc.py check    # 기대: 문제 0건
+$EDITOR machine/terms-reading.json     # {kind, module, where, means, does, uses[], confidence}
+.venv/bin/python machine/xmldoc.py emit && .venv/bin/python machine/xmldoc.py inject
+.venv/bin/python machine/xmldoc.py check    # 기대: 문제 0건
 
 # 코드를 옮겨 줄이 밀렸다 — inject 가 마커 기준으로 다시 센다
-.venv/bin/python codegraph/xmldoc.py inject
+.venv/bin/python machine/xmldoc.py inject
 
 # 수집기 출력이 바뀌었다 — 골든 시험부터 본다
 GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest codegraph/ -q

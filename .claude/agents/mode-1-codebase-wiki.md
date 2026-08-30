@@ -26,10 +26,10 @@ terms-db.json ◀─ 재료
 
 | 파일 | 무엇 | 만드는 것 |
 |---|---|---|
-| `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `codegraph/normalize.py` |
-| `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `codegraph/facts.py` |
-| `ranking.json` | 모듈 중요도(PageRank · hotspot) | `codegraph/facts.py` |
-| `terms-db.json` | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `codegraph/terms_db.py` |
+| `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `machine/normalize.py` |
+| `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `machine/facts.py` |
+| `ranking.json` | 모듈 중요도(PageRank · hotspot) | `machine/facts.py` |
+| `terms-db.json` | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `machine/terms_db.py` |
 | 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
 
 `terms_db.py` 는 `codegraph.json` 에서 이름 · 종류 · 위치 · 이웃을 뽑아
@@ -44,22 +44,22 @@ terms-db.json ◀─ 재료
   `where`(file:line) 를 붙여서. `terms_db.py` 가 그 인용을 L1/L2/L3 로 기계 검사하고, 정적 수집기가 있는
   저장소에서는 구조 필드(`id kind module where`)를 codegraph 쪽으로 덮는다. 결정론은 codegraph 와 투영이
   지키고, 나는 인용으로 붙들린다
-- **Mode 2 의 파일을 건드리지 않는다.** `src/*` · `scripts/build.mjs` · `scripts/check.mjs` 는 내 것이 아니다
+- **Mode 2 의 파일을 건드리지 않는다.** `viz/src/*` · `viz/build.mjs` · `viz/check.mjs` 는 내 것이 아니다
 
 ## 소유 파일과 경계
 
 | 파일 | 내 권한 |
 |---|---|
 | `codegraph/` 전반 | **소유** |
-| `codegraph/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
-| `docs/codegraph/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
+| `machine/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
+| `docs/machine/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
 | `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
-| `codegraph/normalize.py` 의 **출력 키** | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to` · `id`/`depends_on` 를 읽는다 (간접 의존) |
+| `machine/normalize.py` 의 **출력 키** | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to` · `id`/`depends_on` 를 읽는다 (간접 의존) |
 | `CLAUDE.md` | **Track C 절만** |
-| `scripts/term/*` · `src/*` · `test/*` | 읽기만 |
+| `runner/term/*` · `viz/src/*` · `test/*` | 읽기만 |
 | 다른 저장소의 `specs/` | 접근하지 않는다 |
 
-`codegraph/normalize.py` 를 고칠 일이 생기면 **출력 키를 바꾸는 변경인지 먼저 확인하고**, 그렇다면
+`machine/normalize.py` 를 고칠 일이 생기면 **출력 키를 바꾸는 변경인지 먼저 확인하고**, 그렇다면
 작업을 멈추고 보고한다. 이 의존은 코드에 명시돼 있지 않은 간접 의존이라 조용히 깨진다.
 
 ## 전수조사 절차 — `codebase-terms-survey` 스킬이 정본이다 (2026-08-29 19:00 이전)

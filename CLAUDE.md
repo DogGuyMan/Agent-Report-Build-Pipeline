@@ -5,11 +5,14 @@
 
 | 어디 | 무엇 |
 |---|---|
-| [`codegraph/CLAUDE.md`](codegraph/CLAUDE.md) | 파이썬 파이프라인 · 세 실행기 · 전수조사 레코드 · warmup |
-| [`scripts/CLAUDE.md`](scripts/CLAUDE.md) | Node 배선 · 모듈 해결 · 직접 실행 가드 · 렌더 경로 |
-| [`src/CLAUDE.md`](src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
+| [`runner/CLAUDE.md`](runner/CLAUDE.md) | **러너축** — 세 실행기 · 명령 갈림길 · 얼갈이 단계 |
+| [`machine/CLAUDE.md`](machine/CLAUDE.md) | **기계축** — 정적 수집 · 정규화 · 전수조사 레코드 · warmup |
+| [`viz/CLAUDE.md`](viz/CLAUDE.md) | **시각축** — 렌더 경로 · 다이어그램 · 직접 실행 가드 |
+| [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
+| [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | [`docs/decisions/`](docs/decisions/README.md) | 기각·취소·보류된 것들. **같은 제안을 다시 하기 전에 읽는다** |
+| [`docs/CLAUDE.md`](docs/CLAUDE.md) | 보관소. **첨부되지 않은 인계·계획 문서는 스스로 열지 않는다** |
 
 ## ⚠ 방향 — 옛 산출물은 기준이 아니다 (2026-08-29 확정)
 
@@ -68,8 +71,8 @@
 
 ```bash
 npm run doctor           # 이 컴퓨터에 무엇이 있고 무엇이 없는지. 필수가 없으면 exit 1
-npm test                 # pretest 가 scripts/lib.mjs 로 src/ 를 .tmp/lib.mjs 로 번들한 뒤 node --test
-npm run typecheck        # tsc --noEmit (이 저장소의 src/ 만)
+npm test                 # pretest 가 viz/lib.mjs 로 viz/src/ 를 .tmp/lib.mjs 로 번들한 뒤 node --test
+npm run typecheck        # tsc --noEmit (이 저장소의 viz/src/ 만)
 node --test test/svg.test.mjs                                # 단일 파일
 node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스트
 ```
@@ -77,9 +80,9 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 **함정 — `node --test test/` 는 Node v25.8.0 에서 죽는다.** 디렉토리 인자를 테스트 파일로 취급해
 `Cannot find module '.../test'` 를 낸다. **인자 없는 `node --test`** 를 쓰면 Node 가 알아서 탐색한다.
 
-**테스트가 `src/` 를 직접 import 하지 않는다.** `node --test` 는 JSX 를 해석하지 못하므로
-`scripts/lib.mjs` 가 esbuild 로 `.tmp/lib.mjs` 를 만들고 `test/components.test.mjs` 가 그것을 import 한다.
-`src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
+**테스트가 `viz/src/` 를 직접 import 하지 않는다.** `node --test` 는 JSX 를 해석하지 못하므로
+`viz/lib.mjs` 가 esbuild 로 `.tmp/lib.mjs` 를 만들고 `test/components.test.mjs` 가 그것을 import 한다.
+`viz/src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
 
 ### mode 별 진입점 — 2026-08-29 분리
 
@@ -87,12 +90,12 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 
 | 진입점 | Mode | 명령 | 하는 일 |
 |---|---|---|---|
-| `report-wiki` | 1 | `prep` · `build` · `check` | 코드베이스 위키. 세 명령이 **실제로 돈다**(`bin/report-wiki`). 사이의 LLM 자리는 `codebase-terms-survey` 스킬(전수조사)과 deep-wiki 스킬(산문)이 맡고, `codegraph/run_mode1.py` 가 그 전부를 한 번에 돌리며 잰다 |
+| `report-wiki` | 1 | `prep` · `build` · `check` | 코드베이스 위키. 세 명령이 **실제로 돈다**(`bin/report-wiki`). 사이의 LLM 자리는 `codebase-terms-survey` 스킬(전수조사)과 deep-wiki 스킬(산문)이 맡고, `runner/run_mode1.py` 가 그 전부를 한 번에 돌리며 잰다 |
 | `report-term` | 1.5 | `collect` · `grade` · `emit` | 용어 이해도 점검. Plan 이 요구하는 용어를 모으고, 객관식 답안을 채점해, 학습 노트와 용어집 DB 를 낸다 |
 | `report-spec` | 2 | `init` · `build` · `check` | 설계 검토 보고서 |
 | `report` | — | (`report-spec` 과 같음) | **옛 이름.** `report-spec` 으로 위임하고 stderr 에 알림 한 줄을 낸다. stdout 은 동일 |
 
-`report-spec` 과 `report-term` 은 `scripts/dispatch.mjs` 의 `runDispatch` 를 공유하고, 각자 자기 명령표만 갖는다.
+`report-spec` 과 `report-term` 은 `runner/dispatch.mjs` 의 `runDispatch` 를 공유하고, 각자 자기 명령표만 갖는다.
 `report-wiki` 는 자리 표시자라 `runDispatch` 를 쓰지 않고, `report` 는 `report-spec` 을 자식 프로세스로 실행한다(`spawnSync`).
 
 보고서 쪽 명령은 **보고서가 있는 저장소의 스펙 디렉토리에서** 실행한다:
@@ -119,7 +122,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 
 **이 저장소는 공개된다.** 홈 아래 경로를 문서·코드·커밋에 그대로 적지 않고 변수 이름을 쓴다 —
 `$REPO_ROOT` · `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` · `REPORT_PYTHON`.
-**전체 표와 골든 상수의 함정은 [`codegraph/CLAUDE.md`](codegraph/CLAUDE.md) 의 "경로 변수" 절에 있다.**
+**전체 표와 골든 상수의 함정은 [`machine/CLAUDE.md`](machine/CLAUDE.md) 의 "경로 변수" 절에 있다.**
 
 `test/docs-citations.test.mjs` 가 컨텍스트 문서의 인용을 검사하며 `$` 로 시작하는 경로는
 바깥 저장소로 보고 건너뛴다. 그 규약을 어기면 게이트에 걸린다.
@@ -139,13 +142,26 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 여기 안에 있다 — Track C 계획을 Track A/B 도구로 검토하는 자기참조 구조다. 옮기지 말 것.
 
 ```
-$REPO_ROOT             <프로젝트>/specs/<slug>/
-  bin/report-spec   디스패치만            data.ts      결정 데이터만. builderVersion 포함
-  src/components/   읽기 전용             report.tsx   서사·옵션표·판정 등 나머지 전부
-  src/theme.css     옛 출력에서 추출+B1패치 (tsconfig.json)  check 가 ROOT 에 임시 생성
-  scripts/build.mjs esbuild→RTSM→조립     (out/report.html)  git 제외 — 재생성
-  scripts/check.mjs 기계 검사 규칙
+$REPO_ROOT                  <프로젝트>/specs/<slug>/
+  bin/report-spec        디스패치만        data.ts      결정 데이터만. builderVersion 포함
+  runner/dispatch.mjs    명령 갈림길       report.tsx   서사·옵션표·판정 등 나머지 전부
+  viz/src/components/    읽기 전용        (tsconfig.json)  check 가 ROOT 에 임시 생성
+  viz/src/theme.css      옛 출력에서 추출  (out/report.html)  git 제외 — 재생성
+  viz/build.mjs          esbuild→RTSM→조립
+  viz/check.mjs          기계 검사 규칙
 ```
+
+### 성격축 셋 — 언어가 아니라 하는 일로 가른다 (2026-08-30)
+
+| 축 | 자리 | 가르는 질문 |
+|---|---|---|
+| 러너 | `runner/` + `bin/` | **시키는가** — 순서를 잡고 자식 프로세스를 띄운다 |
+| 기계 | `machine/` | **계산하는가** — 정적 수집·정규화·용어 DB. 그림을 그리지 않는다 |
+| 시각 | `viz/` | **그리는가** — HTML·SVG·다이어그램. 계산된 것을 받아 굽는다 |
+
+**옛 경계(`scripts/`=Node · `codegraph/`=Python)는 성격과 어긋나 있었다.** Graphviz 를 부르는
+파이썬 셋이 기계축에, 결정론적 채점 `.mjs` 가 Node 축에 섞여 있었다. `tools/` 는 셋 어디에도
+속하지 않는 것만 받는다.
 
 ## 확정된 스택 (변경 금지)
 
@@ -165,7 +181,7 @@ $REPO_ROOT             <프로젝트>/specs/<slug>/
 `grep -c '<script' out/report.html` 로 검사한다.
 
 **예산 1칸은 2026-08-29 에 용어 그래프 런타임이 가져갔다.** `data.ts` 에 `terms` 가 있을 때만
-`scripts/build.mjs` 가 `src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
+`viz/build.mjs` 가 `viz/src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
 여전히 `<script>` 0개다. **예산이 다 찼으므로 새 런타임 코드를 넣으려면 이 번들 안에 합쳐야 한다.**
 
 ## 두 트랙과 강제 순서 (Track A/B)

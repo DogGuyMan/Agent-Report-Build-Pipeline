@@ -22,12 +22,12 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 |---|---|
 | CLI | `report-spec init` → `build` → `check` (`report` 는 위임으로 호환) |
 | 컴포넌트 | 17개 — 배지 · 표 · 블록 · BeforeAfter · VerdictFooter · **Glossary · TermGraph · defineTerms** |
-| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`scripts/wrap-terms.mjs`) |
+| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`viz/wrap-terms.mjs`) |
 | 관계 그래프 | d3-force 런타임. 드래그 · 확대 · hover. `<script>` 예산 1개를 이것이 쓴다 |
 | 검사 | `<script>` ≤ 1 · `tsc --noEmit` · 링크 무결성 · **용어집 대조(경고)** · builderVersion |
 | 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개 **이해도 실측**(확실 6 · 애매 3 · 모름 11 · 미측정 4), 관계도 |
-| 본문 용어 자동 참조 (2026-08-29) | 빌드 후 통과 `scripts/wrap-terms.mjs` — 용어 id 의 모든 등장을 `TermRef` 마크업으로. 저자는 `<T id>` 를 심지 않는다. 카드: 갈래 · id · 이해도 / 뜻 / 용례, 밑줄 끝 `?`. 위치는 런타임이 `fixed` 로(표의 overflow 회피) |
-| 경로 링크 (2026-08-29) | 둘째 통과 `scripts/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더 `file://`(새 탭). 없는 파일은 그대로. `ReportData.linkRoots?` |
+| 본문 용어 자동 참조 (2026-08-29) | 빌드 후 통과 `viz/wrap-terms.mjs` — 용어 id 의 모든 등장을 `TermRef` 마크업으로. 저자는 `<T id>` 를 심지 않는다. 카드: 갈래 · id · 이해도 / 뜻 / 용례, 밑줄 끝 `?`. 위치는 런타임이 `fixed` 로(표의 overflow 회피) |
+| 경로 링크 (2026-08-29) | 둘째 통과 `viz/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더 `file://`(새 탭). 없는 파일은 그대로. `ReportData.linkRoots?` |
 | 관계도 물리 (2026-08-29) | 덩어리를 아는 척력 · 노드별 중력 · 캔버스 2.5배 상자 · **덩어리 경계 사각형 충돌**. 상수는 `term-graph.ts` 의 `KNOBS`(사용자가 `<TermGraph tune />` 슬라이더로 확정). 순수 계산 `graph-math.ts` |
 
 ## Mode 1.5 연동 (2026-08-29 완료)
@@ -42,8 +42,8 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 - **옛 산출물을 재현하지 않는다.** `CLAUDE.md` `## ⚠ 방향` 절. 2026-07-27 자 HTML 은 출발점이지 기준이 아니다
 - **판정 푸터를 채우지 않는다.** `VerdictFooter` 는 항상 비워서 낸다
 - **용어를 감으로 고르지 않는다.** Mode 1.5 가 붙은 뒤로는 `terms` 가 `terms.json` 에서 온다
-- **D축(결정 불확실성)을 만들지 않는다.** A1 취소로 무기한 보류. `src/types.ts` 에 필드가 없다
-- **새 런타임 스크립트를 추가하지 않는다.** 예산 1개가 찼다. 필요하면 `src/runtime/term-graph.ts` 번들에 합친다
+- **D축(결정 불확실성)을 만들지 않는다.** A1 취소로 무기한 보류. `viz/src/types.ts` 에 필드가 없다
+- **새 런타임 스크립트를 추가하지 않는다.** 예산 1개가 찼다. 필요하면 `viz/src/runtime/term-graph.ts` 번들에 합친다
 - **HTML 을 손으로 쓰지 않는다.** 반드시 `report-spec` 파이프라인을 통과시킨다
 
 ## 산출물 불변식 (기계 검사 대상)
@@ -56,12 +56,12 @@ grep -c '<script' out/report.html    # 용어집 없으면 0, 있으면 1. 2 이
 
 | 파일 | 내 권한 |
 |---|---|
-| `src/*` (`types.ts` · `components/*` · `theme.css` · `runtime/*`) | **소유.** 단 **추가만** |
-| `scripts/build.mjs` · `check.mjs` · `init.mjs` · `svg.mjs` | **소유** |
+| `viz/src/*` (`types.ts` · `components/*` · `theme.css` · `runtime/*`) | **소유.** 단 **추가만** |
+| `viz/build.mjs` · `check.mjs` · `init.mjs` · `svg.mjs` | **소유** |
 | `test/components.test.mjs` | **소유** (append + import). 기존 테스트를 건드리지 않는다 |
 | 대상 저장소 `specs/<slug>/data.ts` · `report.tsx` | **소유** — 원고는 대상 저장소에 산다 |
 | 대상 저장소 `specs/<slug>/tsconfig.json` | 남기지 않는다. `check.mjs` 가 임시 생성 후 지운다 |
-| `scripts/term/*` · `codegraph/*` | 읽기만 |
+| `runner/term/*` · `codegraph/*` | 읽기만 |
 
 **컴포넌트 API 규율** — props 제거 · 의미 변경 금지. 추가만 한다. API 가 바뀌는 갱신마다 태그(`v1`, `v2`).
 
@@ -87,7 +87,7 @@ npm test            # 인자 없이 — `node --test test/` 는 Node 25 에서 �
 npm run typecheck
 ```
 
-`src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
+`viz/src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
 
 ## 지켜야 할 규율
 

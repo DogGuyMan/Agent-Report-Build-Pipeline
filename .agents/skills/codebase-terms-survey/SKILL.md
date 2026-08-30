@@ -22,21 +22,21 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 | 전제 | 확인 | 없을 때 |
 |---|---|---|
-| report-builder | `ls $REPO_ROOT/codegraph/terms_db.py` | 중단. 경로를 지어내지 않는다 |
+| report-builder | `ls $REPO_ROOT/machine/terms_db.py` | 중단. 경로를 지어내지 않는다 |
 | 대상 저장소 경로 `<repo>` | `git -C <repo> rev-parse --show-toplevel` | 사용자에게 묻는다 |
 | **작업 트리가 조용한가** | `git -C <repo> status --porcelain` 에 소스 변경이 없어야 한다 | **중단.** 남이 파일을 고치는 중이면 `where`(줄 번호)가 움직이는 과녁이 된다 — 2026-08-29 실측: 병렬 세션의 주석 주입 중에 조사해 실패 7 · 근거 없음 121 |
 | (선택) 정적 `codegraph.json` | `<repo>/out/codegraph-raw/codegraph.json` | 없으면 읽기 레코드만으로 만든다 — 정상 |
 
 ## 레코드 계약 — 이것이 산출물이다
 
-`<repo>/docs/codegraph/terms-reading.json` (git 추적). 꼴은 `{ "키": 레코드 }`.
+`<repo>/docs/machine/terms-reading.json` (git 추적). 꼴은 `{ "키": 레코드 }`.
 
 ```json
 { "build_terms": {
-    "kind": "function", "module": "codegraph", "where": "codegraph/terms_db.py:82",
+    "kind": "function", "module": "codegraph", "where": "machine/terms_db.py:82",
     "means": "코드 지도에서 용어 사전을 만드는 함수.",
     "does": "노드와 모듈을 돌며 이름 · 종류 · 위치 · 관계를 뽑는다. 입력이 같으면 출력도 같다.",
-    "uses": [ { "to": "_where", "kind": "dependency", "label": "calls", "where": "codegraph/terms_db.py:110" } ],
+    "uses": [ { "to": "_where", "kind": "dependency", "label": "calls", "where": "machine/terms_db.py:110" } ],
     "confidence": "HIGH",
     "source": "reading" } }
 ```
@@ -90,10 +90,10 @@ description: Use when a repository needs a machine-checkable term dictionary (te
      -not -name "test_*" -not -path "*/node_modules/*" -not -path "*/__pycache__/*" | sort
    ```
 3. **(정적 수집기가 있으면) 먼저 codegraph 로 레코드를 만든다** — `terms_db.py <codegraph.json> --repo <repo>` 가 클래스·모듈 레코드를 정형문으로 낸다. 읽기 레코드는 그 위에 **뜻·동작·새 관계만** 보탠다. 구조 칸(`id kind module where`)은 codegraph 가 이긴다.
-4. **선언과 문서 주석을 먼저 뽑는다** — `codegraph/declmap.py` 가 선언 한 줄과 **그 위에 붙은
+4. **선언과 문서 주석을 먼저 뽑는다** — `machine/declmap.py` 가 선언 한 줄과 **그 위에 붙은
    문서 주석**만 낸다. 저자가 쓴 의도라 이름 추론보다 근거가 낫고, 읽을 자리를 좁혀 준다.
    ```bash
-   python codegraph/declmap.py <repo> --lang cs --include Assets/@Scripts    # cs · cpp · py · ts
+   python machine/declmap.py <repo> --lang cs --include Assets/@Scripts    # cs · cpp · py · ts
    ```
    🔵 2026-08-29 실측 — 소스를 전량 정독하면 **1줄당 96토큰**, 이 방식으로 좁혀 읽으면
    **1줄당 33토큰**이었다(QtVisionEdit 2,982줄 vs StickRush 8,164줄). 약 3배.
@@ -102,7 +102,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
    반드시 연다. 목록만 보고 쓴 레코드는 `confidence: LOW`, 문서 주석을 요약한 것은 `MEDIUM`,
    실제로 읽은 것만 `HIGH` 다. **싸진 만큼 확신도가 낮아진다는 사실을 칸으로 드러낸다.**
 
-5. **배치 계획을 만든다** — `python codegraph/survey_plan.py <codegraph.json> --target 8`
+5. **배치 계획을 만든다** — `python machine/survey_plan.py <codegraph.json> --target 8`
    → `survey-plan.json`. 층0(의존 대상이 없는 것)부터 층이 오른다.
    재료는 조사 **이전에** 있다 — `report-wiki prep` 이 정적 수집기로 코드 지도를 먼저 낸다.
    수집기가 없는 저장소는 `prep` 이 막히므로 애초에 Mode 1 대상이 아니다. 그때는 함께 막고 보고한다.
@@ -123,7 +123,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 8. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 10 의 목록에 적는다.
 9. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
    ```bash
-   cd $REPO_ROOT && .venv/bin/python codegraph/terms_db.py --repo <repo> --reading <repo>/docs/codegraph/terms-reading.json
+   cd $REPO_ROOT && .venv/bin/python machine/terms_db.py --repo <repo> --reading <repo>/docs/machine/terms-reading.json
    #   -> <repo>/out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0"
    #   정적 codegraph 도 있으면:  terms_db.py <codegraph.json> --repo <repo> --reading <…json>  -> "투영에 없는 것 0개" 까지
    ```
@@ -138,7 +138,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 | 함정 | 무엇이 일어나나 | 막는 법 |
 |---|---|---|
-| **CMake 타깃 트리가 여럿** | 루트 compdb 만 쓰면 별도로 짓는 타깃이 통째로 빠진다. QtVisionEdit 은 1차 클래스 61개 중 **37개(app)** 가 이렇게 빠졌다 | `report-wiki prep` 이 저장소 안 `compile_commands.json` 을 **전부 찾아 합친다**(`scripts/wiki/compdb.mjs`) |
+| **CMake 타깃 트리가 여럿** | 루트 compdb 만 쓰면 별도로 짓는 타깃이 통째로 빠진다. QtVisionEdit 은 1차 클래스 61개 중 **37개(app)** 가 이렇게 빠졌다 | `report-wiki prep` 이 저장소 안 `compile_commands.json` 을 **전부 찾아 합친다**(`runner/wiki/compdb.mjs`) |
 | **clang-uml 글로브가 깊이 4에서 죽는다** | `app/src/view/*.cpp` 에서 `regular expression complexity exceeded`. 같은 파일을 하나씩 적으면 통과한다 | 생성 설정이 **파일을 열거**한다. 글로브를 쓰지 않는다 |
 | **남의 타입이 1차로 샌다** | `source_location` 이 남의 헤더가 아니라 **이 저장소의 첫 사용 지점**을 가리킨다(F-1). `QWidget` 이 PageRank 1위로 올라온 적이 있다 | `normalize.py` 가 세 겹으로 막는다 — std 계열 이름 · 빌드 산출물 경로 · **그 줄이 실제로 정의하는가**(전방 선언 `class QWidget;` 과 사용 줄을 뺀다) |
 | **네임스페이스 없는 코드** | `CPP_FIRST_PARTY_NS` 만 보면 전역 네임스페이스를 쓰는 모듈이 통째로 외부가 된다 | 허용목록에 없으면 **선언 위치**로 판정한다(위 세 겹을 통과할 때만) |
@@ -161,7 +161,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 이 사전의 목적은 **나중 LLM 이 코드를 다시 추론하는 부담을 줄이는 것**이다. 그래서 전수조사는 한 번이고, 그 뒤로는 **개발하면서** 채운다:
 
 - 새 함수·파일·산출물·키를 만들면 **그 자리에서 레코드를 쓴다** — 뜻 · 동작 · `uses` · `confidence`. 생각한 것(왜 이렇게 했는가)은 `does` 에 한 문장.
-- `codegraph/xmldoc.py emit` → `inject` 로 코드 옆에 **주석 블록**(마커 · 한 줄 뜻 · 의존 줄 "쓰는 것 / 쓰이는 곳")을 박는다. 코드에는 레퍼런스만, 본문은 `comments.xml` 한 곳 — 두 군데 살면 어긋난다.
+- `machine/xmldoc.py emit` → `inject` 로 코드 옆에 **주석 블록**(마커 · 한 줄 뜻 · 의존 줄 "쓰는 것 / 쓰이는 곳")을 박는다. 코드에는 레퍼런스만, 본문은 `comments.xml` 한 곳 — 두 군데 살면 어긋난다.
 - 코드가 움직여 줄 번호가 밀리면 `inject` 가 **마커 기준으로 `where` 를 재계산**한다(2026-08-29 ⑭ 이후). `uses[].where` 는 마커가 없어 L3 경고로만 남는다.
 - 검사 둘을 같이 본다 — `terms_db.py --reading`(L1/L2/L3) · `xmldoc.py check`(마커와 json 이 맞는가).
 
@@ -183,8 +183,8 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 | 파일 | 누가 | 어디로 |
 |---|---|---|
-| `<repo>/docs/codegraph/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본 |
-| `<repo>/docs/codegraph/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다 |
+| `<repo>/docs/machine/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본 |
+| `<repo>/docs/machine/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다 |
 | `<repo>/out/codegraph-raw/terms-db.json` | `terms_db.py` | Mode 1.5 `report-term collect` 의 재료. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |
