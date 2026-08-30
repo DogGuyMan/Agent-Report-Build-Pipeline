@@ -1,0 +1,115 @@
+{
+  "_자름_고지": "clang-uml 원문 레코드다. 전량은 methods 8건 / members 2건 이지만 200줄 제한 때문에 각각 앞 2건만 남기고 잘랐다. 그 두 배열 말고는 손대지 않았다. 전량은 대상 저장소 out/codegraph-raw/full_class.json 에 있다.",
+  "_원문_레코드": {
+    "bases": [],
+    "comment": {
+      "formatted": "\n @brief Cocos @c cc::Component + Unreal @c UActorComponent 영감 - Actor 부착 동작 단위 추상 베이스.\n @details\n  ### Lifecycle (Cocos 정통)\n  - @c OnEnter  - Owner Actor 가 running 상태 진입 (Cocos @c onEnter / Unreal @c BeginPlay).\n                  Camera/Light 등은 이 시점에 @c SceneContext 에 자동 등록.\n  - @c OnExit   - running 에서 벗어남 (Cocos @c onExit / Unreal @c EndPlay).\n  - @c Update(dt) - 매 프레임, enabled 일 때만 Actor 가 호출 (Cocos @c update / Unreal @c TickComponent).\n\n  ### Enabled (Unreal 영감)\n  @c SetEnabled(false) 는 @c Update 만 정지. OnEnter / OnExit lifecycle 에는 영향 없음.\n\n  ### 소유권\n  Component 의 소유권은 @c Actor 내 @c mComponents(@c unique_ptr). 외부 raw 포인터는 관찰용.\n     ",
+      "raw": "/**\n     * @brief Cocos @c cc::Component + Unreal @c UActorComponent 영감 - Actor 부착 동작 단위 추상 베이스.\n     * @details\n     *  ### Lifecycle (Cocos 정통)\n     *  - @c OnEnter  - Owner Actor 가 running 상태 진입 (Cocos @c onEnter / Unreal @c BeginPlay).\n     *                  Camera/Light 등은 이 시점에 @c SceneContext 에 자동 등록.\n     *  - @c OnExit   - running 에서 벗어남 (Cocos @c onExit / Unreal @c EndPlay).\n     *  - @c Update(dt) - 매 프레임, enabled 일 때만 Actor 가 호출 (Cocos @c update / Unreal @c TickComponent).\n     *\n     *  ### Enabled (Unreal 영감)\n     *  @c SetEnabled(false) 는 @c Update 만 정지. OnEnter / OnExit lifecycle 에는 영향 없음.\n     *\n     *  ### 소유권\n     *  Component 의 소유권은 @c Actor 내 @c mComponents(@c unique_ptr). 외부 raw 포인터는 관찰용.\n     */"
+    },
+    "display_name": "SJH::Scene::Component",
+    "id": "18032677677727336093",
+    "is_abstract": true,
+    "is_nested": false,
+    "is_struct": false,
+    "is_template": false,
+    "is_union": false,
+    "members": [
+      {
+        "access": "private",
+        "is_static": false,
+        "name": "mOwner",
+        "source_location": {
+          "column": 16,
+          "file": "src/scene/actor.h",
+          "line": 84,
+          "translation_unit": "src/render/mesh_renderer.cpp"
+        },
+        "type": "Actor *"
+      },
+      {
+        "access": "private",
+        "is_static": false,
+        "name": "mEnabled",
+        "source_location": {
+          "column": 16,
+          "file": "src/scene/actor.h",
+          "line": 85,
+          "translation_unit": "src/render/mesh_renderer.cpp"
+        },
+        "type": "bool"
+      }
+    ],
+    "methods": [
+      {
+        "access": "public",
+        "display_name": "~Component",
+        "is_const": false,
+        "is_consteval": false,
+        "is_constexpr": false,
+        "is_constructor": false,
+        "is_copy_assignment": false,
+        "is_coroutine": false,
+        "is_defaulted": true,
+        "is_deleted": false,
+        "is_move_assignment": false,
+        "is_noexcept": false,
+        "is_operator": false,
+        "is_pure_virtual": false,
+        "is_static": false,
+        "is_virtual": true,
+        "name": "~Component",
+        "parameters": [],
+        "source_location": {
+          "column": 17,
+          "file": "src/scene/actor.h",
+          "line": 61,
+          "translation_unit": "src/render/mesh_renderer.cpp"
+        },
+        "template_parameters": [],
+        "type": "void"
+      },
+      {
+        "access": "public",
+        "comment": {
+          "formatted": "@brief Owner Actor 가 running 상태에 진입할 때 호출 (BeginPlay 정통).",
+          "raw": "/// @brief Owner Actor 가 running 상태에 진입할 때 호출 (BeginPlay 정통)."
+        },
+        "display_name": "OnEnter",
+        "is_const": false,
+        "is_consteval": false,
+        "is_constexpr": false,
+        "is_constructor": false,
+        "is_copy_assignment": false,
+        "is_coroutine": false,
+        "is_defaulted": false,
+        "is_deleted": false,
+        "is_move_assignment": false,
+        "is_noexcept": false,
+        "is_operator": false,
+        "is_pure_virtual": true,
+        "is_static": false,
+        "is_virtual": true,
+        "name": "OnEnter",
+        "parameters": [],
+        "source_location": {
+          "column": 22,
+          "file": "src/scene/actor.h",
+          "line": 64,
+          "translation_unit": "src/render/mesh_renderer.cpp"
+        },
+        "template_parameters": [],
+        "type": "void"
+      }
+    ],
+    "name": "Component",
+    "namespace": "SJH::Scene",
+    "source_location": {
+      "column": 11,
+      "file": "src/scene/actor.h",
+      "line": 58,
+      "translation_unit": "src/render/mesh_renderer.cpp"
+    },
+    "template_parameters": [],
+    "type": "class"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "_주석_도구가_낸_원문": {
+    "access": "public",
+    "destination": "18032677677727336093",
+    "source": "6258977476063918454",
+    "type": "extension"
+  },
+  "_참고_사람이_읽으라고_붙인_이름": {
+    "source_display_name": "SJH::Scene::MeshRenderer",
+    "destination_display_name": "SJH::Scene::Component",
+    "source_source_location": {
+      "column": 8,
+      "file": "src/render/mesh_renderer.h",
+      "line": 55,
+      "translation_unit": "src/render/mesh_renderer.cpp"
+    }
+  }
+}

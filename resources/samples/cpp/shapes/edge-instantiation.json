@@ -1,0 +1,18 @@
+{
+  "_주석_도구가_낸_원문": {
+    "access": "public",
+    "destination": "11730101602020562410",
+    "source": "12706590146902731468",
+    "type": "instantiation"
+  },
+  "_참고_사람이_읽으라고_붙인_이름": {
+    "source_display_name": "SJH::Reflect::TypeName<float>",
+    "destination_display_name": "SJH::Reflect::TypeName<T>",
+    "source_source_location": {
+      "column": 12,
+      "file": "src/reflect/type_id.h",
+      "line": 54,
+      "translation_unit": "src/reflect/serialize.cpp"
+    }
+  }
+}

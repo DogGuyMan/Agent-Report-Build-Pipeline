@@ -1,0 +1,111 @@
+# cmake --graphviz 산출 01-modules.dot 의 원문 발췌
+# 전량은 대상 저장소 out/codegraph-raw/01-modules.dot (23281 bytes, 부속파일 119개 별도).
+# 아래는 (1) 파일 머리 + Legend 전량, (2) 노드/간선 선언부 앞머리, (3) 1st-party 간선 표본.
+# 발췌만 했고 한 글자도 고치지 않았다.
+
+########## (1) 머리 + Legend (1~24행 전량) ##########
+digraph "OpenGL-ComputerGraphics" {
+node [
+  fontsize = "12"
+];
+subgraph clusterLegend {
+  label = "Legend";
+  color = black;
+  edge [ style = invis ];
+  legendNode0 [ label = "Executable", shape = egg ];
+  legendNode1 [ label = "Static Library", shape = octagon ];
+  legendNode2 [ label = "Shared Library", shape = doubleoctagon ];
+  legendNode3 [ label = "Module Library", shape = tripleoctagon ];
+  legendNode4 [ label = "Interface Library", shape = pentagon ];
+  legendNode5 [ label = "Object Library", shape = hexagon ];
+  legendNode6 [ label = "Unknown Library", shape = septagon ];
+  legendNode7 [ label = "Custom Target", shape = box ];
+  legendNode0 -> legendNode1 [ style = solid ];
+  legendNode0 -> legendNode2 [ style = solid ];
+  legendNode0 -> legendNode3;
+  legendNode1 -> legendNode4 [ label = "Interface", style = dashed ];
+  legendNode2 -> legendNode5 [ label = "Private", style = dotted ];
+  legendNode3 -> legendNode6 [ style = solid ];
+  legendNode0 -> legendNode7;
+}
+
+########## (2) 노드/간선 선언부 25~60행 ##########
+    "node0" [ label = "_MyApp_", shape = egg ];
+    "node0" -> "node0"  // _MyApp_ -> _MyApp_
+    "node1" [ label = "engine_deps", shape = pentagon ];
+    "node2" [ label = "-framework Cocoa", shape = septagon ];
+    "node1" -> "node2" [ style = dashed ] // engine_deps -> -framework Cocoa
+    "node3" [ label = "-framework CoreFoundation", shape = septagon ];
+    "node1" -> "node3" [ style = dashed ] // engine_deps -> -framework CoreFoundation
+    "node4" [ label = "-framework CoreVideo", shape = septagon ];
+    "node1" -> "node4" [ style = dashed ] // engine_deps -> -framework CoreVideo
+    "node5" [ label = "-framework IOKit", shape = septagon ];
+    "node1" -> "node5" [ style = dashed ] // engine_deps -> -framework IOKit
+    "node6" [ label = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework", shape = septagon ];
+    "node1" -> "node6"  // engine_deps -> /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+    "node7" [ label = "glfw3", shape = octagon ];
+    "node1" -> "node7" [ style = dashed ] // engine_deps -> glfw3
+    "node8" [ label = "glm::glm", shape = octagon ];
+    "node9" [ label = "glm::glm-header-only", shape = pentagon ];
+    "node8" -> "node9" [ style = dashed ] // glm::glm -> glm::glm-header-only
+    "node1" -> "node8" [ style = dashed ] // engine_deps -> glm::glm
+    "node10" [ label = "sb7", shape = octagon ];
+    "node1" -> "node10" [ style = dashed ] // engine_deps -> sb7
+    "node0" -> "node1" [ style = dotted ] // _MyApp_ -> engine_deps
+    "node11" [ label = "game_deps", shape = pentagon ];
+    "node12" [ label = "EffekseerRendererGL", shape = octagon ];
+    "node13" [ label = "Effekseer", shape = octagon ];
+    "node12" -> "node13" [ style = dashed ] // EffekseerRendererGL -> Effekseer
+    "node11" -> "node12" [ style = dashed ] // game_deps -> EffekseerRendererGL
+    "node14" [ label = "assimp::assimp", shape = octagon ];
+    "node11" -> "node14" [ style = dashed ] // game_deps -> assimp::assimp
+    "node15" [ label = "box2d::box2d", shape = octagon ];
+    "node11" -> "node15" [ style = dashed ] // game_deps -> box2d::box2d
+    "node16" [ label = "fmod", shape = doubleoctagon ];
+    "node11" -> "node16" [ style = dashed ] // game_deps -> fmod
+    "node17" [ label = "fmodstudio", shape = doubleoctagon ];
+    "node17" -> "node16" [ style = dashed ] // fmodstudio -> fmod
+    "node11" -> "node17" [ style = dashed ] // game_deps -> fmodstudio
+
+########## (3) 1st-party 간선 표본 (grep 'sjhopengl_render' 20건) ##########
+    "node34" -> "node1"  // sjhopengl_render -> engine_deps
+    "node34" -> "node32"  // sjhopengl_render -> sjhopengl_buffer
+    "node33" -> "node34" [ style = dotted ] // sjhopengl_diagnostics -> sjhopengl_render
+    "node34" -> "node28"  // sjhopengl_render -> sjhopengl_common
+    "node34" -> "node33" [ style = dotted ] // sjhopengl_render -> sjhopengl_diagnostics
+    "node34" -> "node36"  // sjhopengl_render -> sjhopengl_material
+    "node34" -> "node30" [ style = dotted ] // sjhopengl_render -> sjhopengl_object
+    "node34" -> "node35"  // sjhopengl_render -> sjhopengl_program
+    "node34" -> "node27"  // sjhopengl_render -> sjhopengl_scene
+    "node34" -> "node38" [ style = dotted ] // sjhopengl_render -> sjhopengl_texture
+    "node52" -> "node34"  // sjh_sprite -> sjhopengl_render
+    "node56" -> "node34"  // myapp_vfx -> sjhopengl_render
+    "node60" -> "node34" [ style = dashed ] // sjhopengl_engine -> sjhopengl_render
+    "node68" -> "node34"  // myapp_stage -> sjhopengl_render
+    "node69" -> "node34"  // myapp_ui -> sjhopengl_render
+
+########## (4) 부속파일 예시 - 01-modules.dot.base_deps 전량 ##########
+digraph "base_deps" {
+node [
+  fontsize = "12"
+];
+    "node45" [ label = "base_deps", shape = pentagon ];
+    "node46" [ label = "Boost::describe", shape = pentagon ];
+    "node45" -> "node46" [ style = dashed ] // base_deps -> Boost::describe
+    "node47" [ label = "Boost::mp11", shape = pentagon ];
+    "node46" -> "node47" [ style = dashed ] // Boost::describe -> Boost::mp11
+    "node48" [ label = "Boost::pfr", shape = pentagon ];
+    "node45" -> "node48" [ style = dashed ] // base_deps -> Boost::pfr
+    "node8" [ label = "glm::glm", shape = octagon ];
+    "node45" -> "node8" [ style = dashed ] // base_deps -> glm::glm
+    "node9" [ label = "glm::glm-header-only", shape = pentagon ];
+    "node8" -> "node9" [ style = dashed ] // glm::glm -> glm::glm-header-only
+    "node19" [ label = "nlohmann_json::nlohmann_json", shape = pentagon ];
+    "node45" -> "node19" [ style = dashed ] // base_deps -> nlohmann_json::nlohmann_json
+    "node20" [ label = "spdlog::spdlog", shape = octagon ];
+    "node45" -> "node20" [ style = dashed ] // base_deps -> spdlog::spdlog
+    "node21" [ label = "Threads::Threads", shape = pentagon ];
+    "node20" -> "node21" [ style = dashed ] // spdlog::spdlog -> Threads::Threads
+    "node22" [ label = "fmt::fmt", shape = octagon ];
+    "node20" -> "node22" [ style = dashed ] // spdlog::spdlog -> fmt::fmt
+}

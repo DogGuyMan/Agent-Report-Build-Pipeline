@@ -562,7 +562,7 @@
         "where": "machine/normalize.py:502"
       }
     ],
-    "where": "machine/normalize.py:466"
+    "where": "machine/normalize.py:513"
   },
   "_doc_element": {
     "confidence": "HIGH",
@@ -572,7 +572,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:285"
+    "where": "machine/normalize.py:328"
   },
   "_git_commit": {
     "kind": "function",
@@ -580,7 +580,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/terms_db.py:383"
+    "where": "machine/terms_db.py:429"
   },
   "_json_root": {
     "confidence": "HIGH",
@@ -590,7 +590,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/clang_doc.py:132"
+    "where": "machine/clang_doc.py:141"
   },
   "_mmdc": {
     "does": "임시 .mmd 파일에 쓰고 mmdc 를 실행한 뒤 임시 파일을 지운다.",
@@ -599,7 +599,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/demermaid.py:56"
+    "where": "viz/demermaid.py:46"
   },
   "_recompute_neighbors": {
     "does": "이웃은 계산해서 나오는 값이지 입력이 아니다. 손으로 쓴 이웃은 여기서 덮인다.",
@@ -608,7 +608,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/terms_db.py:75"
+    "where": "machine/terms_db.py:113"
   },
   "_split_where": {
     "kind": "function",
@@ -616,7 +616,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/terms_db.py:62"
+    "where": "machine/terms_db.py:100"
   },
   "_stem": {
     "does": "파일 · 산출물 · 키 · 개념 · 모듈은 글자 그대로 쓰고, 나머지는 마지막 조각만 남긴다. codegraph.json 을 점으로 쪼개면 안 되기 때문이다.",
@@ -632,7 +632,7 @@
         "where": "machine/terms_db.py:254"
       }
     ],
-    "where": "machine/terms_db.py:248"
+    "where": "machine/terms_db.py:291"
   },
   "_symbol": {
     "confidence": "HIGH",
@@ -655,7 +655,7 @@
         "where": "machine/clang_doc.py:125"
       }
     ],
-    "where": "machine/clang_doc.py:109"
+    "where": "machine/clang_doc.py:120"
   },
   "_where": {
     "kind": "function",
@@ -663,7 +663,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/terms_db.py:50"
+    "where": "machine/terms_db.py:88"
   },
   "_written_by_llm": {
     "kind": "function",
@@ -671,7 +671,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/terms_db.py:260"
+    "where": "machine/terms_db.py:303"
   },
   "answer-sheet.json": {
     "confidence": "HIGH",
@@ -821,7 +821,7 @@
         "where": "machine/verify_citations.py:71"
       }
     ],
-    "where": "machine/verify_citations.py:57"
+    "where": "machine/verify_citations.py:116"
   },
   "build_parser": {
     "confidence": "HIGH",
@@ -831,7 +831,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:731"
+    "where": "machine/normalize.py:1210"
   },
   "build_terms": {
     "does": "노드는 용어가 되고 간선은 uses 가 된다. 방향 · 종류 · 위치를 지켜 담아야 지도를 되돌릴 수 있다.",
@@ -853,7 +853,7 @@
         "where": "machine/terms_db.py:166"
       }
     ],
-    "where": "machine/terms_db.py:97"
+    "where": "machine/terms_db.py:134"
   },
   "builderVersion": {
     "does": "빌드와 검사 때 지금 버전과 대조한다. 달라도 경고까지이고 막지 않는다.",
@@ -925,7 +925,7 @@
         "where": "machine/terms_db.py:332"
       }
     ],
-    "where": "machine/terms_db.py:272"
+    "where": "machine/terms_db.py:315"
   },
   "choiceNumber": {
     "does": "숫자와 숫자 문자열을 둘 다 받고, 빈 칸은 null 이다. 안 푼 것을 모르겠다로 메우지 않는다.",
@@ -942,7 +942,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/facts.py:133"
+    "where": "machine/facts.py:220"
   },
   "clampBox": {
     "kind": "function",
@@ -1149,7 +1149,7 @@
         "where": "machine/facts.py:50"
       }
     ],
-    "where": "machine/facts.py:48"
+    "where": "machine/facts.py:135"
   },
   "collectorFor": {
     "confidence": "HIGH",
@@ -1222,7 +1222,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:558"
+    "where": "machine/normalize.py:654"
   },
   "cs_external_group": {
     "kind": "function",
@@ -1230,7 +1230,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:581"
+    "where": "machine/normalize.py:678"
   },
   "cs_module_of": {
     "kind": "function",
@@ -1238,7 +1238,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:543"
+    "where": "machine/normalize.py:639"
   },
   "d3-force": {
     "kind": "external",
@@ -1277,7 +1277,7 @@
         "where": "machine/declmap.py:113"
       }
     ],
-    "where": "machine/declmap.py:110"
+    "where": "machine/declmap.py:138"
   },
   "declmap.tracked_files": {
     "confidence": "HIGH",
@@ -1287,7 +1287,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/declmap.py:68"
+    "where": "machine/declmap.py:94"
   },
   "defineTerms": {
     "does": "전역 변수도 React 컨텍스트도 쓰지 않는 함수 호출 하나다. 정의가 없는 id 를 쓰면 화면에 드러내 저자가 고치게 한다.",
@@ -1313,7 +1313,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:103"
+    "where": "machine/normalize.py:162"
   },
   "demermaid.main": {
     "kind": "function",
@@ -1328,7 +1328,7 @@
         "where": "viz/demermaid.py:169"
       }
     ],
-    "where": "viz/demermaid.py:155"
+    "where": "viz/demermaid.py:146"
   },
   "demermaid.py": {
     "does": "Mermaid 블록을 찾아, 대응하는 Graphviz 그림이 있으면 그것으로 바꾸고 없으면 mmdc 로 SVG 를 굽는다. 원본은 고치지 않고 사본을 낸다.",
@@ -1364,7 +1364,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/declmap.py:89"
+    "where": "machine/declmap.py:115"
   },
   "doc_qualified_name": {
     "confidence": "HIGH",
@@ -1374,7 +1374,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:272"
+    "where": "machine/normalize.py:317"
   },
   "edges[]": {
     "kind": "key",
@@ -1434,7 +1434,7 @@
         "where": "viz/render_modules.py:169"
       }
     ],
-    "where": "viz/render_modules.py:127"
+    "where": "viz/render_modules.py:178"
   },
   "esbuild": {
     "kind": "external",
@@ -1467,7 +1467,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:201"
+    "where": "machine/normalize.py:255"
   },
   "facts.build": {
     "does": "외부 노드를 뺀 1차 클래스 그래프에서만 PageRank 를 잰다. 외부를 넣으면 표준 라이브러리가 순위를 다 빨아들여 목적이 죽는다.",
@@ -1483,7 +1483,7 @@
         "where": "machine/facts.py:89"
       }
     ],
-    "where": "machine/facts.py:85"
+    "where": "machine/facts.py:173"
   },
   "facts.main": {
     "kind": "function",
@@ -1510,7 +1510,7 @@
         "where": "machine/facts.py:195"
       }
     ],
-    "where": "machine/facts.py:145"
+    "where": "machine/facts.py:232"
   },
   "facts.py": {
     "does": "codegraph.json 을 읽어 PageRank 로 클래스 중요도를 재고, git log 로 hotspot 을 세어 ranking.json 과 facts/*.md 를 낸다.",
@@ -1588,7 +1588,7 @@
         "where": "machine/fix_citation_paths.py:56"
       }
     ],
-    "where": "machine/fix_citation_paths.py:48"
+    "where": "machine/fix_citation_paths.py:45"
   },
   "fix_citation_paths.py": {
     "does": "문서에서 경로 없이 파일명만 적힌 인용을 찾아, 저장소에 그 이름의 파일이 딱 하나일 때만 전체 경로로 바꾼다. 둘 이상이면 손대지 않고 보고한다.",
@@ -1616,7 +1616,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/clang_doc.py:63"
+    "where": "machine/clang_doc.py:72"
   },
   "function_signature": {
     "confidence": "HIGH",
@@ -1626,7 +1626,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/clang_doc.py:90"
+    "where": "machine/clang_doc.py:102"
   },
   "git_commit": {
     "kind": "function",
@@ -1634,7 +1634,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:54"
+    "where": "machine/normalize.py:113"
   },
   "gradeAll": {
     "kind": "function",
@@ -1691,7 +1691,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/fix_citation_paths.py:34"
+    "where": "machine/fix_citation_paths.py:31"
   },
   "init.currentBuilderVersion": {
     "kind": "function",
@@ -1738,7 +1738,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:157"
+    "where": "machine/normalize.py:211"
   },
   "is_transparent_wrapper": {
     "does": "이 규칙을 빼면 우리 클래스끼리의 소유 관계가 그릇에 가려 보이지 않는다.",
@@ -1747,7 +1747,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:232"
+    "where": "machine/normalize.py:278"
   },
   "lib.mjs": {
     "does": "esbuild 로 viz/src/index.ts 를 .tmp/lib.mjs 로 번들한다. 테스트 러너가 JSX 를 못 읽기 때문에 필요한 단계다.",
@@ -1811,7 +1811,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_modules.py:59"
+    "where": "viz/render_modules.py:101"
   },
   "load_clang_doc": {
     "confidence": "HIGH",
@@ -1840,7 +1840,7 @@
         "where": "machine/clang_doc.py:180"
       }
     ],
-    "where": "machine/clang_doc.py:141"
+    "where": "machine/clang_doc.py:150"
   },
   "load_clang_uml": {
     "kind": "function",
@@ -1848,7 +1848,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:83"
+    "where": "machine/normalize.py:142"
   },
   "load_detail": {
     "does": "C++ 은 clang-uml, C# 은 roslyn-dump 두 갈래를 다 알아본다. 키만 다를 뿐 결과 모양은 같게 맞춘다.",
@@ -1857,7 +1857,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_classes.py:77"
+    "where": "viz/render_classes.py:182"
   },
   "load_detail_index": {
     "kind": "function",
@@ -1872,7 +1872,7 @@
         "where": "machine/verify_citations.py:84"
       }
     ],
-    "where": "machine/verify_citations.py:78"
+    "where": "machine/verify_citations.py:138"
   },
   "makeResolver": {
     "does": "정해진 폴더들을 앞에서부터 차례로 뒤진다. 그래도 없으면 이름 색인에서 딱 하나로 좁혀질 때만 답한다. 못 찾으면 아무것도 주지 않는다.",
@@ -1904,7 +1904,7 @@
         "where": "machine/normalize.py:245"
       }
     ],
-    "where": "machine/normalize.py:244"
+    "where": "machine/normalize.py:289"
   },
   "members[]": {
     "does": "간선의 근거 줄을 찾을 때 멤버 이름으로 여기를 조회한다.",
@@ -1957,7 +1957,7 @@
         "where": "machine/normalize.py:324"
       }
     ],
-    "where": "machine/normalize.py:298"
+    "where": "machine/normalize.py:341"
   },
   "merge_terms": {
     "does": "뜻과 동작은 LLM 이 덮어쓰지만 id · kind · module · where 같은 구조 필드는 코드 지도가 이긴다. 새로 보탠 간선에는 reading 표시를 남겨 검사 대상으로 삼는다.",
@@ -1973,7 +1973,7 @@
         "where": "machine/terms_db.py:376"
       }
     ],
-    "where": "machine/terms_db.py:348"
+    "where": "machine/terms_db.py:391"
   },
   "module_of": {
     "kind": "function",
@@ -1981,7 +1981,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:65"
+    "where": "machine/normalize.py:124"
   },
   "modules[]": {
     "does": "클래스 간선에서 유도한다. 링크 의존이 아니라 타입 의존이므로 빌드 설정의 의존과 같은 것으로 읽으면 안 된다.",
@@ -2050,7 +2050,7 @@
         "where": "viz/render_classes.py:163"
       }
     ],
-    "where": "viz/render_classes.py:139"
+    "where": "viz/render_classes.py:246"
   },
   "node_label": {
     "kind": "function",
@@ -2065,7 +2065,7 @@
         "where": "viz/render_modules.py:117"
       }
     ],
-    "where": "viz/render_modules.py:109"
+    "where": "viz/render_modules.py:160"
   },
   "node_name": {
     "kind": "function",
@@ -2073,7 +2073,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:264"
+    "where": "machine/normalize.py:309"
   },
   "nodes[]": {
     "kind": "key",
@@ -2114,7 +2114,7 @@
         "where": "machine/normalize.py:765"
       }
     ],
-    "where": "machine/normalize.py:751"
+    "where": "machine/normalize.py:1233"
   },
   "normalize.py": {
     "does": "C++ 은 clang-uml 의 JSON, C# 은 roslyn-dump.json 을 받아 접기 규칙을 적용하고 노드 · 간선 · 모듈 세 목록으로 조립한다. 정책은 전부 이 파일에만 있다.",
@@ -2188,7 +2188,7 @@
         "where": "machine/normalize.py:460"
       }
     ],
-    "where": "machine/normalize.py:346"
+    "where": "machine/normalize.py:390"
   },
   "normalize_csharp": {
     "does": "참조 집합이 틀리면 결과가 통째로 쓰레기가 되므로, 컴파일 오류나 못 푼 타입이 있으면 시작하자마자 거절한다.",
@@ -2222,7 +2222,7 @@
         "where": "machine/normalize.py:724"
       }
     ],
-    "where": "machine/normalize.py:606"
+    "where": "machine/normalize.py:703"
   },
   "page.tsx": {
     "kind": "file",
@@ -2290,7 +2290,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_classes.py:120"
+    "where": "viz/render_classes.py:227"
   },
   "prepPlan": {
     "confidence": "HIGH",
@@ -2325,7 +2325,7 @@
         "where": "viz/demermaid.py:136"
       }
     ],
-    "where": "viz/demermaid.py:98"
+    "where": "viz/demermaid.py:87"
   },
   "project_codegraph": {
     "does": "파일 · 산출물 · 키 · 개념처럼 지도에 자리가 없는 용어는 노드가 되지 않고, 그런 용어로 가는 간선도 지도에 실리지 않는다.",
@@ -2341,7 +2341,7 @@
         "where": "machine/terms_db.py:201"
       }
     ],
-    "where": "machine/terms_db.py:189"
+    "where": "machine/terms_db.py:227"
   },
   "pythonCandidates": {
     "does": "윈도우와 그 밖의 운영체제가 가상환경을 다른 폴더에 두므로 갈래를 나눈다. 파일을 뒤지지 않아 시험하기 쉽다.",
@@ -2376,7 +2376,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/clang_doc.py:49"
+    "where": "machine/clang_doc.py:57"
   },
   "questions.json": {
     "confidence": "HIGH",
@@ -2462,7 +2462,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_classes.py:59"
+    "where": "viz/render_classes.py:163"
   },
   "render_classes.esch": {
     "kind": "function",
@@ -2470,7 +2470,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_classes.py:52"
+    "where": "viz/render_classes.py:156"
   },
   "render_classes.main": {
     "kind": "function",
@@ -2491,7 +2491,7 @@
         "where": "viz/render_classes.py:259"
       }
     ],
-    "where": "viz/render_classes.py:181"
+    "where": "viz/render_classes.py:291"
   },
   "render_classes.py": {
     "does": "구조는 codegraph.json 에서, 멤버와 메서드 같은 살은 원시 분석 파일에서 따로 읽어 UML 3분할 상자를 만든다. 간선은 원시에서 읽지 않는다.",
@@ -2508,7 +2508,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_classes.py:66"
+    "where": "viz/render_classes.py:170"
   },
   "render_mermaid": {
     "kind": "function",
@@ -2523,7 +2523,7 @@
         "where": "viz/demermaid.py:75"
       }
     ],
-    "where": "viz/demermaid.py:70"
+    "where": "viz/demermaid.py:60"
   },
   "render_modules.build": {
     "kind": "function",
@@ -2538,7 +2538,7 @@
         "where": "viz/render_modules.py:137"
       }
     ],
-    "where": "viz/render_modules.py:69"
+    "where": "viz/render_modules.py:115"
   },
   "render_modules.esc": {
     "kind": "function",
@@ -2546,7 +2546,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_modules.py:42"
+    "where": "viz/render_modules.py:84"
   },
   "render_modules.esch": {
     "kind": "function",
@@ -2554,7 +2554,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "viz/render_modules.py:50"
+    "where": "viz/render_modules.py:92"
   },
   "render_modules.main": {
     "kind": "function",
@@ -2581,7 +2581,7 @@
         "where": "viz/render_modules.py:264"
       }
     ],
-    "where": "viz/render_modules.py:254"
+    "where": "viz/render_modules.py:306"
   },
   "render_modules.py": {
     "does": "codegraph.json 의 modules[] 를 읽어 뼈대 · 순환 · 외부 접촉 세 종류의 간선을 색과 굵기로 갈라 DOT 을 낸다.",
@@ -2703,7 +2703,7 @@
         "where": "machine/reverse_refs.py:62"
       }
     ],
-    "where": "machine/reverse_refs.py:25"
+    "where": "machine/reverse_refs.py:105"
   },
   "reverse_refs.py": {
     "does": "clangd 를 띄우고 색인이 다 찰 때까지 기다린 뒤, 심볼마다 역참조를 물어 저장소 상대경로 형태로 저장한다.",
@@ -2746,7 +2746,7 @@
     ],
     "where": "runner/dispatch.mjs:25"
   },
-  "run_mode1._Heartbeat": {
+  "run_mode1.Heartbeat": {
     "confidence": "HIGH",
     "does": "모형 호출은 끝나야 한 덩이로 답이 나온다. 그동안 아무것도 안 찍히면 사람이 멈춘 줄 안다.",
     "kind": "function",
@@ -2754,9 +2754,9 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:768"
+    "where": "runner/run_mode1.py:794"
   },
-  "run_mode1._hms": {
+  "run_mode1.hms": {
     "confidence": "HIGH",
     "does": "재는 것이 목적이라 소수 첫째 자리까지 남긴다.",
     "kind": "function",
@@ -2764,7 +2764,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:668"
+    "where": "runner/run_mode1.py:697"
   },
   "run_mode1._qualified": {
     "confidence": "HIGH",
@@ -2774,7 +2774,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:901"
+    "where": "runner/run_mode1.py:924"
   },
   "run_mode1.agent_verdict": {
     "confidence": "HIGH",
@@ -2784,7 +2784,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:286"
+    "where": "runner/run_mode1.py:330"
   },
   "run_mode1.changed_seed": {
     "confidence": "HIGH",
@@ -2794,7 +2794,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:170"
+    "where": "runner/run_mode1.py:214"
   },
   "run_mode1.claude_argv": {
     "confidence": "HIGH",
@@ -2804,7 +2804,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:306"
+    "where": "runner/run_mode1.py:349"
   },
   "run_mode1.dep_excerpt": {
     "confidence": "HIGH",
@@ -2814,7 +2814,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:356"
+    "where": "runner/run_mode1.py:393"
   },
   "run_mode1.format_report": {
     "confidence": "HIGH",
@@ -2833,11 +2833,11 @@
       {
         "kind": "dependency",
         "label": "calls",
-        "to": "run_mode1._hms",
+        "to": "run_mode1.hms",
         "where": "runner/run_mode1.py:693"
       }
     ],
-    "where": "runner/run_mode1.py:679"
+    "where": "runner/run_mode1.py:708"
   },
   "run_mode1.is_agent_stage": {
     "confidence": "HIGH",
@@ -2847,7 +2847,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:210"
+    "where": "runner/run_mode1.py:249"
   },
   "run_mode1.lang_of": {
     "confidence": "HIGH",
@@ -2857,7 +2857,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:150"
+    "where": "runner/run_mode1.py:195"
   },
   "run_mode1.main": {
     "confidence": "HIGH",
@@ -2922,7 +2922,7 @@
         "where": "runner/run_mode1.py:1265"
       }
     ],
-    "where": "runner/run_mode1.py:1114"
+    "where": "runner/run_mode1.py:1187"
   },
   "run_mode1.merge_shards": {
     "confidence": "HIGH",
@@ -2939,7 +2939,7 @@
         "where": "runner/run_mode1.py:891"
       }
     ],
-    "where": "runner/run_mode1.py:857"
+    "where": "runner/run_mode1.py:882"
   },
   "run_mode1.node_argv": {
     "confidence": "HIGH",
@@ -2949,7 +2949,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:639"
+    "where": "runner/run_mode1.py:668"
   },
   "run_mode1.nonnode_prompt": {
     "confidence": "HIGH",
@@ -2959,7 +2959,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:453"
+    "where": "runner/run_mode1.py:489"
   },
   "run_mode1.normalize_usage": {
     "confidence": "HIGH",
@@ -2969,7 +2969,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:249"
+    "where": "runner/run_mode1.py:290"
   },
   "run_mode1.page_layers": {
     "confidence": "HIGH",
@@ -2979,7 +2979,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:520"
+    "where": "runner/run_mode1.py:555"
   },
   "run_mode1.plan_stages": {
     "confidence": "HIGH",
@@ -2989,7 +2989,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:218"
+    "where": "runner/run_mode1.py:257"
   },
   "run_mode1.plan_summary": {
     "confidence": "HIGH",
@@ -2999,7 +2999,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:729"
+    "where": "runner/run_mode1.py:758"
   },
   "run_mode1.run_agent_with": {
     "confidence": "HIGH",
@@ -3016,7 +3016,7 @@
         "where": "runner/run_mode1.py:806"
       }
     ],
-    "where": "runner/run_mode1.py:797"
+    "where": "runner/run_mode1.py:822"
   },
   "run_mode1.run_layer": {
     "confidence": "HIGH",
@@ -3033,7 +3033,7 @@
         "where": "runner/run_mode1.py:842"
       }
     ],
-    "where": "runner/run_mode1.py:823"
+    "where": "runner/run_mode1.py:849"
   },
   "run_mode1.run_machine": {
     "confidence": "HIGH",
@@ -3043,7 +3043,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:911"
+    "where": "runner/run_mode1.py:934"
   },
   "run_mode1.run_survey": {
     "confidence": "HIGH",
@@ -3084,7 +3084,7 @@
         "where": "runner/run_mode1.py:1028"
       }
     ],
-    "where": "runner/run_mode1.py:999"
+    "where": "runner/run_mode1.py:1074"
   },
   "run_mode1.run_warmup": {
     "confidence": "HIGH",
@@ -3107,7 +3107,7 @@
         "where": "runner/run_mode1.py:945"
       }
     ],
-    "where": "runner/run_mode1.py:921"
+    "where": "runner/run_mode1.py:995"
   },
   "run_mode1.run_wiki": {
     "confidence": "HIGH",
@@ -3148,7 +3148,7 @@
         "where": "runner/run_mode1.py:1087"
       }
     ],
-    "where": "runner/run_mode1.py:1060"
+    "where": "runner/run_mode1.py:1136"
   },
   "run_mode1.save_warmup": {
     "confidence": "HIGH",
@@ -3158,7 +3158,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:973"
+    "where": "runner/run_mode1.py:1048"
   },
   "run_mode1.should_call_agent": {
     "confidence": "HIGH",
@@ -3168,7 +3168,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:189"
+    "where": "runner/run_mode1.py:229"
   },
   "run_mode1.stage_totals": {
     "confidence": "HIGH",
@@ -3185,7 +3185,7 @@
         "where": "runner/run_mode1.py:761"
       }
     ],
-    "where": "runner/run_mode1.py:751"
+    "where": "runner/run_mode1.py:781"
   },
   "run_mode1.sum_usage": {
     "confidence": "HIGH",
@@ -3195,7 +3195,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:274"
+    "where": "runner/run_mode1.py:317"
   },
   "run_mode1.survey_batch_prompt": {
     "confidence": "HIGH",
@@ -3212,7 +3212,7 @@
         "where": "runner/run_mode1.py:378"
       }
     ],
-    "where": "runner/run_mode1.py:371"
+    "where": "runner/run_mode1.py:407"
   },
   "run_mode1.symbol_layers": {
     "confidence": "HIGH",
@@ -3222,7 +3222,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:509"
+    "where": "runner/run_mode1.py:544"
   },
   "run_mode1.terms_argv": {
     "confidence": "HIGH",
@@ -3232,7 +3232,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:647"
+    "where": "runner/run_mode1.py:676"
   },
   "run_mode1.warmup_section": {
     "confidence": "HIGH",
@@ -3242,7 +3242,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:322"
+    "where": "runner/run_mode1.py:365"
   },
   "run_mode1.wiki_catalogue_prompt": {
     "confidence": "HIGH",
@@ -3252,7 +3252,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:539"
+    "where": "runner/run_mode1.py:572"
   },
   "run_mode1.wiki_page_prompt": {
     "confidence": "HIGH",
@@ -3262,7 +3262,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:587"
+    "where": "runner/run_mode1.py:620"
   },
   "run_mode1_5._read_json": {
     "confidence": "HIGH",
@@ -3272,7 +3272,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:654"
+    "where": "runner/run_mode1_5.py:627"
   },
   "run_mode1_5._term_script": {
     "confidence": "HIGH",
@@ -3282,7 +3282,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:422"
+    "where": "runner/run_mode1_5.py:406"
   },
   "run_mode1_5.answer_sheet": {
     "confidence": "HIGH",
@@ -3299,7 +3299,7 @@
         "where": "runner/run_mode1_5.py:333"
       }
     ],
-    "where": "runner/run_mode1_5.py:323"
+    "where": "runner/run_mode1_5.py:311"
   },
   "run_mode1_5.author_argv": {
     "confidence": "HIGH",
@@ -3309,7 +3309,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:469"
+    "where": "runner/run_mode1_5.py:449"
   },
   "run_mode1_5.author_prompt": {
     "confidence": "HIGH",
@@ -3319,7 +3319,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:487"
+    "where": "runner/run_mode1_5.py:468"
   },
   "run_mode1_5.choice_number": {
     "confidence": "HIGH",
@@ -3329,7 +3329,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:349"
+    "where": "runner/run_mode1_5.py:334"
   },
   "run_mode1_5.collect_argv": {
     "confidence": "HIGH",
@@ -3339,7 +3339,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:430"
+    "where": "runner/run_mode1_5.py:414"
   },
   "run_mode1_5.emit_argv": {
     "confidence": "HIGH",
@@ -3349,7 +3349,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:461"
+    "where": "runner/run_mode1_5.py:441"
   },
   "run_mode1_5.flatten_questions": {
     "confidence": "HIGH",
@@ -3359,7 +3359,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:304"
+    "where": "runner/run_mode1_5.py:290"
   },
   "run_mode1_5.format_run": {
     "confidence": "HIGH",
@@ -3369,7 +3369,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:631"
+    "where": "runner/run_mode1_5.py:605"
   },
   "run_mode1_5.gate_notice": {
     "confidence": "HIGH",
@@ -3379,7 +3379,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:585"
+    "where": "runner/run_mode1_5.py:562"
   },
   "run_mode1_5.grade_argv": {
     "confidence": "HIGH",
@@ -3389,7 +3389,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:448"
+    "where": "runner/run_mode1_5.py:429"
   },
   "run_mode1_5.human_gate_open": {
     "confidence": "HIGH",
@@ -3399,7 +3399,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:179"
+    "where": "runner/run_mode1_5.py:171"
   },
   "run_mode1_5.is_agent_stage": {
     "confidence": "HIGH",
@@ -3409,7 +3409,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:139"
+    "where": "runner/run_mode1_5.py:130"
   },
   "run_mode1_5.main": {
     "confidence": "HIGH",
@@ -3419,7 +3419,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:698"
+    "where": "runner/run_mode1_5.py:672"
   },
   "run_mode1_5.plan_stages": {
     "confidence": "HIGH",
@@ -3429,7 +3429,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:147"
+    "where": "runner/run_mode1_5.py:138"
   },
   "run_mode1_5.run_author": {
     "confidence": "HIGH",
@@ -3439,7 +3439,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:680"
+    "where": "runner/run_mode1_5.py:653"
   },
   "run_mode1_5.run_machine": {
     "confidence": "HIGH",
@@ -3449,7 +3449,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:666"
+    "where": "runner/run_mode1_5.py:639"
   },
   "run_mode1_5.split_new_concepts": {
     "confidence": "HIGH",
@@ -3459,7 +3459,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:191"
+    "where": "runner/run_mode1_5.py:180"
   },
   "run_mode1_5.unasked_known": {
     "confidence": "HIGH",
@@ -3469,7 +3469,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:282"
+    "where": "runner/run_mode1_5.py:272"
   },
   "run_mode1_5.validate_answers": {
     "confidence": "HIGH",
@@ -3479,7 +3479,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:369"
+    "where": "runner/run_mode1_5.py:352"
   },
   "run_mode1_5.validate_questions": {
     "confidence": "HIGH",
@@ -3489,7 +3489,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:216"
+    "where": "runner/run_mode1_5.py:205"
   },
   "run_mode2._read": {
     "confidence": "HIGH",
@@ -3499,7 +3499,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:324"
+    "where": "runner/run_mode2.py:321"
   },
   "run_mode2.agent_prompt": {
     "confidence": "HIGH",
@@ -3509,7 +3509,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:207"
+    "where": "runner/run_mode2.py:201"
   },
   "run_mode2.find_spec": {
     "confidence": "HIGH",
@@ -3519,7 +3519,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:174"
+    "where": "runner/run_mode2.py:168"
   },
   "run_mode2.is_agent_stage": {
     "confidence": "HIGH",
@@ -3529,7 +3529,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:121"
+    "where": "runner/run_mode2.py:115"
   },
   "run_mode2.main": {
     "confidence": "HIGH",
@@ -3539,7 +3539,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:336"
+    "where": "runner/run_mode2.py:333"
   },
   "run_mode2.manuscript_is_written": {
     "confidence": "HIGH",
@@ -3549,7 +3549,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:157"
+    "where": "runner/run_mode2.py:152"
   },
   "run_mode2.plan_stages": {
     "confidence": "HIGH",
@@ -3559,7 +3559,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:130"
+    "where": "runner/run_mode2.py:124"
   },
   "run_mode2.report_dir": {
     "confidence": "HIGH",
@@ -3569,7 +3569,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:97"
+    "where": "runner/run_mode2.py:92"
   },
   "run_mode2.run_agent": {
     "confidence": "HIGH",
@@ -3579,7 +3579,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:291"
+    "where": "runner/run_mode2.py:286"
   },
   "run_mode2.run_machine": {
     "confidence": "HIGH",
@@ -3589,7 +3589,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:314"
+    "where": "runner/run_mode2.py:311"
   },
   "run_mode2.script_argv": {
     "confidence": "HIGH",
@@ -3599,7 +3599,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:191"
+    "where": "runner/run_mode2.py:185"
   },
   "run_mode2.stage_cwd": {
     "confidence": "HIGH",
@@ -3609,7 +3609,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode2.py:105"
+    "where": "runner/run_mode2.py:100"
   },
   "schema_version": {
     "does": "렌더러가 2 가 아니면 경고를 내고 계속한다.",
@@ -3749,7 +3749,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/facts.py:39"
+    "where": "machine/facts.py:126"
   },
   "sidebarFrom": {
     "confidence": "HIGH",
@@ -4024,7 +4024,7 @@
         "where": "machine/terms_db.py:432"
       }
     ],
-    "where": "machine/terms_db.py:396"
+    "where": "machine/terms_db.py:441"
   },
   "terms_db.py": {
     "does": "코드 지도와 내(LLM) 읽기 결과를 합쳐 terms-db.json 을 만들고, 그 사전에서 codegraph.json 을 되돌려 낸다. 내가 쓴 인용은 전부 L1/L2/L3 로 기계 검사한다.",
@@ -4086,7 +4086,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/clangd_refs.py:173"
+    "where": "machine/clangd_refs.py:184"
   },
   "tracked_set": {
     "confidence": "HIGH",
@@ -4096,7 +4096,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/normalize.py:146"
+    "where": "machine/normalize.py:200"
   },
   "tune": {
     "does": "켜면 data-tune 속성이 붙고 런타임이 그래프 아래에 슬라이더 판을 깐다. 값을 정하고 나면 다시 끈다.",
@@ -4156,7 +4156,7 @@
         "where": "machine/verify_citations.py:113"
       }
     ],
-    "where": "machine/verify_citations.py:103"
+    "where": "machine/verify_citations.py:166"
   },
   "verify_citations.py": {
     "does": "파일이 있나(L1) · 그 줄이 있나(L2) · 그 자리에 그 심볼이 있나(L3) 세 단계로 재고, 통과 · 실패 · 근거 없음 3값으로 낸다.",
@@ -4173,7 +4173,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/verify_citations.py:47"
+    "where": "machine/verify_citations.py:106"
   },
   "versionMatch": {
     "kind": "function",
@@ -4208,7 +4208,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/warmup.py:181"
+    "where": "machine/warmup.py:190"
   },
   "warmup.decl_hash": {
     "confidence": "HIGH",
@@ -4225,7 +4225,7 @@
         "where": "machine/warmup.py:74"
       }
     ],
-    "where": "machine/warmup.py:73"
+    "where": "machine/warmup.py:82"
   },
   "warmup.file_hash": {
     "confidence": "HIGH",
@@ -4235,7 +4235,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/warmup.py:54"
+    "where": "machine/warmup.py:63"
   },
   "warmup.json": {
     "confidence": "HIGH",
@@ -4255,7 +4255,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/warmup.py:92"
+    "where": "machine/warmup.py:99"
   },
   "warmup.main": {
     "confidence": "HIGH",
@@ -4296,7 +4296,7 @@
         "where": "machine/warmup.py:260"
       }
     ],
-    "where": "machine/warmup.py:212"
+    "where": "machine/warmup.py:221"
   },
   "warmup.save": {
     "confidence": "HIGH",
@@ -4306,7 +4306,7 @@
     "module": "codegraph",
     "source": "reading",
     "uses": [],
-    "where": "machine/warmup.py:105"
+    "where": "machine/warmup.py:114"
   },
   "warmup.status": {
     "confidence": "HIGH",
@@ -4329,7 +4329,7 @@
         "where": "machine/warmup.py:142"
       }
     ],
-    "where": "machine/warmup.py:116"
+    "where": "machine/warmup.py:125"
   },
   "wikiPaths": {
     "confidence": "HIGH",

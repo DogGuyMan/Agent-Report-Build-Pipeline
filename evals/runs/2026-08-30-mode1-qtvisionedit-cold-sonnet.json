@@ -1,0 +1,417 @@
+{
+ "repo": "/Users/escatrgot/DevelopProjects/QT/QTEngineExample/pureimage/opencv/QtVisionEdit",
+ "model": "claude-sonnet-5",
+ "stages": [
+  {
+   "stage": "prep",
+   "seconds": 57.28120641698479,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "warmup",
+   "seconds": 0.02517849998548627,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey-plan",
+   "seconds": 0.003138917003525421,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B00",
+   "seconds": 155.95556466601556,
+   "usage": {
+    "input": 20,
+    "output": 12086,
+    "cache_read": 748534,
+    "cache_write": 77683,
+    "cost_usd": 0.5813388,
+    "turns": 15,
+    "api_ms": 127990,
+    "total": 838323
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B01",
+   "seconds": 125.69207491600537,
+   "usage": {
+    "input": 22,
+    "output": 9287,
+    "cache_read": 814177,
+    "cache_write": 73788,
+    "cost_usd": 0.5509014,
+    "turns": 17,
+    "api_ms": 97062,
+    "total": 897274
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B02",
+   "seconds": 138.56968895802856,
+   "usage": {
+    "input": 16,
+    "output": 11464,
+    "cache_read": 554680,
+    "cache_write": 70875,
+    "cost_usd": 0.509108,
+    "turns": 10,
+    "api_ms": 111012,
+    "total": 637035
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B03",
+   "seconds": 106.01574891700875,
+   "usage": {
+    "input": 12,
+    "output": 9046,
+    "cache_read": 372061,
+    "cache_write": 64123,
+    "cost_usd": 0.42138820000000005,
+    "turns": 8,
+    "api_ms": 97516,
+    "total": 445242
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B04",
+   "seconds": 119.13748379200115,
+   "usage": {
+    "input": 18,
+    "output": 9365,
+    "cache_read": 609098,
+    "cache_write": 64141,
+    "cost_usd": 0.4720695999999999,
+    "turns": 13,
+    "api_ms": 91001,
+    "total": 682622
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B05",
+   "seconds": 85.23002899999847,
+   "usage": {
+    "input": 16,
+    "output": 6704,
+    "cache_read": 566643,
+    "cache_write": 70172,
+    "cost_usd": 0.46108860000000007,
+    "turns": 11,
+    "api_ms": 76501,
+    "total": 643535
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B06",
+   "seconds": 103.88861291701323,
+   "usage": {
+    "input": 18,
+    "output": 6237,
+    "cache_read": 602397,
+    "cache_write": 59601,
+    "cost_usd": 0.42128940000000004,
+    "turns": 10,
+    "api_ms": 76413,
+    "total": 668253
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B07",
+   "seconds": 101.17991287499899,
+   "usage": {
+    "input": 24,
+    "output": 7951,
+    "cache_read": 839430,
+    "cache_write": 65351,
+    "cost_usd": 0.508848,
+    "turns": 13,
+    "api_ms": 91319,
+    "total": 912756
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B08",
+   "seconds": 83.84743691701442,
+   "usage": {
+    "input": 16,
+    "output": 6164,
+    "cache_read": 522340,
+    "cache_write": 53675,
+    "cost_usd": 0.38083999999999996,
+    "turns": 8,
+    "api_ms": 60167,
+    "total": 582195
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B09",
+   "seconds": 82.42206108302344,
+   "usage": {
+    "input": 14,
+    "output": 8553,
+    "cache_read": 479704,
+    "cache_write": 62985,
+    "cost_usd": 0.4334388,
+    "turns": 7,
+    "api_ms": 77671,
+    "total": 551256
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L0-B10",
+   "seconds": 75.71642345801229,
+   "usage": {
+    "input": 14,
+    "output": 6525,
+    "cache_read": 487801,
+    "cache_write": 69800,
+    "cost_usd": 0.44203819999999994,
+    "turns": 10,
+    "api_ms": 70875,
+    "total": 564140
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L1-B00",
+   "seconds": 136.29703791698557,
+   "usage": {
+    "input": 20,
+    "output": 9771,
+    "cache_read": 807623,
+    "cache_write": 84763,
+    "cost_usd": 0.5983265999999999,
+    "turns": 17,
+    "api_ms": 112461,
+    "total": 902177
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L2-B00",
+   "seconds": 103.72182412500842,
+   "usage": {
+    "input": 20,
+    "output": 9239,
+    "cache_read": 704540,
+    "cache_write": 69612,
+    "cost_usd": 0.5117860000000001,
+    "turns": 13,
+    "api_ms": 98381,
+    "total": 783411
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L3-B00",
+   "seconds": 200.32796024999698,
+   "usage": {
+    "input": 36,
+    "output": 23504,
+    "cache_read": 1923043,
+    "cache_write": 108015,
+    "cost_usd": 1.0517806,
+    "turns": 35,
+    "api_ms": 192792,
+    "total": 2054598
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L4-B00",
+   "seconds": 88.58019437501207,
+   "usage": {
+    "input": 20,
+    "output": 6384,
+    "cache_read": 715482,
+    "cache_write": 63073,
+    "cost_usd": 0.45926839999999997,
+    "turns": 10,
+    "api_ms": 64987,
+    "total": 784959
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "survey/L5-비노드",
+   "seconds": 313.7286141249933,
+   "usage": {
+    "input": 46,
+    "output": 32265,
+    "cache_read": 2723954,
+    "cache_write": 138133,
+    "cost_usd": 1.4200648000000002,
+    "turns": 24,
+    "api_ms": 305413,
+    "total": 2894398
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "warmup-save",
+   "seconds": 0.0011265409993939102,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "terms",
+   "seconds": 0.06491829201695509,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": false,
+   "why": "종료 코드 1"
+  }
+ ],
+ "stage_totals": {
+  "prep": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "warmup": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "survey-plan": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "survey": {
+   "input": 332,
+   "output": 174545,
+   "cache_read": 13471507,
+   "cache_write": 1195790,
+   "total": 14842174,
+   "turns": 221,
+   "api_ms": 1751561,
+   "cost_usd": 9.2235754
+  },
+  "warmup-save": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "terms": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  }
+ },
+ "concurrency": 8,
+ "target": 8,
+ "total": {
+  "input": 332,
+  "output": 174545,
+  "cache_read": 13471507,
+  "cache_write": 1195790,
+  "total": 14842174,
+  "turns": 221,
+  "api_ms": 1751561,
+  "cost_usd": 9.2235754
+ },
+ "wall_seconds": 1083.693221583002
+}

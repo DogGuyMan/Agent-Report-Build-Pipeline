@@ -10,3 +10,4 @@ networkx        # facts.py · render_classes.py · render_modules.py 의 그래�
 numpy           # networkx 의 PageRank 가 탄다 (facts.py). 직접 import 하지는 않는다
 scipy           # 같음 — 없으면 facts.py 가 ModuleNotFoundError 로 죽는다
 pytest          # codegraph/test_*.py
+griffe          # normalize.py 의 Python 갈래 — griffe dump JSON 을 읽는다
