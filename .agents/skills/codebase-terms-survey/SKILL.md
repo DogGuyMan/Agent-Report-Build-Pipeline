@@ -81,7 +81,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 - **LLM 추론은 한 번이다.** 위키·요약을 따로 쓰지 않는다. 필요하면 이 레코드에서 파생한다.
 - **증분 재조사에서는 기존 레코드의 `means` `does` 를 바꾸지 않는다** — Mode 1.5 정답지로 이미 쓰였다. 고치는 것은 낡은 `where`, 새 레코드, 지워진 레코드.
 
-## Workflow — 8단계
+## Workflow — 10단계
 
 1. **전제 확인** (위 표). 트리가 조용한지 반드시 본다.
 2. **대상 파일 고정** — 결과가 조사 범위다. 보고에 그대로 붙인다.
@@ -102,15 +102,32 @@ description: Use when a repository needs a machine-checkable term dictionary (te
    반드시 연다. 목록만 보고 쓴 레코드는 `confidence: LOW`, 문서 주석을 요약한 것은 `MEDIUM`,
    실제로 읽은 것만 `HIGH` 다. **싸진 만큼 확신도가 낮아진다는 사실을 칸으로 드러낸다.**
 
-5. **레코드를 쓴다** — 파일 순서, 파일 안은 줄 순서. 위 계약과 규율대로. 레코드마다 `confidence`.
-6. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 6 의 목록에 적는다.
-7. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
+5. **배치 계획을 만든다** — `python codegraph/survey_plan.py <codegraph.json> --target 8`
+   → `survey-plan.json`. 층0(의존 대상이 없는 것)부터 층이 오른다.
+   재료는 조사 **이전에** 있다 — `report-wiki prep` 이 정적 수집기로 코드 지도를 먼저 낸다.
+   수집기가 없는 저장소는 `prep` 이 막히므로 애초에 Mode 1 대상이 아니다. 그때는 함께 막고 보고한다.
+   증분 재조사면 `warmup.py blast` 의 파일 목록을 `--only-files` 로 준다.
+6. **레코드를 쓴다 — 층 오름차순, 층 안은 병렬.**
+   - 층 사이는 **순차**. 층 k 는 층 <k 가 전부 끝나고 병합된 뒤 시작한다.
+   - 층 안은 **배치 8개까지 동시**. 같은 층끼리는 서로 의존하지 않으므로 안전하다.
+   - 배치는 자기 샤드 `<repo>/out/codegraph-raw/_shards/L{층}-B{번호}.json` 에만 쓴다.
+     **terms-reading.json 을 직접 고치지 않는다** — 동시에 여러 배치가 돌기 때문이다.
+   - 층이 끝나면 오케스트레이터(`run_mode1.py` 의 `merge_shards`)가 샤드를 병합한다.
+     **키 충돌 해소는 거기서만 한다** — 배치는 자기 것만 보므로 `main` 이 9파일에 있다는 것을 모른다.
+   - 층 k 배치에는 **자기 심볼이 의존하는 아래층 레코드만** 발췌해 준다. 전량 주입은 낭비다.
+   - 같은 파일을 층마다 다시 열지 않도록 `file_cache.py` 를 쓴다. 다만 **자기 심볼은 캐시로
+     때우지 않는다** — 캐시만 보고 쓰면 `confidence` 가 HIGH 일 근거가 없다.
+   - 레코드마다 `confidence` 를 반드시 적는다. 위 계약과 규율대로.
+7. **비노드 용어는 맨 마지막 층** — file · module · artifact · key · concept.
+   심볼이 전부 읽힌 뒤라야 파일 레코드가 그 안 심볼들의 완성 레코드를 재료로 쓸 수 있다.
+8. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 10 의 목록에 적는다.
+9. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
    ```bash
    cd $REPO_ROOT && .venv/bin/python codegraph/terms_db.py --repo <repo> --reading <repo>/docs/codegraph/terms-reading.json
    #   -> <repo>/out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0"
    #   정적 codegraph 도 있으면:  terms_db.py <codegraph.json> --repo <repo> --reading <…json>  -> "투영에 없는 것 0개" 까지
    ```
-8. **보고** — 레코드 수(종류별) · 검사 출력 · 근거 없음 목록과 이유 · 키 충돌 목록 · **`confidence` 분포(HIGH/MEDIUM/LOW 수)** · **탐색 안 한 것**(Explored ✅ / Partial 🔶 / Unexplored ❓ — 범위 안인데 안 읽은 파일, 사슬이 끊긴 자리) · (있으면) Mode 1.5 `collect` 의 known 수.
+10. **보고** — 레코드 수(종류별) · 검사 출력 · 근거 없음 목록과 이유 · 키 충돌 목록 · **`confidence` 분포(HIGH/MEDIUM/LOW 수)** · **탐색 안 한 것**(Explored ✅ / Partial 🔶 / Unexplored ❓ — 범위 안인데 안 읽은 파일, 사슬이 끊긴 자리) · (있으면) Mode 1.5 `collect` 의 known 수.
 
 ## 착수 조건으로 남긴 측정 — "빠진 간선이 몇인가" (아직 도구 없음)
 
@@ -134,6 +151,10 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 - **파일 레코드의 `where`** 는 `경로:1` — 머리 주석에 파일명이 없으면 근거 없음이 뜬다. 정보성이다. 파일에 머리 주석을 다는 것이 정답이지 규칙을 바꾸는 것이 아니다
 - **범위 밖 파일을 `does` 에서 언급** — 그 파일의 레코드가 없으면 독자가 따라갈 수 없다. 범위에 넣거나 언급을 뺀다
 - **`confidence` 를 전부 HIGH 로** — 그러면 칸이 장식이다. 이름만 보고 쓴 것은 LOW 다
+- **out_deg 로 정렬** — 그건 위상 깊이가 아니다. 🔵 실측에서 out_deg 1 무리 안에 깊이 1·2·3·4 가
+  섞여 있었다. out_deg 로 나누면 아직 안 읽은 것을 가리키게 된다
+- **층 경계에서 같은 파일을 다시 통독** — 🔵 유일 파일 41개인데 층별 합계 84개다. `file_cache.py` 를 쓴다
+- **배치가 terms-reading.json 을 직접 고침** — 동시 쓰기로 서로를 지운다. 샤드에만 쓴다
 
 ## 개발 규율 — 코드를 만들 때 레코드도 함께 (사용자 의도, 2026-08-29)
 
@@ -144,6 +165,20 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 - 코드가 움직여 줄 번호가 밀리면 `inject` 가 **마커 기준으로 `where` 를 재계산**한다(2026-08-29 ⑭ 이후). `uses[].where` 는 마커가 없어 L3 경고로만 남는다.
 - 검사 둘을 같이 본다 — `terms_db.py --reading`(L1/L2/L3) · `xmldoc.py check`(마커와 json 이 맞는가).
 
+## deep-wiki 산문도 같은 층 순서로 (K6)
+
+위키 페이지는 심볼도 모듈도 아닌 **주제** 단위다(Getting Started / Deep Dive, 최대 4단, 절당 ≤8장).
+그래서 **페이지의 층 = 그 페이지가 인용하는 심볼들의 최대 층**으로 매긴다.
+왜 최대인가 — 페이지는 자기가 다루는 모든 개념이 이미 설명된 뒤라야 재설명 대신 링크할 수 있다.
+
+목차는 기계가 만들지 못한다(주제 단위라서). 그래서 `wiki` 단계는 **목차 세션 1개**로 시작해
+`wiki-plan.json` 을 받고, 거기 적힌 페이지별 인용 심볼로 층을 매긴 뒤 장을 층 순서로 쓴다.
+
+**deep-wiki 플러그인 파일을 고치지 않는다.** `~/.claude/plugins/cache/` 에 사는 캐시라 업데이트에
+덮인다. 우리 프롬프트(`run_mode1.py` 의 `wiki_page_prompt`)가 감싸서 지시한다.
+
+**서브에이전트 모형은 `claude-sonnet-5` 다.** 오케스트레이터가 `--model` 로 박아 넣는다.
+
 ## 산출물
 
 | 파일 | 누가 | 어디로 |
@@ -152,6 +187,9 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 | `<repo>/docs/codegraph/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다 |
 | `<repo>/out/codegraph-raw/terms-db.json` | `terms_db.py` | Mode 1.5 `report-term collect` 의 재료. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
+| `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |
+| `<repo>/out/codegraph-raw/_shards/*.json` | 배치 세션 | 배치별 레코드 조각. gitignore, 재생성 |
+| `<repo>/out/codegraph-raw/_filecache/*.json` | 배치 세션 | 통독 캐시. gitignore, 재생성 |
 
 ## 아직 재어 보지 않은 것
 
