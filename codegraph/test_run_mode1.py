@@ -440,3 +440,53 @@ def test_빈_층은_모형을_부르지_않는다(monkeypatch):
     monkeypatch.setattr(R, "run_agent_with",
                         lambda *a, **k: pytest.fail("빈 층에서 모형을 불렀다"))
     assert R.run_layer("claude-sonnet-5", "/r", "/root", []) == []
+
+
+# ── 13. 샤드 병합 — 키 충돌은 전역을 보는 쪽만 푼다 (2026-08-30 신설)
+def _shard(tmp_path, name, payload):
+    import json as _j
+    d = tmp_path / "_shards"
+    d.mkdir(exist_ok=True)
+    (d / (name + ".json")).write_text(_j.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return str(d)
+
+
+def test_샤드를_하나로_합친다(tmp_path):
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
+    _shard(tmp_path, "L0-B01", {"나": {"where": "b.py:1"}})
+    got = R.merge_shards(d, {})
+    assert sorted(got) == ["가", "나"]
+
+
+def test_키가_겹치면_양쪽_다_개명한다(tmp_path):
+    """한쪽만 한정하면 나중에 또 겹친다. `main` 이 9파일이면 9개 전부 개명이다."""
+    d = _shard(tmp_path, "L0-B00", {"main": {"where": "app/gui.py:10"}})
+    _shard(tmp_path, "L0-B01", {"main": {"where": "core/net.py:20"}})
+    got = R.merge_shards(d, {})
+    assert "main" not in got
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
+def test_아래층_레코드를_보존한다(tmp_path):
+    """층 k 의 병합이 층 <k 의 결과를 지우면 조사가 층마다 초기화된다."""
+    d = _shard(tmp_path, "L1-B00", {"위": {"where": "b.py:1"}})
+    got = R.merge_shards(d, {"아래": {"where": "a.py:1"}})
+    assert sorted(got) == ["아래", "위"]
+
+
+def test_이미_있는_키와_겹쳐도_양쪽_다_개명한다(tmp_path):
+    """아래층이 이미 쓴 이름과 겹치는 경우다. 새 것만 한정하면 옛 것이 계속 모호하다."""
+    d = _shard(tmp_path, "L1-B00", {"main": {"where": "core/net.py:20"}})
+    got = R.merge_shards(d, {"main": {"where": "app/gui.py:10"}})
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
+def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path):
+    """배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 20분을 버리지 않는다."""
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
+    (tmp_path / "_shards" / "L0-B01.json").write_text("{ 깨진", encoding="utf-8")
+    assert sorted(R.merge_shards(d, {})) == ["가"]
+
+
+def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path):
+    assert R.merge_shards(str(tmp_path / "없다"), {"가": {}}) == {"가": {}}

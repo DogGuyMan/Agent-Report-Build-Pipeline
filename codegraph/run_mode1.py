@@ -527,6 +527,52 @@ def run_layer(model, repo, root, jobs, concurrency=8, timeout=None):
     return sorted(rows, key=lambda r: r[0])
 
 
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.merge_shards']"/>
+# 배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푼다.
+# 쓰는 것: run_mode1._qualified · 쓰이는 곳: run_mode1.run_survey
+def merge_shards(shard_dir, existing):
+    """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
+
+    배치 세션은 자기 배치만 보므로 `main` 이 9파일에 있다는 것을 알 수 없다.
+    전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을 `<파일줄기>.<이름>` 으로 고친다.
+    한쪽만 한정하면 나중에 또 겹친다(`codebase-terms-survey` 스킬의 키 규칙).
+
+    **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 결과를 버리지 않는다.
+    무엇을 건너뛰었는지는 stderr 에 적어 사람이 다시 돌릴 수 있게 한다.
+    """
+    got = dict(existing or {})
+    if not os.path.isdir(shard_dir):
+        return got
+    for fname in sorted(os.listdir(shard_dir)):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(shard_dir, fname), encoding="utf-8") as f:
+                shard = json.load(f)
+        except (ValueError, OSError) as ex:
+            print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
+            continue
+        for key, rec in shard.items():
+            if key in got and got[key] is not rec:
+                # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
+                old = got.pop(key)
+                got[_qualified(key, old)] = old
+                got[_qualified(key, rec)] = rec
+            else:
+                got[key] = rec
+    return got
+
+
+# <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1._qualified']"/>
+# 겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만든다.
+# 쓰는 것: 없음 · 쓰이는 곳: run_mode1.merge_shards
+def _qualified(key, rec):
+    """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
+    where = (rec or {}).get("where") or ""
+    stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
+    return "%s.%s" % (stem, key) if stem else key
+
+
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_machine']"/>
 # 기계 단계 하나를 부른다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
