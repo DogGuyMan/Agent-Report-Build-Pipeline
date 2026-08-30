@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// <include file="docs/codegraph/comments.xml" path="//term[@id='report-wiki']"/>
+// <include file="machine/comments.xml" path="//term[@id='report-wiki']"/>
 // 코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.
 // 쓰는 것: runDispatch · 쓰이는 곳: 없음
 //   prep  : 정적 계층을 돌려 주입 재료(facts/*.md · ranking.json · codegraph.json)를 만든다
@@ -8,7 +8,7 @@
 //   check : 위키 산문의 인용을 3값(있음/없음/근거없음)으로 판정한다
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runDispatch } from "../scripts/dispatch.mjs";
+import { runDispatch } from "../runner/dispatch.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -16,9 +16,9 @@ runDispatch({
   root: ROOT,
   argv: process.argv.slice(2),
   table: {
-    prep: "scripts/wiki/prep.mjs",
-    build: "scripts/wiki/build.mjs",
-    check: "scripts/wiki/check.mjs",
+    prep: "runner/wiki/prep.mjs",
+    build: "runner/wiki/build.mjs",
+    check: "runner/wiki/check.mjs",
   },
   usage: "사용법 — report-wiki <prep|build|check> <저장소 경로>",
 });

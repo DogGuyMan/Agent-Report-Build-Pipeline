@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// <include file="docs/codegraph/comments.xml" path="//term[@id='report']"/>
+// <include file="machine/comments.xml" path="//term[@id='report']"/>
 // 옛 이름의 진입점. 하는 일 없이 report-spec 을 그대로 대신 실행한다.
 // 쓰는 것: report-spec · 쓰이는 곳: 없음
 // bin/report — 옛 진입점. Mode 2(report-spec)로 위임한다.

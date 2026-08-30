@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir, homedir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { linkPaths, makeResolver, pathPattern, expandRoot } from "../scripts/link-paths.mjs";
+import { linkPaths, makeResolver, pathPattern, expandRoot } from "../viz/link-paths.mjs";
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "rb-links-"));

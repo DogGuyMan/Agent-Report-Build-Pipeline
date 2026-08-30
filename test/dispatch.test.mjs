@@ -1,14 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveScript } from "../scripts/dispatch.mjs";
+import { resolveScript } from "../runner/dispatch.mjs";
 
 test("resolveScript 는 등록된 명령을 스크립트 경로로 바꾼다", () => {
-  const table = { init: "scripts/init.mjs", build: "scripts/build.mjs" };
-  assert.equal(resolveScript(table, "init"), "scripts/init.mjs");
+  const table = { init: "viz/init.mjs", build: "viz/build.mjs" };
+  assert.equal(resolveScript(table, "init"), "viz/init.mjs");
 });
 
 test("resolveScript 는 없는 명령에 null 을 낸다", () => {
-  const table = { init: "scripts/init.mjs" };
+  const table = { init: "viz/init.mjs" };
   assert.equal(resolveScript(table, "nope"), null);
 });
 

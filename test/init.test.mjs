@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseSpecFilename, findSimilar } from "../scripts/init.mjs";
+import { parseSpecFilename, findSimilar } from "../viz/init.mjs";
 
 test("parseSpecFilename 은 날짜와 slug 를 분리한다", () => {
   assert.deepEqual(

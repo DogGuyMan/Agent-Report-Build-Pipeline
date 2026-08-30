@@ -16,5 +16,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["viz/src/**/*.ts", "viz/src/**/*.tsx"]
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickTerms, findNewConcepts } from "../scripts/term/collect.mjs";
+import { pickTerms, findNewConcepts } from "../runner/term/collect.mjs";
 
 test("pickTerms 는 Plan 본문에 나오는 코드베이스 용어만 고른다", () => {
   const db = {
@@ -30,7 +30,7 @@ test("findNewConcepts 는 이미 DB 에 있는 것을 새 개념으로 세지 �
   assert.deepEqual(findNewConcepts(db, "calls[] 를 쓴다"), []);
 });
 
-import { gradeOne, QUESTIONS_PER_TERM } from "../scripts/term/quiz.mjs";
+import { gradeOne, QUESTIONS_PER_TERM } from "../runner/term/quiz.mjs";
 
 test("한 용어당 문항 수는 3개다", () => {
   assert.equal(QUESTIONS_PER_TERM, 3);
@@ -62,7 +62,7 @@ test("gradeOne 은 정답률을 함께 돌려준다", () => {
   assert.equal(gradeOne({ correct: 1, dontKnow: 0 }).rate, 33);
 });
 
-import { toTermsDb, toStudyNote } from "../scripts/term/emit.mjs";
+import { toTermsDb, toStudyNote } from "../runner/term/emit.mjs";
 
 const SAMPLE = {
   "calls[]": { means: "누가 누구를 부르는지 모은 목록", mental: "모름", rate: 20 },
@@ -98,9 +98,9 @@ import {
   tallySheet,
   gradeAll,
   CHOICES_PER_QUESTION,
-} from "../scripts/term/quiz.mjs";
+} from "../runner/term/quiz.mjs";
 
-/** 검사를 통과하는 문항 하나. `codegraph/test_run_mode1_5.py` 의 `one_question` 과 같은 꼴이다. */
+/** 검사를 통과하는 문항 하나. `runner/test_run_mode1_5.py` 의 `one_question` 과 같은 꼴이다. */
 function oneQuestion(ask, answer) {
   return {
     ask,

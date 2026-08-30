@@ -1,6 +1,6 @@
 node_modules/
 
-# 테스트용 esbuild 중간 산출물 (scripts/lib.mjs)
+# 테스트용 esbuild 중간 산출물 (viz/lib.mjs)
 .tmp/
 .tmp-report.mjs
 
@@ -9,7 +9,7 @@ out/
 *out/
 **/specs/*/out/
 
-# Phase 1 검증용 임시 이식본 (scripts/patch-legacy.mjs)
+# Phase 1 검증용 임시 이식본 (viz/patch-legacy.mjs)
 *.b1.html
 
 .DS_Store
@@ -25,4 +25,4 @@ out/diagrams/
 __pycache__/
 
 # 로컬 유지보수 도구 - 기계마다 다른 경로가 규칙에 박혀 있어 공유하지 않는다
-scripts/scrub_local_paths.py
+tools/scrub_local_paths.py

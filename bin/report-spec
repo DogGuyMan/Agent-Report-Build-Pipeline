@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// <include file="docs/codegraph/comments.xml" path="//term[@id='report-spec']"/>
+// <include file="machine/comments.xml" path="//term[@id='report-spec']"/>
 // Mode 2 의 진입점. 설계 검토 보고서를 만든다.
 // 쓰는 것: runDispatch · 쓰이는 곳: report
 // bin/report-spec — Mode 2. Spec/Plan 설계 검토 보고서.
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runDispatch } from "../scripts/dispatch.mjs";
+import { runDispatch } from "../runner/dispatch.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -13,9 +13,9 @@ runDispatch({
   root: ROOT,
   argv: process.argv.slice(2),
   table: {
-    init: "scripts/init.mjs",
-    build: "scripts/build.mjs",
-    check: "scripts/check.mjs",
+    init: "viz/init.mjs",
+    build: "viz/build.mjs",
+    check: "viz/check.mjs",
   },
   usage: "사용법 — report-spec <init|build|check> [인자]",
 });

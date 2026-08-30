@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// <include file="docs/codegraph/comments.xml" path="//term[@id='report-term']"/>
+// <include file="machine/comments.xml" path="//term[@id='report-term']"/>
 // Mode 1.5 의 진입점. 용어를 얼마나 아는지 점검한다.
 // 쓰는 것: runDispatch · 쓰이는 곳: 없음
 // bin/report-term — Mode 1.5. 용어 이해도 점검.
@@ -9,7 +9,7 @@
 //   emit    : 학습 노트와 용어집 DB 를 낸다
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runDispatch } from "../scripts/dispatch.mjs";
+import { runDispatch } from "../runner/dispatch.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -17,9 +17,9 @@ runDispatch({
   root: ROOT,
   argv: process.argv.slice(2),
   table: {
-    collect: "scripts/term/collect.mjs",
-    grade: "scripts/term/quiz.mjs",
-    emit: "scripts/term/emit.mjs",
+    collect: "runner/term/collect.mjs",
+    grade: "runner/term/quiz.mjs",
+    emit: "runner/term/emit.mjs",
   },
   usage: "사용법 — report-term <collect|grade|emit> [인자]",
 });

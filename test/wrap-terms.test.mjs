@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { wrapTerms, termPattern } from "../scripts/wrap-terms.mjs";
+import { wrapTerms, termPattern } from "../viz/wrap-terms.mjs";
 
 // 빌드가 TermRef 를 렌더해 넘기는 꼴을 흉내 낸 마크업. 글자(id)를 담은 term-ref 여야 한다.
 const ref = (id) => `<span class="term-ref" tabindex="0">${id}<span class="term-card">뜻</span></span>`;

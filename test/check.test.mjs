@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { countScripts, linkIntegrity, versionMatch } from "../scripts/check.mjs";
+import { countScripts, linkIntegrity, versionMatch } from "../viz/check.mjs";
 
 test("countScripts 는 pan/zoom 하나까지 허용한다", () => {
   assert.equal(countScripts("<html></html>").ok, true);

@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { wikiPaths, collectorFor } from "../scripts/wiki/paths.mjs";
-import { prepPlan } from "../scripts/wiki/prep.mjs";
-import { sidebarFrom, vitepressConfig } from "../scripts/wiki/build.mjs";
-import { checkArgs } from "../scripts/wiki/check.mjs";
+import { wikiPaths, collectorFor } from "../runner/wiki/paths.mjs";
+import { prepPlan } from "../runner/wiki/prep.mjs";
+import { sidebarFrom, vitepressConfig } from "../runner/wiki/build.mjs";
+import { checkArgs } from "../runner/wiki/check.mjs";
 
 // ── 경로 규약
 test("wikiPaths 는 산문을 추적 경로에, 파생물을 out 아래에 둔다", () => {
@@ -76,9 +76,9 @@ test("prepPlan 은 수집기를 못 고르면 막힌다", () => {
 // ── 진입점 배선
 test("report-wiki 는 세 명령을 디스패치 표에 갖는다", () => {
   const src = readFileSync(new URL("../bin/report-wiki", import.meta.url), "utf8");
-  assert.match(src, /prep: "scripts\/wiki\/prep\.mjs"/);
-  assert.match(src, /build: "scripts\/wiki\/build\.mjs"/);
-  assert.match(src, /check: "scripts\/wiki\/check\.mjs"/);
+  assert.match(src, /prep: "runner\/wiki\/prep\.mjs"/);
+  assert.match(src, /build: "runner\/wiki\/build\.mjs"/);
+  assert.match(src, /check: "runner\/wiki\/check\.mjs"/);
   assert.match(src, /runDispatch/);
   assert.doesNotMatch(src, /아직 이 진입점은 비어 있다/);
 });
@@ -131,7 +131,7 @@ test("checkArgs 는 살 파일이 있으면 --detail 을 끼운다", () => {
 });
 
 // ── compdb 합치기 (2026-08-29)
-import { mergeEntries, relativeFiles, clangUmlConfig, EXTERNAL_MARKERS } from "../scripts/wiki/compdb.mjs";
+import { mergeEntries, relativeFiles, clangUmlConfig, EXTERNAL_MARKERS } from "../runner/wiki/compdb.mjs";
 
 test("mergeEntries 는 파일 경로로 중복을 지운다 — 트리 둘이 같은 TU 를 가질 수 있다", () => {
   const e = (f) => ({ file: `/r/${f}`, directory: "/r/b" });
@@ -179,7 +179,7 @@ test("clangUmlConfig 는 글로브를 쓰지 않고 파일을 열거한다 — �
 // 채우지만 **PATH 에 없다** — LLVM 번들이라 Homebrew 의 keg 안에 숨어 있다.
 // 경로를 코드에 박으면 그 기계에서만 돈다. 못 찾았을 때 **막히지 않고 건너뛰는 것**도
 // 규칙이다 — clang-doc 이 없는 기계에서도 clang-uml 만으로 옛 수준의 결과는 나와야 한다.
-import { clangDocCandidates } from "../scripts/wiki/clang-doc.mjs";
+import { clangDocCandidates } from "../runner/wiki/clang-doc.mjs";
 
 test("clangDocCandidates 는 환경변수를 맨 앞에 둔다 — 사용자가 고른 것이 이긴다", () => {
   const c = clangDocCandidates({ CLANG_DOC: "/내가/고른/clang-doc", PATH: "" }, []);

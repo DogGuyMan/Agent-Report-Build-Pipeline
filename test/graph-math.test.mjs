@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { components, bounds, clampBox, rectOverlap } from "../src/runtime/graph-math.ts";
+import { components, bounds, clampBox, rectOverlap } from "../viz/src/runtime/graph-math.ts";
 
 test("components 는 이어진 노드를 같은 번호로, 끊긴 노드를 다른 번호로 묶는다", () => {
   const comp = components(["a", "b", "c", "d", "e"], [["a", "b"], ["b", "c"], ["d", "e"]]);

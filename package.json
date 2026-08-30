@@ -8,11 +8,11 @@
   },
   "scripts": {
     "test": "node --test",
-    "build": "node scripts/build.mjs",
-    "check": "node scripts/check.mjs",
+    "build": "node viz/build.mjs",
+    "check": "node viz/check.mjs",
     "typecheck": "tsc --noEmit",
-    "pretest": "node scripts/lib.mjs",
-    "doctor": "node scripts/doctor.mjs"
+    "pretest": "node viz/lib.mjs",
+    "doctor": "node tools/doctor.mjs"
   },
   "keywords": [],
   "author": "",

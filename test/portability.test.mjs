@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
-import { pythonCandidates, pythonPath } from "../scripts/python.mjs";
-import { line } from "../scripts/doctor.mjs";
+import { pythonCandidates, pythonPath } from "../tools/python.mjs";
+import { line } from "../tools/doctor.mjs";
 
 test("pythonCandidates 는 REPORT_PYTHON 을 가장 앞에 둔다", () => {
   const c = pythonCandidates("/r", "darwin", { REPORT_PYTHON: "/opt/py" });
