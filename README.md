@@ -18,7 +18,7 @@
 | | 무엇 | 왜 |
 |---|---|---|
 | **필수** | Node 22+ | 진입점과 보고서 빌드 |
-| **필수** | Python 3.11+ | `codegraph/*.py` 정적 계층 |
+| **필수** | Python 3.11+ | `machine/`, `runner/` 등 파이썬 도구 및 실행기 |
 | **필수** | Graphviz (`dot`) | 모듈·클래스 다이어그램 |
 | **필수** | git | 커밋 해시와 파일 목록을 읽는다 |
 | 선택 | `clang-uml` | C++ 저장소를 분석할 때만 |
@@ -60,8 +60,7 @@ export PATH="<이 저장소>/bin:$PATH"
 | 변수 | 가리키는 곳 | 없으면 |
 |---|---|---|
 | `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 |
-| `GRAPHICS_REPO` · `CSHARP_REPO` | 골든 테스트가 쓰는 실제 저장소 | 해당 테스트 15개를 **건너뛴다.** 실패가 아니다 |
-| `CPP_REPO` | C++ 위키 대상 저장소 | 문서 표기 전용 |
+| `GRAPHICS_REPO` · `CSHARP_REPO` · `CPP_REPO` | 골든 테스트가 쓰는 실제 저장소 | 해당 테스트들을 **건너뛴다.** 실패가 아니다 |
 
 ## 명령
 
@@ -69,7 +68,7 @@ export PATH="<이 저장소>/bin:$PATH"
 npm test           # node --test — 컴포넌트와 스크립트
 npm run typecheck  # tsc --noEmit
 npm run doctor     # 이 컴퓨터의 환경 점검
-python -m pytest codegraph/    # .venv 를 켠 뒤
+python -m pytest machine/ runner/ viz/ tools/    # .venv 를 켠 뒤
 
 report-spec init <slug>   # 스펙 디렉토리에 보고서 뼈대를 만든다
 report-spec build         # → out/report.html
