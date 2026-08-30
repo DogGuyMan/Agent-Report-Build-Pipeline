@@ -545,3 +545,59 @@ def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path):
 
 def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path):
     assert R.merge_shards(str(tmp_path / "없다"), {"가": {}}) == {"가": {}}
+
+
+# ── 14. 위키도 같은 층 순서로 (K6) — 2026-08-30 신설
+def test_심볼_층_표를_계획에서_뽑는다():
+    """페이지 층을 매기려면 심볼마다 층이 몇인지 알아야 한다."""
+    plan = {"layers": [
+        {"level": 0, "batches": [{"id": "L0-B00", "symbols": [{"id": "encode"}]}]},
+        {"level": 1, "batches": [{"id": "L1-B00", "symbols": [{"id": "send"}]}]},
+        {"level": 2, "kind": "non-node", "batches": []},
+    ]}
+    assert R.symbol_layers(plan) == {"encode": 0, "send": 1}
+
+
+def test_페이지_층은_인용한_심볼의_최대():
+    """가장 위층 심볼 하나가 아직 안 다뤄졌으면 그 페이지는 아직 못 쓴다."""
+    sym = {"encode": 0, "send": 1, "retry": 3}
+    pages = [{"file": "protocol.md", "symbols": ["encode", "send"]},
+             {"file": "net.md", "symbols": ["retry", "encode"]}]
+    assert R.page_layers(pages, sym) == {"protocol.md": 1, "net.md": 3}
+
+
+def test_인용_심볼이_없는_페이지는_층0():
+    """index.md 처럼 개괄만 있는 장이다. 맨 먼저 써도 아무것도 앞지르지 않는다."""
+    assert R.page_layers([{"file": "index.md", "symbols": []}], {}) == {"index.md": 0}
+
+
+def test_모르는_심볼은_층을_올리지_않는다():
+    """카탈로그가 지어낸 이름 하나로 페이지가 맨 뒤로 밀리면 안 된다."""
+    assert R.page_layers([{"file": "a.md", "symbols": ["없는것"]}], {"x": 4}) == {"a.md": 0}
+
+
+def test_카탈로그_프롬프트는_계획_파일을_내라고_말한다():
+    p = R.wiki_catalogue_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    assert "/어느/저장소" in p and "/도구/뿌리" in p
+    assert "wiki-plan.json" in p
+    assert "terms-db.json" in p          # 인용 검사를 통과한 재료를 본다
+    assert "index.md" in p
+    assert "symbols" in p                # 페이지마다 인용할 심볼 키를 적게 한다
+
+
+def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한다():
+    """재설명 대신 링크하게 하는 것이 층 순서를 지키는 이유다."""
+    page = {"file": "net.md", "title": "네트워크", "symbols": ["send"]}
+    p = R.wiki_page_prompt(repo="/어느/저장소", root="/도구/뿌리", page=page,
+                           lower_pages="  - protocol.md — 프로토콜")
+    assert "net.md" in p and "네트워크" in p
+    assert "protocol.md — 프로토콜" in p
+    assert "deep-wiki" in p
+    assert "사이트 조립은 하지" in p       # 그건 report-wiki build 의 일이다
+    assert "(경로:줄)" in p               # 로컬 인용 규격
+    assert "Sonnet 5" in p                # 서브에이전트를 띄운다면 같은 계열로
+
+
+def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
+    p = R.wiki_page_prompt("/r", "/root", {"file": "index.md", "title": "머리", "symbols": []}, "")
+    assert "첫 장" in p
