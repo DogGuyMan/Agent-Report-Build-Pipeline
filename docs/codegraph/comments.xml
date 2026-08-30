@@ -911,163 +911,163 @@
     <does>프로세스를 띄우고 끝내는 부수효과는 이 함수 안에만 둔다. 다른 곳에서 가져다 쓸 때는 순수 함수만 보이게 하려는 규약이다.</does>
     <uses to="resolveScript" kind="dependency" label="calls" where="scripts/dispatch.mjs:27"/>
   </term>
-  <term id="run_mode1._Heartbeat" kind="function" module="codegraph" where="codegraph/run_mode1.py:717" source="reading">
+  <term id="run_mode1._Heartbeat" kind="function" module="codegraph" where="codegraph/run_mode1.py:734" source="reading">
     <means>오래 도는 단계 옆에서 경과 시간을 알리는 조각.</means>
     <does>모형 호출은 끝나야 한 덩이로 답이 나온다. 그동안 아무것도 안 찍히면 사람이 멈춘 줄 안다.</does>
   </term>
-  <term id="run_mode1._hms" kind="function" module="codegraph" where="codegraph/run_mode1.py:639" source="reading">
+  <term id="run_mode1._hms" kind="function" module="codegraph" where="codegraph/run_mode1.py:656" source="reading">
     <means>초를 사람이 읽는 시간 꼴로 바꾼다.</means>
     <does>재는 것이 목적이라 소수 첫째 자리까지 남긴다.</does>
   </term>
-  <term id="run_mode1._qualified" kind="function" module="codegraph" where="codegraph/run_mode1.py:850" source="reading">
+  <term id="run_mode1._qualified" kind="function" module="codegraph" where="codegraph/run_mode1.py:867" source="reading">
     <means>겹친 이름 앞에 파일 줄기를 붙여 서로 구별되게 만드는 함수.</means>
     <does>where 의 파일명에서 확장자를 뗀 줄기를 앞에 붙인다. where 가 없으면 손댈 근거가 없어 이름을 그대로 둔다.</does>
   </term>
-  <term id="run_mode1.agent_verdict" kind="function" module="codegraph" where="codegraph/run_mode1.py:257" source="reading">
+  <term id="run_mode1.agent_verdict" kind="function" module="codegraph" where="codegraph/run_mode1.py:274" source="reading">
     <means>큰 언어 모형 단계가 정말 해냈는지 판정한다.</means>
     <does>종료 코드만 보지 않는다. 최대 왕복 수에 걸리거나 권한에 막혀도 종료 코드가 영으로 나올 수 있어서, 결과 안의 오류 표시와 갈래 이름을 함께 본다.</does>
   </term>
-  <term id="run_mode1.changed_seed" kind="function" module="codegraph" where="codegraph/run_mode1.py:141" source="reading">
+  <term id="run_mode1.changed_seed" kind="function" module="codegraph" where="codegraph/run_mode1.py:158" source="reading">
     <means>다시 읽어야 할 파일의 씨앗을 고른다.</means>
     <does>내용은 달라졌으나 선언은 같은 갈래를 반드시 포함한다. 선언 지문이 이름만 보기 때문에 본문을 통째로 다시 쓴 변경이 그 갈래로 오고, 빼면 동작 서술이 조용히 낡는다.</does>
   </term>
-  <term id="run_mode1.claude_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:277" source="reading">
+  <term id="run_mode1.claude_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:294" source="reading">
     <means>헤드리스 모형 호출의 명령줄을 만든다.</means>
     <does>시킬 말은 명령줄에 싣지 않고 표준 입력으로 준다. 대상 저장소와 도구 저장소를 둘 다 열어 주어야 재료와 규약을 함께 본다.</does>
   </term>
-  <term id="run_mode1.dep_excerpt" kind="function" module="codegraph" where="codegraph/run_mode1.py:327" source="reading">
+  <term id="run_mode1.dep_excerpt" kind="function" module="codegraph" where="codegraph/run_mode1.py:344" source="reading">
     <means>이 배치가 의존하는 아래층 레코드만 골라 짧은 글로 만드는 함수.</means>
     <does>배치 심볼들의 depends_on 중 이미 완성된 레코드만 발췌한다. 전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 쪼갠 이점이 사라진다.</does>
   </term>
-  <term id="run_mode1.format_report" kind="function" module="codegraph" where="codegraph/run_mode1.py:650" source="reading">
+  <term id="run_mode1.format_report" kind="function" module="codegraph" where="codegraph/run_mode1.py:667" source="reading">
     <means>단계별 측정값을 표 한 장으로 만든다.</means>
     <does>이 실행기의 산출물 본체다. 한글은 글자 폭이 두 칸이라 글자 수가 아니라 표시 폭으로 자리를 맞춘다.</does>
-    <uses to="run_mode1.sum_usage" kind="dependency" label="calls" where="codegraph/run_mode1.py:413"/>
-    <uses to="run_mode1._hms" kind="dependency" label="calls" where="codegraph/run_mode1.py:408"/>
+    <uses to="run_mode1.sum_usage" kind="dependency" label="calls" where="codegraph/run_mode1.py:686"/>
+    <uses to="run_mode1._hms" kind="dependency" label="calls" where="codegraph/run_mode1.py:681"/>
   </term>
-  <term id="run_mode1.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1.py:181" source="reading">
+  <term id="run_mode1.is_agent_stage" kind="function" module="codegraph" where="codegraph/run_mode1.py:198" source="reading">
     <means>이 단계가 큰 언어 모형을 부르는 자리인지 답한다.</means>
     <does>토큰이 잡히는 곳은 여기뿐이라, 이 함수가 참을 내는 단계가 둘이 되면 측정의 뜻이 달라진다.</does>
   </term>
-  <term id="run_mode1.lang_of" kind="function" module="codegraph" where="codegraph/run_mode1.py:121" source="reading">
+  <term id="run_mode1.lang_of" kind="function" module="codegraph" where="codegraph/run_mode1.py:138" source="reading">
     <means>코드 지도가 적어 둔 언어를 선언 훑기가 아는 이름으로 바꾼다.</means>
     <does>수집기를 다시 판별하지 않는다. 판별 규칙이 두 곳에 생기면 조용히 어긋난다. 모르는 언어는 없음으로 답해 그 단계만 빠지게 한다.</does>
   </term>
-  <term id="run_mode1.main" kind="function" module="codegraph" where="codegraph/run_mode1.py:1063" source="reading">
+  <term id="run_mode1.main" kind="function" module="codegraph" where="codegraph/run_mode1.py:1080" source="reading">
     <means>명령줄을 읽고 단계를 차례로 돌린 뒤 측정 표를 낸다.</means>
     <does>여덟 단계를 차례로 돌린다. LLM 칸 둘(survey · wiki)은 층 오름차순으로 여러 세션을 띄우고, 나머지는 자식 프로세스 하나씩이다. 끝나면 단계별 표와 단계 소계를 낸다.</does>
-    <uses to="run_mode1.plan_stages" kind="dependency" label="calls" where="codegraph/run_mode1.py:607"/>
-    <uses to="run_mode1.terms_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:654"/>
-    <uses to="run_mode1.format_report" kind="dependency" label="calls" where="codegraph/run_mode1.py:673"/>
-    <uses to="run_mode1.run_warmup" kind="dependency" label="calls" where="codegraph/run_mode1.py:633"/>
-    <uses to="run_mode1.save_warmup" kind="dependency" label="calls" where="codegraph/run_mode1.py:636"/>
-    <uses to="run_mode1.should_call_agent" kind="dependency" label="calls" where="codegraph/run_mode1.py:639"/>
-    <uses to="run_mode1.run_survey" kind="dependency" label="calls" where="codegraph/run_mode1.py:1"/>
-    <uses to="run_mode1.run_wiki" kind="dependency" label="calls" where="codegraph/run_mode1.py:1"/>
-    <uses to="run_mode1.stage_totals" kind="dependency" label="calls" where="codegraph/run_mode1.py:1"/>
+    <uses to="run_mode1.plan_stages" kind="dependency" label="calls" where="codegraph/run_mode1.py:1118"/>
+    <uses to="run_mode1.terms_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:1190"/>
+    <uses to="run_mode1.format_report" kind="dependency" label="calls" where="codegraph/run_mode1.py:1209"/>
+    <uses to="run_mode1.run_warmup" kind="dependency" label="calls" where="codegraph/run_mode1.py:1146"/>
+    <uses to="run_mode1.save_warmup" kind="dependency" label="calls" where="codegraph/run_mode1.py:1150"/>
+    <uses to="run_mode1.should_call_agent" kind="dependency" label="calls" where="codegraph/run_mode1.py:1154"/>
+    <uses to="run_mode1.run_survey" kind="dependency" label="calls" where="codegraph/run_mode1.py:1178"/>
+    <uses to="run_mode1.run_wiki" kind="dependency" label="calls" where="codegraph/run_mode1.py:1181"/>
+    <uses to="run_mode1.stage_totals" kind="dependency" label="calls" where="codegraph/run_mode1.py:1211"/>
   </term>
-  <term id="run_mode1.merge_shards" kind="function" module="codegraph" where="codegraph/run_mode1.py:806" source="reading">
+  <term id="run_mode1.merge_shards" kind="function" module="codegraph" where="codegraph/run_mode1.py:823" source="reading">
     <means>배치들이 따로 쓴 조각을 하나로 합치고 이름 충돌을 푸는 함수.</means>
     <does>키가 겹치면 겹친 전원을 파일줄기.이름 으로 고친다. existing 에는 누적본이 아니라 조사 이전의 원본을 준다 — 누적본을 주면 자기 자신과의 충돌로 보고 개명한다.</does>
-    <uses to="run_mode1._qualified" kind="dependency" label="calls" where="codegraph/run_mode1.py:806"/>
+    <uses to="run_mode1._qualified" kind="dependency" label="calls" where="codegraph/run_mode1.py:857"/>
   </term>
-  <term id="run_mode1.node_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:610" source="reading">
+  <term id="run_mode1.node_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:627" source="reading">
     <means>위키 기계 단계 하나를 부르는 명령줄을 만든다.</means>
     <does>실행 파일 경로를 박지 않는다. 찾아 쓰는 자리에 맡긴다.</does>
   </term>
-  <term id="run_mode1.nonnode_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:424" source="reading">
+  <term id="run_mode1.nonnode_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:441" source="reading">
     <means>지도에 없는 용어들을 맡을 마지막 세션에게 줄 글을 만드는 함수.</means>
     <does>file module artifact key concept 다섯 종류를 맡긴다. 심볼 레코드가 재료라 심볼 층이 전부 끝난 뒤에 돈다.</does>
   </term>
-  <term id="run_mode1.normalize_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:220" source="reading">
+  <term id="run_mode1.normalize_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:237" source="reading">
     <means>모형이 낸 사용량 보고에서 잴 값만 뽑아 평평하게 만든다.</means>
     <does>캐시 읽기와 캐시 생성을 반드시 더한다. 실측에서 그 둘이 전체의 아흔아홉 푼을 넘는 일이 흔해, 빼면 한 자릿수만 센 것이 된다.</does>
   </term>
-  <term id="run_mode1.page_layers" kind="function" module="codegraph" where="codegraph/run_mode1.py:491" source="reading">
+  <term id="run_mode1.page_layers" kind="function" module="codegraph" where="codegraph/run_mode1.py:508" source="reading">
     <means>위키 페이지마다 몇 번째로 써야 하는지 층을 매기는 함수.</means>
     <does>페이지의 층은 그 페이지가 인용하는 심볼들의 최대 층이다. 모든 개념이 이미 설명된 뒤라야 재설명 대신 링크할 수 있다.</does>
   </term>
-  <term id="run_mode1.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1.py:189" source="reading">
+  <term id="run_mode1.plan_stages" kind="function" module="codegraph" where="codegraph/run_mode1.py:206" source="reading">
     <means>일곱 단계 중 무엇을 실제로 돌릴지 고른다.</means>
     <does>파일 시스템을 보지 않는 순수 함수다. 준비 단계는 늘 남기고, 큰 언어 모형 단계만 산출물이 둘 다 있을 때 뺀다.</does>
   </term>
-  <term id="run_mode1.run_agent_with" kind="function" module="codegraph" where="codegraph/run_mode1.py:746" source="reading">
+  <term id="run_mode1.run_agent_with" kind="function" module="codegraph" where="codegraph/run_mode1.py:763" source="reading">
     <means>주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 내는 함수.</means>
     <does>시간을 여기서 잰다. 배치들이 동시에 도는 동안 부르는 쪽은 층 전체만 잴 수 있어 어느 배치가 비쌌는지 모른다.</does>
-    <uses to="run_mode1.claude_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:746"/>
+    <uses to="run_mode1.claude_argv" kind="dependency" label="calls" where="codegraph/run_mode1.py:772"/>
   </term>
-  <term id="run_mode1.run_layer" kind="function" module="codegraph" where="codegraph/run_mode1.py:772" source="reading">
+  <term id="run_mode1.run_layer" kind="function" module="codegraph" where="codegraph/run_mode1.py:789" source="reading">
     <means>한 층의 배치들을 동시에 돌리고 각각의 측정값을 모으는 함수.</means>
     <does>ThreadPoolExecutor 로 동시 한도만큼 띄운다. 라벨 순서로 정렬해 내고, 한 배치가 터져도 층을 버리지 않는다.</does>
-    <uses to="run_mode1.run_agent_with" kind="dependency" label="calls" where="codegraph/run_mode1.py:772"/>
+    <uses to="run_mode1.run_agent_with" kind="dependency" label="calls" where="codegraph/run_mode1.py:808"/>
   </term>
-  <term id="run_mode1.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1.py:860" source="reading">
+  <term id="run_mode1.run_machine" kind="function" module="codegraph" where="codegraph/run_mode1.py:877" source="reading">
     <means>기계 단계 하나를 부른다.</means>
     <does>출력을 가로채지 않고 그대로 흘려보낸다. 그 명령의 출력이 곧 진행 상황이다.</does>
   </term>
-  <term id="run_mode1.run_survey" kind="function" module="codegraph" where="codegraph/run_mode1.py:948" source="reading">
+  <term id="run_mode1.run_survey" kind="function" module="codegraph" where="codegraph/run_mode1.py:965" source="reading">
     <means>전수조사를 층 오름차순으로 돌리고 층마다 샤드를 합치는 함수.</means>
     <does>층 사이는 순차 층 안은 병렬이다. 층이 끝날 때마다 병합해 디스크에 쓰고, 샤드가 이미 있는 배치는 건너뛰어 재개가 된다.</does>
-    <uses to="run_mode1.run_layer" kind="dependency" label="calls" where="codegraph/run_mode1.py:948"/>
-    <uses to="run_mode1.merge_shards" kind="dependency" label="calls" where="codegraph/run_mode1.py:948"/>
-    <uses to="run_mode1.survey_batch_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:948"/>
-    <uses to="run_mode1.nonnode_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:948"/>
-    <uses to="run_mode1.dep_excerpt" kind="dependency" label="calls" where="codegraph/run_mode1.py:948"/>
+    <uses to="run_mode1.run_layer" kind="dependency" label="calls" where="codegraph/run_mode1.py:1005"/>
+    <uses to="run_mode1.merge_shards" kind="dependency" label="calls" where="codegraph/run_mode1.py:1011"/>
+    <uses to="run_mode1.survey_batch_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:993"/>
+    <uses to="run_mode1.nonnode_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:988"/>
+    <uses to="run_mode1.dep_excerpt" kind="dependency" label="calls" where="codegraph/run_mode1.py:994"/>
   </term>
-  <term id="run_mode1.run_warmup" kind="function" module="codegraph" where="codegraph/run_mode1.py:870" source="reading">
+  <term id="run_mode1.run_warmup" kind="function" module="codegraph" where="codegraph/run_mode1.py:887" source="reading">
     <means>무엇을 다시 읽어야 하는지 판정하는 앞 관문.</means>
     <does>판정만 하고 기록을 갱신하지는 않는다. 판정할 수 없으면 없음으로 답해 전량 조사로 돌아가게 한다.</does>
-    <uses to="run_mode1.lang_of" kind="dependency" label="calls" where="codegraph/run_mode1.py:516"/>
-    <uses to="run_mode1.changed_seed" kind="dependency" label="calls" where="codegraph/run_mode1.py:529"/>
+    <uses to="run_mode1.lang_of" kind="dependency" label="calls" where="codegraph/run_mode1.py:898"/>
+    <uses to="run_mode1.changed_seed" kind="dependency" label="calls" where="codegraph/run_mode1.py:911"/>
   </term>
-  <term id="run_mode1.run_wiki" kind="function" module="codegraph" where="codegraph/run_mode1.py:1009" source="reading">
+  <term id="run_mode1.run_wiki" kind="function" module="codegraph" where="codegraph/run_mode1.py:1026" source="reading">
     <means>위키 목차를 받고 장들을 층 오름차순으로 쓰게 하는 함수.</means>
     <does>목차 세션 하나가 wiki-plan.json 을 내고, 그 인용 심볼로 장의 층을 매겨 층 순서로 쓴다.</does>
-    <uses to="run_mode1.run_layer" kind="dependency" label="calls" where="codegraph/run_mode1.py:1009"/>
-    <uses to="run_mode1.wiki_catalogue_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:1009"/>
-    <uses to="run_mode1.wiki_page_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:1009"/>
-    <uses to="run_mode1.page_layers" kind="dependency" label="calls" where="codegraph/run_mode1.py:1009"/>
-    <uses to="run_mode1.symbol_layers" kind="dependency" label="calls" where="codegraph/run_mode1.py:1009"/>
+    <uses to="run_mode1.run_layer" kind="dependency" label="calls" where="codegraph/run_mode1.py:1038"/>
+    <uses to="run_mode1.wiki_catalogue_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:1039"/>
+    <uses to="run_mode1.wiki_page_prompt" kind="dependency" label="calls" where="codegraph/run_mode1.py:1062"/>
+    <uses to="run_mode1.page_layers" kind="dependency" label="calls" where="codegraph/run_mode1.py:1053"/>
+    <uses to="run_mode1.symbol_layers" kind="dependency" label="calls" where="codegraph/run_mode1.py:1053"/>
   </term>
-  <term id="run_mode1.save_warmup" kind="function" module="codegraph" where="codegraph/run_mode1.py:922" source="reading">
+  <term id="run_mode1.save_warmup" kind="function" module="codegraph" where="codegraph/run_mode1.py:939" source="reading">
     <means>판정 기록을 확정하는 뒤 관문.</means>
     <does>큰 언어 모형이 실제로 해낸 뒤에만 쓴다. 실패했는데 갱신하면 읽지 않은 파일이 유효로 남아 낡은 요약이 살아남는다.</does>
   </term>
-  <term id="run_mode1.should_call_agent" kind="function" module="codegraph" where="codegraph/run_mode1.py:160" source="reading">
+  <term id="run_mode1.should_call_agent" kind="function" module="codegraph" where="codegraph/run_mode1.py:177" source="reading">
     <means>큰 언어 모형을 부를지 말지 정한다.</means>
     <does>읽을 것이 없고 지난 조사 결과가 있을 때만 건너뛴다. 판정을 못 한 경우는 건너뛰지 않는다 - 모르는 채로 건너뛰면 아무 일도 안 하게 된다.</does>
   </term>
-  <term id="run_mode1.stage_totals" kind="function" module="codegraph" where="codegraph/run_mode1.py:700" source="reading">
+  <term id="run_mode1.stage_totals" kind="function" module="codegraph" where="codegraph/run_mode1.py:717" source="reading">
     <means>배치 행들을 단계 단위로 접어 소계를 내는 함수.</means>
     <does>survey/L0-B00 같은 행을 survey 로 접는다. 배치가 스물이 넘으면 표를 눈으로 훑어 어느 단계가 비쌌는지 못 본다.</does>
-    <uses to="run_mode1.sum_usage" kind="dependency" label="calls" where="codegraph/run_mode1.py:700"/>
+    <uses to="run_mode1.sum_usage" kind="dependency" label="calls" where="codegraph/run_mode1.py:727"/>
   </term>
-  <term id="run_mode1.sum_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:245" source="reading">
+  <term id="run_mode1.sum_usage" kind="function" module="codegraph" where="codegraph/run_mode1.py:262" source="reading">
     <means>단계별 사용량을 하나로 합친다.</means>
     <does>표 맨 아래 합계 줄이 이 함수의 결과다.</does>
   </term>
-  <term id="run_mode1.survey_batch_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:342" source="reading">
+  <term id="run_mode1.survey_batch_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:359" source="reading">
     <means>배치 하나를 맡을 세션에게 줄 글을 만드는 함수.</means>
     <does>자기 심볼만 읽고 자기 샤드에만 쓰라고 지시한다. 증분이면 warmup_section 이 만든 범위 지시문을 뒤에 붙인다.</does>
-    <uses to="run_mode1.warmup_section" kind="dependency" label="calls" where="codegraph/run_mode1.py:342"/>
+    <uses to="run_mode1.warmup_section" kind="dependency" label="calls" where="codegraph/run_mode1.py:366"/>
   </term>
-  <term id="run_mode1.symbol_layers" kind="function" module="codegraph" where="codegraph/run_mode1.py:480" source="reading">
+  <term id="run_mode1.symbol_layers" kind="function" module="codegraph" where="codegraph/run_mode1.py:497" source="reading">
     <means>배치 계획에서 심볼마다 몇 층인지만 뽑아 표로 만드는 함수.</means>
     <does>survey-plan.json 을 {심볼 id: 층} 으로 바꾼다. 비노드 층은 심볼이 없어 저절로 빠진다.</does>
   </term>
-  <term id="run_mode1.terms_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:618" source="reading">
+  <term id="run_mode1.terms_argv" kind="function" module="codegraph" where="codegraph/run_mode1.py:635" source="reading">
     <means>용어 사전을 만드는 단계의 명령줄을 만든다.</means>
     <does>정적 코드 지도를 위치 인자로 반드시 함께 준다. 읽기 레코드만 주면 그 투영이 코드 지도 파일을 덮어써서 점이 조용히 줄어든다.</does>
   </term>
-  <term id="run_mode1.warmup_section" kind="function" module="codegraph" where="codegraph/run_mode1.py:293" source="reading">
+  <term id="run_mode1.warmup_section" kind="function" module="codegraph" where="codegraph/run_mode1.py:310" source="reading">
     <means>다시 읽을 범위를 알리는 지시문을 만든다.</means>
     <does>목록만 주지 않고 목록 밖을 읽지 말라고 함께 적는다. 맥락이 모자라면 옆 파일을 더 읽는데 그것이 줄이려는 비용이다.</does>
   </term>
-  <term id="run_mode1.wiki_catalogue_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:510" source="reading">
+  <term id="run_mode1.wiki_catalogue_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:527" source="reading">
     <means>위키에 어떤 장을 둘지 정하는 세션에게 줄 글을 만드는 함수.</means>
     <does>페이지 목록과 각 페이지가 인용할 심볼을 wiki-plan.json 으로 받는다. deep-wiki 의 장은 주제 단위라 기계가 결정론으로 못 만든다.</does>
   </term>
-  <term id="run_mode1.wiki_page_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:558" source="reading">
+  <term id="run_mode1.wiki_page_prompt" kind="function" module="codegraph" where="codegraph/run_mode1.py:575" source="reading">
     <means>위키 한 장을 맡을 세션에게 줄 글을 만드는 함수.</means>
     <does>아래층 장들을 재설명하지 말고 링크하라고 지시한다. deep-wiki 플러그인은 고치지 않고 이 글이 감싸서 지시한다.</does>
   </term>
