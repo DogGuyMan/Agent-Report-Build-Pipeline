@@ -28,9 +28,9 @@
 
 ## 함정
 
-- **명령마다 작업 디렉토리가 다르다.** `init` 은 `specs/` 가 있는 프로젝트 뿌리에서,
-  `build` 와 `check` 는 보고서 폴더(`specs/<slug>/`)에서 돈다. 여기서 틀리면 오류 없이
-  **조용히 엉뚱한 곳에 파일이 생긴다**(`stage_cwd`).
+- **명령마다 작업 디렉토리가 다르다.** `init` 은 `specs/` 나 `plans/` 가 있는 프로젝트
+  뿌리에서, `build` 와 `check` 는 보고서 폴더(`<자리>/<slug>/`)에서 돈다. 여기서 틀리면
+  오류 없이 **조용히 엉뚱한 곳에 파일이 생긴다**(`stage_cwd`).
 - **`claude` 는 막혀도 종료 코드 0 을 낼 수 있다.** `is_error` 와 `subtype` 을 봐야 한다.
   판정 코드는 `run_mode1.agent_verdict` 를 그대로 쓴다.
 - **재는 코드를 새로 짜지 않는다.** 토큰 세기·합계·표 그리기는 `run_mode1` 에 있다.
@@ -44,7 +44,8 @@
                                             [--only init,build] [--skip agent]
                                             [--json 측정.json] [--dry-run]
 
-`<프로젝트>` 는 **`specs/` 가 있는 폴더**다. 저장소 뿌리가 아닐 수 있다.
+`<프로젝트>` 는 **`specs/` 나 `plans/` 가 있는 폴더**다. 저장소 뿌리가 아닐 수 있다.
+원본은 두 자리 중 어디든 되고, 보고서는 **그 원본 옆**에 생긴다.
 """
 import argparse
 import json
@@ -81,17 +82,30 @@ AGENT_STAGES = {"agent"}
 # 엉뚱한 곳에 파일이 생기므로 상수로 드러내 둔다.
 PROJECT_STAGES = {"init", "agent"}
 
-# 설계 문서 파일명 규칙. `viz/init.mjs` 의 SPEC_FILENAME_RE 와 같은 규칙이다.
-SPEC_FILENAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")
+# 원본 문서가 사는 두 자리와 자리마다 다른 파일명 관례.
+#
+# `specs/` 는 `-design.md` 접미사를 요구한다 — 같은 폴더에 `-before.svg` 와
+# `-design-review.html` 이 함께 살아 접미사가 오타 가드 노릇을 한다.
+# `plans/` 는 계획서만 있어 접미사가 없다.
+#
+# ⚠ **`viz/init.mjs` 의 `DOC_DIRS` 와 같은 값이어야 한다.** 언어가 달라 한 곳에 모을 수
+# 없다 — 한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다.
+DOC_DIRS = [
+    ("specs", re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")),
+    ("plans", re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)\.md$")),
+]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.report_dir']"/>
 # 보고서 파일들이 들어 있는 폴더의 경로를 만들어 주는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode2.agent_prompt, runner.run_mode2.main, runner.test_run_mode2.test_report_dir_is_specs_slash_slug
 # ── 1. 자리 잡기 — 어디에서 무엇을 도는가 ────────────────────────────────
-def report_dir(project: str, slug: str) -> str:
-    """보고서가 사는 폴더. 프로젝트 뿌리 아래 `specs/<slug>/` 다."""
-    return os.path.join(project, "specs", slug)
+def report_dir(project: str, slug: str, doc_dir: str = "specs") -> str:
+    """보고서가 사는 폴더. **원본 문서 옆**이다 — `specs/<slug>/` 또는 `plans/<slug>/`.
+
+    `doc_dir` 를 안 주면 `specs` 다 — 옛 호출을 깨지 않기 위해서다.
+    """
+    return os.path.join(project, doc_dir, slug)
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.stage_cwd']"/>
@@ -100,7 +114,7 @@ def report_dir(project: str, slug: str) -> str:
 def stage_cwd(stage: str, project: str, report_dir: str) -> str:
     """단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.**
 
-    `init.mjs` 는 `join(cwd, "specs")` 를 보므로 프로젝트 뿌리가 필요하고,
+    `init.mjs` 는 `cwd` 아래 `specs/`·`plans/` 를 보므로 프로젝트 뿌리가 필요하고,
     `build.mjs`·`check.mjs` 는 `cwd` 에서 `data.ts`·`report.tsx` 를 읽으므로 보고서
     폴더가 필요하다. 모형(`agent`)은 둘 다 봐야 해서 뿌리에 세운다.
     """
@@ -165,16 +179,23 @@ def manuscript_is_written(data_source: str | None, report_source: str | None) ->
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.find_spec']"/>
 # 여러 설계 문서 파일 이름 중에서 지금 다루는 slug 에 정확히 맞는 파일을 찾아 주는 함수다.
 # 쓰는 것: runner.run_mode2.SPEC_FILENAME_RE · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode2.test_find_spec_does_not_match_a_partial_slug, runner.test_run_mode2.test_find_spec_returns_nothing_for_an_unknown_slug, runner.test_run_mode2.test_find_spec_returns_the_date_from_the_filename
-def find_spec(filenames: Iterable[str], slug: str) -> dict[str, str] | None:
-    """설계 문서 파일 목록에서 이 slug 의 것을 찾는다. 없으면 `None`.
+def find_spec(filenames: Iterable[str], slug: str,
+              doc_dir: str = "specs") -> dict[str, str] | None:
+    """한 자리의 파일 목록에서 이 slug 의 원본 문서를 찾는다. 없으면 `None`.
+
+    자리마다 파일명 관례가 다르므로 어느 자리인지를 받는다(`DOC_DIRS`).
+    안 주면 `specs` 다 — 옛 호출을 깨지 않기 위해서다.
 
     **부분 문자열로 맞추지 않는다.** `load-reduction` 이 `llm-load-reduction` 을 물면
     엉뚱한 문서를 원본으로 삼아 결정 표 전체가 다른 계획의 것이 된다.
     """
+    pattern = dict(DOC_DIRS).get(doc_dir)
+    if pattern is None:
+        return None
     for name in filenames:
-        m = SPEC_FILENAME_RE.match(name)
+        m = pattern.match(name)
         if m and m.group(2) == slug:
-            return {"file": name, "date": m.group(1), "slug": slug}
+            return {"file": name, "date": m.group(1), "slug": slug, "dir": doc_dir}
     return None
 
 
@@ -199,14 +220,17 @@ def script_argv(root: str, stage: str, slug: str) -> list[str]:
 # 쓰는 것: runner.run_mode2.report_dir · 쓰이는 곳: runner.run_mode2.run_agent, runner.test_run_mode2._prompt
 # ── 4. 에이전트 프롬프트 — 검사가 잡아주지 않는 규율을 여기서 말한다 ──────
 def agent_prompt(project: str, slug: str, spec_file: str, root: str,
-                 terms_json: str | None = None) -> str:
+                 terms_json: str | None = None, doc_dir: str = "specs") -> str:
     """원고를 쓰는 한 세션이 할 일 전부.
 
     **기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
     무결성은 `check` 가 잡지만, 판정을 모형이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.
+
+    `doc_dir` 는 원본이 사는 자리(`specs` 또는 `plans`)다. **프롬프트에 박으면 안 된다** —
+    모형이 없는 경로를 열어 보고 막힌다.
     """
-    folder = report_dir(project, slug)
+    folder = report_dir(project, slug, doc_dir)
     terms_block = ""
     if terms_json:
         terms_block = """
@@ -225,8 +249,8 @@ Mode 1.5(용어 이해도 점검)가 낸 파일이다. `{{ "용어": {{ TermMean
 내리기 좋은 계기판**으로 압축한다. 사람에게 묻지 않는다 — 이 세션은 헤드리스라 되묻는
 순간 막힌다. 막히면 진행하지 말고 무엇이 없어서 막혔는지 적고 끝낸다.
 
-프로젝트     {project}       (여기에 specs/ 가 있다)
-설계 문서    {project}/specs/{spec_file}
+프로젝트     {project}       (여기에 {doc_dir}/ 가 있다)
+원본 문서    {project}/{doc_dir}/{spec_file}
 보고서 폴더  {folder}        (여기의 data.ts 와 report.tsx **둘만** 고친다)
 도구 저장소  {root}          (report-builder. 규약과 컴포넌트가 여기 있다)
 
@@ -276,7 +300,7 @@ Mode 1.5(용어 이해도 점검)가 낸 파일이다. `{{ "용어": {{ TermMean
 
 끝나면 결정 몇 건 · 옵션표 몇 개 · 용어 몇 개를 넣었는지 한 표로 보고한다.
 """.format(project=project, slug=slug, spec_file=spec_file, folder=folder,
-           root=root, terms_block=terms_block)
+           root=root, terms_block=terms_block, doc_dir=doc_dir)
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.run_agent']"/>
@@ -285,14 +309,15 @@ Mode 1.5(용어 이해도 점검)가 낸 파일이다. `{{ "용어": {{ TermMean
 # ── 5. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
               terms_json: str | None = None,
-              timeout: float | None = None) -> tuple[int, M.AgentResult | None]:
+              timeout: float | None = None,
+              doc_dir: str = "specs") -> tuple[int, M.AgentResult | None]:
     """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`.
 
     `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다 — 한쪽만 주면 모형이
     설계 문서나 컴포넌트 규약 중 하나를 못 본다.
     """
     argv = claude_argv(model=model, repo=project, extra_dirs=[root])
-    prompt = agent_prompt(project, slug, spec_file, root, terms_json)
+    prompt = agent_prompt(project, slug, spec_file, root, terms_json, doc_dir)
     with Heartbeat("agent"):
         p = subprocess.run(argv, input=prompt, cwd=project,
                            capture_output=True, text=True, timeout=timeout)
@@ -334,8 +359,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 2 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("project", help="specs/ 가 있는 폴더 (저장소 뿌리가 아닐 수 있다)")
-    ap.add_argument("slug", help="보고서 slug. specs/YYYY-MM-DD-<slug>-design.md 가 있어야 한다")
+    ap.add_argument("project", help="specs/ 나 plans/ 가 있는 폴더 (저장소 뿌리가 아닐 수 있다)")
+    ap.add_argument("slug",
+                    help="보고서 slug. specs/YYYY-MM-DD-<slug>-design.md 또는 "
+                         "plans/YYYY-MM-DD-<slug>.md 가 있어야 한다")
     ap.add_argument("--model", default="opus", help="에이전트가 쓸 모형 (기본: opus)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
@@ -345,22 +372,32 @@ def main(argv: Sequence[str] | None = None) -> int:
     a = ap.parse_args(argv)
 
     project = os.path.abspath(os.path.expanduser(a.project))
-    specs_dir = os.path.join(project, "specs")
-    if not os.path.isdir(specs_dir):
-        print("에러 — specs/ 가 없다: %s" % specs_dir, file=sys.stderr)
-        print("  <프로젝트> 는 저장소 뿌리가 아니라 specs/ 가 있는 폴더다.", file=sys.stderr)
+    present = [d for d, _ in DOC_DIRS if os.path.isdir(os.path.join(project, d))]
+    if not present:
+        print("에러 — specs/ 도 plans/ 도 없다: %s" % project, file=sys.stderr)
+        print("  <프로젝트> 는 저장소 뿌리가 아니라 그 둘 중 하나가 있는 폴더다.", file=sys.stderr)
         return 1
 
-    spec = find_spec(sorted(os.listdir(specs_dir)), a.slug)
-    folder = report_dir(project, a.slug)
+    # 두 자리를 순서대로 뒤진다. 먼저 원본 문서를, 못 찾으면 이미 작업 중인 원고를 찾는다 —
+    # 문서 이름이 바뀌어도 진행 중인 보고서를 막지 않기 위해서다.
+    spec = None
+    for d in present:
+        spec = find_spec(sorted(os.listdir(os.path.join(project, d))), a.slug, d)
+        if spec:
+            break
+    doc_dir = spec["dir"] if spec else next(
+        (d for d in present if os.path.exists(os.path.join(project, d, a.slug, "data.ts"))),
+        present[0])
+
+    folder = report_dir(project, a.slug, doc_dir)
     data_src = _read(os.path.join(folder, "data.ts"))
     report_src = _read(os.path.join(folder, "report.tsx"))
     has_manuscript = manuscript_is_written(data_src, report_src)
 
-    # 설계 문서가 없어도 이미 작업 중인 원고가 있으면 막지 않는다.
+    # 원본 문서가 없어도 이미 작업 중인 원고가 있으면 막지 않는다.
     if spec is None and data_src is None:
-        print("에러 — 설계 문서를 찾지 못했다: %s/*-%s-design.md" % (specs_dir, a.slug),
-              file=sys.stderr)
+        print("에러 — 원본 문서를 찾지 못했다: %s/specs/*-%s-design.md 또는 %s/plans/*-%s.md"
+              % (project, a.slug, project, a.slug), file=sys.stderr)
         return 1
     spec_file = spec["file"] if spec else "(없음 — 작업 중인 원고를 이어 쓴다)"
 
@@ -395,7 +432,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         t0 = time.monotonic()
         if stage == "agent":
             rc, result = run_agent(a.model, project, a.slug, spec_file, ROOT,
-                                   terms_json=terms_json, timeout=a.timeout)
+                                   terms_json=terms_json, timeout=a.timeout,
+                                   doc_dir=doc_dir)
             ok, why = agent_verdict(rc, result)
             usage = normalize_usage(result)
             if result and result.get("result"):

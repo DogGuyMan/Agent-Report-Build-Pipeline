@@ -201,6 +201,44 @@ def test_find_spec_does_not_match_a_partial_slug():
     assert R.find_spec(SPEC_FILES, "load-reduction") is None
 
 
+# ── 4-2. 원본은 두 자리에 산다 — specs/ 와 plans/ ────────────────────────
+PLAN_FILES = [
+    "2026-08-30-symbol-resolution-survey.md",
+    "2026-08-26-report-builder.md",
+    "README.md",
+]
+
+
+def test_doc_dirs_matches_the_javascript_side():
+    """`viz/init.mjs` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다."""
+    assert [d for d, _ in R.DOC_DIRS] == ["specs", "plans"]
+
+
+def test_find_spec_reads_plans_without_the_design_suffix():
+    """plans/ 는 `-design` 접미사가 없다. 계획서만 사는 자리라 가드가 필요 없다."""
+    got = R.find_spec(PLAN_FILES, "symbol-resolution-survey", "plans")
+    assert got is not None
+    assert got["date"] == "2026-08-30"
+    assert got["file"] == "2026-08-30-symbol-resolution-survey.md"
+    assert got["dir"] == "plans"
+
+
+def test_find_spec_keeps_the_suffix_guard_for_specs():
+    """specs/ 에서는 접미사가 없으면 안 잡힌다 — 같은 폴더에 다른 산출물이 함께 산다."""
+    assert R.find_spec(PLAN_FILES, "symbol-resolution-survey", "specs") is None
+
+
+def test_find_spec_defaults_to_specs():
+    """자리를 안 주면 specs 다 — 옛 호출을 깨지 않는다."""
+    got = R.find_spec(SPEC_FILES, "llm-load-reduction")
+    assert got is not None and got["dir"] == "specs"
+
+
+def test_report_dir_sits_next_to_its_source_document():
+    """보고서는 원본 옆에 산다. plans 문서의 보고서는 plans/<slug>/ 다."""
+    assert R.report_dir("/프로젝트", "붙임", "plans") == os.path.join("/프로젝트", "plans", "붙임")
+
+
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_script_argv_points_at_the_renderer_scripts']"/>
 # 각 단계를 실제로 실행할 명령줄(argv)이 올바른 node 스크립트를 가리키는지 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.script_argv · 쓰이는 곳: 없음

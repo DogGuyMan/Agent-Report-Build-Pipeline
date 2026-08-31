@@ -16,15 +16,31 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const SPEC_FILENAME_RE = /^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$/;
+/**
+ * 원본 문서가 사는 두 자리와 자리마다 다른 파일명 관례.
+ *
+ * `specs/` 는 설계 문서라 `-design.md` 접미사를 요구한다 — 같은 폴더에 `-before.svg`
+ * `-design-review.html` 이 함께 살아 접미사가 오타 가드 노릇을 한다.
+ * `plans/` 는 계획서만 있어 접미사가 없다.
+ *
+ * **`runner/run_mode2.py` 의 `DOC_DIRS` 와 같은 값이어야 한다.** 언어가 달라 한 곳에
+ * 모을 수 없다 — 한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다.
+ */
+export const DOC_DIRS = [
+  { dir: "specs", re: /^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$/ },
+  { dir: "plans", re: /^(\d{4}-\d{2}-\d{2})-(.+)\.md$/ },
+];
 
 /**
- * spec 파일명에서 날짜와 slug 를 뽑는다.
- * 규칙: YYYY-MM-DD-<slug>-design.md
- * 안 맞으면 null.
+ * 원본 문서 파일명에서 날짜와 slug 를 뽑는다. 안 맞으면 null.
+ *
+ * 자리마다 관례가 다르므로 어느 자리인지를 받는다. 안 주면 `specs` 로 본다 —
+ * 옛 호출부와 시험을 깨지 않기 위해서다.
  */
-export function parseSpecFilename(basename) {
-  const m = basename.match(SPEC_FILENAME_RE);
+export function parseSpecFilename(basename, dir = "specs") {
+  const entry = DOC_DIRS.find((d) => d.dir === dir);
+  if (!entry) return null;
+  const m = basename.match(entry.re);
   if (!m) return null;
   return { date: m[1], slug: m[2] };
 }
@@ -46,7 +62,6 @@ export function findSimilar(slug, candidates) {
 if (process.argv[1] && process.argv[1].endsWith("init.mjs")) {
   const slug = process.argv[2];
   const cwd = process.cwd();
-  const specsDir = join(cwd, "specs");
 
   function currentBuilderVersion() {
     try {
@@ -58,19 +73,30 @@ if (process.argv[1] && process.argv[1].endsWith("init.mjs")) {
     }
   }
 
-  /** specs/ 아래 spec 문서 목록. { file, date, slug }[] */
-  function listSpecs() {
-    if (!existsSync(specsDir)) return [];
-    return readdirSync(specsDir)
-      .map((file) => {
-        const parsed = parseSpecFilename(file);
-        return parsed && { file, ...parsed };
-      })
-      .filter(Boolean);
+  /**
+   * `specs/` 와 `plans/` 두 자리의 원본 문서 목록. `{ file, date, slug, dir }[]`
+   * 자리마다 파일명 관례가 달라 `DOC_DIRS` 의 정규식을 각각 쓴다.
+   */
+  function listDocs() {
+    return DOC_DIRS.flatMap(({ dir }) => {
+      const abs = join(cwd, dir);
+      if (!existsSync(abs)) return [];
+      return readdirSync(abs)
+        .map((file) => {
+          const parsed = parseSpecFilename(file, dir);
+          return parsed && { file, dir, ...parsed };
+        })
+        .filter(Boolean);
+    });
   }
 
-  function hasReport(slug) {
-    return existsSync(join(specsDir, slug, "data.ts"));
+  /** 보고서는 원본 문서 **옆**에 산다 — `specs/<slug>/` 또는 `plans/<slug>/`. */
+  function reportDir(docDir, slug) {
+    return join(cwd, docDir, slug);
+  }
+
+  function hasReport(docDir, slug) {
+    return existsSync(join(reportDir(docDir, slug), "data.ts"));
   }
 
   function currentBranch() {
@@ -124,37 +150,38 @@ export default function Report() {
 
   }
 
+  const docs = listDocs();
+
   if (!slug) {
-    const specs = listSpecs();
-    const missing = specs
-      .filter((s) => !hasReport(s.slug))
+    const missing = docs
+      .filter((s) => !hasReport(s.dir, s.slug))
       .sort((a, b) => b.date.localeCompare(a.date));
 
     if (missing.length === 0) {
-      console.log("모든 spec 에 보고서가 있다.");
+      console.log("모든 문서에 보고서가 있다.");
       process.exit(0);
     }
 
     const width = Math.max(...missing.map((s) => s.slug.length)) + 3;
-    console.log("보고서가 없는 spec:");
+    console.log("보고서가 없는 문서:");
     for (const s of missing) {
-      console.log(`  ${s.slug.padEnd(width)}${s.date}`);
+      console.log(`  ${s.slug.padEnd(width)}${s.date}  ${s.dir}/`);
     }
     console.log("");
-    console.log("사용법 — report init <slug>");
+    console.log("사용법 — report-spec init <slug>");
     process.exit(1);
   }
 
   const version = currentBuilderVersion();
-  const dir = join(specsDir, slug);
-  const dataFile = join(dir, "data.ts");
 
-  if (existsSync(dataFile)) {
-    // 멱등 경로 — spec 문서 존재 여부는 따지지 않는다. 이미 작업 중인
-    // 보고서를 spec 이름이 바뀌었다는 이유로 막으면 안 된다.
-    const existing = readFileSync(dataFile, "utf8");
-    const m = existing.match(/builderVersion:\s*"([^"]+)"/);
+  // 멱등 경로 — 원본 문서 존재 여부는 따지지 않는다. 이미 작업 중인 보고서를
+  // 문서 이름이 바뀌었다는 이유로 막으면 안 된다. 두 자리를 다 본다.
+  const started = DOC_DIRS.map(({ dir }) => dir).find((dir) => hasReport(dir, slug));
+  if (started) {
+    const dataFile = join(reportDir(started, slug), "data.ts");
+    const m = readFileSync(dataFile, "utf8").match(/builderVersion:\s*"([^"]+)"/);
     console.log(`${slug} — 기존 작업 파일이 있다. 이어서 쓴다(rev.2 방식).`);
+    console.log(`  자리: ${started}/${slug}`);
     if (m && m[1] !== version) {
       console.warn(`경고 — builderVersion "${m[1]}" 이 현재 "${version}" 과 다르다.`);
       console.warn(`  옛 버전으로 빌드하려면: git worktree add /tmp/rb-${m[1]} ${m[1]}`);
@@ -162,33 +189,34 @@ export default function Report() {
     process.exit(0);
   }
 
-  const specs = listSpecs();
-  const match = specs.find((s) => s.slug === slug);
+  const match = docs.find((s) => s.slug === slug);
 
   if (!match) {
-    console.error("에러 — 대응하는 spec 문서를 찾지 못했다:");
+    console.error("에러 — 대응하는 원본 문서를 찾지 못했다:");
     console.error(`  specs/*-${slug}-design.md`);
+    console.error(`  plans/*-${slug}.md`);
 
-    const candidates = findSimilar(slug, specs.map((s) => s.slug));
+    const candidates = findSimilar(slug, docs.map((s) => s.slug));
     if (candidates.length > 0) {
       const width = Math.max(...candidates.map((c) => c.length)) + 3;
       console.error("");
       console.error("비슷한 slug:");
       for (const c of candidates) {
-        const s = specs.find((s) => s.slug === c);
-        console.error(`  ${c.padEnd(width)}${s.date}`);
+        const s = docs.find((s) => s.slug === c);
+        console.error(`  ${c.padEnd(width)}${s.date}  ${s.dir}/`);
       }
     }
     process.exit(1);
   }
 
-  const specSource = readFileSync(join(specsDir, match.file), "utf8");
-  const titleMatch = specSource.match(/^#\s+(.+)$/m);
+  const dir = reportDir(match.dir, slug);
+  const docSource = readFileSync(join(cwd, match.dir, match.file), "utf8");
+  const titleMatch = docSource.match(/^#\s+(.+)$/m);
   const specName = titleMatch ? titleMatch[1].trim() : "";
   const branch = currentBranch();
 
   writeSkeleton(dir, { slug, date: match.date, specName, branch, version });
 
   console.log(`${slug} — 스켈레톤 생성: ${dir}`);
-  console.log(`  근거 spec: specs/${match.file}`);
+  console.log(`  근거 문서: ${match.dir}/${match.file}`);
 }
