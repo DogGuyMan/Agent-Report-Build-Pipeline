@@ -15,9 +15,9 @@
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
-| `collect` | Plan 본문과 코드베이스 용어 사전의 교차를 모은다 | `runner/term/collect.mjs` |
-| `grade`   | 사람이 쓴 답안을 채점한다(확실 / 모름) | `runner/term/quiz.mjs` |
-| `emit`    | 용어집과 학습 노트를 낸다 | `runner/term/emit.mjs` |
+| `collect` | Plan 본문과 코드베이스 용어 사전의 교차를 모은다 | `runner/term/collect.py` |
+| `grade`   | 사람이 쓴 답안을 채점한다(확실 / 모름) | `runner/term/quiz.py` |
+| `emit`    | 용어집과 학습 노트를 낸다 | `runner/term/emit.py` |
 
 **이 실행기에는 모형을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
 스킬이 `questions.json` 을 쓰고, 실행기는 그것을 **기계로 검사**해 정답을 뺀 기입란을 깐다.
@@ -31,7 +31,7 @@
 
   1. `answers.json` — 실행기가 깔아 준 기입란(`answer-sheet.json`)의 `UserAns` 칸을
      전부 채워 이 이름으로 둔 것. **필수.** 맞고 틀림은 사람이 세지 않는다 —
-     `quiz.mjs` 가 문항지와 대조해 센다.
+     `quiz.py` 가 문항지와 대조해 센다.
   2. `term-answer-key.json` — Plan 이 새로 만든 개념의 **뜻**. 선택.
      뜻이 없는 개념은 출제되지 않는다(채점할 수 없으므로). 사람이 여기에 뜻을 적고
      실행기를 다시 돌리면 그때 출제된다.
@@ -40,7 +40,7 @@
 
 멈췄다 다시 돌리는 것이 정상 흐름이라 **재개가 이 실행기의 기본 동작**이다.
 후보 파일이 있으면 `collect` 를 건너뛴다. 문항지가 있으면 채점 가능한 꼴인지 먼저 검사하고,
-어긋나면 아무 단계도 돌리지 않는다 — `quiz.mjs` 는 문항지를 검사하지 않는다.
+어긋나면 아무 단계도 돌리지 않는다 — `quiz.py` 는 문항지를 검사하지 않는다.
 
 ## `questions.json` — 문항지의 형식
 
@@ -51,7 +51,7 @@
 | `terms[].term` | 문자열 | 용어 이름. `answers.json` 의 열쇠가 된다 |
 | `terms[].means` | 문자열 | **정답 문구.** `emit` 이 그대로 용어집으로 넘긴다 |
 | `terms[].source` | 문자열 | 이 뜻의 출처(`파일:줄`). 지어낸 것과 구별하려고 적는다 |
-| `terms[].questions[]` | 배열 | **정확히 3개.** `quiz.mjs` 의 채점 구간이 그 수를 전제한다 |
+| `terms[].questions[]` | 배열 | **정확히 3개.** `quiz.py` 의 채점 구간이 그 수를 전제한다 |
 | `terms[].questions[].ask` | 문자열 | 물음 한 줄. 한 문항은 한 가지만 묻는다 |
 | `terms[].questions[].choices[]` | 배열 | **정확히 5개.** 실제 뜻 4개 + **마지막에 항상 "모르겠다"** |
 | `terms[].questions[].answer` | 정수 | 정답 보기의 자리(0부터). 마지막 칸을 가리키면 안 된다 |
@@ -74,18 +74,25 @@
 `Term` 을 싣는 것은 **채점 단위가 문항이 아니라 용어**이기 때문이다(3문항을 묶어
 확실/모름을 매긴다). 없으면 채점할 때 되짚을 수가 없다.
 
-**QNum 은 두 언어에 같은 규칙으로 산다** — 여기(`flatten_questions`)와 `runner/term/quiz.mjs`
+**QNum 은 두 언어에 같은 규칙으로 산다** — 여기(`flatten_questions`)와 `runner/term/quiz.py`
 양쪽이 같은 순서로 펴야 번호가 맞는다. 어긋나면 조용히 남의 답을 채점하게 되므로,
 채점 직전에 `Term` 과 물음 문구를 문항지와 대조해 **다르면 멈춘다.**
 
 ## 쓰는 법
 
-    .venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업폴더> \
-        [--terms-db <terms-db.json>] [--dry-run]
+    .venv/bin/python runner/run_mode1_5.py <plan.md> \
+        [--workdir <작업폴더>] [--terms-db <terms-db.json>] [--dry-run]
+
+**`--workdir` 는 이제 선택이다.** 안 주면 계획서 이름에서 slug 를 뽑아
+`out/mode1_5/<slug>/` 를 만들어 쓴다(`default_workdir`). **계획서를 둘 이상 동시에
+점검할 때 `--workdir` 를 생략하고 `out/mode1_5/` 를 공유하지 마라** — `questions.json`
+같은 산출 파일 이름이 하나뿐이라 서로 덮어써 한쪽이 죽는다(2026-08-31 실측). slug 로
+나뉜 기본값을 쓰면 계획서마다 자기 폴더를 갖는다.
 """
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -94,6 +101,13 @@ from typing import Any
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# `tools.python` 과 `runner.term.quiz` 는 절대 경로 패키지 import 라 ROOT 가 sys.path 에
+# 있어야 한다. "쓰는 법" 대로 `python runner/run_mode1_5.py` 로 직접 부르면 sys.path[0] 이
+# `runner/` 라 ROOT 가 없다 — 이 줄보다 먼저 두 import 를 하면 ModuleNotFoundError 로 죽는다.
+sys.path.insert(0, ROOT)
+from tools.python import pythonPath  # noqa: E402
+from runner.term.quiz import QUESTIONS_PER_TERM, CHOICES_PER_QUESTION, flatten_questions, choice_number  # noqa: E402
 
 # 재는 코드(`hms` · `Heartbeat` · `normalize_usage` · `format_report` …)의 원본은
 # `run_mode1.py` 하나뿐이다. 여기에는 사본이 없다.
@@ -107,16 +121,12 @@ STAGES = ["collect", "grade", "emit"]
 # 하게 되고, 헤드리스 세션은 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
 AGENT_STAGES: set[str] = set()
 
-# 한 용어당 문항 수. `runner/term/quiz.mjs` 의 `QUESTIONS_PER_TERM` 과 **같은 값이어야 한다.**
-# 한쪽만 고치면 채점 구간(맞힌 수 2 이상 -> 확실)이 조용히 뜻을 잃는다.
-QUESTIONS_PER_TERM = 3
 
 # "모르겠다" 는 자리도 문구도 고정이다. 흔들리면 그것을 고르는 비용이 문항마다 달라진다.
 DONT_KNOW = "모르겠다"
 
 # 한 문항의 보기 수. 실제 뜻 넷에 "모르겠다" 를 더해 다섯이다. 문항마다 다르면
 # 찍어서 맞을 확률이 문항마다 달라지고, 그러면 정답률을 문항끼리 견줄 수 없다.
-CHOICES_PER_QUESTION = 5
 
 # 파일 이름은 한곳에 모은다. 스킬 문서와 어긋나면 사람이 엉뚱한 파일을 찾는다.
 CANDIDATES = "term-candidates.json"
@@ -175,7 +185,7 @@ def split_new_concepts(new_concepts: Iterable[str],
 
     규칙은 하나다 — **뜻(정답 문구)이 있느냐.** 뜻이 없으면 채점이 불가능하므로 낼 수 없다.
 
-    **오탐인지 아닌지는 여기서 따지지 않는다.** `collect.mjs` 가 식별자 꼴을 글자로만 잡아
+    **오탐인지 아닌지는 여기서 따지지 않는다.** `collect.py` 가 식별자 꼴을 글자로만 잡아
     린트 코드나 임시 파일 이름을 섞어 보내지만, 뜻이 없으면 자연히 출제에서 빠진다.
 
     `(출제할 것, 미룰 것)` 두 목록을 원래 순서 그대로 낸다.
@@ -190,11 +200,11 @@ def split_new_concepts(new_concepts: Iterable[str],
     return ready, held
 
 
-# ── 3. 문항지 검사 — quiz.mjs 는 이것을 검사하지 않는다 ─────────────────
+# ── 3. 문항지 검사 — quiz.py 는 이것을 검사하지 않는다 ─────────────────
 def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     """`questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록).
 
-    **`quiz.mjs` 는 이것을 검사하지 않는다.** 답안만 받아 세므로 문항이 둘뿐이거나
+    **`quiz.py` 는 이것을 검사하지 않는다.** 답안만 받아 세므로 문항이 둘뿐이거나
     "모르겠다" 가 가운데 있어도 채점은 조용히 끝난다. 그 조용한 실패를 여기서 잡는다.
 
     형식이 맞는지만 본다. 문항의 좋고 나쁨은 기계가 볼 수 없다.
@@ -269,28 +279,10 @@ def unasked_known(candidates: dict[str, Any] | None,
     return sorted(t for t in known if t not in asked and t not in noted)
 
 
-# ── 4. 문항지에서 기입란으로 곧장 잇기 ──────────────────────────────────
-def flatten_questions(doc: dict[str, Any] | None) -> list[tuple[int, str, dict[str, Any]]]:
-    """중첩된 문항지를 한 줄로 펴고 `QNum` 을 1부터 매긴다. `(번호, 용어, 문항)` 목록.
-
-    **`runner/term/quiz.mjs` 의 `flattenQuestions` 와 같은 순서여야 한다.** 번호 규칙이
-    두 언어에 살고 있어서, 한쪽만 고치면 채점이 남의 답을 본다. **그래서 걸러 내지
-    않는다** — 이름이 빈 용어도 자리를 차지한 채 그대로 센다. 걸러 내면 양쪽 번호가
-    어긋난다. (이름이 비었다는 것 자체는 `validate_questions` 가 따로 잡는다.)
-    """
-    out: list[tuple[int, str, dict[str, Any]]] = []
-    terms: list[dict[str, Any] | None] = (doc or {}).get("terms") or []
-    for entry in terms:
-        term = str((entry or {}).get("term") or "").strip()
-        questions: list[dict[str, Any] | None] = (entry or {}).get("questions") or []
-        for q in questions:
-            out.append((len(out) + 1, term, q or {}))
-    return out
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.answer_sheet']"/>
 # questions.json 에서 정답을 뺀, 사람이 풀 답안지를 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5.flatten_questions · 쓰이는 곳: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.main, runner.test_run_mode1_5.filled_sheet, runner.test_run_mode1_5.test_the_answer_sheet_carries_the_term_on_every_question, runner.test_run_mode1_5.test_the_answer_sheet_leaves_the_user_column_empty (+4)
+# ── 4. 문항지에서 기입란으로 곧장 잇기 ──────────────────────────────────
 def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
     """`questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다.
 
@@ -298,7 +290,10 @@ def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
     보기 번호만 적고, 맞힌 수는 기계가 센다.
     """
     questions: list[dict[str, Any]] = []
-    for qnum, term, q in flatten_questions(doc):
+    for q_dict in flatten_questions(doc or {}):
+        qnum = q_dict["QNum"]
+        term = q_dict["Term"]
+        q = q_dict["Raw"]
         choices: list[Any] | None = q.get("choices")
         choices = choices if isinstance(choices, list) else []
         questions.append({
@@ -311,21 +306,6 @@ def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
     return {"plan": str((doc or {}).get("plan") or ""), "questions": questions}
 
 
-def choice_number(value: object) -> int | None:
-    """`UserAns` 를 보기 번호로 읽는다. 못 읽으면 `None`.
-
-    사람이 손으로 채우는 칸이라 `3` 과 `"3"` 이 섞인다. 둘 다 받는다.
-
-    **빈 칸은 `None` 이고, "모르겠다" 로 대신 채우지 않는다** — 안 푼 것과 모르는 것은 다르다.
-    """
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    text = str(value if value is not None else "").strip()
-    return int(text) if text.isdigit() else None
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.validate_answers']"/>
 # 사람이 채운 답안지 파일이 원래 문항지와 내용이 맞는지 검사하는 함수다.
 # 쓰는 것: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.choice_number · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_a_blank_user_answer_is_caught, runner.test_run_mode1_5.test_a_fully_filled_sheet_has_no_complaints, runner.test_run_mode1_5.test_a_missing_answer_is_caught, runner.test_run_mode1_5.test_a_number_written_as_text_is_accepted (+7)
@@ -333,13 +313,13 @@ def validate_answers(sheet: dict[str, Any] | None,
                      doc: dict[str, Any] | None) -> list[str]:
     """채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록).
 
-    `quiz.mjs` 도 채점 직전에 같은 대조를 한다. 중복이 아니다 — 번호 규칙이 두 언어에
+    `quiz.py` 도 채점 직전에 같은 대조를 한다. 중복이 아니다 — 번호 규칙이 두 언어에
     살기 때문에, 한쪽에서만 보면 다른 쪽으로 들어온 파일이 그대로 채점된다.
 
     **빈 칸은 오류다.** 넘어가면 안 푼 문항이 틀린 문항으로 세어진다.
     """
     out: list[str] = []
-    want = flatten_questions(doc)
+    want = flatten_questions(doc or {})
     # 형 주석은 무엇이 올 것이라 보고 짰는지를 적은 것이고, 실제 검사는 `isinstance` 다.
     got: list[dict[str, Any] | None] | None = (sheet or {}).get("questions")
     if not isinstance(got, list):
@@ -356,7 +336,10 @@ def validate_answers(sheet: dict[str, Any] | None,
             out.append("%d번 문항의 답안이 둘 이상이다" % num)
         seen[num] = rec
 
-    for num, term, q in want:
+    for q_dict in want:
+        num = q_dict["QNum"]
+        term = q_dict["Term"]
+        q = q_dict["Raw"]
         rec = seen.pop(num, None)
         if rec is None:
             out.append("%d번(%s) — 문항은 냈는데 답안이 없다" % (num, term))
@@ -379,6 +362,40 @@ def validate_answers(sheet: dict[str, Any] | None,
     return out
 
 
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.plan_slug']"/>
+# 계획서 파일 이름에서 slug 를 뽑는 함수다. Mode 2(`run_mode2.py` 의 `DOC_DIRS`)와
+# 같은 규칙을 쓴다 — 두 Mode 가 같은 계획서를 다른 이름으로 부르면 사람이 헷갈린다.
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1_5.default_workdir
+_PLAN_FILENAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)\.md$")
+
+
+def plan_slug(plan: str) -> str:
+    """계획서 경로에서 작업 폴더 이름으로 쓸 slug 를 뽑는다.
+
+    `YYYY-MM-DD-<slug>.md` 꼴이면 날짜를 뗀 나머지가 slug 다(`run_mode2.DOC_DIRS`의
+    `plans` 규칙과 같다). 그 꼴이 아니면(날짜 접두사가 없는 파일) 확장자만 뗀 파일 이름을
+    그대로 쓴다 — **빈 문자열을 내지 않는다.** 빈 문자열이면 `default_workdir` 가
+    `out/mode1_5/` 바로 아래를 가리켜 여러 계획서가 다시 겹친다.
+    """
+    name = os.path.basename(plan)
+    m = _PLAN_FILENAME_RE.match(name)
+    return m.group(2) if m else os.path.splitext(name)[0]
+
+
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.default_workdir']"/>
+# --workdir 를 안 준 경우에 쓸 작업 폴더 경로를 계획서 이름으로부터 결정하는 함수다.
+# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: runner.run_mode1_5.main
+def default_workdir(root: str, plan: str) -> str:
+    """`--workdir` 를 안 주면 여기로 떨어진다 — `<root>/out/mode1_5/<slug>/`.
+
+    **`out/mode1_5/` 를 그대로 작업 폴더로 쓰지 않는다.** 계획서 둘을 동시에 점검하면
+    `questions.json` 같은 산출 파일이 이름 하나뿐이라 서로 덮어써 한쪽이 죽는다
+    (2026-08-31 실측 — 같은 저장소를 쓰는 세션 둘이 `out/mode1_5/` 를 공유해 실제로 겹쳤다).
+    slug 로 나누면 계획서마다 자기 폴더를 갖는다.
+    """
+    return os.path.join(root, "out", "mode1_5", plan_slug(plan))
+
+
 # ── 5. 명령줄 만들기 — 경로를 박지 않는다 ───────────────────────────────
 def _term_script(root: str, name: str) -> str:
     """`runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다."""
@@ -389,12 +406,12 @@ def _term_script(root: str, name: str) -> str:
 # 용어 후보를 모으는 collect.mjs 를 실행할 명령줄(문자열 목록)을 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_collect_argv_names_the_plan_and_the_term_database, runner.test_run_mode1_5.test_collect_argv_works_without_a_term_database
 def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
-    """`collect.mjs` 명령줄. node 는 PATH 에서 찾는다.
+    """`collect.py` 명령줄. node 는 PATH 에서 찾는다.
 
-    **용어 사전이 없으면 인자를 빼고 부른다.** 빈 문자열을 넘기면 `collect.mjs` 가
+    **용어 사전이 없으면 인자를 빼고 부른다.** 빈 문자열을 넘기면 `collect.py` 가
     그것을 파일 경로로 알고 찾다 실패한다.
     """
-    argv = ["node", _term_script(root, "collect.mjs"), plan]
+    argv = [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "collect.py"), plan]
     if terms_db:
         argv.append(terms_db)
     return argv
@@ -404,20 +421,20 @@ def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
 # 채점 스크립트 quiz.mjs 를 실행할 명령줄을 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts, runner.test_run_mode1_5.test_grade_argv_hands_over_both_files
 def grade_argv(root: str, answers: str, questions: str) -> list[str]:
-    """`quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다.
+    """`quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다.
 
     **두 파일을 다 넘긴다.** 채운 기입란에는 정답이 없고 문항지에만 있어서, 둘이
     만나야 채점이 된다.
     """
-    return ["node", _term_script(root, "quiz.mjs"), answers, questions]
+    return [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "quiz.py"), answers, questions]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.emit_argv']"/>
 # 결과물을 만드는 emit.mjs 를 실행할 명령줄을 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts
 def emit_argv(root: str, grades: str) -> list[str]:
-    """`emit.mjs` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다."""
-    return ["node", _term_script(root, "emit.mjs"), grades]
+    """`emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다."""
+    return [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "emit.py"), grades]
 
 
 # ── 6. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
@@ -436,7 +453,7 @@ def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
         "  4. 이 실행기를 **같은 인자로 다시** 돌린다 — 채점부터 이어서 한다",
         "",
         "%s 에는 정답이 들어 있다 — 풀기 전에 열지 않는다." % os.path.basename(questions),
-        "맞고 틀림은 세지 않아도 된다. `quiz.mjs` 가 문항지와 대조해 센다.",
+        "맞고 틀림은 세지 않아도 된다. `quiz.py` 가 문항지와 대조해 센다.",
         "",
         "묻고 답을 받는 절차 자체는 `term-benchmark` 스킬이 맡는다.",
         "그 스킬은 사람에게 한 용어씩 물어 기입란을 대신 채워 준다.",
@@ -515,7 +532,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("plan", help="점검할 계획서 경로 (plan.md)")
     ap.add_argument("--workdir", default=None,
-                    help="산출 파일이 쌓일 폴더 (기본: 지금 폴더). 스크립트가 cwd 에 쓰기 때문에 필요하다")
+                    help="산출 파일이 쌓일 폴더 (기본: out/mode1_5/<계획서 slug>/, 없으면 만든다). "
+                         "스크립트가 cwd 에 쓰기 때문에 필요하다")
     ap.add_argument("--terms-db", dest="terms_db", default=None,
                     help="코드베이스 용어 사전 terms-db.json. 없으면 신규 개념만 잡힌다")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
@@ -528,10 +546,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not os.path.isfile(plan):
         print("에러 — 계획서가 없다: %s" % plan, file=sys.stderr)
         return 1
-    workdir = os.path.abspath(os.path.expanduser(a.workdir or os.getcwd()))
-    if not os.path.isdir(workdir):
-        print("에러 — 작업 폴더가 없다: %s" % workdir, file=sys.stderr)
-        return 1
+    if a.workdir:
+        # 사람이 자리를 직접 골랐다 — 있어야 한다. 만들어 주지 않는다.
+        workdir = os.path.abspath(os.path.expanduser(a.workdir))
+        if not os.path.isdir(workdir):
+            print("에러 — 작업 폴더가 없다: %s" % workdir, file=sys.stderr)
+            return 1
+    else:
+        # 계획서 slug 로 자기 폴더를 만든다. **`out/mode1_5/` 를 그대로 쓰지 않는다** —
+        # 계획서 둘을 동시에 점검하면 산출 파일이 서로 덮어써 한쪽이 죽는다.
+        workdir = default_workdir(ROOT, plan)
+        os.makedirs(workdir, exist_ok=True)
     terms_db = os.path.abspath(os.path.expanduser(a.terms_db)) if a.terms_db else None
     if terms_db and not os.path.isfile(terms_db):
         print("에러 — 용어 사전이 없다: %s" % terms_db, file=sys.stderr)
@@ -560,7 +585,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     skipped = [(s, reasons[s]) for s in STAGES if s not in stages] if not a.only else []
 
     # 문항지가 있으면 **무엇을 돌리기 전에** 채점 가능한 꼴인지 본다.
-    # 출제는 스킬이 하고 검사는 여기가 한다 — `quiz.mjs` 는 꼴을 보지 않는다.
+    # 출제는 스킬이 하고 검사는 여기가 한다 — `quiz.py` 는 꼴을 보지 않는다.
     if os.path.exists(p_ques):
         doc = _read_json(p_ques)
         complaints = validate_questions(doc) if doc is not None \

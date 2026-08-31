@@ -104,7 +104,6 @@ npm run typecheck:py     # pyright strict
 | `viz/src/**` (`.ts` · `.tsx`) | React 컴포넌트 원본. 확정된 스택 |
 | `viz/svg.mjs` + `viz/svg.d.mts` | `report.tsx` 가 `report-builder/svg` 로 **import** 한다. 번들 시점에 esbuild 가 읽는다 |
 | `viz/lib.mjs` | `viz/src/` 를 `.tmp/lib.mjs` 로 굽는 esbuild 호출 |
-| `runner/term/*.mjs` | Mode 1.5 얼갈이. 아직 포팅 전 — `dispatch.py` 가 확장자를 보고 node 로 띄운다 |
 
 **`test/test_components.py` 는 node 를 자식 프로세스로 띄워 `.tmp/lib.mjs` 를 렌더한다.**
 `viz/src/` 를 고치고 시험이 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 굽는다.

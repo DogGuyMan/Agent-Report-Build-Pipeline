@@ -4,8 +4,8 @@
 """Mode 1.5 실행기의 회귀 시험.
 
 여기서 보는 여섯 가지 — 사람 관문(답안이 없으면 멈추는가) · 재개(이미 만든 산출물을
-다시 만들지 않는가) · 정답 미정 가르기 · 문항 검사(`quiz.mjs` 는 이것을 검사하지
-않는다) · 기입란으로 이어짐(정답이 실리면 안 된다) · `QNum` 규칙(파이썬과 `quiz.mjs`
+다시 만들지 않는가) · 정답 미정 가르기 · 문항 검사(`quiz.py` 는 이것을 검사하지
+않는다) · 기입란으로 이어짐(정답이 실리면 안 된다) · `QNum` 규칙(파이썬과 `quiz.py`
 두 곳에서 매겨진다. 어긋나면 남의 답을 채점하고도 오류가 나지 않는다).
 
   .venv/bin/python -m pytest runner/test_run_mode1_5.py -q
@@ -193,7 +193,7 @@ def test_the_machine_never_judges_whether_a_concept_is_a_false_positive():
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_a_well_formed_question_sheet_has_no_complaints']"/>
 # 정상 문항지에는 검사기가 불평을 하지 않는지 보는 시험 함수다.
 # 쓰는 것: runner.run_mode1_5.validate_questions, runner.test_run_mode1_5.good_doc · 쓰이는 곳: 없음
-# ── 4. 문항 검사 — quiz.mjs 는 이것을 검사하지 않는다 ───────────────────
+# ── 4. 문항 검사 — quiz.py 는 이것을 검사하지 않는다 ───────────────────
 def test_a_well_formed_question_sheet_has_no_complaints():
     assert R.validate_questions(good_doc()) == []
 
@@ -356,11 +356,11 @@ def test_the_answer_sheet_leaves_the_user_column_empty():
     assert all(rec["UserAns"] == "" for rec in R.answer_sheet(good_doc())["questions"])
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_mjs_reads']"/>
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_py_reads']"/>
 # 기입란 레코드의 모양이 quiz.mjs 가 기대하는 열쇠 집합과 똑같은지 확인하는 시험 함수다.
 # 쓰는 것: runner.run_mode1_5.answer_sheet, runner.test_run_mode1_5.good_doc · 쓰이는 곳: 없음
-def test_the_answer_sheet_matches_the_shape_quiz_mjs_reads():
-    """`runner/term/quiz.mjs` 의 `tallySheet` 가 읽는 열쇠 그대로여야 한다."""
+def test_the_answer_sheet_matches_the_shape_quiz_py_reads():
+    """`runner/term/quiz.py` 의 `tallySheet` 가 읽는 열쇠 그대로여야 한다."""
     for rec in R.answer_sheet(good_doc())["questions"]:
         assert set(rec) == {"QNum", "Term", "Question", "AnsChoices", "UserAns"}
 
@@ -369,17 +369,17 @@ def test_the_answer_sheet_matches_the_shape_quiz_mjs_reads():
 # 문항을 평평하게 펼치는 함수가 원래 순서를 그대로 지키는지 확인하는 시험 함수다.
 # 쓰는 것: runner.run_mode1_5.flatten_questions, runner.test_run_mode1_5.good_doc · 쓰이는 곳: 없음
 def test_flatten_keeps_the_order_the_sheet_was_built_in():
-    """번호 규칙이 파이썬과 `quiz.mjs` 두 곳에 산다. 여기서 한 번 못 박아 둔다."""
+    """번호 규칙이 파이썬과 `quiz.py` 두 곳에 산다. 여기서 한 번 못 박아 둔다."""
     flat = R.flatten_questions(good_doc())
-    assert [n for n, _, _ in flat] == [1, 2, 3]
-    assert [t for _, t, _ in flat] == ["PageRank"] * 3
-    assert [q["ask"] for _, _, q in flat] == ["문항 0", "문항 1", "문항 2"]
+    assert [q["QNum"] for q in flat] == [1, 2, 3]
+    assert [q["Term"] for q in flat] == ["PageRank"] * 3
+    assert [q["Raw"].get("ask") for q in flat] == ["문항 0", "문항 1", "문항 2"]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_a_fully_filled_sheet_has_no_complaints']"/>
 # 빈틈없이 다 채운 답안지가 정상이라고 확인하는 시험 하나.
 # 쓰는 것: runner.run_mode1_5.validate_answers, runner.test_run_mode1_5.good_doc, runner.test_run_mode1_5.filled_sheet · 쓰이는 곳: 없음
-# ── 5-2. 채운 기입란 검사 — quiz.mjs 도 같은 대조를 한다 ────────────────
+# ── 5-2. 채운 기입란 검사 — quiz.py 도 같은 대조를 한다 ────────────────
 def test_a_fully_filled_sheet_has_no_complaints():
     assert R.validate_answers(filled_sheet(), good_doc()) == []
 
@@ -485,8 +485,8 @@ def test_the_old_count_shaped_answers_file_is_rejected():
 # ── 7. 기계 단계의 명령줄 — 경로를 박지 않는다 ──────────────────────────
 def test_collect_argv_names_the_plan_and_the_term_database():
     argv = R.collect_argv(root="/도구/뿌리", plan="/계획/plan.md", terms_db="/어느/terms-db.json")
-    assert argv[0] == "node"
-    assert argv[1].endswith(os.path.join("runner", "term", "collect.mjs"))
+    assert argv[0] == "python3"
+    assert argv[1].endswith(os.path.join("runner", "term", "collect.py"))
     assert argv[2] == "/계획/plan.md" and argv[3] == "/어느/terms-db.json"
 
 
@@ -496,7 +496,7 @@ def test_collect_argv_names_the_plan_and_the_term_database():
 def test_collect_argv_works_without_a_term_database():
     """DB 가 없으면 코드베이스 용어는 0개다 — 그래도 신규 개념은 잡힌다."""
     assert R.collect_argv(root="/r", plan="/p.md", terms_db=None) == [
-        "node", os.path.join("/r", "runner", "term", "collect.mjs"), "/p.md"]
+        "python3", os.path.join("/r", "runner", "term", "collect.py"), "/p.md"]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts']"/>
@@ -504,8 +504,8 @@ def test_collect_argv_works_without_a_term_database():
 # 쓰는 것: runner.run_mode1_5.grade_argv, runner.run_mode1_5.emit_argv · 쓰이는 곳: 없음
 def test_grade_and_emit_argv_point_at_the_right_scripts():
     argv = R.grade_argv("/r", "/작업/answers.json", "/작업/questions.json")
-    assert argv[1].endswith("quiz.mjs")
-    assert R.emit_argv("/r", "/작업/term-grades.json")[1].endswith("emit.mjs")
+    assert argv[1].endswith("quiz.py")
+    assert R.emit_argv("/r", "/작업/term-grades.json")[1].endswith("emit.py")
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_grade_argv_hands_over_both_files']"/>
@@ -620,3 +620,30 @@ def test_the_gate_notice_lists_the_silently_dropped_terms():
                          answer_key="/작업/key.json", unasked=["warmup.save"])
     assert "warmup.save" in text
     assert "실패" not in text
+
+
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_plan_slug_strips_the_date_prefix']"/>
+# 날짜 접두사가 붙은 계획서 파일 이름에서 slug 가 날짜를 뗀 나머지인지 보는 시험이다.
+# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: 없음
+# ── 7. 계획서별 작업 폴더 — 두 계획서가 같은 자리를 쓰면 한쪽이 죽는다 ──────
+def test_plan_slug_strips_the_date_prefix():
+    assert R.plan_slug("/a/b/2026-08-30-symbol-resolution-survey.md") == "symbol-resolution-survey"
+
+
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_plan_slug_falls_back_to_the_bare_filename']"/>
+# 날짜 접두사가 없는 계획서 파일 이름이면 slug 가 확장자만 뗀 파일 이름인지 보는 시험이다.
+# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: 없음
+def test_plan_slug_falls_back_to_the_bare_filename():
+    """날짜 접두사가 없으면 확장자만 뗀 파일 이름을 그대로 쓴다 — 빈 문자열을 내지 않는다."""
+    assert R.plan_slug("/a/b/plan.md") == "plan"
+
+
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_two_plans_get_two_different_workdirs']"/>
+# 계획서 둘의 기본 작업 폴더가 서로 다른지 확인하는 시험이다 — 겹치면 한쪽 산출물이 다른 쪽을 덮어쓴다.
+# 쓰는 것: runner.run_mode1_5.default_workdir · 쓰이는 곳: 없음
+def test_two_plans_get_two_different_workdirs():
+    a = R.default_workdir("/repo", "/plans/2026-08-30-symbol-resolution-survey.md")
+    b = R.default_workdir("/repo", "/plans/2026-08-30-llm-load-reduction.md")
+    assert a != b
+    assert a == "/repo/out/mode1_5/symbol-resolution-survey"
+    assert b == "/repo/out/mode1_5/llm-load-reduction"

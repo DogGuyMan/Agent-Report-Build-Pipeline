@@ -15,7 +15,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/emit.mjs:19"
+    "where": "runner/term/emit.py:17"
   },
   "UserMentalValue": {
     "confidence": "HIGH",
@@ -24,7 +24,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/emit.mjs:20"
+    "where": "runner/term/emit.py:18"
   },
   "VerdictFooter.tsx": {
     "confidence": "HIGH",
@@ -116,14 +116,15 @@
     "uses": [],
     "where": "machine/codegraph_types.py:1"
   },
-  "collect.mjs": {
-    "confidence": "HIGH",
+  "collect.py": {
     "kind": "file",
-    "means": "이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.",
     "module": "runner/term",
-    "source": "reading",
+    "where": "runner/term/collect.py:1",
+    "means": "이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.",
+    "does": "",
     "uses": [],
-    "where": "runner/term/collect.mjs:1"
+    "confidence": "HIGH",
+    "source": "reading"
   },
   "comments.xml": {
     "confidence": "HIGH",
@@ -197,14 +198,15 @@
     "uses": [],
     "where": "tools/doctor.py:1"
   },
-  "emit.mjs": {
-    "confidence": "HIGH",
+  "emit.py": {
     "kind": "file",
-    "means": "채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.",
     "module": "runner/term",
-    "source": "reading",
+    "where": "runner/term/emit.py:1",
+    "means": "채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.",
+    "does": "",
     "uses": [],
-    "where": "runner/term/emit.mjs:1"
+    "confidence": "HIGH",
+    "source": "reading"
   },
   "facts.py": {
     "confidence": "HIGH",
@@ -8163,14 +8165,15 @@
     "uses": [],
     "where": "tools/python.py:1"
   },
-  "quiz.mjs": {
-    "confidence": "HIGH",
+  "quiz.py": {
     "kind": "file",
-    "means": "객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.",
     "module": "runner/term",
-    "source": "reading",
+    "where": "runner/term/quiz.py:1",
+    "means": "객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.",
+    "does": "",
     "uses": [],
-    "where": "runner/term/quiz.mjs:1"
+    "confidence": "HIGH",
+    "source": "reading"
   },
   "ranking.json": {
     "confidence": "HIGH",
@@ -9175,7 +9178,7 @@
         "where": "runner/run_mode1_5.py:300"
       }
     ],
-    "where": "runner/run_mode1_5.py:294"
+    "where": "runner/run_mode1_5.py:279"
   },
   "runner.run_mode1_5.choice_number": {
     "confidence": "HIGH",
@@ -9202,7 +9205,7 @@
         "where": "runner/run_mode1_5.py:396"
       }
     ],
-    "where": "runner/run_mode1_5.py:391"
+    "where": "runner/run_mode1_5.py:367"
   },
   "runner.run_mode1_5.emit_argv": {
     "confidence": "HIGH",
@@ -9219,7 +9222,7 @@
         "where": "runner/run_mode1_5.py:419"
       }
     ],
-    "where": "runner/run_mode1_5.py:418"
+    "where": "runner/run_mode1_5.py:394"
   },
   "runner.run_mode1_5.flatten_questions": {
     "confidence": "HIGH",
@@ -9253,7 +9256,7 @@
         "where": "runner/run_mode1_5.py:587"
       }
     ],
-    "where": "runner/run_mode1_5.py:467"
+    "where": "runner/run_mode1_5.py:443"
   },
   "runner.run_mode1_5.gate_notice": {
     "confidence": "HIGH",
@@ -9280,7 +9283,7 @@
         "where": "runner/run_mode1_5.py:411"
       }
     ],
-    "where": "runner/run_mode1_5.py:406"
+    "where": "runner/run_mode1_5.py:382"
   },
   "runner.run_mode1_5.human_gate_open": {
     "confidence": "HIGH",
@@ -9300,7 +9303,7 @@
     "module": "runner.run_mode1_5",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:134"
+    "where": "runner/run_mode1_5.py:137"
   },
   "runner.run_mode1_5.main": {
     "confidence": "HIGH",
@@ -9413,7 +9416,7 @@
         "where": "runner/run_mode1_5.py:774"
       }
     ],
-    "where": "runner/run_mode1_5.py:512"
+    "where": "runner/run_mode1_5.py:488"
   },
   "runner.run_mode1_5.plan_stages": {
     "confidence": "HIGH",
@@ -9440,7 +9443,7 @@
         "where": "runner/run_mode1_5.py:612"
       }
     ],
-    "where": "runner/run_mode1_5.py:498"
+    "where": "runner/run_mode1_5.py:474"
   },
   "runner.run_mode1_5.split_new_concepts": {
     "confidence": "HIGH",
@@ -9483,7 +9486,7 @@
         "where": "runner/run_mode1_5.py:368"
       }
     ],
-    "where": "runner/run_mode1_5.py:332"
+    "where": "runner/run_mode1_5.py:305"
   },
   "runner.run_mode1_5.validate_questions": {
     "confidence": "HIGH",
@@ -9742,6 +9745,96 @@
       }
     ],
     "where": "runner/run_mode2.py:114"
+  },
+  "runner.term.collect.find_new_concepts": {
+    "kind": "function",
+    "module": "runner/term/collect.py",
+    "where": "runner/term/collect.py:28",
+    "means": "Plan 이 새로 만든 개념을 찾는다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.collect.pick_terms": {
+    "kind": "function",
+    "module": "runner/term/collect.py",
+    "where": "runner/term/collect.py:16",
+    "means": "코드베이스 용어 DB 중 Plan 본문에 실제로 등장하는 것만 고른다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.emit.to_study_note": {
+    "kind": "function",
+    "module": "runner/term/emit.py",
+    "where": "runner/term/emit.py:25",
+    "means": "사람이 읽는 학습 노트를 생성한다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.emit.to_terms_db": {
+    "kind": "function",
+    "module": "runner/term/emit.py",
+    "where": "runner/term/emit.py:13",
+    "means": "Mode 2 로 넘길 용어집 DB를 가공한다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.quiz.choice_number": {
+    "kind": "function",
+    "module": "runner/term/quiz.py",
+    "where": "runner/term/quiz.py:49",
+    "means": "UserAns 를 보기 번호로 읽는다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.quiz.flatten_questions": {
+    "kind": "function",
+    "module": "runner/term/quiz.py",
+    "where": "runner/term/quiz.py:18",
+    "means": "중첩된 문항지를 한 줄로 펴고 QNum 을 1부터 매긴다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.quiz.grade_all": {
+    "kind": "function",
+    "module": "runner/term/quiz.py",
+    "where": "runner/term/quiz.py:154",
+    "means": "답안 전체를 채점한다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.quiz.grade_one": {
+    "kind": "function",
+    "module": "runner/term/quiz.py",
+    "where": "runner/term/quiz.py:137",
+    "means": "한 용어의 답안을 채점한다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
+  },
+  "runner.term.quiz.tally_sheet": {
+    "kind": "function",
+    "module": "runner/term/quiz.py",
+    "where": "runner/term/quiz.py:62",
+    "means": "채운 기입란을 문항지와 대조해 용어마다 맞힌 수를 센다.",
+    "does": "파이썬으로 포팅됨.",
+    "uses": [],
+    "confidence": "HIGH",
+    "source": "reading"
   },
   "runner.test_run_mode1._shard": {
     "confidence": "HIGH",
@@ -12019,7 +12112,7 @@
     ],
     "where": "runner/test_run_mode1_5.py:354"
   },
-  "runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_mjs_reads": {
+  "runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_py_reads": {
     "confidence": "HIGH",
     "does": "R.answer_sheet(good_doc()) 의 모든 문항 레코드를 돌며 그 키 집합이 {QNum, Term, Question, AnsChoices, UserAns} 다섯 개와 정확히 같은지 확인한다. 이는 runner/term/quiz.mjs 의 tallySheet 가 읽는 모양과 맞춰야 한다는 주석에서 나온다.",
     "kind": "function",
@@ -13085,7 +13178,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/collect.mjs:66"
+    "where": "runner/term/collect.py:70"
   },
   "term-grades.json": {
     "confidence": "HIGH",
@@ -13094,7 +13187,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/quiz.mjs:197"
+    "where": "runner/term/quiz.py:194"
   },
   "term-graph.ts": {
     "confidence": "HIGH",
@@ -13112,7 +13205,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/emit.mjs:57"
+    "where": "runner/term/emit.py:68"
   },
   "terms-db.json": {
     "confidence": "HIGH",
@@ -13130,7 +13223,7 @@
     "module": "runner/term",
     "source": "reading",
     "uses": [],
-    "where": "runner/term/emit.mjs:54"
+    "where": "runner/term/emit.py:64"
   },
   "terms.tsx": {
     "confidence": "HIGH",

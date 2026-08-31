@@ -14,9 +14,9 @@ run_dispatch(
     root=ROOT,
     argv=sys.argv[1:],
     table={
-        "collect": "runner/term/collect.mjs",
-        "grade": "runner/term/quiz.mjs",
-        "emit": "runner/term/emit.mjs",
+        "collect": "runner/term/collect.py",
+        "grade": "runner/term/quiz.py",
+        "emit": "runner/term/emit.py",
     },
     usage="사용법 — report-term <collect|grade|emit> [인자]"
 )

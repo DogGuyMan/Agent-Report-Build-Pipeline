@@ -5,10 +5,10 @@
   <term id="BeforeAfter.tsx" kind="file" module="viz/src/components" where="viz/src/components/BeforeAfter.tsx:1" source="reading">
     <means>바뀌기 전후 다이어그램을 나란히 놓는 조각이 있는 파일.</means>
   </term>
-  <term id="TermMeans" kind="key" module="runner/term" where="runner/term/emit.mjs:19" source="reading">
+  <term id="TermMeans" kind="key" module="runner/term" where="runner/term/emit.py:17" source="reading">
     <means>용어집 DB 한 항목의 객관적 정답 칸. 사용자가 확정한 필드명이라 바꾸지 않는다.</means>
   </term>
-  <term id="UserMentalValue" kind="key" module="runner/term" where="runner/term/emit.mjs:20" source="reading">
+  <term id="UserMentalValue" kind="key" module="runner/term" where="runner/term/emit.py:18" source="reading">
     <means>용어집 DB 한 항목의 주관적 이해도 칸. 사용자가 확정한 필드명이라 바꾸지 않는다.</means>
   </term>
   <term id="VerdictFooter.tsx" kind="file" module="viz/src/components" where="viz/src/components/VerdictFooter.tsx:1" source="reading">
@@ -41,7 +41,7 @@
   <term id="codegraph_types.py" kind="file" module="machine" where="machine/codegraph_types.py:1" source="reading">
     <means>codegraph.json(스키마 v2)의 모양을 적어 둔 파일. 실행되는 코드가 없다.</means>
   </term>
-  <term id="collect.mjs" kind="file" module="runner/term" where="runner/term/collect.mjs:1" source="reading">
+  <term id="collect.py" kind="file" module="runner/term" where="runner/term/collect.py:1" source="reading">
     <means>이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.</means>
   </term>
   <term id="comments.xml" kind="artifact" module="machine" where="machine/xmldoc.py:66" source="reading">
@@ -68,7 +68,7 @@
   <term id="doctor.py" kind="file" module="tools" where="tools/doctor.py:1" source="reading">
     <means>이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.</means>
   </term>
-  <term id="emit.mjs" kind="file" module="runner/term" where="runner/term/emit.mjs:1" source="reading">
+  <term id="emit.py" kind="file" module="runner/term" where="runner/term/emit.py:1" source="reading">
     <means>채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.</means>
   </term>
   <term id="facts.py" kind="file" module="machine" where="machine/facts.py:1" source="reading">
@@ -2329,7 +2329,7 @@
   <term id="python.py" kind="file" module="tools" where="tools/python.py:1" source="reading">
     <means>파이썬 해석기를 기계에 상관없이 찾아 주는 파일.</means>
   </term>
-  <term id="quiz.mjs" kind="file" module="runner/term" where="runner/term/quiz.mjs:1" source="reading">
+  <term id="quiz.py" kind="file" module="runner/term" where="runner/term/quiz.py:1" source="reading">
     <means>객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.</means>
   </term>
   <term id="ranking.json" kind="artifact" module="machine" where="machine/facts.py:312" source="reading">
@@ -2618,7 +2618,7 @@
     <means>runner/term/ 폴더 안에 있는 스크립트 파일(collect.mjs 등)의 절대 경로를 만들어주는 아주 작은 도우미 함수다.</means>
     <does>root 와 "runner", "term", name 을 os.path.join 으로 이어붙여 절대 경로 문자열을 돌려준다. 작업 폴더가 어디든 항상 같은 저장소 안의 스크립트를 가리키게 하려고 root 기준으로 계산한다.</does>
   </term>
-  <term id="runner.run_mode1_5.answer_sheet" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:294" source="reading">
+  <term id="runner.run_mode1_5.answer_sheet" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:279" source="reading">
     <means>questions.json 에서 정답을 뺀, 사람이 풀 답안지를 만드는 함수다.</means>
     <does>flatten_questions 로 문항을 한 줄로 편 뒤, 각 문항마다 번호(QNum)·용어(Term)·질문(Question)·보기 목록(AnsChoices)만 담고 UserAns 는 빈 문자열로 둔 dict 를 만들어 반환한다. answer 필드(정답)는 싣지 않는다.</does>
     <uses to="runner.run_mode1_5.flatten_questions" kind="dependency" label="flatten_questions 를 호출해 문항을 편다" where="runner/run_mode1_5.py:300"/>
@@ -2627,12 +2627,12 @@
     <means>사람이 손으로 적어 넣은 UserAns 값(문자열일 수도 숫자일 수도 있음)을 실제 보기 번호(정수)로 바꿔 읽어주는 함수다. 못 읽으면 None 을 준다.</means>
     <does>value 가 bool 이면 None(파이썬에서 bool 은 int 의 서브클래스라 먼저 걸러냄), int 면 그 값을 그대로 돌려준다. 그 외에는 문자열로 바꿔 공백을 제거한 뒤, 숫자로만 이루어져 있으면 int 로 변환해 돌려주고 아니면 None 을 돌려준다. 빈 칸은 '모르겠다'가 아니라 None(안 푼 것)으로 구분한다.</does>
   </term>
-  <term id="runner.run_mode1_5.collect_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:391" source="reading">
+  <term id="runner.run_mode1_5.collect_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:367" source="reading">
     <means>용어 후보를 모으는 collect.mjs 를 실행할 명령줄(문자열 목록)을 만드는 함수다.</means>
     <does>["node", &lt;runner/term/collect.mjs 경로&gt;, plan] 을 기본으로 만들고, terms_db 인자가 주어졌을 때만(빈 문자열이 아닐 때만) 그 경로를 추가로 붙인다.</does>
     <uses to="runner.run_mode1_5._term_script" kind="dependency" label="_term_script 로 collect.mjs 의 절대 경로를 만든다" where="runner/run_mode1_5.py:396"/>
   </term>
-  <term id="runner.run_mode1_5.emit_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:418" source="reading">
+  <term id="runner.run_mode1_5.emit_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:394" source="reading">
     <means>결과물을 만드는 emit.mjs 를 실행할 명령줄을 만드는 함수다.</means>
     <does>["node", &lt;runner/term/emit.mjs 경로&gt;, grades] 를 반환한다. emit.mjs 는 이 명령으로 실행되면 terms.json 과 term-study-note.md 파일을 현재 작업 폴더에 쓴다.</does>
     <uses to="runner.run_mode1_5._term_script" kind="dependency" label="_term_script 로 emit.mjs 의 절대 경로를 만든다" where="runner/run_mode1_5.py:419"/>
@@ -2642,7 +2642,7 @@
     <does>doc 의 terms 배열을 순회하며 각 term 의 이름과 그 밑의 questions 배열을 꺼낸다. 각 문항마다 (지금까지 쌓인 개수+1, term 이름, 문항 dict) 튜플을 out 리스트에 추가한다. 이름이 빈 용어라도 걸러내지 않고 그대로 자리를 차지하게 하는데, 이는 같은 순서 규칙을 쓰는 runner/term/quiz.mjs 의 flattenQuestions 와 번호가 어긋나지 않게 하기 위해서다.</does>
     <uses to="runner.run_mode1_5.answer_sheet" kind="association" label="answer_sheet 와 validate_answers 가 이 함수의 결과로 QNum·term 을 맞춰본다" where="runner/run_mode1_5.py:300"/>
   </term>
-  <term id="runner.run_mode1_5.format_run" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:467" source="reading">
+  <term id="runner.run_mode1_5.format_run" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:443" source="reading">
     <means>Mode 1.5 실행 결과를 사람이 읽을 보고 문자열로 만드는 함수다.</means>
     <does>건너뛴 단계 목록과 그 사유를 먼저 줄로 나열하고, M.format_report 가 만드는 성공/실패 표를 이어 붙인다. 표가 표현하지 못하는 '건너뜀'과 '사람 차례' 안내(gate)를 표 밖에 별도 텍스트로 덧붙인다. 돌린 단계가 없으면 표 대신 안내 문구를 쓴다.</does>
     <uses to="runner.run_mode1.format_report" kind="dependency" label="실제로 돌린 단계들의 성공/실패 표를 만든다" where="runner/run_mode1_5.py:587"/>
@@ -2651,7 +2651,7 @@
     <means>기계가 더 이상 할 수 없는 '사람 차례'가 시작됐을 때 화면에 보여줄 안내문(무엇을 어디에 어떻게 적어야 하는지)을 만들어주는 함수다.</means>
     <does>questions/sheet/answers/answer_key 경로와 held(뜻이 없어 출제에서 빠진 개념 목록), unasked(출제도 안 되고 제외 이유도 없이 빠진 용어 목록)를 받아, 기입란을 열고 UserAns 를 채워 answers.json 으로 저장한 뒤 실행기를 다시 돌리라는 순서를 줄 단위 문자열 리스트로 만든다. held 가 있으면 그 개수와 목록, 되살리는 방법(answer_key 파일에 뜻 적기)을 덧붙이고, unasked 가 있으면 그 개수와 목록, 처리 방법을 덧붙인다. 마지막에 모든 줄을 '\n'으로 이어붙여 하나의 문자열로 돌려준다.</does>
   </term>
-  <term id="runner.run_mode1_5.grade_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:406" source="reading">
+  <term id="runner.run_mode1_5.grade_argv" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:382" source="reading">
     <means>채점 스크립트 quiz.mjs 를 실행할 명령줄을 만드는 함수다.</means>
     <does>["node", &lt;runner/term/quiz.mjs 경로&gt;, answers, questions] 를 반환한다. 답안 파일과 문항지 파일 둘 다 인자로 넘긴다 — 답안에는 정답이 없어서 문항지와 합쳐야 채점할 수 있기 때문이다.</does>
     <uses to="runner.run_mode1_5._term_script" kind="dependency" label="_term_script 로 quiz.mjs 의 절대 경로를 만든다" where="runner/run_mode1_5.py:411"/>
@@ -2660,11 +2660,11 @@
     <means>사람이 아직 문제를 다 풀지 않았는지(사람 차례가 안 끝났는지) 알려주는 아주 단순한 함수다.</means>
     <does>has_answers(답안 파일이 있는지)를 받아 그 부정값(not has_answers)을 그대로 돌려준다.</does>
   </term>
-  <term id="runner.run_mode1_5.is_agent_stage" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:134" source="reading">
+  <term id="runner.run_mode1_5.is_agent_stage" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:137" source="reading">
     <means>어떤 단계 이름을 주면 그 단계가 LLM(에이전트)을 부르는 단계인지 참/거짓으로 답해주는 함수다.</means>
     <does>인자로 받은 stage 문자열이 모듈 상수 AGENT_STAGES 집합(현재 {"author"}) 안에 있는지 검사해서 bool 을 돌려준다.</does>
   </term>
-  <term id="runner.run_mode1_5.main" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:512" source="reading">
+  <term id="runner.run_mode1_5.main" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:488" source="reading">
     <means>Mode 1.5(용어 이해도 점검) 파이프라인의 진입점. 문제를 만들고 사람이 풀 때까지 멈췄다가 채점하고 결과를 낸다.</means>
     <does>argparse로 계획서(plan.md) 경로·작업 폴더·용어 사전·모형(기본 opus)·only/skip·json 출력·dry-run·timeout을 받는다. 후보/문항지/답안 존재 여부로 plan_stages를 호출해 단계(collect, author, grade, emit)를 정하고, dry-run이면 건너뛸 단계와 사람 차례 안내만 찍고 끝낸다. 단계를 순회하며 author는 에이전트를 불러 문항을 내고 validate_questions로 채점 가능한 꼴인지 검사하며, collect/grade/emit은 각각 인자를 만들어 run_machine으로 자식 프로세스를 돌린다. grade 전에는 답안이 문항지와 맞는지 validate_answers로 미리 검사한다. 모든 단계가 성공했는데 아직 답안 파일이 없으면(human_gate_open) 빈 답안 기입란(answer-sheet.json)을 만들고 안내 문구(gate_notice)를 준비한다. 끝나면 format_run으로 측정 결과와 안내를 출력하고, --json이면 파일로도 남긴다.</does>
     <uses to="runner.run_mode1_5.plan_stages" kind="dependency" label="산출물 존재 여부로 돌릴 단계를 정한다" where="runner/run_mode1_5.py:677"/>
@@ -2689,7 +2689,7 @@
     <means>지금까지 어떤 산출물 파일이 있는지를 보고 collect/author/grade/emit 네 단계 중 실제로 돌려야 할 것만 골라 순서대로 담은 목록을 만들어주는 함수다.</means>
     <does>has_candidates/has_questions/has_answers 세 bool 과 only/skip 이름 목록을 받는다. only 나 skip 에 STAGES(고정된 4단계 이름)에 없는 이름이 있으면 ValueError 를 던진다. only 가 있으면 그 안의 단계만 STAGES 순서로 골라 돌려준다. 없으면 STAGES 를 순회하며 skip 에 있는 단계, 후보 파일이 있으면 collect, 문항지가 있으면 author, 답안이 없으면 grade/emit 을 건너뛰고 나머지를 리스트로 낸다.</does>
   </term>
-  <term id="runner.run_mode1_5.run_machine" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:498" source="reading">
+  <term id="runner.run_mode1_5.run_machine" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:474" source="reading">
     <means>기계 단계 하나(collect/grade/emit 등)를 실제로 실행시키는 함수다.</means>
     <does>M.Heartbeat 로 진행 중임을 60초마다 표시하면서, 주어진 명령줄(argv)을 cwd 폴더에서 subprocess.run 으로 실행하고, 그 프로세스의 종료 코드를 반환한다. cwd 를 반드시 지정해야 하는 이유는 runner/term/*.mjs 스크립트들이 산출 파일을 항상 현재 작업 폴더에 쓰기 때문이다.</does>
     <uses to="runner.run_mode1.Heartbeat" kind="dependency" label="run_mode1.py 의 Heartbeat 클래스로 진행 중 표시를 한다" where="runner/run_mode1_5.py:612"/>
@@ -2702,7 +2702,7 @@
     <means>코드베이스 용어 사전에서 뽑힌 known 용어 중에서, 이번 시험에 출제되지도 않고 '제외 이유'로도 안 적힌 채 조용히 빠진 용어들의 이름을 찾아주는 함수다.</means>
     <does>candidates 딕셔너리에서 known 딕셔너리의 키(용어 이름)들을 모으고, doc(문항지)에서 실제 출제된 term 이름 집합(asked)과 excluded 목록의 term 이름 집합(noted)을 만든다. known 의 키 중 asked 에도 noted 에도 없는 것만 정렬해서 리스트로 돌려준다. 판정은 하지 않고 목록만 낸다.</does>
   </term>
-  <term id="runner.run_mode1_5.validate_answers" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:332" source="reading">
+  <term id="runner.run_mode1_5.validate_answers" kind="function" module="runner.run_mode1_5" where="runner/run_mode1_5.py:305" source="reading">
     <means>사람이 채운 답안지 파일이 원래 문항지와 내용이 맞는지 검사하는 함수다.</means>
     <does>answer_sheet 로 만들어진 sheet 의 questions 배열이 리스트인지 확인하고, 각 답안의 QNum 이 정수인지, 중복되지 않는지 검사한다. 문항지(flatten_questions 결과)와 답안을 번호로 대조해 용어·질문 문구가 일치하는지, UserAns 가 비어있지 않고 1~보기수 범위인지 확인하며, 불일치·누락·초과 항목을 문자열 메시지 목록으로 모아 반환한다.</does>
     <uses to="runner.run_mode1_5.flatten_questions" kind="dependency" label="flatten_questions 로 정답이 있는 원본 문항 목록을 얻는다" where="runner/run_mode1_5.py:341"/>
@@ -2779,6 +2779,42 @@
     <does>stage 가 STAGES 목록에 없으면 ValueError 를 낸다. stage 가 PROJECT_STAGES(init, agent)에 속하면 project 경로를, 아니면 report_dir 인자로 받은 보고서 폴더 경로를 돌려준다.</does>
     <uses to="runner.run_mode2.STAGES" kind="dependency" label="허용된 단계 이름 목록을 검사할 때 참조" where="runner/run_mode2.py:75"/>
     <uses to="runner.run_mode2.PROJECT_STAGES" kind="dependency" label="프로젝트 뿌리에서 도는 단계 집합을 참조" where="runner/run_mode2.py:82"/>
+  </term>
+  <term id="runner.term.collect.find_new_concepts" kind="function" module="runner/term/collect.py" where="runner/term/collect.py:28" source="reading">
+    <means>Plan 이 새로 만든 개념을 찾는다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.collect.pick_terms" kind="function" module="runner/term/collect.py" where="runner/term/collect.py:16" source="reading">
+    <means>코드베이스 용어 DB 중 Plan 본문에 실제로 등장하는 것만 고른다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.emit.to_study_note" kind="function" module="runner/term/emit.py" where="runner/term/emit.py:25" source="reading">
+    <means>사람이 읽는 학습 노트를 생성한다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.emit.to_terms_db" kind="function" module="runner/term/emit.py" where="runner/term/emit.py:13" source="reading">
+    <means>Mode 2 로 넘길 용어집 DB를 가공한다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.quiz.choice_number" kind="function" module="runner/term/quiz.py" where="runner/term/quiz.py:49" source="reading">
+    <means>UserAns 를 보기 번호로 읽는다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.quiz.flatten_questions" kind="function" module="runner/term/quiz.py" where="runner/term/quiz.py:18" source="reading">
+    <means>중첩된 문항지를 한 줄로 펴고 QNum 을 1부터 매긴다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.quiz.grade_all" kind="function" module="runner/term/quiz.py" where="runner/term/quiz.py:154" source="reading">
+    <means>답안 전체를 채점한다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.quiz.grade_one" kind="function" module="runner/term/quiz.py" where="runner/term/quiz.py:137" source="reading">
+    <means>한 용어의 답안을 채점한다.</means>
+    <does>파이썬으로 포팅됨.</does>
+  </term>
+  <term id="runner.term.quiz.tally_sheet" kind="function" module="runner/term/quiz.py" where="runner/term/quiz.py:62" source="reading">
+    <means>채운 기입란을 문항지와 대조해 용어마다 맞힌 수를 센다.</means>
+    <does>파이썬으로 포팅됨.</does>
   </term>
   <term id="runner.test_run_mode1._shard" kind="function" module="runner.test_run_mode1" where="runner/test_run_mode1.py:641" source="reading">
     <means>테스트용 임시 폴더 안에 샤드(shard) JSON 파일 하나를 만들어 주는 도우미 함수다.</means>
@@ -3407,7 +3443,7 @@
     <uses to="runner.run_mode1_5.answer_sheet" kind="dependency" label="answer_sheet 로 기입란을 만든다" where="runner/test_run_mode1_5.py:356"/>
     <uses to="runner.test_run_mode1_5.good_doc" kind="dependency" label="good_doc 으로 정상 문서를 만든다" where="runner/test_run_mode1_5.py:356"/>
   </term>
-  <term id="runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_mjs_reads" kind="function" module="runner.test_run_mode1_5" where="runner/test_run_mode1_5.py:362" source="reading">
+  <term id="runner.test_run_mode1_5.test_the_answer_sheet_matches_the_shape_quiz_py_reads" kind="function" module="runner.test_run_mode1_5" where="runner/test_run_mode1_5.py:362" source="reading">
     <means>기입란 레코드의 모양이 quiz.mjs 가 기대하는 열쇠 집합과 똑같은지 확인하는 시험 함수다.</means>
     <does>R.answer_sheet(good_doc()) 의 모든 문항 레코드를 돌며 그 키 집합이 {QNum, Term, Question, AnsChoices, UserAns} 다섯 개와 정확히 같은지 확인한다. 이는 runner/term/quiz.mjs 의 tallySheet 가 읽는 모양과 맞춰야 한다는 주석에서 나온다.</does>
     <uses to="runner.run_mode1_5.answer_sheet" kind="dependency" label="answer_sheet 로 기입란을 만든다" where="runner/test_run_mode1_5.py:364"/>
@@ -3704,22 +3740,22 @@
   <term id="tables.tsx" kind="file" module="viz/src/components" where="viz/src/components/tables.tsx:1" source="reading">
     <means>결정 표 · 옵션 표 · 정본 대조 표 세 조각이 있는 파일.</means>
   </term>
-  <term id="term-candidates.json" kind="artifact" module="runner/term" where="runner/term/collect.mjs:66" source="reading">
+  <term id="term-candidates.json" kind="artifact" module="runner/term" where="runner/term/collect.py:70" source="reading">
     <means>collect 단계가 낸 용어 후보 목록 파일.</means>
   </term>
-  <term id="term-grades.json" kind="artifact" module="runner/term" where="runner/term/quiz.mjs:197" source="reading">
+  <term id="term-grades.json" kind="artifact" module="runner/term" where="runner/term/quiz.py:194" source="reading">
     <means>채점 결과 파일. 확실 · 애매 · 모름 세 갈래로 나뉜다.</means>
   </term>
   <term id="term-graph.ts" kind="file" module="viz/src/runtime" where="viz/src/runtime/term-graph.ts:1" source="reading">
     <means>용어 관계 그물을 브라우저에서 그리는 코드. src 에서 유일하게 산출물에 실린다.</means>
   </term>
-  <term id="term-study-note.md" kind="artifact" module="runner/term" where="runner/term/emit.mjs:57" source="reading">
+  <term id="term-study-note.md" kind="artifact" module="runner/term" where="runner/term/emit.py:68" source="reading">
     <means>사람이 읽고 공부하는 학습 노트 파일. 모름 · 애매만 싣는다.</means>
   </term>
   <term id="terms-db.json" kind="artifact" module="machine" where="machine/terms_db.py:482" source="reading">
     <means>코드베이스 용어 전수 사전 파일. Mode 1.5 collect 의 재료가 된다.</means>
   </term>
-  <term id="terms.json" kind="artifact" module="runner/term" where="runner/term/emit.mjs:54" source="reading">
+  <term id="terms.json" kind="artifact" module="runner/term" where="runner/term/emit.py:64" source="reading">
     <means>Mode 2 로 넘길 용어집 DB 파일. TermMeans · UserMentalValue 필드로 객관적 정답과 주관적 이해도를 가른다.</means>
   </term>
   <term id="terms.tsx" kind="file" module="viz/src/components" where="viz/src/components/terms.tsx:1" source="reading">

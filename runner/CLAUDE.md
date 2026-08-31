@@ -14,7 +14,7 @@
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
-| `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. **아직 `.mjs` 다** |
+| `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
 
 **`bin/` 은 왜 여기 없나.** `~/.zshrc` 가 `$REPO_ROOT/bin` 을 PATH 에 넣으므로 **옮기면 셸이 깨진다.**
 성격은 러너축이지만 자리는 뿌리에 고정이다.
@@ -22,13 +22,12 @@
 ## 두 방향의 자식 프로세스 — 순환이 아니다
 
 ```
-bin/*  →  dispatch.py  →  viz/*.py · runner/wiki/*.py · runner/term/*.mjs(아직 JS)
+bin/*  →  dispatch.py  →  viz/*.py · runner/wiki/*.py · runner/term/*.py
 run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는 방향)
               →  python machine/*.py
 ```
 
 **`dispatch.py` 는 확장자를 보고 해석기를 고른다** — `.py` 면 python, 아니면 node.
-`runner/term/*.mjs` 셋이 아직 JS 라 이 갈림이 필요하다.
 
 **Why — 서로 부르는데 왜 순환이 아닌가.** 파이썬 실행기가 최상위 오케스트레이터이고 얼갈이는
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로

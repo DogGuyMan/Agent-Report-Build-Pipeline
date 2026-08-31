@@ -911,7 +911,7 @@ def test_every_runner_script_path_actually_exists() -> None:
     for script in ("prep.py", "build.py", "check.py"):
         p = R.wiki_argv(sys.executable, root, script, "/대상")[1]
         assert os.path.isfile(p), f"Mode 1 이 없는 파일을 가리킨다: {p}"
-    for name in ("collect.mjs", "emit.mjs", "quiz.mjs"):
+    for name in ("collect.py", "emit.py", "quiz.py"):
         # 이 시험만 모듈 전용 헬퍼를 들여다본다 — 경로가 실재하는지 보는 것이 목적이고
         # 그 경로를 만드는 곳이 여기뿐이다. 공개로 올리면 계약에 없는 이름이 는다.
         p = R15._term_script(root, name)  # pyright: ignore[reportPrivateUsage]

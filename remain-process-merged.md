@@ -5,13 +5,25 @@
 
 ---
 
+## 🔴 0. 지금 빨간 게이트 하나
+
+- [ ] **`runner/README.md` 표류 — `tools/test_gen_readme.py::test_readme_is_not_stale` 실패.**
+      🔵 `runner/term/collect.py` · `quiz.py` 가 새로 생겼는데 README 를 다시 내지 않았다.
+      아래 §5 의 `runner/term` 포팅과 같은 뿌리다. 포팅을 마치고 함께 내는 편이 낫다.
+      ```
+      .venv/bin/python tools/gen_readme.py machine runner viz tools
+      ```
+      나머지 게이트 여섯은 초록이다(🔵 `pytest` 465 통과 · 19 건너뜀 · 1 실패는 위 건).
+
+---
+
 ## 🏗️ 1. 심볼 파악 파이프라인 — Plan Task 미완
 
 `docs/superpowers/plans/2026-08-30-symbol-resolution-survey.md` 기준.
 
 - [ ] **Task 1:** `survey_plan.py` 가 `depends_on` 을 id 가 아니라 **이름**으로 내도록 수정.
-      🔵 아직 id 다 — `machine/survey_plan.py` 의 `layers[].batches[].symbols[].depends_on` 이
-      `edges` 의 목적지 **심볼 id** 를 그대로 담는다.
+      🔵 아직 id 다 — `machine/survey_plan.py:223` 의 `depends_on` 이 `edges` 의 목적지
+      **심볼 id** 를 그대로 담는다.
 - [ ] **Task 2:** `dep_excerpt` 회귀 시험 추가 (id ≠ name 픽스처).
       `dep_excerpt` 는 `runner/run_mode1.py` 에 있고 시험은 `runner/test_run_mode1.py` 에 있다.
 - [ ] **Task 3:** `resolve_target()` 조상 rollup 사다리 구현.
@@ -28,8 +40,9 @@
 
 ## 🧪 2. Mode 1.5 · Mode 2 실행 — 사람 칸에서 멈춰 있다
 
-- [ ] **Mode 1.5 잔여 단계.** `out/mode1_5/symbol-resolution/` 에 `questions.json` 과
-      `term-candidates.json` 은 있고 **`answers.json` 이 없다.** 문답이 안 끝났다.
+- [ ] **Mode 1.5 잔여 단계.** 🔵 `out/mode1_5/symbol-resolution/` 에 `questions.json` ·
+      `answer-sheet.json` · `term-candidates.json` 은 있고 **`answers.json` 이 없다.**
+      기입란은 깔렸는데 답이 안 채워졌다.
   - 문답 진행 → `answers.json`
   - `report-term grade` → `term-grades.json`
   - `report-term emit` → `terms.json` · `term-study-note.md`
@@ -63,8 +76,9 @@
 - [ ] **`findNewConcepts` 오탐.** `runner/term/collect.mjs` 의
       `/\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b/g` 가 `C10` · `C11` 같은 **단순 인용 id** 를 신규 개념으로
       분류한다. `D\d` 만 예외라 `C` · `K` · `B` 계열은 그대로 걸린다.
-      ⚠ **쌍이 이제 언어가 다르다** — 같은 세 꼴을 `viz/check.py` 의 `undefinedTerms`
-      (`TERM_PATTERNS`) 도 쓴다. 한쪽만 고치면 조용히 어긋난다. **둘 다 고쳐야 한다.**
+      ⚠ **쌍이 이제 셋으로 늘었다** — 같은 세 꼴을 `viz/check.py` 의 `undefinedTerms`
+      (`TERM_PATTERNS`) 와 새로 생긴 `runner/term/collect.py` 도 쓴다. 하나만 고치면 조용히
+      어긋난다. **셋을 함께 고쳐야 한다.**
 
 - [ ] **Mode 1 층3 토큰 폭증 — 원인 미상.**
       근거 `evals/runs/2026-08-30-mode1-qtvisionedit-cold-sonnet.json` 층별 합산:
@@ -90,7 +104,18 @@
 
 ## ⚠ 5. Node → Python 포팅이 남긴 것
 
-게이트는 전부 초록이지만 아래 셋은 **안 됐다.**
+- [ ] **`runner/term` 포팅이 절반에서 멈춰 있다.** 🔵 지금 자리:
+
+      | 파일 | JS | PY | 배선 |
+      |---|---|---|---|
+      | `collect` | 있음 | 있음(69줄) | ⚠ `bin/report-term:17` 은 **아직 `.mjs`** |
+      | `quiz` | 있음 | 있음(172줄) | ⚠ `bin/report-term:18` 은 **아직 `.mjs`** |
+      | `emit` | 있음 | **없다** | `.mjs` |
+
+      `.py` 둘은 `if __name__ == "__main__"` 가드까지 있는데 **아무도 부르지 않는다.**
+      끝내려면 `emit.py` 를 쓰고 `bin/report-term` 의 표 세 줄을 `.py` 로 바꾸고 `.mjs` 셋을 지운다.
+      그러면 `runner/dispatch.py:32` 의 확장자 갈림(node 갈래)도 지울 수 있다.
+      ⚠ 지금은 `.mjs` 와 `.py` 가 **같은 로직을 두 벌 갖고 있다** — 한쪽만 고치면 어긋난다.
 
 - [ ] **시험 커버리지 48건 소실.** 포팅이 옮기지 않은 시험이다. 그물이 성글어졌다.
 
@@ -105,10 +130,6 @@
       `components` 는 `.tmp/lib.mjs` 를 node 자식 프로세스로 렌더해 확인하는 꼴이 이미 있어
       되살릴 수 있다. **되살릴지, 어느 것부터 할지는 사용자 결정이다.**
 
-- [ ] **`runner/term/*.mjs` 셋이 아직 JS 다.** `collect.mjs` · `quiz.mjs` · `emit.mjs`.
-      `runner/dispatch.py` 가 확장자를 보고 node 로 띄우는 갈림이 **이것 때문에** 필요하다.
-      옮기면 그 갈림도 지울 수 있다.
-
 - [ ] **`DOC_DIRS` 중복이 남을 이유가 사라졌다.** `viz/init.py` 와 `runner/run_mode2.py` 두 곳에
       사는 근거는 **"언어가 달라 한 곳에 못 모은다"** 였는데 이제 둘 다 파이썬이다.
       합칠 수 있게 됐지만 합치지 않았다 — 구조 변경이라 사용자 결정 대상이다.
@@ -121,6 +142,13 @@
 - [ ] **`~/.claude/skills/term-benchmark/SKILL.md` 가 없어진 `author` 단계를 설명한다.**
       🔵 두 곳 — 54줄 "단계는 `collect → author → grade → emit` 넷이고", 235줄
       "`run_mode1_5.py` 가 `author` 단계에서 모형을 부르는 것은…".
-      실제 단계는 `collect → [사람] → grade → emit` 셋이다(2026-08-31 `927684f` 에서 제거).
+      실제 단계는 `collect → [사람] → grade → emit` 셋이다(`927684f` 에서 제거).
       머리말의 두 층 설명과 Common pitfalls 의 층 구분 3줄도 함께 봐야 한다.
       ⚠ 위 §3 의 "심볼릭 링크로 바꿀지" 와 얽힌다 — 홈 사본을 고쳐도 저장소 원본과 다시 갈린다.
+
+---
+
+## 🗒 이 문서를 다루는 법
+
+**이 파일은 git 이 추적한다.** 손으로 되돌리거나 `git checkout` 하면 갱신분이 통째로 사라진다
+(🔵 2026-08-31 에 한 번 그랬다). 고쳤으면 커밋하거나, 커밋하지 않을 거면 사본을 따로 둔다.

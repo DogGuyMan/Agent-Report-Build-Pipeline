@@ -174,7 +174,7 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 💭 왜 사람을 모형으로 대신할 수 없나 — 이 도구가 재려는 값 자체가 *사람의* 이해도라서다. 모형에게
 답을 시키면 재는 대상이 바뀐다. 이 논거는 `runner/run_mode1_5.py` 머리 주석에 적혀 있다.
 
-한 용어당 문항은 3개로 고정이며 채점 구간도 상수다 (`runner/term/quiz.mjs:12`). CLI 는 사람에게 묻지 않는다 —
+한 용어당 문항은 3개로 고정이며 채점 구간도 상수다 (`runner/term/quiz.py:12`). CLI 는 사람에게 묻지 않는다 —
 묻는 절차는 `term-benchmark` 스킬의 일이다.
 
 ---
@@ -345,11 +345,11 @@ graph LR
 | `out/codegraph-raw/codegraph.json`              | `machine/normalize.py` (`runner/wiki/prep.py:131`) | `facts.py` · `render_modules.py` · `terms_db.py` · `verify_citations.py` |
 | `out/codegraph-raw/facts/*.md` · `ranking.json` | `machine/facts.py` (`runner/wiki/prep.py:135`)     | LLM 이 프롬프트로 받는다                                                          |
 | `machine/terms-reading.json`             | LLM (`agent` 단계)                                       | `machine/terms_db.py`                                                  |
-| `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `runner/term/collect.mjs`                                               |
-| `term-candidates.json`                          | `runner/term/collect.mjs:26` · `:45`                  | 사람 / 출제 모형                                                               |
-| `answers.json`                                  | **사람**                                                 | `runner/term/quiz.mjs:38`                                               |
-| `term-grades.json`                              | `runner/term/quiz.mjs`                                | `runner/term/emit.mjs`                                                  |
-| `terms.json` · `term-study-note.md`             | `runner/term/emit.mjs:18` · `:33`                     | 사람. Mode 2 의 `data.ts` 로 **손으로** 옮긴다                                     |
+| `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `runner/term/collect.py`                                               |
+| `term-candidates.json`                          | `runner/term/collect.py:26` · `:45`                  | 사람 / 출제 모형                                                               |
+| `answers.json`                                  | **사람**                                                 | `runner/term/quiz.py:1742`                                               |
+| `term-grades.json`                              | `runner/term/quiz.py`                                | `runner/term/emit.py`                                                  |
+| `terms.json` · `term-study-note.md`             | `runner/term/emit.py:18` · `:33`                     | 사람. Mode 2 의 `data.ts` 로 **손으로** 옮긴다                                     |
 | `specs/<slug>/data.ts`                          | `viz/init.py` 가 뼈대, LLM 이 본문                      | `viz/build.py` · `viz/check.py`                                |
 | `specs/<slug>/out/report.html`                  | `viz/build.py:152`                                | 사람                                                                       |
 
@@ -462,7 +462,7 @@ sequenceDiagram
 | -------------------------------- | --------------------------------------------------------------------------- |
 | 산출물에 `<script>` 를 하나 더 넣기        | 예산이 다 찼다. 새 런타임 코드는 기존 번들 안에 합쳐야 한다 (`viz/build.py:117`)               |
 | 도구가 수용/보류/번복을 판정하기               | 판정은 사람 몫이다. `VerdictFooter` 는 비워서 낸다 (`viz/src/components/VerdictFooter.tsx:9`) |
-| CLI 가 사람에게 되묻기                   | 묻는 절차는 스킬의 일이다 (`runner/term/quiz.mjs:6`)                                  |
+| CLI 가 사람에게 되묻기                   | 묻는 절차는 스킬의 일이다 (`runner/term/quiz.py:174`)                                  |
 | `terms.json` 을 `data.ts` 로 자동 병합 | 옮기면서 뜻을 다듬는 것이 그 단계의 일 (`viz/init.py:107`)                             |
 | 컴포넌트의 props 를 없애거나 뜻을 바꾸기        | 추가만 한다. API 가 바뀌면 태그를 올린다                                                   |
 | 코드에 절대경로를 박기                     | 파이썬은 `tools/python.py:43`, 바깥 명령은 PATH 로 찾는다                             |

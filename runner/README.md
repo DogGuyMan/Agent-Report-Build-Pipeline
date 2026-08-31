@@ -12,6 +12,10 @@
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
 | [`run_mode2.py`](run_mode2.py) | Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
+| [`__init__.py`](__init__.py) | — |
+| [`collect.py`](collect.py) | — |
+| [`emit.py`](emit.py) | — |
+| [`quiz.py`](quiz.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
 | [`test_run_mode2.py`](test_run_mode2.py) | Mode 2 실행기의 회귀 시험. |
@@ -99,14 +103,12 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: dict[str, Any] \| None) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
 | `validate_questions` | `(doc: dict[str, Any] \| None) -> list[str]` | `questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록). |
 | `unasked_known` | `(candidates: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다. |
-| `flatten_questions` | `(doc: dict[str, Any] \| None) -> list[tuple[int, str, dict[str, Any]]]` | 중첩된 문항지를 한 줄로 펴고 `QNum` 을 1부터 매긴다. `(번호, 용어, 문항)` 목록. |
 | `answer_sheet` | `(doc: dict[str, Any] \| None) -> dict[str, Any]` | `questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다. |
-| `choice_number` | `(value: object) -> int \| None` | `UserAns` 를 보기 번호로 읽는다. 못 읽으면 `None`. |
 | `validate_answers` | `(sheet: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록). |
 | `_term_script` | `(root: str, name: str) -> str` | `runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다. |
-| `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.mjs` 명령줄. node 는 PATH 에서 찾는다. |
-| `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
-| `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.mjs` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
+| `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.py` 명령줄. node 는 PATH 에서 찾는다. |
+| `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
+| `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
 | `_read_json` | `(path: str) -> Any` | 있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다. |
@@ -133,6 +135,43 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `_read` | `(path: str) -> str \| None` | 파일을 읽어 문자열로. 없으면 `None` — 순수 함수에 존재 여부를 떠넘기지 않는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
+
+---
+
+## `collect.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `escape_re` | `(s: str) -> str` |  |
+| `pick_terms` | `(db: dict[str, Any], plan_text: str) -> dict[str, Any]` |  |
+| `find_new_concepts` | `(db: dict[str, Any], plan_text: str) -> list[str]` |  |
+
+---
+
+## `emit.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `to_terms_db` | `(graded: dict[str, dict[str, Any]]) -> dict[str, dict[str, str]]` |  |
+| `to_study_note` | `(graded: dict[str, dict[str, Any]]) -> str` |  |
+
+---
+
+## `quiz.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `flatten_questions` | `(doc: dict[str, Any]) -> list[dict[str, Any]]` |  |
+| `choice_number` | `(value: Any) -> int \| None` |  |
+| `tally_sheet` | `(sheet: dict[str, Any], doc: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]` |  |
+| `grade_one` | `(counts: dict[str, Any]) -> dict[str, Any]` |  |
+| `grade_all` | `(answers: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]` |  |
 
 ---
 
@@ -257,8 +296,8 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_the_answer_sheet_carries_the_term_on_every_question` | `()` | 채점 단위가 문항이 아니라 **용어**다. `Term` 이 없으면 되짚을 수가 없다. |
 | `test_the_answer_sheet_numbers_the_choices_from_one_and_ends_with_dont_know` | `()` | 사람이 적는 번호는 1부터다. 문항지의 `answer` 는 0부터라 자리가 하나 어긋난다. |
 | `test_the_answer_sheet_leaves_the_user_column_empty` | `()` | 사람이 채울 자리는 비워서 낸다. 미리 채우면 안 푼 것이 답으로 실린다. |
-| `test_the_answer_sheet_matches_the_shape_quiz_mjs_reads` | `()` | `runner/term/quiz.mjs` 의 `tallySheet` 가 읽는 열쇠 그대로여야 한다. |
-| `test_flatten_keeps_the_order_the_sheet_was_built_in` | `()` | 번호 규칙이 파이썬과 `quiz.mjs` 두 곳에 산다. 여기서 한 번 못 박아 둔다. |
+| `test_the_answer_sheet_matches_the_shape_quiz_py_reads` | `()` | `runner/term/quiz.py` 의 `tallySheet` 가 읽는 열쇠 그대로여야 한다. |
+| `test_flatten_keeps_the_order_the_sheet_was_built_in` | `()` | 번호 규칙이 파이썬과 `quiz.py` 두 곳에 산다. 여기서 한 번 못 박아 둔다. |
 | `test_a_fully_filled_sheet_has_no_complaints` | `()` |  |
 | `test_choosing_dont_know_is_a_valid_answer` | `()` | "모르겠다" 는 답을 안 쓴 것이 아니라 고른 것이다. |
 | `test_a_blank_user_answer_is_caught` | `()` | **안 푼 것과 모르는 것은 다르다.** 자동으로 "모르겠다" 로 메우지 않는다. |
