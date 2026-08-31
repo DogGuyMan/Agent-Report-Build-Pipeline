@@ -1,8 +1,10 @@
+# <include file="machine/comments.xml" path="//term[@id='viz/build.py']"/>
+# 보고서 원고를 하나짜리 HTML 파일로 굽는 스크립트.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 import subprocess
 import json
-import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -31,7 +33,9 @@ def main() -> None:
         "--external:react", "--external:react-dom", "--external:react/jsx-runtime", "--external:react-dom/server",
         f"--alias:report-builder={os.path.join(ROOT, 'viz/src/index.ts')}",
         f"--alias:report-builder/types={os.path.join(ROOT, 'viz/src/types.ts')}",
-        f"--alias:report-builder/svg={os.path.join(ROOT, 'viz/svg.py')}", # We use python but JS will just ignore or crash? Wait, report-builder/svg is only used if imported.
+        # report.tsx 가 import 하는 자리라 esbuild 가 번들 시점에 읽는다.
+        # 파이썬으로 옮기면 esbuild 가 파싱하지 못한다 — 여기는 JavaScript 로 남는다.
+        f"--alias:report-builder/svg={os.path.join(ROOT, 'viz/svg.mjs')}",
         f"--outfile={tmp_mjs}",
     ], cwd=cwd, input='export { default, data } from "./report.tsx";\nexport { defineTerms } from "report-builder";', text=True)
     
@@ -41,7 +45,7 @@ def main() -> None:
         
     # 2. Run Node to render to static markup
     render_script = f"""
-    import mod from 'file://{tmp_mjs}';
+    import * as mod from 'file://{tmp_mjs}';
     import {{ renderToStaticMarkup }} from 'react-dom/server';
     import {{ createElement }} from 'react';
     
@@ -60,7 +64,9 @@ def main() -> None:
         f.write(render_script)
         
     try:
-        res = subprocess.run(["node", tmp_render], cwd=ROOT, capture_output=True, text=True)
+        # 렌더 프로세스의 cwd 는 **보고서 폴더**여야 한다 — report.tsx 가 before.svg 같은
+        # 곁 파일을 상대 경로로 읽는다. 임시 파일 자체는 ROOT 안에 있어 react 는 그대로 풀린다.
+        res = subprocess.run(["node", tmp_render], cwd=cwd, capture_output=True, text=True)
         if res.returncode != 0:
             print("Render failed:", res.stderr, file=sys.stderr)
             sys.exit(res.returncode)
@@ -94,8 +100,10 @@ def main() -> None:
         bases.extend(data["linkRoots"])
     bases.extend([repoRoot, os.path.join(repoRoot, "out/codegraph-raw")])
     
-    missed = set()
-    def on_miss(p): missed.add(p)
+    missed: set[str] = set()
+
+    def on_miss(p: str) -> None:
+        missed.add(p)
     resolve = makeResolver(bases, repoRoot, buildIndex(repoRoot))
     body = linkPaths(body, resolve, on_miss)
     
