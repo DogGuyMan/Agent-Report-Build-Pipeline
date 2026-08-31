@@ -353,7 +353,7 @@ def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, st
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.claude_argv']"/>
 # 헤드리스 claude 명령을 부를 명령줄 인자 리스트를 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_agent_with, runner.run_mode1.run_lang_select, runner.run_mode1_5.author_argv, runner.test_run_mode1.test_claude_argv_does_not_pass_the_prompt_on_the_command_line, runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model (+1)
+# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_agent_with, runner.run_mode1.run_lang_select, runner.test_run_mode1.test_claude_argv_does_not_pass_the_prompt_on_the_command_line, runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model, runner.test_run_mode2.test_the_prompt_is_not_passed_on_the_command_line
 # ── 4. 에이전트 호출 ────────────────────────────────────────────────────
 def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
     """헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
@@ -812,7 +812,7 @@ def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.Heartbeat']"/>
 # 오래 걸리는 단계가 도는 동안 얼마나 시간이 지났는지 주기적으로 화면에 알려주는 도구 클래스다.
-# 쓰는 것: runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.run_machine, runner.run_mode1.run_survey, runner.run_mode1_5.run_author, runner.run_mode1_5.run_machine, runner.run_mode2.run_machine
+# 쓰는 것: runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.run_machine, runner.run_mode1.run_survey, runner.run_mode1_5.run_machine, runner.run_mode2.run_machine
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 class Heartbeat:
     """오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다.

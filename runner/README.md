@@ -75,7 +75,7 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다. |
-| `plan_stages` | `(has_candidates: bool, has_questions: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
+| `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `human_gate_open` | `(has_answers: bool) -> bool` | 사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다. |
 | `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: dict[str, Any] \| None) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
 | `validate_questions` | `(doc: dict[str, Any] \| None) -> list[str]` | `questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록). |
@@ -88,13 +88,10 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.mjs` 명령줄. node 는 PATH 에서 찾는다. |
 | `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.mjs` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
 | `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.mjs` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
-| `author_argv` | `(model: str, workdir: str, root: str, plan: str) -> list[str]` | 출제 세션의 헤드리스 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다. |
-| `author_prompt` | `(workdir: str, root: str, plan: str) -> str` | 한 세션이 할 일 전부. **용어 보충과 출제를 둘 다** 여기서 시킨다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
 | `_read_json` | `(path: str) -> Any` | 있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다. |
-| `run_author` | `(model: str, workdir: str, root: str, plan: str, timeout: float \| None = None) -> tuple[int, M.AgentResult \| None]` | 출제 세션을 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
@@ -105,15 +102,15 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `report_dir` | `(project: str, slug: str) -> str` | 보고서가 사는 폴더. 프로젝트 뿌리 아래 `specs/<slug>/` 다. |
+| `report_dir` | `(project: str, slug: str, doc_dir: str = 'specs') -> str` | 보고서가 사는 폴더. **원본 문서 옆**이다 — `specs/<slug>/` 또는 `plans/<slug>/`. |
 | `stage_cwd` | `(stage: str, project: str, report_dir: str) -> str` | 단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.** |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_manuscript: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `manuscript_is_written` | `(data_source: str \| None, report_source: str \| None) -> bool` | 원고가 이미 채워졌는가. 뼈대와 채워진 글을 **글자로** 가른다. |
-| `find_spec` | `(filenames: Iterable[str], slug: str) -> dict[str, str] \| None` | 설계 문서 파일 목록에서 이 slug 의 것을 찾는다. 없으면 `None`. |
+| `find_spec` | `(filenames: Iterable[str], slug: str, doc_dir: str = 'specs') -> dict[str, str] \| None` | 한 자리의 파일 목록에서 이 slug 의 원본 문서를 찾는다. 없으면 `None`. |
 | `script_argv` | `(root: str, stage: str, slug: str) -> list[str]` | `viz/<단계>.mjs` 하나를 부른다. node 는 PATH 에서 찾는다. |
-| `agent_prompt` | `(project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None) -> str` | 원고를 쓰는 한 세션이 할 일 전부. |
-| `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None) -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
+| `agent_prompt` | `(project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, doc_dir: str = 'specs') -> str` | 원고를 쓰는 한 세션이 할 일 전부. |
+| `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None, doc_dir: str = 'specs') -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `_read` | `(path: str) -> str \| None` | 파일을 읽어 문자열로. 없으면 `None` — 순수 함수에 존재 여부를 떠넘기지 않는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
@@ -212,11 +209,11 @@ Mode 1.5 실행기의 회귀 시험.
 |---|---|---|
 | `one_question` | `(ask: str = 'PageRank 는 무엇을 하는가?', answer: int = 0) -> dict[str, Any]` | 검사를 통과하는 문항 하나. 시험마다 한 군데씩만 망가뜨려 쓴다. |
 | `good_doc` | `() -> dict[str, Any]` | 정상 `questions.json` 한 장. 용어 하나 · 문항 셋. |
-| `test_a_fresh_run_stops_before_grading` | `()` | 아무것도 없으면 모으고 출제하고 **거기서 끝난다.** 답안은 사람이 쓴다. |
+| `test_a_fresh_run_stops_before_grading` | `()` | 아무것도 없으면 모으고 **거기서 끝난다.** 출제도 답안도 사람 쪽 일이다. |
 | `test_grading_only_starts_once_a_human_answered` | `()` | 답안이 생긴 뒤에야 채점과 산출이 붙는다. |
-| `test_only_one_stage_calls_the_model` | `()` | 모형을 부르는 자리는 `author` **하나**다. 보충과 출제를 한 세션에서 이어 한다. |
+| `test_no_stage_calls_the_model` | `()` | **이 실행기는 모형을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다. |
 | `test_collect_is_skipped_when_candidates_already_exist` | `()` | 다시 모으면 앞 실행이 쌓은 후보 파일을 덮어쓴다. |
-| `test_authoring_is_skipped_when_questions_already_exist` | `()` | 문항을 다시 내면 사람이 이미 푼 시험과 어긋난다. 돈도 두 번 든다. |
+| `test_nothing_runs_while_the_human_turn_is_open` | `()` | 후보는 있고 답안은 없는 자리가 사람 차례다 — 돌릴 기계 단계가 없다. |
 | `test_only_and_skip_are_honoured` | `()` |  |
 | `test_an_unknown_stage_is_rejected` | `()` |  |
 | `test_the_gate_is_open_until_a_human_writes_answers` | `()` | `claude -p` 는 되물을 수 없다. 답안이 없으면 멈추는 것 말고 할 일이 없다. |
@@ -254,10 +251,6 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_a_sheet_whose_terms_drifted_is_caught` | `()` | **번호 규칙이 두 언어에 살아서 필요한 검사다.** |
 | `test_a_sheet_whose_question_text_drifted_is_caught` | `()` |  |
 | `test_the_old_count_shaped_answers_file_is_rejected` | `()` | 옛 꼴(`{용어: {correct, dontKnow}}`)을 주면 조용히 0점이 아니라 거부한다. |
-| `test_author_argv_is_headless_json_and_opens_every_folder_it_reads` | `()` |  |
-| `test_author_argv_does_not_repeat_a_folder` | `()` | 계획서가 작업 폴더 안에 있으면 같은 폴더가 두 번 열린다. |
-| `test_the_prompt_carries_the_two_jobs_and_the_whole_question_discipline` | `()` | 보충(3단계)과 출제(5단계)를 한 세션에서 이어 하고, 출제 규율을 다 싣는다. |
-| `test_the_prompt_forbids_asking_the_human` | `()` | 헤드리스 세션은 되물을 수 없다. 되물으려 하면 그대로 막힌다. |
 | `test_collect_argv_names_the_plan_and_the_term_database` | `()` |  |
 | `test_collect_argv_works_without_a_term_database` | `()` | DB 가 없으면 코드베이스 용어는 0개다 — 그래도 신규 개념은 잡힌다. |
 | `test_grade_and_emit_argv_point_at_the_right_scripts` | `()` |  |
@@ -298,6 +291,11 @@ Mode 2 실행기의 회귀 시험.
 | `test_find_spec_returns_the_date_from_the_filename` | `()` |  |
 | `test_find_spec_returns_nothing_for_an_unknown_slug` | `()` |  |
 | `test_find_spec_does_not_match_a_partial_slug` | `()` | 부분 문자열로 걸리면 엉뚱한 문서를 원본으로 삼는다. |
+| `test_doc_dirs_matches_the_javascript_side` | `()` | `viz/init.mjs` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다. |
+| `test_find_spec_reads_plans_without_the_design_suffix` | `()` | plans/ 는 `-design` 접미사가 없다. 계획서만 사는 자리라 가드가 필요 없다. |
+| `test_find_spec_keeps_the_suffix_guard_for_specs` | `()` | specs/ 에서는 접미사가 없으면 안 잡힌다 — 같은 폴더에 다른 산출물이 함께 산다. |
+| `test_find_spec_defaults_to_specs` | `()` | 자리를 안 주면 specs 다 — 옛 호출을 깨지 않는다. |
+| `test_report_dir_sits_next_to_its_source_document` | `()` | 보고서는 원본 옆에 산다. plans 문서의 보고서는 plans/<slug>/ 다. |
 | `test_script_argv_points_at_the_renderer_scripts` | `()` |  |
 | `test_only_init_takes_the_slug_on_the_command_line` | `()` | `build`·`check` 는 `cwd` 로 대상을 안다. slug 를 주면 인자를 오해한다. |
 | `_prompt` | `(project: str = '/프로젝트', slug: str = '붙임', spec_file: str = '2026-08-28-붙임-design.md', root: str = '/도구/뿌리', terms_json: str \| None = None) -> str` | `agent_prompt` 를 기본값으로 부른다. 시험마다 바꾸는 칸만 이름 인자로 준다. |

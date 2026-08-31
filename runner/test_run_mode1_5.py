@@ -57,9 +57,8 @@ def good_doc() -> dict[str, Any]:
 # 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
 # ── 1. 단계 고르기 — 파일 시스템을 보지 않는 순수 함수 ──────────────────
 def test_a_fresh_run_stops_before_grading():
-    """아무것도 없으면 모으고 출제하고 **거기서 끝난다.** 답안은 사람이 쓴다."""
-    assert R.plan_stages(has_candidates=False, has_questions=False,
-                         has_answers=False) == ["collect", "author"]
+    """아무것도 없으면 모으고 **거기서 끝난다.** 출제도 답안도 사람 쪽 일이다."""
+    assert R.plan_stages(has_candidates=False, has_answers=False) == ["collect"]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_grading_only_starts_once_a_human_answered']"/>
@@ -67,17 +66,23 @@ def test_a_fresh_run_stops_before_grading():
 # 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
 def test_grading_only_starts_once_a_human_answered():
     """답안이 생긴 뒤에야 채점과 산출이 붙는다."""
-    assert R.plan_stages(has_candidates=True, has_questions=True,
-                         has_answers=True) == ["grade", "emit"]
+    assert R.plan_stages(has_candidates=True, has_answers=True) == ["grade", "emit"]
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_only_one_stage_calls_the_model']"/>
-# 네 단계(collect, author, grade, emit) 중 실제로 LLM 을 부르는 단계가 author 하나뿐임을 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1_5.plan_stages, runner.run_mode1_5.is_agent_stage · 쓰이는 곳: 없음
-def test_only_one_stage_calls_the_model():
-    """모형을 부르는 자리는 `author` **하나**다. 보충과 출제를 한 세션에서 이어 한다."""
-    stages = R.plan_stages(False, False, True)
-    assert [s for s in stages if R.is_agent_stage(s)] == ["author"]
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_no_stage_calls_the_model']"/>
+# Mode 1.5 실행기에 모형을 부르는 단계가 하나도 없음을 못박는 시험이다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def test_no_stage_calls_the_model():
+    """**이 실행기는 모형을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다.
+
+    CLI 칸으로 되돌리면 스킬과 두 곳에서 같은 일을 하게 되고, 헤드리스 세션은
+    사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
+    """
+    for has_cand in (False, True):
+        for has_ans in (False, True):
+            stages = R.plan_stages(has_cand, has_ans)
+            assert [s for s in stages if R.is_agent_stage(s)] == []
+    assert R.AGENT_STAGES == set()
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_collect_is_skipped_when_candidates_already_exist']"/>
@@ -85,25 +90,23 @@ def test_only_one_stage_calls_the_model():
 # 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
 def test_collect_is_skipped_when_candidates_already_exist():
     """다시 모으면 앞 실행이 쌓은 후보 파일을 덮어쓴다."""
-    assert "collect" not in R.plan_stages(has_candidates=True, has_questions=False,
-                                          has_answers=False)
+    assert "collect" not in R.plan_stages(has_candidates=True, has_answers=False)
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_authoring_is_skipped_when_questions_already_exist']"/>
-# 문항이 이미 만들어져 있고 아직 답안이 없으면 아무 단계도 돌지 않는다는 것을 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
-def test_authoring_is_skipped_when_questions_already_exist():
-    """문항을 다시 내면 사람이 이미 푼 시험과 어긋난다. 돈도 두 번 든다."""
-    assert R.plan_stages(has_candidates=True, has_questions=True,
-                         has_answers=False) == []
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_nothing_runs_while_the_human_turn_is_open']"/>
+# 사람 차례가 열려 있는 동안에는 돌릴 기계 단계가 없음을 못박는 시험이다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+def test_nothing_runs_while_the_human_turn_is_open():
+    """후보는 있고 답안은 없는 자리가 사람 차례다 — 돌릴 기계 단계가 없다."""
+    assert R.plan_stages(has_candidates=True, has_answers=False) == []
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_only_and_skip_are_honoured']"/>
 # plan_stages 에 only 나 skip 옵션을 주면 그 지시가 실제로 반영되는지 확인하는 시험이다.
 # 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
 def test_only_and_skip_are_honoured():
-    assert R.plan_stages(False, False, True, only=["grade"]) == ["grade"]
-    assert "emit" not in R.plan_stages(False, False, True, skip=["emit"])
+    assert R.plan_stages(False, True, only=["grade"]) == ["grade"]
+    assert "emit" not in R.plan_stages(False, True, skip=["emit"])
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_an_unknown_stage_is_rejected']"/>
@@ -111,7 +114,7 @@ def test_only_and_skip_are_honoured():
 # 쓰는 것: runner.run_mode1_5.plan_stages · 쓰이는 곳: 없음
 def test_an_unknown_stage_is_rejected():
     with pytest.raises(ValueError):
-        R.plan_stages(False, False, False, only=["없는단계"])
+        R.plan_stages(False, False, only=["없는단계"])
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_the_gate_is_open_until_a_human_writes_answers']"/>
@@ -476,57 +479,6 @@ def test_the_old_count_shaped_answers_file_is_rejected():
     assert any("기입란" in c for c in R.validate_answers(old, good_doc()))
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_author_argv_is_headless_json_and_opens_every_folder_it_reads']"/>
-# author 단계가 헤드리스 JSON 모드로 claude 를 부르고 필요한 폴더를 다 여는지 확인하는 시험 함수다.
-# 쓰는 것: runner.run_mode1_5.author_argv · 쓰이는 곳: 없음
-# ── 6. 에이전트 호출 — 한 번, 그리고 필요한 폴더를 다 열어 준다 ─────────
-def test_author_argv_is_headless_json_and_opens_every_folder_it_reads():
-    argv = R.author_argv(model="haiku", workdir="/작업",
-                         root="/도구/뿌리", plan="/계획/plan.md")
-    assert argv[0] == "claude" and "-p" in argv
-    assert argv[argv.index("--output-format") + 1] == "json"
-    assert argv[argv.index("--model") + 1] == "haiku"
-    dirs = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
-    # 작업 폴더(후보와 산출물) · 도구 뿌리(규약) · 계획서 폴더 셋을 다 봐야 한다
-    assert "/작업" in dirs and "/도구/뿌리" in dirs and "/계획" in dirs
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_author_argv_does_not_repeat_a_folder']"/>
-# 계획서가 작업 폴더 안에 있을 때 같은 폴더를 두 번 열지 않는지 확인하는 시험 함수다.
-# 쓰는 것: runner.run_mode1_5.author_argv · 쓰이는 곳: 없음
-def test_author_argv_does_not_repeat_a_folder():
-    """계획서가 작업 폴더 안에 있으면 같은 폴더가 두 번 열린다."""
-    argv = R.author_argv(model="haiku", workdir="/작업",
-                         root="/도구/뿌리", plan="/작업/plan.md")
-    dirs = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
-    assert len(dirs) == len(set(dirs))
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_the_prompt_carries_the_two_jobs_and_the_whole_question_discipline']"/>
-# LLM 에게 주는 지시문 하나에 보충(3단계)과 출제(5단계) 두 일과 출제 규율 전부가 담겨 있는지 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1_5.author_prompt · 쓰이는 곳: 없음
-def test_the_prompt_carries_the_two_jobs_and_the_whole_question_discipline():
-    """보충(3단계)과 출제(5단계)를 한 세션에서 이어 하고, 출제 규율을 다 싣는다."""
-    p = R.author_prompt(workdir="/작업", root="/도구/뿌리", plan="/계획/plan.md")
-    assert "/작업" in p and "/계획/plan.md" in p
-    assert "term-candidates.json" in p and "questions.json" in p
-    assert "3문항" in p and "모르겠다" in p
-    assert "5개" in p                            # 보기 수를 다섯으로 못 박는다
-    assert "kind" in p and "module" in p        # 오답 보기를 어디서 가져오는가
-    assert "섞" in p                             # 보기 순서를 섞는다
-    assert "지어내" in p                          # 뜻을 지어내지 않는다
-    assert "term-answer-key.json" in p           # 정답 미정은 사람에게 넘긴다
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_the_prompt_forbids_asking_the_human']"/>
-# 헤드리스로 도는 세션이라 사람에게 되묻지 말라는 지시가 지시문에 반드시 있어야 한다는 것을 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1_5.author_prompt · 쓰이는 곳: 없음
-def test_the_prompt_forbids_asking_the_human():
-    """헤드리스 세션은 되물을 수 없다. 되물으려 하면 그대로 막힌다."""
-    p = R.author_prompt(workdir="/작업", root="/도구/뿌리", plan="/계획/plan.md")
-    assert "묻지 않는다" in p
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_collect_argv_names_the_plan_and_the_term_database']"/>
 # collect 단계 명령줄이 계획서와 용어 DB 경로를 정확히 넘기는지 확인하는 시험 함수다.
 # 쓰는 것: runner.run_mode1_5.collect_argv · 쓰이는 곳: 없음
@@ -592,7 +544,7 @@ def test_a_stage_skipped_on_resume_is_marked_as_skipped_not_failed():
 # 사람이 답안을 채워야 넘어가는 관문 문구가 보고서 끝에 붙되, 그것이 실패로 표시되지는 않는지 확인하는 시험.
 # 쓰는 것: runner.run_mode1_5.format_run · 쓰이는 곳: 없음
 def test_the_gate_is_appended_to_the_report_and_is_not_a_failure():
-    text = R.format_run([{"stage": "author", "seconds": 9.0, "ok": True, "why": "",
+    text = R.format_run([{"stage": "collect", "seconds": 9.0, "ok": True, "why": "",
                           "usage": R.M.normalize_usage(None)}],
                         skipped=[], gate="사람 차례 — answers.json 을 쓴다")
     assert "사람 차례" in text

@@ -222,10 +222,10 @@ def tracked_set(repo: str) -> set[str] | None:
         return None
     return {os.path.abspath(os.path.join(repo, f)) for f in r.stdout.split("\n") if f}
 
-
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.is_first_party']"/>
 # C++ 에서 찾아낸 타입(클래스 등) 하나가 '우리가 직접 쓴 코드'인지, 아니면 Qt·OpenCV·표준 라이브러리처럼 '남이 만든 코드'인지 참/거짓으로 가려내는 함수다.
 # 쓰는 것: machine.normalize.defines_at · 쓰이는 곳: machine.normalize.merge_clang_doc, machine.normalize.normalize_cpp, machine.test_declmap.test_first_party_accepts_tracked_global_namespace_type, machine.test_declmap.test_first_party_rejects_qt_type_seen_inside_repo, machine.test_normalize.test_first_party_accepts_nested_type (+8)
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
 def is_first_party(el: UmlIdentity, repo: str | None = None,
                    ns: tuple[str, ...] = CPP_FIRST_PARTY_NS,
                    tracked: set[str] | None = None) -> bool:
@@ -270,6 +270,8 @@ def is_first_party(el: UmlIdentity, repo: str | None = None,
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.external_group']"/>
 # 저장소 바깥(외부 라이브러리)의 C++ 타입을 어떤 그룹 이름 하나로 뭉뚱그리는 함수 (R2 규칙: 외부 하나 = 노드 하나).
 # 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
 def external_group(el: UmlElement) -> str:
     """R2 — 외부 하나 = 노드 하나. 입도는 라이브러리·서브모듈 이름이다."""
     root = (el.get("namespace") or "").split("::")[0]
@@ -293,6 +295,8 @@ STD_TRANSPARENT = {
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.is_transparent_wrapper']"/>
 # vector 나 unique_ptr 처럼 '속에 다른 타입을 담기만 하는 그릇' 타입인지 판단하는 함수 (R5 규칙: 그릇은 노드로 만들지 않고 통과시킨다).
 # 쓰는 것: machine.normalize.STD_TRANSPARENT · 쓰이는 곳: machine.normalize.normalize_cpp, machine.test_normalize.test_r5_cpp_is_list_based_not_all_std_templates, machine.test_normalize.test_r5_cpp_requires_std_namespace
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
 def is_transparent_wrapper(el: UmlElement) -> bool:
     """R5 — 컨테이너·스마트포인터는 노드로 만들지 않고 투과시킨다.
 
@@ -304,6 +308,7 @@ def is_transparent_wrapper(el: UmlElement) -> bool:
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.member_location']"/>
 # 두 타입 사이의 관계(간선)가 어느 멤버 변수 선언 때문에 생겼는지 그 위치(파일, 줄)를 찾는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
 def member_location(src_el: UmlElement | None, label: str | None) -> tuple[str | None, int | None]:
     """간선의 근거 위치. label(멤버 이름)로 members[] 를 정확히 찾는다.
 
@@ -320,18 +325,18 @@ def member_location(src_el: UmlElement | None, label: str | None) -> tuple[str |
     loc: SourceLocation = hits[0].get("source_location") or {}
     return loc.get("file"), loc.get("line")
 
-
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.node_name']"/>
 # clang-uml 요소 하나에 붙일 노드 이름을 고르는 함수.
 # 쓰는 것: 없음 · 쓰이는 곳: machine.normalize.normalize_cpp
+# ! 이거 UmlElement에 넣어도 되는 함수 아니야? 왜 자유함수.
 def node_name(el: UmlElement) -> str:
     """중첩 타입의 name 은 구분자가 :: 가 아니라 ## 이고 바깥 클래스가 namespace 에 없다."""
     return el.get("display_name") or el.get("name")
 
-
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize.doc_qualified_name']"/>
 # clang-doc 이 찾아낸 심볼(함수·클래스 등)의 완전한 이름(네임스페이스 포함)을 만드는 함수.
 # 쓰는 것: machine.clang_doc.Symbol · 쓰이는 곳: machine.normalize.merge_clang_doc
+# ! 이거 clang_doc에 넣어도 되는 함수 아니야? 왜 자유함수.
 def doc_qualified_name(sym: Symbol) -> str:
     """clang-doc 심볼의 완전 수식 이름. clang-uml 의 `display_name` 과 같은 축으로 맞춘다.
 
@@ -339,10 +344,10 @@ def doc_qualified_name(sym: Symbol) -> str:
     """
     return f"{sym['namespace']}::{sym['name']}" if sym["namespace"] else sym["name"]
 
-
 # <include file="machine/comments.xml" path="//term[@id='machine.normalize._doc_element']"/>
 # clang-doc 심볼 하나를 1차 코드 판정 함수(is_first_party)가 읽을 수 있는 모양으로 옮겨주는 함수.
 # 쓰는 것: machine.clang_doc.Symbol, machine.normalize.SourceLocation · 쓰이는 곳: machine.normalize.merge_clang_doc
+# ! 이거 Symbol에 넣어도 되는 함수 아니야? 왜 자유함수.
 def _doc_element(sym: Symbol) -> UmlIdentity:
     """clang-doc 심볼을 `is_first_party` 가 읽는 꼴로 옮긴다.
 

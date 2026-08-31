@@ -10,15 +10,18 @@
 
 ## 네 단계와 그 사이의 사람 차례
 
-    collect ──▶ author ──▶ [사람 차례] ──▶ grade ──▶ emit
-     기계        모형 1개    실행기가 멈춘다   기계      기계
+    collect ──▶ [스킬 차례] ──▶ grade ──▶ emit
+     기계        실행기가 멈춘다   기계      기계
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `collect` | Plan 본문과 코드베이스 용어 사전의 교차를 모은다 | `runner/term/collect.mjs` |
-| `author`  | **자연어 용어 보충과 출제를 한 세션에서 이어 한다** | `claude -p` 1회 |
 | `grade`   | 사람이 쓴 답안을 채점한다(확실 / 모름) | `runner/term/quiz.mjs` |
 | `emit`    | 용어집과 학습 노트를 낸다 | `runner/term/emit.mjs` |
+
+**이 실행기에는 모형을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
+스킬이 `questions.json` 을 쓰고, 실행기는 그것을 **기계로 검사**해 정답을 뺀 기입란을 깐다.
+오답 보기의 그럴듯함은 기계가 만들 수 없고, 묻는 자리에는 사람이 있어야 한다.
 
 **Mode 1 과 다른 점은 사람 자리 하나다.** 재는 것이 사람의 이해도라 사람이 답하지 않으면
 잴 것이 없고, `claude -p` 는 헤드리스라 되물을 수 없다. **그래서 실행기는 답안 파일이
@@ -36,8 +39,8 @@
 ## 재개 — 이미 있는 산출물을 보고 할 일을 정한다
 
 멈췄다 다시 돌리는 것이 정상 흐름이라 **재개가 이 실행기의 기본 동작**이다.
-후보 파일이 있으면 `collect` 를, 문항지가 있으면 `author` 를 건너뛴다. 문항을 다시
-내면 사람이 이미 푼 시험과 어긋나므로 건너뛰는 것이 **정확성** 문제다.
+후보 파일이 있으면 `collect` 를 건너뛴다. 문항지가 있으면 채점 가능한 꼴인지 먼저 검사하고,
+어긋나면 아무 단계도 돌리지 않는다 — `quiz.mjs` 는 문항지를 검사하지 않는다.
 
 ## `questions.json` — 문항지의 형식
 
@@ -78,7 +81,7 @@
 ## 쓰는 법
 
     .venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업폴더> \
-        [--terms-db <terms-db.json>] [--model haiku] [--dry-run]
+        [--terms-db <terms-db.json>] [--dry-run]
 """
 import argparse
 import json
@@ -97,11 +100,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_mode1 as M  # noqa: E402
 
-# 단계는 넷 고정이다.
-STAGES = ["collect", "author", "grade", "emit"]
+# 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
+STAGES = ["collect", "grade", "emit"]
 
-# 모형을 부르는 단계. 하나뿐이다 — 용어 보충과 출제를 한 세션이 이어서 한다.
-AGENT_STAGES = {"author"}
+# 모형을 부르는 단계. **비어 있다.** 출제를 CLI 칸으로 두면 스킬과 두 곳에서 같은 일을
+# 하게 되고, 헤드리스 세션은 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
+AGENT_STAGES: set[str] = set()
 
 # 한 용어당 문항 수. `runner/term/quiz.mjs` 의 `QUESTIONS_PER_TERM` 과 **같은 값이어야 한다.**
 # 한쪽만 고치면 채점 구간(맞힌 수 2 이상 -> 확실)이 조용히 뜻을 잃는다.
@@ -125,22 +129,21 @@ GRADES = "term-grades.json"
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.is_agent_stage']"/>
 # 어떤 단계 이름을 주면 그 단계가 LLM(에이전트)을 부르는 단계인지 참/거짓으로 답해주는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.test_run_mode1_5.test_only_one_stage_calls_the_model
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 1. 단계 고르기 (파일 시스템을 보지 않는 순수 함수) ──────────────────
 def is_agent_stage(stage: str) -> bool:
     """이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
-def plan_stages(has_candidates: bool, has_questions: bool, has_answers: bool,
+def plan_stages(has_candidates: bool, has_answers: bool,
                 only: Iterable[str] | None = None,
                 skip: Iterable[str] | None = None) -> list[str]:
     """무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다.
 
-    세 가지 규칙뿐이다.
+    두 가지 규칙뿐이다.
 
       - 후보 파일이 있으면 `collect` 를 건너뛴다. 다시 모으면 덮어쓴다.
-      - 문항지가 있으면 `author` 를 건너뛴다. 다시 내면 **사람이 이미 푼 시험과 어긋난다.**
       - 답안이 없으면 `grade` 와 `emit` 을 아예 넣지 않는다. 이것이 사람 차례다.
     """
     for name in list(only or []) + list(skip or []):
@@ -153,8 +156,6 @@ def plan_stages(has_candidates: bool, has_questions: bool, has_answers: bool,
         if s in set(skip or []):
             continue
         if s == "collect" and has_candidates:
-            continue
-        if s == "author" and has_questions:
             continue
         if s in ("grade", "emit") and not has_answers:
             continue
@@ -419,115 +420,6 @@ def emit_argv(root: str, grades: str) -> list[str]:
     return ["node", _term_script(root, "emit.mjs"), grades]
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.author_argv']"/>
-# 문제를 출제하는 LLM 세션을 헤드리스로 실행할 명령줄을 만드는 함수다.
-# 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: runner.run_mode1_5.run_author, runner.test_run_mode1_5.test_author_argv_does_not_repeat_a_folder, runner.test_run_mode1_5.test_author_argv_is_headless_json_and_opens_every_folder_it_reads
-def author_argv(model: str, workdir: str, root: str, plan: str) -> list[str]:
-    """출제 세션의 헤드리스 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
-
-    폴더 셋을 다 열어 준다. 작업 폴더(후보와 산출물) · 도구 뿌리(규약과 스킬) ·
-    계획서 폴더. 하나라도 빠지면 모형이 재료나 규약을 못 본다. 셋이 겹칠 수 있으므로
-    순서를 지키며 중복을 걸러 낸다.
-    """
-    dirs: list[str] = []
-    seen: set[str] = set()
-    for d in [workdir, root, os.path.dirname(os.path.abspath(plan))]:
-        if d and d not in seen:
-            seen.add(d)
-            dirs.append(d)
-    return M.claude_argv(model=model, repo=dirs[0], extra_dirs=dirs[1:])
-
-
-def author_prompt(workdir: str, root: str, plan: str) -> str:
-    """한 세션이 할 일 전부. **용어 보충과 출제를 둘 다** 여기서 시킨다.
-
-    출제 규율을 프롬프트에 통째로 싣는 것은 헤드리스 세션이 스킬을 안 열 수 있어서다.
-    """
-    return """\
-너는 report-builder 의 **Mode 1.5 출제자**다. 용어 시험 문항지 한 장을 만든다.
-사람에게 **묻지 않는다** — 이 세션은 헤드리스라 되묻는 순간 막힌다. 막히면 진행하지 말고
-무엇이 없어서 막혔는지 적고 끝낸다.
-
-계획서     {plan}
-작업 폴더  {workdir}   (여기에 파일을 쓴다)
-도구 저장소 {root}      (report-builder. 규약과 스킬이 여기 있다)
-
-## 이미 있는 재료 — 다시 만들지 마라
-
-  {workdir}/{candidates}   후보. 두 갈래다
-      known        코드베이스 용어 사전과 계획서 본문의 교차. **정답(means)이 이미 있다**
-      newConcepts  계획서가 새로 만든 개념. 정답이 없다
-  {workdir}/{answer_key}   있으면 읽는다. 사람이 적어 준 신규 개념의 뜻이다
-
-## 할 일 1 — 자연어 용어를 보충한다
-
-`collect` 가 잡는 것은 식별자 꼴 **세 가지뿐**이다(결정 코드 · 파일명 · 배열 필드).
-`WarmUp`·`PageRank`·`인용 원점` 같은 개념어는 기계가 가려낼 수 없다. **계획서를 직접
-읽고** 이해에 필요한 개념어를 골라 보탠다.
-
-- 보탠 항목마다 **출처를 `파일:줄` 로 적는다.** 출처 없이 보탠 것은 지어낸 것과 구별되지 않는다.
-- 뜻은 **계획서 본문에 실제로 적힌 서술만** 옮긴다. **지어내지 마라.**
-- 계획서가 그 용어를 정의하지 않았다면 보태지 말고 `excluded` 에 넣는다.
-
-## 할 일 2 — 출제
-
-용어마다 객관식 **3문항**을 낸다. 정답은 그 용어의 뜻(`means`)이다.
-
-**출제 규율 — 이것을 어기면 문항지가 채점 불가능해진다.**
-
-- **오답 보기는 그럴듯해야 한다.** 명백히 틀린 보기만 넣으면 정답률이 100% 로 몰려
-  채점이 무의미해진다. 가장 값싼 방법은 **같은 갈래의 다른 용어 뜻을 오답으로 쓰는 것**이다 —
-  후보 파일 `known` 에서 `kind` 나 `module` 이 같은 항목의 `means` 를 가져온다.
-- **보기 순서를 섞는다.** 정답이 늘 첫 번째에 오면 사람이 위치로 맞힌다.
-- **정답지에 없는 것을 묻지 않는다.** `known` 과 **뜻이 정해진** 신규 개념 밖으로 나가지 않는다.
-- **한 문항은 한 가지만 묻는다.** 두 조건을 겹치면 어느 쪽을 몰라서 틀렸는지 알 수 없다.
-- **"{dont_know}" 는 항상 마지막 보기로, 항상 이 문구 그대로.** 보기는 실제 뜻 {real_choices}개에
-  그것을 더해 **정확히 {choices}개**다. 문항마다 개수가 다르면 찍어서 맞을 확률이 달라져
-  정답률을 문항끼리 견줄 수 없다.
-- 읽는 사람은 배경 지식이 없다(객체지향을 갓 배운 대학 1학년 눈높이). 용어를 설명하려고
-  다른 어려운 용어를 쓰지 않는다.
-
-**뜻이 정해지지 않은 신규 개념은 출제하지 마라.** 정답 없는 문항은 채점이 불가능하다.
-그런 개념은 `excluded` 에 `{{term, why}}` 로 남긴다 — 사람이 {answer_key} 에 뜻을 적고
-실행기를 다시 돌리면 그때 출제된다. 네가 뜻을 지어내 채우면 이 시험이 재는 것이
-사람의 이해도가 아니라 네 상상이 된다.
-
-## 산출물 — 파일 하나
-
-  {workdir}/{questions}
-
-```json
-{{ "plan": "{plan}",
-   "terms": [
-     {{ "term": "PageRank",
-        "means": "그래프에서 중요한 점을 매기는 방법",
-        "source": "{plan}:412",
-        "questions": [
-          {{ "ask": "PageRank 가 하는 일은?",
-             "choices": ["보기 가", "보기 나", "보기 다", "보기 라", "{dont_know}"],
-             "answer": 0 }}
-        ] }}
-   ],
-   "excluded": [ {{ "term": "E402", "why": "계획서에 정의가 없다 — 사람이 뜻을 줘야 한다" }} ] }}
-```
-
-- `terms[].questions` 는 **정확히 3개**이고 `choices` 는 **정확히 {choices}개**다.
-  `answer` 는 정답 보기의 자리(0부터)이고 **마지막 칸("{dont_know}")을 가리키면 안 된다.**
-- `excluded` 에는 뜻을 못 구한 것을 전부 남긴다. 조용히 버리지 마라.
-
-## 규율
-
-- **커밋하지 마라.** `git add` · `git commit` 금지.
-- 쓰는 파일은 `{workdir}/{questions}` **하나뿐**이다. 다른 파일을 고치지 마라.
-- 문항 문구는 **한국어**. 약어를 피한다.
-- 계획서에 글자로 없는 것은 쓰지 않는다.
-
-끝나면 출제한 용어 수 · 문항 수 · 출제에서 뺀 개념 목록을 한 표로 보고한다.
-""".format(plan=plan, workdir=workdir, root=root, candidates=CANDIDATES,
-           answer_key=ANSWER_KEY, questions=QUESTIONS, dont_know=DONT_KNOW,
-           choices=CHOICES_PER_QUESTION, real_choices=CHOICES_PER_QUESTION - 1)
-
-
 # ── 6. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
 def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
                 answer_key: str, unasked: Sequence[str] = ()) -> str:
@@ -614,28 +506,9 @@ def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     return p.returncode
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.run_author']"/>
-# 용어 이해도 점검용 객관식 문항을 출제하는 LLM 세션을 한 번 불러오는 함수다.
-# 쓰는 것: runner.run_mode1_5.author_argv, runner.run_mode1.Heartbeat, runner.run_mode1_5.author_prompt · 쓰이는 곳: runner.run_mode1_5.main
-def run_author(model: str, workdir: str, root: str, plan: str,
-               timeout: float | None = None) -> tuple[int, M.AgentResult | None]:
-    """출제 세션을 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`."""
-    argv = author_argv(model=model, workdir=workdir, root=root, plan=plan)
-    with M.Heartbeat("author"):
-        p = subprocess.run(argv, input=author_prompt(workdir, root, plan), cwd=workdir,
-                           capture_output=True, text=True, timeout=timeout)
-    try:
-        return p.returncode, json.loads(p.stdout)
-    except (ValueError, TypeError):
-        tail = (p.stderr or p.stdout or "")[-800:]
-        if tail:
-            print(tail, file=sys.stderr)
-        return p.returncode, None
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.main']"/>
 # Mode 1.5(용어 이해도 점검) 파이프라인의 진입점. 문제를 만들고 사람이 풀 때까지 멈췄다가 채점하고 결과를 낸다.
-# 쓰는 것: runner.run_mode1_5.plan_stages, runner.run_mode1_5.run_author, runner.run_mode1.agent_verdict, runner.run_mode1.normalize_usage, runner.run_mode1_5.validate_questions (+13) · 쓰이는 곳: 없음
+# 쓰는 것: runner.run_mode1_5.plan_stages, runner.run_mode1.agent_verdict, runner.run_mode1.normalize_usage, runner.run_mode1_5.validate_questions, runner.run_mode1_5.collect_argv (+12) · 쓰이는 곳: 없음
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 1.5 파이프라인을 돌리고 단계별 시간·토큰을 잰다. 사람 차례에서 멈춘다.",
@@ -645,12 +518,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                     help="산출 파일이 쌓일 폴더 (기본: 지금 폴더). 스크립트가 cwd 에 쓰기 때문에 필요하다")
     ap.add_argument("--terms-db", dest="terms_db", default=None,
                     help="코드베이스 용어 사전 terms-db.json. 없으면 신규 개념만 잡힌다")
-    ap.add_argument("--model", default="opus", help="출제에 쓸 모형 (기본: opus)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
     ap.add_argument("--dry-run", action="store_true", help="무엇을 돌릴지만 보이고 끝낸다")
-    ap.add_argument("--timeout", type=float, default=None, help="출제 단계의 제한 시간(초)")
     a = ap.parse_args(argv)
 
     plan = os.path.abspath(os.path.expanduser(a.plan))
@@ -676,7 +547,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         stages = plan_stages(
             has_candidates=os.path.exists(p_cand),
-            has_questions=os.path.exists(p_ques),
             has_answers=os.path.exists(p_ans),
             only=a.only.split(",") if a.only else None,
             skip=a.skip.split(",") if a.skip else None)
@@ -686,13 +556,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # 표 밖에 적을 것 — 건너뛴 단계. 재개가 정상 흐름이라 늘 있다.
     reasons = {"collect": "%s 이 이미 있다" % CANDIDATES,
-               "author": "%s 이 이미 있다 — 다시 내면 이미 푼 시험과 어긋난다" % QUESTIONS,
                "grade": "답안이 아직 없다", "emit": "답안이 아직 없다"}
     skipped = [(s, reasons[s]) for s in STAGES if s not in stages] if not a.only else []
 
+    # 문항지가 있으면 **무엇을 돌리기 전에** 채점 가능한 꼴인지 본다.
+    # 출제는 스킬이 하고 검사는 여기가 한다 — `quiz.mjs` 는 꼴을 보지 않는다.
+    if os.path.exists(p_ques):
+        doc = _read_json(p_ques)
+        complaints = validate_questions(doc) if doc is not None \
+            else ["%s 을 읽지 못했다" % p_ques]
+        if complaints:
+            for c in complaints:
+                print("  문항지 — %s" % c, file=sys.stderr)
+            print("에러 — 문항지가 채점 불가능한 꼴이다: %s" % p_ques, file=sys.stderr)
+            return 1
+
     print("계획서 %s" % plan)
     print("작업 폴더 %s" % workdir)
-    print("모형 %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
+    print("단계 %s" % (" -> ".join(stages) or "(없음)"))
     print("이미 있는 것 — 후보 %s · 문항지 %s · 답안 %s"
           % (os.path.exists(p_cand), os.path.exists(p_ques), os.path.exists(p_ans)))
     if a.dry_run:
@@ -707,40 +588,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
-        if stage == "author":
-            rc, result = run_author(a.model, workdir, ROOT, plan, timeout=a.timeout)
-            ok, why = M.agent_verdict(rc, result)
-            usage = M.normalize_usage(result)
-            if result and result.get("result"):
-                print(result["result"])
-            if ok:
-                # 문항지가 채점 가능한 꼴인지 여기서 본다 — quiz.mjs 는 검사하지 않는다
-                doc = _read_json(p_ques)
-                complaints = validate_questions(doc) if doc is not None \
-                    else ["%s 을 읽지 못했다" % p_ques]
-                if complaints:
-                    ok, why = False, "문항지가 채점 불가능한 꼴이다"
-                    for c in complaints:
-                        print("  문항지 — %s" % c, file=sys.stderr)
+        # 세 단계 모두 기계다. 모형을 부르는 자리가 없어 토큰은 늘 0이다.
+        usage = M.normalize_usage(None)
+        if stage == "collect":
+            cmd = collect_argv(ROOT, plan, terms_db)
+        elif stage == "grade":
+            # 채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다
+            doc, ans = _read_json(p_ques), _read_json(p_ans)
+            complaints = validate_answers(ans or {}, doc or {}) if doc else []
+            if complaints:
+                for c in complaints:
+                    print("  답안 — %s" % c, file=sys.stderr)
+                rows.append({"stage": stage, "seconds": time.monotonic() - t0,
+                             "usage": usage, "ok": False, "why": "답안이 문항지와 맞지 않는다"})
+                break
+            cmd = grade_argv(ROOT, p_ans, p_ques)
         else:
-            usage = M.normalize_usage(None)
-            if stage == "collect":
-                cmd = collect_argv(ROOT, plan, terms_db)
-            elif stage == "grade":
-                # 채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다
-                doc, ans = _read_json(p_ques), _read_json(p_ans)
-                complaints = validate_answers(ans or {}, doc or {}) if doc else []
-                if complaints:
-                    for c in complaints:
-                        print("  답안 — %s" % c, file=sys.stderr)
-                    rows.append({"stage": stage, "seconds": time.monotonic() - t0,
-                                 "usage": usage, "ok": False, "why": "답안이 문항지와 맞지 않는다"})
-                    break
-                cmd = grade_argv(ROOT, p_ans, p_ques)
-            else:
-                cmd = emit_argv(ROOT, p_grades)
-            rc = run_machine(cmd, stage, cwd=workdir)
-            ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
+            cmd = emit_argv(ROOT, p_grades)
+        rc = run_machine(cmd, stage, cwd=workdir)
+        ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
         seconds = time.monotonic() - t0
         rows.append({"stage": stage, "seconds": seconds, "usage": usage, "ok": ok, "why": why})
         print("%s — %s (%s)" % (stage, "성공" if ok else "실패", M.hms(seconds)), flush=True)
@@ -769,7 +635,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if a.json_out:
         with open(a.json_out, "w", encoding="utf-8") as f:
-            json.dump({"plan": plan, "workdir": workdir, "model": a.model,
+            json.dump({"plan": plan, "workdir": workdir,
                        "stages": rows, "skipped": skipped,
                        "total": M.sum_usage([r["usage"] for r in rows]) if rows else {},
                        "human_gate_open": bool(gate),
