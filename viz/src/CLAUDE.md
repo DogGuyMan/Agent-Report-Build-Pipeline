@@ -47,7 +47,7 @@
 
 - `.zoom-toggle:checked ~ .diagram-grid` — 형제 결합자만 쓴다. 기본은 병치, 켜면 1열 + 원본 픽셀 + 스크롤.
 - **`--svg-w` 가 이 복구의 급소다.** `width`/`height` 를 제거한 인라인 SVG 는 고유 크기가 없어 브라우저가
-  300×150px 로 렌더한다. `viz/svg.mjs` 가 속성 제거 **직전에** pt 를 읽어 px(× 4/3)로 환산해 돌려주고,
+  300×150px 로 렌더한다. `viz/svg.py` 가 속성 제거 **직전에** pt 를 읽어 px(× 4/3)로 환산해 돌려주고,
   `BeforeAfter` 가 `.svg-wrap` 의 인라인 style 로 주입한다. CSS 커스텀 속성은 상속되므로 자식 `svg` 가 읽는다.
 - 이 연결고리 중 하나라도 끊으면 "실제 크기" 모드가 조용히 죽는다.
 
@@ -61,7 +61,7 @@
 
 | 컴포넌트 | 하는 일 |
 |---|---|
-| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다.** 2026-08-29 부터 빌드가 본문 용어를 **자동으로** 감싸므로 저자가 직접 쓸 일은 드물다 (`viz/wrap-terms.mjs`) |
+| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다.** 2026-08-29 부터 빌드가 본문 용어를 **자동으로** 감싸므로 저자가 직접 쓸 일은 드물다 (`viz/wrap_terms.py`) |
 | `<Glossary terms>` | 정의 전량을 **이해도 그룹 아코디언**(`<details>`, 모름 → 애매 → 확실 → 미측정, 모름만 열림)으로 보인다. 보고서 맨 앞에 놓는다 |
 | `<TermGraph terms>` | 용어 관계를 그물로 그린다. 좌표 계산·드래그·확대·hover 는 런타임이 한다. **물리 상수는 `viz/src/runtime/term-graph.ts` 머리의 `KNOBS`** — 2026-08-29 사용자가 슬라이더로 육안 확정한 값(덩어리 사이 척력은 `REPEL_MAX_DIST` 밖 0, 덩어리 경계 사각형 충돌 `GROUP_PAD`, 상자 `BOUNDS_SCALE` 2.5). 다시 조정하려면 `<TermGraph terms tune />` 로 슬라이더 패널을 켠다(임시용, 산출물에 남기지 않는다) |
 
@@ -99,8 +99,8 @@
 
 | 방향 | 무엇 |
 |---|---|
-| `viz/build.mjs` → 여기 | esbuild `alias` 로 `report-builder` · `/types` · `/svg` 를 푼다 |
-| `viz/check.mjs` → 여기 | 임시 tsconfig 의 `paths` 로 같은 곳을 가리킨다 |
+| `viz/build.py` → 여기 | esbuild `alias` 로 `report-builder` · `/types` · `/svg` 를 푼다 |
+| `viz/check.py` → 여기 | 임시 tsconfig 의 `paths` 로 같은 곳을 가리킨다 |
 | 여기 → 다른 모듈 | **없다.** 컴포넌트는 아무것도 부르지 않는다 |
 
 ⚠ **런타임과 타입 검사가 서로 다른 경로를 탄다.** 한쪽만 고치면 다른 쪽이 깨진다 —

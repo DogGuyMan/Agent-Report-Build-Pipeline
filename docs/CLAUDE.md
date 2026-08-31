@@ -59,5 +59,5 @@
 ## 다른 모듈과의 의존 (Cross-module dependencies)
 
 없다. 여기서 코드로 나가는 화살표는 **인용뿐**이고, 그 인용의 유효성은
-`../test/docs-citations.test.mjs` 가 본다 — 단 그 검사는 루트와 모듈 CLAUDE.md 만 대상이다.
+`../test/test_docs_citations.py` 가 본다 — 단 그 검사는 루트와 모듈 CLAUDE.md 만 대상이다.
 **Gotcha — 여기 문서의 인용은 검사되지 않는다.** 낡아 있다고 가정하라.

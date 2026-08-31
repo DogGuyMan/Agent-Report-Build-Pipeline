@@ -4,15 +4,16 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
-## 아홉 단계 — LLM 이 도는 칸은 **둘**뿐이다
+## 열 단계 — LLM 이 도는 칸은 **셋**이다
 
-    prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
-    기계    기계       기계            LLM 층별   기계           기계     LLM 층별  기계     기계
+    lang-select ─▶ prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+    LLM 1회        기계     기계       기계            LLM 층별   기계           기계     LLM 층별  기계     기계
 
 **층을 매기는 것은 기계다.** `survey-plan` 이 자기 칸을 갖는 이유가 그것이다.
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
+| `lang-select` | 어떤 정적 수집기를 돌릴지 고른다. 모형의 제안을 결정론 검사로 거른다 | `claude -p` 1회(가장 싼 모형) |
 | `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `runner/wiki/prep.mjs` |
 | `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `machine/warmup.py` |
 | `survey-plan` | **기계.** 코드 지도를 의존 위상 층과 배치로 나눈다. 모형을 부르지 않는다 | `machine/survey_plan.py` |
@@ -261,7 +262,7 @@ def is_agent_stage(stage: str) -> bool:
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.plan_stages']"/>
-# 아홉 단계 중 이번 실행에서 실제로 돌릴 단계 목록을 정하는 함수다.
+# 열 단계 중 이번 실행에서 실제로 돌릴 단계 목록을 정하는 함수다.
 # 쓰는 것: runner.run_mode1.STAGES · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_plan_keeps_prep_even_when_codegraph_exists, runner.test_run_mode1.test_plan_only_and_skip_are_honoured, runner.test_run_mode1.test_plan_rejects_an_unknown_stage, runner.test_run_mode1.test_skip_은_열_단계_흐름_기준으로_걸러낸다 (+7)
 def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
                 only: Iterable[str] | None = None,

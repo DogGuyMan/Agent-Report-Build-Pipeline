@@ -73,15 +73,15 @@
 npm run doctor           # 이 컴퓨터에 무엇이 있고 무엇이 없는지. 필수가 없으면 exit 1
 npm test                 # pretest 가 viz/lib.mjs 로 viz/src/ 를 .tmp/lib.mjs 로 번들한 뒤 node --test
 npm run typecheck        # tsc --noEmit (이 저장소의 viz/src/ 만)
-node --test test/svg.test.mjs                                # 단일 파일
-node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스트
+node --test test/test_svg.py                                # 단일 파일
+node --test --test-name-pattern="접두사" test/test_svg.py    # 단일 테스트
 ```
 
 **함정 — `node --test test/` 는 Node v25.8.0 에서 죽는다.** 디렉토리 인자를 테스트 파일로 취급해
 `Cannot find module '.../test'` 를 낸다. **인자 없는 `node --test`** 를 쓰면 Node 가 알아서 탐색한다.
 
 **테스트가 `viz/src/` 를 직접 import 하지 않는다.** `node --test` 는 JSX 를 해석하지 못하므로
-`viz/lib.mjs` 가 esbuild 로 `.tmp/lib.mjs` 를 만들고 `test/components.test.mjs` 가 그것을 import 한다.
+`viz/lib.mjs` 가 esbuild 로 `.tmp/lib.mjs` 를 만들고 `test/test_components.py` 가 그것을 import 한다.
 `viz/src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
 
 ### mode 별 진입점 — 2026-08-29 분리
@@ -95,7 +95,7 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 | `report-spec` | 2 | `init` · `build` · `check` | 설계 검토 보고서 |
 | `report` | — | (`report-spec` 과 같음) | **옛 이름.** `report-spec` 으로 위임하고 stderr 에 알림 한 줄을 낸다. stdout 은 동일 |
 
-`report-spec` 과 `report-term` 은 `runner/dispatch.mjs` 의 `runDispatch` 를 공유하고, 각자 자기 명령표만 갖는다.
+`report-spec` 과 `report-term` 은 `runner/dispatch.py` 의 `runDispatch` 를 공유하고, 각자 자기 명령표만 갖는다.
 `report-wiki` 는 자리 표시자라 `runDispatch` 를 쓰지 않고, `report` 는 `report-spec` 을 자식 프로세스로 실행한다(`spawnSync`).
 
 보고서 쪽 명령은 **보고서가 있는 저장소의 스펙 디렉토리에서** 실행한다:
@@ -125,7 +125,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 `$REPO_ROOT` · `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` · `REPORT_PYTHON`.
 **전체 표와 골든 상수의 함정은 [`machine/CLAUDE.md`](machine/CLAUDE.md) 의 "경로 변수" 절에 있다.**
 
-`test/docs-citations.test.mjs` 가 컨텍스트 문서의 인용을 검사하며 `$` 로 시작하는 경로는
+`test/test_docs_citations.py` 가 컨텍스트 문서의 인용을 검사하며 `$` 로 시작하는 경로는
 바깥 저장소로 보고 건너뛴다. 그 규약을 어기면 게이트에 걸린다.
 
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
@@ -145,11 +145,11 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 ```
 $REPO_ROOT                  <프로젝트>/specs/<slug>/
   bin/report-spec        디스패치만        data.ts      결정 데이터만. builderVersion 포함
-  runner/dispatch.mjs    명령 갈림길       report.tsx   서사·옵션표·판정 등 나머지 전부
+  runner/dispatch.py    명령 갈림길       report.tsx   서사·옵션표·판정 등 나머지 전부
   viz/src/components/    읽기 전용        (tsconfig.json)  check 가 ROOT 에 임시 생성
   viz/src/theme.css      옛 출력에서 추출  (out/report.html)  git 제외 — 재생성
-  viz/build.mjs          esbuild→RTSM→조립
-  viz/check.mjs          기계 검사 규칙
+  viz/build.py          esbuild→RTSM→조립
+  viz/check.py          기계 검사 규칙
 ```
 
 ### 성격축 셋 — 언어가 아니라 하는 일로 가른다 (2026-08-30)
@@ -161,7 +161,7 @@ $REPO_ROOT                  <프로젝트>/specs/<slug>/
 | 시각 | `viz/` | **그리는가** — HTML·SVG·다이어그램. 계산된 것을 받아 굽는다 |
 
 **옛 경계(`scripts/`=Node · `codegraph/`=Python)는 성격과 어긋나 있었다.** Graphviz 를 부르는
-파이썬 셋이 기계축에, 결정론적 채점 `.mjs` 가 Node 축에 섞여 있었다. `tools/` 는 셋 어디에도
+파이썬 셋이 기계축에, 결정론적 채점 `.py` 가 Node 축에 섞여 있었다. `tools/` 는 셋 어디에도
 속하지 않는 것만 받는다.
 
 ## 확정된 스택 (변경 금지)
@@ -182,7 +182,7 @@ $REPO_ROOT                  <프로젝트>/specs/<slug>/
 `grep -c '<script' out/report.html` 로 검사한다.
 
 **예산 1칸은 2026-08-29 에 용어 그래프 런타임이 가져갔다.** `data.ts` 에 `terms` 가 있을 때만
-`viz/build.mjs` 가 `viz/src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
+`viz/build.py` 가 `viz/src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
 여전히 `<script>` 0개다. **예산이 다 찼으므로 새 런타임 코드를 넣으려면 이 번들 안에 합쳐야 한다.**
 
 ## 두 트랙과 강제 순서 (Track A/B)
@@ -249,7 +249,7 @@ Track A 대상은 `confidence-and-sourcing`,
 
 ## 함정
 
-- **거울 함정.** 과잉 설계를 잡는 도구를 만들면서 그 도구를 과잉 설계하는 것. `d-axis.mjs` 는 지표 3개를
+- **거울 함정.** 과잉 설계를 잡는 도구를 만들면서 그 도구를 과잉 설계하는 것. `d-axis.py` 는 지표 3개를
   계산하는 스크립트다. 플러그인 구조·지표 레지스트리·추상 인터페이스가 나오면 그 자체가 이 작업이 잡으려는
   실패다. 구현자 1, 소비자 1이면 인터페이스를 만들지 마라.
 - **지표 증식 유혹.** D축은 3종 고정. 좋은 아이디어가 떠올라도 넣지 말고 **기록만 하고 사용자에게 보고**하라.

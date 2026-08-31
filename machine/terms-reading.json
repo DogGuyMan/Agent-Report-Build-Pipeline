@@ -8282,7 +8282,7 @@
         "where": "runner/run_mode1.py:831"
       }
     ],
-    "where": "runner/run_mode1.py:817"
+    "where": "runner/run_mode1.py:818"
   },
   "runner.run_mode1.Heartbeat.__enter__": {
     "confidence": "HIGH",
@@ -8359,7 +8359,7 @@
         "where": "runner/run_mode1.py:184"
       }
     ],
-    "where": "runner/run_mode1.py:176"
+    "where": "runner/run_mode1.py:177"
   },
   "runner.run_mode1.WikiPage": {
     "confidence": "MEDIUM",
@@ -8369,7 +8369,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:193"
+    "where": "runner/run_mode1.py:194"
   },
   "runner.run_mode1._bootstrap_venv": {
     "confidence": "HIGH",
@@ -8392,7 +8392,7 @@
         "where": "runner/run_mode1.py:91-99"
       }
     ],
-    "where": "runner/run_mode1.py:85"
+    "where": "runner/run_mode1.py:86"
   },
   "runner.run_mode1._qualified": {
     "confidence": "HIGH",
@@ -8402,7 +8402,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:947"
+    "where": "runner/run_mode1.py:948"
   },
   "runner.run_mode1.agent_verdict": {
     "confidence": "HIGH",
@@ -8412,7 +8412,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:339"
+    "where": "runner/run_mode1.py:340"
   },
   "runner.run_mode1.changed_seed": {
     "confidence": "HIGH",
@@ -8429,7 +8429,7 @@
         "where": "runner/run_mode1.py:223"
       }
     ],
-    "where": "runner/run_mode1.py:223"
+    "where": "runner/run_mode1.py:224"
   },
   "runner.run_mode1.claude_argv": {
     "confidence": "HIGH",
@@ -8439,7 +8439,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:358"
+    "where": "runner/run_mode1.py:359"
   },
   "runner.run_mode1.dep_excerpt": {
     "confidence": "MEDIUM",
@@ -8456,7 +8456,7 @@
         "where": "runner/run_mode1.py:416"
       }
     ],
-    "where": "runner/run_mode1.py:416"
+    "where": "runner/run_mode1.py:417"
   },
   "runner.run_mode1.format_report": {
     "confidence": "HIGH",
@@ -8479,7 +8479,7 @@
         "where": "runner/run_mode1.py:745"
       }
     ],
-    "where": "runner/run_mode1.py:731"
+    "where": "runner/run_mode1.py:732"
   },
   "runner.run_mode1.hms": {
     "confidence": "HIGH",
@@ -8489,7 +8489,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:720"
+    "where": "runner/run_mode1.py:721"
   },
   "runner.run_mode1.is_agent_stage": {
     "confidence": "HIGH",
@@ -8506,7 +8506,7 @@
         "where": "runner/run_mode1.py:260"
       }
     ],
-    "where": "runner/run_mode1.py:258"
+    "where": "runner/run_mode1.py:259"
   },
   "runner.run_mode1.lang_of": {
     "confidence": "MEDIUM",
@@ -8529,7 +8529,7 @@
         "where": "runner/run_mode1.py:217"
       }
     ],
-    "where": "runner/run_mode1.py:204"
+    "where": "runner/run_mode1.py:205"
   },
   "runner.run_mode1.main": {
     "confidence": "HIGH",
@@ -8618,7 +8618,7 @@
         "where": "runner/run_mode1.py:1268"
       }
     ],
-    "where": "runner/run_mode1.py:1213"
+    "where": "runner/run_mode1.py:1214"
   },
   "runner.run_mode1.merge_shards": {
     "confidence": "HIGH",
@@ -8635,7 +8635,7 @@
         "where": "runner/run_mode1.py:937"
       }
     ],
-    "where": "runner/run_mode1.py:905"
+    "where": "runner/run_mode1.py:906"
   },
   "runner.run_mode1.node_argv": {
     "confidence": "HIGH",
@@ -8645,7 +8645,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:691"
+    "where": "runner/run_mode1.py:692"
   },
   "runner.run_mode1.nonnode_prompt": {
     "confidence": "HIGH",
@@ -8662,7 +8662,7 @@
         "where": "runner/run_mode1.py:561"
       }
     ],
-    "where": "runner/run_mode1.py:512"
+    "where": "runner/run_mode1.py:513"
   },
   "runner.run_mode1.normalize_usage": {
     "confidence": "HIGH",
@@ -8672,7 +8672,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:299"
+    "where": "runner/run_mode1.py:300"
   },
   "runner.run_mode1.page_layers": {
     "confidence": "HIGH",
@@ -8695,24 +8695,24 @@
         "where": "runner/run_mode1.py:1186"
       }
     ],
-    "where": "runner/run_mode1.py:578"
+    "where": "runner/run_mode1.py:579"
   },
   "runner.run_mode1.plan_stages": {
     "confidence": "HIGH",
     "does": "only 와 skip 에 들어온 이름이 STAGES 에 없는 것이 있으면 ValueError 를 낸다. only 가 있으면 STAGES 순서를 지키되 only 집합에 속한 것만 남긴다. only 가 없으면 STAGES 를 순회하며 skip 에 있는 것은 빼고, survey 단계는 has_reading 이 참이면, wiki 단계는 has_prose 가 참이면 자동으로 뺀다. 나머지는 STAGES 순서 그대로 담아 리스트로 반환한다.",
     "kind": "function",
-    "means": "아홉 단계 중 이번 실행에서 실제로 돌릴 단계 목록을 정하는 함수다.",
+    "means": "열 단계 중 이번 실행에서 실제로 돌릴 단계 목록을 정하는 함수다.",
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [
       {
         "kind": "dependency",
-        "label": "아홉 단계 이름과 순서의 원천",
+        "label": "열 단계 이름과 순서의 원천",
         "to": "runner.run_mode1.STAGES",
         "where": "runner/run_mode1.py:269-282"
       }
     ],
-    "where": "runner/run_mode1.py:266"
+    "where": "runner/run_mode1.py:267"
   },
   "runner.run_mode1.plan_summary": {
     "confidence": "HIGH",
@@ -8729,7 +8729,7 @@
         "where": "runner/run_mode1.py:781"
       }
     ],
-    "where": "runner/run_mode1.py:781"
+    "where": "runner/run_mode1.py:782"
   },
   "runner.run_mode1.reading_path": {
     "confidence": "HIGH",
@@ -8739,7 +8739,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:374"
+    "where": "runner/run_mode1.py:375"
   },
   "runner.run_mode1.run_agent_with": {
     "confidence": "HIGH",
@@ -8756,7 +8756,7 @@
         "where": "runner/run_mode1.py:855"
       }
     ],
-    "where": "runner/run_mode1.py:845"
+    "where": "runner/run_mode1.py:846"
   },
   "runner.run_mode1.run_lang_select": {
     "confidence": "HIGH",
@@ -8779,7 +8779,7 @@
         "where": "runner/run_mode1.py:986"
       }
     ],
-    "where": "runner/run_mode1.py:969"
+    "where": "runner/run_mode1.py:970"
   },
   "runner.run_mode1.run_layer": {
     "confidence": "HIGH",
@@ -8802,7 +8802,7 @@
         "where": "runner/run_mode1.py:889"
       }
     ],
-    "where": "runner/run_mode1.py:872"
+    "where": "runner/run_mode1.py:873"
   },
   "runner.run_mode1.run_machine": {
     "confidence": "HIGH",
@@ -8819,7 +8819,7 @@
         "where": "runner/run_mode1.py:959"
       }
     ],
-    "where": "runner/run_mode1.py:957"
+    "where": "runner/run_mode1.py:958"
   },
   "runner.run_mode1.run_survey": {
     "confidence": "HIGH",
@@ -8878,7 +8878,7 @@
         "where": "runner/run_mode1.py:1147"
       }
     ],
-    "where": "runner/run_mode1.py:1100"
+    "where": "runner/run_mode1.py:1101"
   },
   "runner.run_mode1.run_warmup": {
     "confidence": "HIGH",
@@ -8925,7 +8925,7 @@
         "where": "runner/run_mode1.py:1050"
       }
     ],
-    "where": "runner/run_mode1.py:1021"
+    "where": "runner/run_mode1.py:1022"
   },
   "runner.run_mode1.run_wiki": {
     "confidence": "HIGH",
@@ -8972,7 +8972,7 @@
         "where": "runner/run_mode1.py:1174"
       }
     ],
-    "where": "runner/run_mode1.py:1162"
+    "where": "runner/run_mode1.py:1163"
   },
   "runner.run_mode1.save_warmup": {
     "confidence": "MEDIUM",
@@ -8989,7 +8989,7 @@
         "where": "machine/warmup.py"
       }
     ],
-    "where": "runner/run_mode1.py:1074"
+    "where": "runner/run_mode1.py:1075"
   },
   "runner.run_mode1.should_call_agent": {
     "confidence": "HIGH",
@@ -8999,7 +8999,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:238"
+    "where": "runner/run_mode1.py:239"
   },
   "runner.run_mode1.stage_totals": {
     "confidence": "HIGH",
@@ -9016,7 +9016,7 @@
         "where": "runner/run_mode1.py:810"
       }
     ],
-    "where": "runner/run_mode1.py:804"
+    "where": "runner/run_mode1.py:805"
   },
   "runner.run_mode1.sum_usage": {
     "confidence": "HIGH",
@@ -9026,7 +9026,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:326"
+    "where": "runner/run_mode1.py:327"
   },
   "runner.run_mode1.survey_batch_prompt": {
     "confidence": "HIGH",
@@ -9043,7 +9043,7 @@
         "where": "runner/run_mode1.py:506"
       }
     ],
-    "where": "runner/run_mode1.py:430"
+    "where": "runner/run_mode1.py:431"
   },
   "runner.run_mode1.symbol_layers": {
     "confidence": "HIGH",
@@ -9060,7 +9060,7 @@
         "where": "runner/run_mode1.py:567"
       }
     ],
-    "where": "runner/run_mode1.py:567"
+    "where": "runner/run_mode1.py:568"
   },
   "runner.run_mode1.terms_argv": {
     "confidence": "HIGH",
@@ -9070,7 +9070,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:699"
+    "where": "runner/run_mode1.py:700"
   },
   "runner.run_mode1.warmup_section": {
     "confidence": "HIGH",
@@ -9087,7 +9087,7 @@
         "where": "runner/run_mode1.py:402"
       }
     ],
-    "where": "runner/run_mode1.py:388"
+    "where": "runner/run_mode1.py:389"
   },
   "runner.run_mode1.wiki_catalogue_prompt": {
     "confidence": "HIGH",
@@ -9097,7 +9097,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:595"
+    "where": "runner/run_mode1.py:596"
   },
   "runner.run_mode1.wiki_page_prompt": {
     "confidence": "HIGH",
@@ -9107,7 +9107,7 @@
     "module": "runner.run_mode1",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1.py:643"
+    "where": "runner/run_mode1.py:644"
   },
   "runner.run_mode1_5._read_json": {
     "confidence": "HIGH",

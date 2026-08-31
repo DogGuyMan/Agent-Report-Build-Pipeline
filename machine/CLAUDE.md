@@ -1,12 +1,15 @@
-# codegraph/ — 파이썬 파이프라인
+# machine/ — 기계축. 계산하고 그리지 않는다
 
 > 루트 나침반은 `../CLAUDE.md`. 이 문서는 **파이썬 쪽만** 다룬다.
 > Node 배선은 `../viz/CLAUDE.md`, 컴포넌트는 `../viz/src/CLAUDE.md`.
 
-이 저장소에서 가장 큰 모듈이다(파이썬 30파일). **정적 수집 · 인용 검증 · 측정**을 맡는다.
+이 저장소에서 가장 큰 모듈이다(파이썬 27파일 — 본체 16 · 시험 11). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
 
 ## 무엇이 여기 있나
+
+**전량 목록은 `README.md` 에 있다** — `tools/gen_readme.py` 가 소스에서 생성하고
+`tools/test_gen_readme.py` 가 드리프트를 막는다. 아래는 급소만 고른 것이다.
 
 | 파일 | 하는 일 |
 |---|---|
@@ -15,15 +18,15 @@
 | `codegraph_types.py` | `codegraph.json` 계약 한 곳. 생산자와 소비자가 전부 여기를 본다 |
 | `declmap.py` | 소스에서 선언 목록을 훑는다. 언어 넷(`cpp` `cs` `py` `ts`) |
 | `clang_doc.py` | `clang-doc` 의 흩어진 JSON 을 평평한 심볼 목록으로 |
-| `facts.py` · `render_modules.py` · `render_classes.py` | 사람이 읽는 사실 표 · 모듈 관계도 SVG |
+| `facts.py` | 코드 지도에서 사람이 읽는 사실 표(`facts/*.md`)와 `ranking.json` 을 만든다 |
+| `lang_select.py` | 어떤 정적 수집기를 돌릴지 고른다. 모형의 제안을 결정론 검사로 거른다 |
+| `clangd_refs.py` · `reverse_refs.py` | clangd 에 직접 말해 역방향 참조를 받는다 |
 | `terms_db.py` | 용어 사전 병합과 **인용 검사 L1/L2/L3**. 투영이 코드 지도를 덮는다 |
 | `verify_citations.py` | 위키 산문의 `파일:줄` 인용을 3값으로 판정 |
 | `xmldoc.py` | 주석 본문을 `comments.xml` 한 곳에 모으고 소스에는 레퍼런스만 남긴다 |
 | `warmup.py` | 전수조사 증분 캐시 — 무엇을 다시 읽어야 하는지 가려낸다 |
 | `survey_plan.py` | 코드 지도를 의존 위상 층과 배치로 나눈다. **판정하지 않는다** |
 | `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
-| `run_mode1.py` · `run_mode1_5.py` · `run_mode2.py` | 세 mode 실행기. **단계마다 시간·토큰을 잰다** |
-| `demermaid.py` | Mermaid 를 사전 렌더 SVG 로 |
 
 ## Python 수집기 — 왜 둘인가 (2026-08-30 신설)
 
@@ -61,15 +64,16 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 **호출의 kind 는 `dependency` 다.** 8종 enum 안에 있고 "부른다" 의 UML 대응이다.
 소유(composition/aggregation)로 올리지 않는다 — 부른다고 갖는 것이 아니다.
 
-## 세 실행기 — 재는 것이 목적이다
+## 세 실행기가 여기를 부른다 — 실행기 자신은 `../runner/` 에 산다
 
-자동화는 수단이고, 목적은 **단계마다 벽시계 시간과 토큰을 붙들어 표로 내는 것**이다.
+**`run_mode1.py` · `run_mode1_5.py` · `run_mode2.py` 는 러너축이라 `../runner/` 에 있다.**
+자리와 단계표는 `../runner/CLAUDE.md` 를 본다. 여기서는 그들이 이 모듈을 어떻게 쓰는지만 적는다.
 
 ```
-Mode 1    prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
-#                              ↑ 기계(survey_plan.py)   ↑ LLM 층별
-Mode 1.5  collect ─▶ author ─▶ [사람 차례] ─▶ grade ─▶ emit
-Mode 2    init ─▶ agent ─▶ build ─▶ check
+Mode 1    lang-select ─▶ prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
+#                                            ↑ 기계(survey_plan.py)   ↑ LLM 층별        ↑ terms_db.py
+Mode 1.5  collect ─▶ [사람 차례] ─▶ grade ─▶ emit
+Mode 2    init ─▶ [LLM] ─▶ build ─▶ check
 ```
 
 🔵 2026-08-30 실측 — **세 mode 모두 LLM 한 칸이 전체 시간의 99%** 를 쓴다.
@@ -106,8 +110,8 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 🔵 2026-08-30 실측으로 확인했다. **그래서 에이전트에 먹일 목록은 `재읽기` 가 아니라
 `blast_radius(재읽기 ∪ 위치만)` 이어야 한다** — `warmup.py` 의 CLI 도 그렇게 한다.
 
-**2026-08-30 에 배선됐다**(`1e5d766`). `run_mode1.py` 의 단계가 일곱이 되면서 `warmup`(판정만)과
-`warmup-save`(확정)가 `agent` 앞뒤에 붙었다. **둘로 가른 것이 급소다** — 한 칸이면 에이전트가 실패해도
+**배선돼 있다.** `warmup`(판정만)과 `warmup-save`(확정)가 `survey` 앞뒤에 각각 자기 칸으로
+붙어 있다. **둘로 가른 것이 급소다** — 한 칸이면 에이전트가 실패해도
 그 파일이 `유효` 로 기록되어 읽지 않은 파일이 읽은 것으로 남는다. 씨앗은 `changed_seed` 가 만들고
 위 경고대로 `재읽기 ∪ 위치만` 이다. 판정을 못 하면 옛 동작인 전량 조사로 되돌아가고, 대조군은
 `--skip warmup,warmup-save` 로 만든다.
@@ -168,7 +172,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 
 | 변수 | 가리키는 곳 | 값이 없으면 |
 |---|---|---|
-| `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 (`tools/python.mjs`) |
+| `REPORT_PYTHON` | 쓸 파이썬 해석기 | 저장소 안 `.venv` → PATH 의 `python3` 순으로 찾는다 (`tools/python.py`) |
 | `$REPO_ROOT` | 이 저장소 | 문서 표기 전용 — 동작에 영향 없음 |
 | `$TOOLS_ROOT` · `$DEV_ROOT` | 개인 작업 폴더 두 곳 | 같음 |
 | `$GRAPHICS_REPO` | C++ 골든 저장소 (clang-uml 표본) | **골든 테스트 15개가 건너뛴다.** 실패가 아니다 |
@@ -181,20 +185,20 @@ export GRAPHICS_REPO="$HOME/<...>/GlobalMedia-OpenGL-ComputerGraphics"
 export CSHARP_REPO="$HOME/<...>/StickRushGame"
 ```
 
-🔵 2026-08-30 실측 — 변수 없이 `pytest codegraph/` 는 **201 통과 · 19 건너뜀**,
-`$GRAPHICS_REPO` 와 `$CSHARP_REPO` 를 주면 **205 통과 · 15 건너뜀**이다.
-남는 15개는 `$CPP_REPO` 쪽 골든이라 그 저장소가 있어야 돈다. **건너뜀은 실패가 아니다.**
+🔵 2026-08-31 실측 — 변수 없이 `pytest machine/` 는 **188 통과 · 19 건너뜀**이다.
+건너뛰는 19개는 `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` 쪽 골든이라
+그 저장소가 있어야 돈다. **건너뜀은 실패가 아니다.**
 
 **함정.** 골든 경로 상수는 값이 없을 때 빈 문자열이 되면 안 된다. `os.path.join("", "out/…")` 이
 **상대경로**가 되어 이 저장소의 산출물을 골든으로 착각해 읽는다(실제로 겪었다). 그래서
 `… or "/골든저장소_미지정/<변수>"` 로 절대 존재할 수 없는 경로를 준다.
 
-`data.ts` 의 `linkRoots` 도 같은 규약을 쓴다 — `viz/link-paths.mjs` 의 `expandRoot()` 가
+`data.ts` 의 `linkRoots` 도 같은 규약을 쓴다 — `viz/link_paths.py` 의 `expandRoot()` 가
 `$VAR` 와 `~` 를 편다. 변수가 없는 독자에게는 그 링크만 조용히 안 걸린다.
 
 **새 문서에도 이 규약을 쓴다** — 홈 아래 경로를 적을 일이 생기면 위 변수 중 하나로 적는다.
 
-**코드에도 경로를 박지 않는다.** 파이썬 해석기는 `tools/python.mjs` 의 `pythonPath()` 로 찾고,
+**코드에도 경로를 박지 않는다.** 파이썬 해석기는 `tools/python.py` 의 `pythonPath()` 로 찾고,
 바깥 명령(`git` · `dot` · `clang-uml` · `dotnet` · `clangd` · `mmdc`)은 PATH 로 부른다.
 새 기계에서 무엇이 빠졌는지는 **`npm run doctor`** 가 한 화면으로 말한다 — 필수가 없으면 exit 1.
 파이썬 의존성은 `requirements.txt` 에 있다(🔵 실측 — `networkx` `numpy` `scipy` `pytest` 넷이면 전량이 돈다).
@@ -204,7 +208,7 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 
 ```bash
 cd $REPO_ROOT
-.venv/bin/python -m pytest codegraph/ -q          # 골든 변수가 없으면 일부 건너뛴다
+.venv/bin/python -m pytest machine/ -q          # 골든 변수가 없으면 일부 건너뛴다
 .venv/bin/python machine/xmldoc.py check        # 마커와 json 이 맞는가
 .venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json \
   --repo . --reading machine/terms-reading.json
@@ -216,19 +220,22 @@ cd $REPO_ROOT
 
 ## 이 모듈이 소유하는 것 (Owns)
 
-`codegraph/**` 전부와 `machine/terms-reading.json`(전수조사 원본), 그리고
+`machine/**` 전부와 `machine/terms-reading.json`(전수조사 원본), 그리고
 `out/codegraph-raw/**`(재생성 대상이라 판 관리 밖). **소유하지 않는 것** — `viz/src/*` ·
-`viz/build.mjs` · `viz/check.mjs` 는 Mode 2 의 것이라 읽기만 한다.
+`viz/build.py` · `viz/check.py` 는 Mode 2 의 것이라 읽기만 한다.
 
 ## 다른 모듈과의 의존 (Cross-module dependencies)
 
 | 방향 | 무엇 |
 |---|---|
-| `runner/wiki/*.mjs` → 여기 | `prep` 이 `normalize.py` · `facts.py` · `render_modules.py` 를 자식 프로세스로 부른다 |
-| `runner/wiki/check.mjs` → 여기 | `verify_citations.py` 를 부른다 |
-| `runner/wiki/build.mjs` → 여기 | `demermaid.py` 를 부른다 |
-| 여기 → `scripts/*` | `run_mode*.py` 가 `node scripts/…mjs` 를 부른다 (**되돌아오는 방향**) |
-| 여기 → `viz/src/*` | **없다.** 파이썬은 컴포넌트를 모른다 |
+| `runner/wiki/prep.py` → 여기 | `pycalls.py` · `normalize.py` · `facts.py` 를 자식 프로세스로 부른다 |
+| `runner/wiki/check.py` → 여기 | `verify_citations.py` 를 부른다 |
+| `runner/run_mode1.py` → 여기 | `declmap` · `survey_plan` · `warmup` 을 import 하고 `terms_db.py` 를 자식 프로세스로 부른다 |
+| 여기 → 바깥 | **없다.** 이 모듈은 아무도 부르지 않는다 — 불려 가기만 한다 |
+
+⚠ **`render_modules.py`(prep) 와 `demermaid.py`(build) 는 여기 없다.** 그림을 그리므로
+시각축이라 `../viz/` 에 산다. `runner/wiki/prep.py:177` 과 `runner/wiki/build.py:83` 이
+`viz/` 경로로 부른다 — 여기서 찾지 마라.
 
 ⚠ **`normalize.py` 의 출력 키는 간접 의존이다.** `terms_db.py` 가 `from`/`to` · `id`/`depends_on`
 를 읽는다. 코드에 명시돼 있지 않아 바꾸면 조용히 깨진다. 키를 바꾸는 변경이면 멈추고 보고한다.
@@ -245,7 +252,7 @@ $EDITOR machine/terms-reading.json     # {kind, module, where, means, does, uses
 .venv/bin/python machine/xmldoc.py inject
 
 # 수집기 출력이 바뀌었다 — 골든 시험부터 본다
-GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest codegraph/ -q
+GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest machine/ -q
 ```
 
 ## 비직관적인 것 (Gotchas)

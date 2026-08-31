@@ -6,13 +6,13 @@
 
 | 자리 | 하는 일 | 부르는 곳 |
 |---|---|---|
-| `python.mjs` | 파이썬 해석기를 찾는다 — `$REPORT_PYTHON` → `.venv` → PATH | `doctor.mjs` · `runner/wiki/*.mjs` |
-| `doctor.mjs` | 이 컴퓨터에 무엇이 있고 없는지 한 화면. 필수가 없으면 exit 1 | `npm run doctor` |
+| `python.py` | 파이썬 해석기를 찾는다 — `$REPORT_PYTHON` → `.venv` → PATH | `doctor.py` · `runner/wiki/*.py` |
+| `doctor.py` | 이 컴퓨터에 무엇이 있고 없는지 한 화면. 필수가 없으면 exit 1 | `npm run doctor` |
 | `scrub_local_paths.py` | 홈 아래 경로와 개인 식별자를 작업 트리·git 이력에서 지운다 | **아무 데서도 안 부른다** — 손으로 돌린다 |
 
 ## 왜 여기 모였나
 
-- `python.mjs` 는 **경계를 넘는 접착제**다. Node 쪽이 파이썬 쪽을 부를 수 있게만 해 주고
+- `python.py` 는 **경계를 넘는 접착제**다. Node 쪽이 파이썬 쪽을 부를 수 있게만 해 주고
   자신은 아무 파이프라인에도 속하지 않는다.
 - `scrub_local_paths.py` 는 **저장소 위생 도구**다. 코드 지도도 HTML 도 만들지 않는다.
   `git-filter-repo` 로 이력을 다시 쓰므로 **되돌릴 수 없다** — 돌리기 전에 안전 번들을 만든다.
@@ -29,5 +29,5 @@
 
 | 방향 | 무엇 |
 |---|---|
-| `../runner/wiki/*.mjs` → 여기 | `pythonPath()` 로 해석기를 찾는다 |
+| `../runner/wiki/*.py` → 여기 | `pythonPath()` 로 해석기를 찾는다 |
 | 여기 → 바깥 | `git` · `dot` · `dotnet` · `clangd` 를 PATH 로 찾는다. **경로를 박지 않는다** |

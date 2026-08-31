@@ -1,17 +1,1 @@
-{
-  "include": ["machine", "runner", "viz", "tools"],
-  "exclude": [
-    "**/__pycache__",
-    "**/node_modules",
-    ".venv",
-    "machine/roslyn-dump"
-  ],
-
-  "venvPath": ".",
-  "venv": ".venv",
-  "extraPaths": ["machine", "runner", "viz", "tools"],
-
-  "pythonVersion": "3.14",
-  "pythonPlatform": "All",
-  "typeCheckingMode": "strict"
-}
+{"typeCheckingMode": "strict"}
