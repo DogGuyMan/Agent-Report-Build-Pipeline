@@ -220,7 +220,11 @@ $GRAPHICS_REPO/doc/
 실제로 그 장르의 보고서를 쓸 일이 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다.
 컴포넌트 후보로 횟수와 함께 기록만 한다.
 
-스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전). Track A 대상은 `confidence-and-sourcing`,
+스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이다 — 2026-08-29 사용자 이전).
+
+⚠ **이 문서의 이전 판은 `.claude/skills/` 쪽이 심볼릭 링크라고 적었으나 사실이 아니다**(🔵 2026-08-31 `ls -ld` 실측 — 양쪽 다 일반 디렉토리). 그래서 **사본이 조용히 표류한다** — 실제로 `.claude/` 쪽이 워크플로 7단계 시절 구판으로 남아 있었고(18788B 대 12994B), 층 병렬 배치 절이 통째로 없었다. 고칠 때 **양쪽을 함께 고치고 `diff` 로 확인한다.**
+
+Track A 대상은 `confidence-and-sourcing`,
 `design-decision-discipline`, `architecture-design-workflow` 이고, Track B 는 `graphviz-class-diagram` 과
 `spec-review-dashboard` 를 참조한다. ~~B2 는 `spec-review-dashboard` 의 개정이 된다.~~ **B2 기각으로 이 개정 계획도 함께 소멸했다** — 다만 그 스킬은 2026-08-28 에 report-builder 파이프라인 기준으로 따로 포팅됐다.
 

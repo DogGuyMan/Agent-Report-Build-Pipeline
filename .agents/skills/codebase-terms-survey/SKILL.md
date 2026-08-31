@@ -29,11 +29,12 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 ## 레코드 계약 — 이것이 산출물이다
 
-`<repo>/docs/machine/terms-reading.json` (git 추적). 꼴은 `{ "키": 레코드 }`.
+`<repo>/docs/codegraph/terms-reading.json` (git 추적). 꼴은 `{ "키": 레코드 }`.
+**이 저장소(report-builder) 자신만 예외로 `machine/terms-reading.json` 이다** — `run_mode1.py` 의 `reading_path` 가 그렇게 가른다.
 
 ```json
 { "build_terms": {
-    "kind": "function", "module": "codegraph", "where": "machine/terms_db.py:82",
+    "kind": "function", "module": "machine", "where": "machine/terms_db.py:82",
     "means": "코드 지도에서 용어 사전을 만드는 함수.",
     "does": "노드와 모듈을 돌며 이름 · 종류 · 위치 · 관계를 뽑는다. 입력이 같으면 출력도 같다.",
     "uses": [ { "to": "_where", "kind": "dependency", "label": "calls", "where": "machine/terms_db.py:110" } ],
@@ -45,7 +46,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 |---|---|---|
 | 키 | 파일은 파일명(`normalize.py`), 함수·클래스는 맨 이름, **다른 파일과 겹치면 겹친 전원** `<파일줄기>.<이름>`, 파일명이 겹치면 경로 전체 | Mode 1.5 가 이 키를 Plan 본문에서 낱말 경계로 찾는다 — Plan 의 표기와 글자까지 같아야 한다 |
 | `kind` | `file module function class struct enum interface delegate record external artifact key concept` | `file module artifact key concept` 는 지도의 노드가 되지 않는다 |
-| `module` | **디렉토리** (`codegraph`, `scripts/term`) | |
+| `module` | **디렉토리** (`machine`, `runner/term`) | |
 | `where` | `경로:줄`. 파일은 `:1`, 함수·클래스는 선언 줄, 산출물은 그 파일을 **쓰는** 줄, 키는 그 키를 **채우는** 줄, 개념은 그 낱말이 있는 줄 | `module` `external` 빼고 **필수.** 기계가 L1(파일) L2(줄) L3(근처에 이름) 로 검사 |
 | `means` | 무엇인가 — 한 문장 | **객체지향을 갓 배운 대학 1학년 눈높이.** 다른 어려운 용어로 설명하지 않는다 |
 | `does` | 무엇을 하는가 — 한두 문장. 선택 | 누가 언제 불러 무엇이 되는지까지 쓰면 좋다(아래 렌즈) |
@@ -123,7 +124,8 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 8. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 10 의 목록에 적는다.
 9. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
    ```bash
-   cd $REPO_ROOT && .venv/bin/python machine/terms_db.py --repo <repo> --reading <repo>/docs/machine/terms-reading.json
+   cd $REPO_ROOT && .venv/bin/python machine/terms_db.py --repo <repo> --reading <repo>/docs/codegraph/terms-reading.json
+   #   (report-builder 자신을 조사할 때만 --reading $REPO_ROOT/machine/terms-reading.json)
    #   -> <repo>/out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0"
    #   정적 codegraph 도 있으면:  terms_db.py <codegraph.json> --repo <repo> --reading <…json>  -> "투영에 없는 것 0개" 까지
    ```
@@ -132,7 +134,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 ## 착수 조건으로 남긴 측정 — "빠진 간선이 몇인가" (아직 도구 없음)
 
 `uses` 가 얼마나 빠졌는지 **재는 도구가 없다.** 정적 codegraph 가 있는 저장소(StickRush)에서 **LLM 이 적은 `uses` ∩ 정적 간선** 을 세면 recall(정적 간선 중 LLM 이 잡은 비율)·precision(LLM 간선 중 정적에 있는 비율)이 숫자로 나온다.
-구현 자리는 `terms_db.py` 의 codegraph+reading 경로(지금은 노드 상위집합만 대조한다) — **작업 트리가 깨끗해지면** 넣는다(2026-08-29 현재 다른 세션이 `codegraph/*.py` 를 고치는 중). 그 숫자가 나오기 전에는 "렌즈 1회로 `uses` 가 좋아졌다" 고 **주장하지 않는다.**
+구현 자리는 `terms_db.py` 의 codegraph+reading 경로(지금은 노드 상위집합만 대조한다) — **작업 트리가 깨끗해지면** 넣는다(2026-08-29 당시 다른 세션이 파이썬 소스 — 지금의 `machine/*.py` — 를 고치는 중이었다). 그 숫자가 나오기 전에는 "렌즈 1회로 `uses` 가 좋아졌다" 고 **주장하지 않는다.**
 
 ## C++ 저장소의 함정 — 2026-08-29 실측
 
@@ -183,8 +185,8 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 | 파일 | 누가 | 어디로 |
 |---|---|---|
-| `<repo>/docs/machine/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본 |
-| `<repo>/docs/machine/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다 |
+| `<repo>/docs/codegraph/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본. **report-builder 자신만 `machine/terms-reading.json`** |
+| `$REPO_ROOT/machine/comments.xml` · 소스의 주석 블록 | `xmldoc.py emit` / `inject` | git 추적 — 파생물. 손으로 고치지 않는다. **`xmldoc.py` 는 `--repo` 가 없다 — report-builder 자신에만 돈다**(`XML_REL` 이 상수) |
 | `<repo>/out/codegraph-raw/terms-db.json` | `terms_db.py` | Mode 1.5 `report-term collect` 의 재료. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |
