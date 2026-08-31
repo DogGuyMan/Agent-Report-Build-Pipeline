@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-// <include file="machine/comments.xml" path="//term[@id='report-term']"/>
-// Mode 1.5 의 진입점. 용어를 얼마나 아는지 점검한다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='report-term']"/>
+# Mode 1.5 의 진입점. 용어를 얼마나 아는지 점검한다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 

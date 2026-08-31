@@ -15,10 +15,10 @@
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
-| `init`  | 뼈대 `data.ts` · `report.tsx` 를 만든다. 이미 있으면 스스로 건너뛴다 | `viz/init.mjs` |
+| `init`  | 뼈대 `data.ts` · `report.tsx` 를 만든다. 이미 있으면 스스로 건너뛴다 | `viz/init.py` |
 | `agent` | **원고를 쓴다** — 설계 문서를 읽어 결정 표 · 서사 · 확신도 배지를 채운다 | `claude -p` 1회 |
-| `build` | esbuild 트랜스파일 → React 정적 렌더 → 한 장짜리 HTML 조립 | `viz/build.mjs` |
-| `check` | `<script>` 수 · `tsc --noEmit` · 링크 무결성 · 용어집 대조 · builderVersion | `viz/check.mjs` |
+| `build` | esbuild 트랜스파일 → React 정적 렌더 → 한 장짜리 HTML 조립 | `viz/build.py` |
+| `check` | `<script>` 수 · `tsc --noEmit` · 링크 무결성 · 용어집 대조 · builderVersion | `viz/check.py` |
 
 ## 이 파이프라인의 LLM 자리는 **원고 쓰기** 하나다
 
@@ -88,7 +88,7 @@ PROJECT_STAGES = {"init", "agent"}
 # `-design-review.html` 이 함께 살아 접미사가 오타 가드 노릇을 한다.
 # `plans/` 는 계획서만 있어 접미사가 없다.
 #
-# ⚠ **`viz/init.mjs` 의 `DOC_DIRS` 와 같은 값이어야 한다.** 언어가 달라 한 곳에 모을 수
+# ⚠ **`viz/init.py` 의 `DOC_DIRS` 와 같은 값이어야 한다.** 언어가 달라 한 곳에 모을 수
 # 없다 — 한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다.
 DOC_DIRS = [
     ("specs", re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")),
@@ -114,8 +114,8 @@ def report_dir(project: str, slug: str, doc_dir: str = "specs") -> str:
 def stage_cwd(stage: str, project: str, report_dir: str) -> str:
     """단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.**
 
-    `init.mjs` 는 `cwd` 아래 `specs/`·`plans/` 를 보므로 프로젝트 뿌리가 필요하고,
-    `build.mjs`·`check.mjs` 는 `cwd` 에서 `data.ts`·`report.tsx` 를 읽으므로 보고서
+    `init.py` 는 `cwd` 아래 `specs/`·`plans/` 를 보므로 프로젝트 뿌리가 필요하고,
+    `build.py`·`check.py` 는 `cwd` 에서 `data.ts`·`report.tsx` 를 읽으므로 보고서
     폴더가 필요하다. 모형(`agent`)은 둘 다 봐야 해서 뿌리에 세운다.
     """
     if stage not in STAGES:
@@ -139,7 +139,7 @@ def plan_stages(has_manuscript: bool, only: Iterable[str] | None = None,
                 skip: Iterable[str] | None = None) -> list[str]:
     """무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다.
 
-    `init` 은 늘 남긴다 — 이미 `data.ts` 가 있으면 건너뛸지를 `init.mjs` 자신이
+    `init` 은 늘 남긴다 — 이미 `data.ts` 가 있으면 건너뛸지를 `init.py` 자신이
     정한다(멱등 경로에서 exit 0). 여기서 미리 빼면 그 판단을 뺏는 것이다.
 
     `agent` 만은 **원고가 이미 채워졌을 때** 뺀다 — 사람이 쓴 글을 모형이 덮어쓰면
@@ -204,12 +204,12 @@ def find_spec(filenames: Iterable[str], slug: str,
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode2.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists, runner.test_run_mode2.test_only_init_takes_the_slug_on_the_command_line, runner.test_run_mode2.test_script_argv_points_at_the_renderer_scripts
 # ── 3. 기계 단계의 명령줄 ────────────────────────────────────────────────
 def script_argv(root: str, stage: str, slug: str) -> list[str]:
-    """`viz/<단계>.mjs` 하나를 부른다. node 는 PATH 에서 찾는다.
+    """`viz/<단계>.py` 하나를 부른다.
 
     **slug 를 받는 것은 `init` 뿐이다.** `build`·`check` 는 `cwd` 로 대상을 알기 때문에
     인자를 주면 오해한다.
     """
-    argv = ["node", os.path.join(root, "viz", stage + ".mjs")]
+    argv = [sys.executable, os.path.join(root, "viz", stage + ".py")]
     if stage == "init":
         argv.append(slug)
     return argv

@@ -1,3 +1,7 @@
+# <include file="machine/comments.xml" path="//term[@id='init.py']"/>
+# 새 보고서의 뼈대 파일을 만드는 스크립트.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
+import json
 import os
 import re
 import sys
@@ -21,7 +25,7 @@ def parseSpecFilename(basename: str, dir: str = "specs") -> Optional[dict[str, s
     return {"date": m.group(1), "slug": m.group(2)}
 
 def findSimilar(slug: str, candidates: list[str]) -> list[str]:
-    similar = []
+    similar: list[str] = []
     for c in candidates:
         if c == slug:
             continue
@@ -56,7 +60,7 @@ def hasReport(cwd: str, docDir: str, slug: str) -> bool:
     return os.path.exists(os.path.join(reportDir(cwd, docDir, slug), "data.ts"))
 
 def listDocs(cwd: str) -> list[dict[str, str]]:
-    docs = []
+    docs: list[dict[str, str]] = []
     for entry in DOC_DIRS:
         d = entry["dir"]
         abs_dir = os.path.join(cwd, d)
@@ -74,15 +78,20 @@ def listDocs(cwd: str) -> list[dict[str, str]]:
 
 def writeSkeleton(dir: str, slug: str, date: str, specName: str, branch: str, version: str) -> None:
     os.makedirs(dir, exist_ok=True)
+
+    # 주입하는 네 값은 json.dumps 로 이스케이프한다 — 실제 spec 제목에 백틱과 따옴표가 있어
+    # 템플릿에 그대로 꽂으면 data.ts 가 문법 오류가 된다. repr 은 파이썬 표기라 계약이 아니다.
+    def q(v: str) -> str:
+        return json.dumps(v, ensure_ascii=False)
     
     data_ts = f"""import type {{ ReportData }} from "report-builder/types";
 
 export const data: ReportData = {{
-  builderVersion: {repr(version)},
-  slug: {repr(slug)},
-  specName: {repr(specName)},
-  date: {repr(date)},
-  branch: {repr(branch)},
+  builderVersion: {q(version)},
+  slug: {q(slug)},
+  specName: {q(specName)},
+  date: {q(date)},
+  branch: {q(branch)},
   decisions: [],
   // 용어집 — Mode 1.5 가 낸 terms.json 을 여기에 옮겨 적는다.
   //   report-term collect <plan.md> <terms-db.json>  →  (스킬이 묻는다)  →  report-term grade  →  report-term emit
@@ -116,9 +125,7 @@ export default function Report() {
         f.write(report_tsx)
 
 def main() -> None:
-    if len(sys.argv) < 2:
-        sys.argv.append(None) # Make sure it has enough args
-    slug = sys.argv[1]
+    slug = sys.argv[1] if len(sys.argv) > 1 else ""
     
     cwd = os.getcwd()
     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

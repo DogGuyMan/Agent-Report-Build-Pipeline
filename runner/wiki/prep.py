@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='prep.py']"/>
+# 정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 import json
@@ -10,7 +13,9 @@ from tools.python import pythonPath
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def prepPlan(collector, hasCodegraph, hasClangUmlConfig, hasRoslynDump, hasClangDoc):
+from typing import Any, Optional
+
+def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool) -> dict[str, Any]:
     tail = ["facts", "render-modules"]
     if hasCodegraph:
         return {"steps": tail, "blocked": None}
@@ -30,9 +35,9 @@ def prepPlan(collector, hasCodegraph, hasClangUmlConfig, hasRoslynDump, hasClang
         return {"steps": ["normalize"] + tail, "blocked": None}
     return {"steps": [], "blocked": "정적 수집기를 고르지 못했다. .csproj/.slnx 도 CMakeLists.txt 도 없다."}
 
-def pyRoots(repo):
-    skip = {"out", "node_modules", ".venv", "__pycache__", "docs", "test"}
-    roots = []
+def pyRoots(repo: str) -> list[str]:
+    skip: set[str] = {"out", "node_modules", ".venv", "__pycache__", "docs", "test"}
+    roots: list[str] = []
     try:
         entries = os.listdir(repo)
     except Exception:
@@ -50,7 +55,7 @@ def pyRoots(repo):
     roots.sort()
     return roots if roots else ["."]
 
-def run(cmd, args, cwd=None):
+def run(cmd: str, args: list[str], cwd: Optional[str] = None) -> None:
     r = subprocess.run([cmd] + args, cwd=cwd)
     if r.returncode != 0:
         print(f"실패 — {cmd} {' '.join(args)}", file=sys.stderr)
@@ -68,7 +73,7 @@ if __name__ == "__main__":
         sys.exit(1)
         
     P = wikiPaths(repo)
-    PY = pythonPath(ROOT, sys.platform, os.environ)
+    PY = pythonPath(ROOT, sys.platform, dict(os.environ))
     
     selectPath = os.path.join(P["raw"], "lang-select.json")
     fromSelect = None
@@ -105,7 +110,7 @@ if __name__ == "__main__":
     for step in plan["steps"]:
         if step == "clang-uml":
             dbs = findCompdbs(repo)
-            lists = []
+            lists: list[list[dict[str, Any]]] = []
             for f in dbs:
                 try:
                     with open(f, "r", encoding="utf-8") as file:
@@ -134,10 +139,11 @@ if __name__ == "__main__":
             
         elif step == "clang-doc":
             os.makedirs(docOutDir, exist_ok=True)
-            run(CLANG_DOC, clangDocArgs(
-                outDir=docOutDir, repo=repo, flags=authorFlags,
-                compdbPath=os.path.join(compdbDir, "compile_commands.json")
-            ), repo)
+            if CLANG_DOC:
+                run(CLANG_DOC, clangDocArgs(
+                    outDir=docOutDir, repo=repo, flags=authorFlags,
+                    compdbPath=os.path.join(compdbDir, "compile_commands.json")
+                ), repo)
             
         elif step == "griffe":
             run(PY, ["-m", "griffe", "dump"] + pyRoots(repo) + ["-o", os.path.join(P["raw"], "griffe.json"), "-s", repo], repo)

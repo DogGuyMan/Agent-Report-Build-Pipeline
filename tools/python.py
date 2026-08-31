@@ -1,5 +1,7 @@
+# <include file="machine/comments.xml" path="//term[@id='python.py']"/>
+# 파이썬 해석기를 기계에 상관없이 찾아 주는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
-import sys
 from typing import List, Dict
 
 def pythonCandidates(root: str, platform: str, env: Dict[str, str]) -> List[str]:

@@ -25,7 +25,7 @@ import run_mode2 as R  # noqa: E402
 # 쓰는 것: runner.run_mode2.stage_cwd · 쓰이는 곳: 없음
 # ── 1. 작업 디렉토리 — Mode 2 의 가장 조용한 함정 ──────────────────────────
 def test_init_runs_at_the_project_root():
-    """`init` 은 `specs/` 가 있는 프로젝트 뿌리에서 돈다. `init.mjs` 가 `join(cwd, "specs")` 를 본다."""
+    """`init` 은 `specs/` 가 있는 프로젝트 뿌리에서 돈다. `init.py` 가 `join(cwd, "specs")` 를 본다."""
     assert R.stage_cwd("init", project="/프로젝트", report_dir="/프로젝트/specs/붙임") == "/프로젝트"
 
 
@@ -93,7 +93,7 @@ def test_plan_skips_the_agent_when_the_manuscript_is_already_written():
 # 원고가 이미 있어도 init 단계는 항상 목록의 맨 앞에 남아야 한다는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.plan_stages · 쓰이는 곳: 없음
 def test_plan_keeps_init_even_when_the_manuscript_exists():
-    """`init` 은 늘 부른다 — 건너뛸지는 `init.mjs` 자신이 정한다(data.ts 가 있으면 exit 0)."""
+    """`init` 은 늘 부른다 — 건너뛸지는 `init.py` 자신이 정한다(data.ts 가 있으면 exit 0)."""
     assert R.plan_stages(has_manuscript=True)[0] == "init"
 
 
@@ -210,7 +210,7 @@ PLAN_FILES = [
 
 
 def test_doc_dirs_matches_the_javascript_side():
-    """`viz/init.mjs` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다."""
+    """`viz/init.py` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다."""
     assert [d for d, _ in R.DOC_DIRS] == ["specs", "plans"]
 
 
@@ -245,8 +245,8 @@ def test_report_dir_sits_next_to_its_source_document():
 # ── 5. 명령줄 — init 만 slug 를 받는다 ───────────────────────────────────
 def test_script_argv_points_at_the_renderer_scripts():
     argv = R.script_argv("/도구/뿌리", "build", slug="붙임")
-    assert argv[0] == "node"
-    assert argv[1] == os.path.join("/도구/뿌리", "viz", "build.mjs")
+    assert argv[0] == sys.executable
+    assert argv[1] == os.path.join("/도구/뿌리", "viz", "build.py")
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_only_init_takes_the_slug_on_the_command_line']"/>
@@ -255,7 +255,7 @@ def test_script_argv_points_at_the_renderer_scripts():
 def test_only_init_takes_the_slug_on_the_command_line():
     """`build`·`check` 는 `cwd` 로 대상을 안다. slug 를 주면 인자를 오해한다."""
     assert R.script_argv("/도구/뿌리", "init", slug="붙임")[-1] == "붙임"
-    assert R.script_argv("/도구/뿌리", "check", slug="붙임")[-1].endswith("check.mjs")
+    assert R.script_argv("/도구/뿌리", "check", slug="붙임")[-1].endswith("check.py")
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2._prompt']"/>

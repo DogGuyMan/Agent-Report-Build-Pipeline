@@ -1,5 +1,7 @@
+# <include file="machine/comments.xml" path="//term[@id='compdb.py']"/>
+# C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
-import json
 import re
 from typing import Any
 

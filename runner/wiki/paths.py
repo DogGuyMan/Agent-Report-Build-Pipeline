@@ -1,3 +1,6 @@
+# <include file="machine/comments.xml" path="//term[@id='paths.py']"/>
+# 위키 세 명령이 함께 보는 경로 규약.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import json
 from typing import Any, Optional, cast

@@ -66,8 +66,11 @@ READING = os.path.join(ROOT, "machine/terms-reading.json")
 XML_REL = "machine/comments.xml"
 XML_ABS = os.path.join(ROOT, XML_REL)
 
-# 확장자별 한 줄 주석 접두사. 확장자가 없으면 bin/ 의 node 스크립트라 // 다.
-LINE_COMMENT = {".py": "#", ".ts": "//", ".tsx": "//", ".mjs": "//", ".js": "//", "": "//"}
+# 확장자별 한 줄 주석 접두사. 확장자가 없는 것은 bin/ 의 실행 스크립트라 셔뱅으로 가른다.
+LINE_COMMENT = {".py": "#", ".ts": "//", ".tsx": "//", ".mjs": "//", ".js": "//"}
+
+# 셔뱅에 이 낱말이 있으면 파이썬으로 본다. bin/ 의 진입점은 확장자가 없다.
+SHEBANG_PYTHON = "python"
 
 INCLUDE_RE = re.compile(r"^\s*(#|//)\s*<include file=\"" + re.escape(XML_REL) + r"\"")
 ID_RE = re.compile(r"@id='([^']*)'")
@@ -91,9 +94,25 @@ DECL_KINDS = frozenset({"function", "class", "struct", "enum", "interface",
 # 쓰는 것: machine.xmldoc.LINE_COMMENT · 쓰이는 곳: machine.xmldoc.plan_file
 def prefix_for(path: str) -> str:
     ext = os.path.splitext(path)[1]
-    if ext not in LINE_COMMENT:
-        raise SystemExit(f"주석 접두사를 모르는 확장자: {path}")
-    return LINE_COMMENT[ext]
+    if ext:
+        if ext not in LINE_COMMENT:
+            raise SystemExit(f"주석 접두사를 모르는 확장자: {path}")
+        return LINE_COMMENT[ext]
+    return "#" if shebang_is_python(path) else "//"
+
+
+# <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.shebang_is_python']"/>
+# 확장자가 없는 파일의 첫 줄 셔뱅을 읽어 파이썬인지 판정하는 함수다.
+# 쓰는 것: machine.xmldoc.SHEBANG_PYTHON · 쓰이는 곳: 없음
+def shebang_is_python(path: str) -> bool:
+    """확장자 없는 파일의 첫 줄 셔뱅이 파이썬을 가리키는지 본다."""
+    abs_path = path if os.path.isabs(path) else os.path.join(ROOT, path)
+    try:
+        with open(abs_path, encoding="utf-8") as f:
+            first = f.readline()
+    except OSError:
+        return False
+    return first.startswith("#!") and SHEBANG_PYTHON in first
 
 
 # <include file="machine/comments.xml" path="//term[@id='machine.xmldoc.split_where']"/>

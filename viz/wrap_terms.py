@@ -1,5 +1,8 @@
+# <include file="machine/comments.xml" path="//term[@id='wrap_terms.py']"/>
+# 다 만들어진 HTML 글자에서 용어집 용어를 찾아 뜻 카드가 뜨는 참조로 감싸는 스크립트.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import re
-from typing import Any, Callable, Match, Pattern, Dict, List
+from typing import Any, Pattern, Dict, List
 
 SKIP_TAGS = {"script", "style", "svg", "code", "pre", "summary", "h1", "h2", "h3", "th", "title", "textarea"}
 SKIP_CLASSES = {"term-ref", "term-card", "mono", "term-groups", "term-graph", "svg-wrap"}

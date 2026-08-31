@@ -1,3 +1,6 @@
+# <include file="machine/comments.xml" path="//term[@id='runner/wiki/clang_doc.py']"/>
+# clang-doc 실행 파일을 기계에 상관없이 찾는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import subprocess
 import sys

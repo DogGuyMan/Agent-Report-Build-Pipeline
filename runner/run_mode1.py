@@ -14,15 +14,15 @@
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
 | `lang-select` | 어떤 정적 수집기를 돌릴지 고른다. 모형의 제안을 결정론 검사로 거른다 | `claude -p` 1회(가장 싼 모형) |
-| `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `runner/wiki/prep.mjs` |
+| `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `runner/wiki/prep.py` |
 | `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `machine/warmup.py` |
 | `survey-plan` | **기계.** 코드 지도를 의존 위상 층과 배치로 나눈다. 모형을 부르지 않는다 | `machine/survey_plan.py` |
 | `survey` | 전수조사. 위 계획의 **층 오름차순 · 층 안 병렬**로 배치를 돌린다 | `claude -p` 배치마다 1회 |
 | `warmup-save` | **전수조사가** 해낸 뒤에만 매니페스트를 **확정**한다 | `machine/warmup.py` |
 | `terms` | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `machine/terms_db.py` |
 | `wiki`  | 위키 산문. 목차 1회 + 장마다 1회, 같은 층 순서 | `claude -p` 장마다 1회 |
-| `build` | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `runner/wiki/build.mjs` |
-| `check` | 산문의 인용을 저장소 실물과 대조한다 | `runner/wiki/check.mjs` |
+| `build` | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `runner/wiki/build.py` |
+| `check` | 산문의 인용을 저장소 실물과 대조한다 | `runner/wiki/check.py` |
 
 **층 축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다(K1).**
 의존 하나만 가진 심볼도 그 하나가 3층이면 4층이다. 같은 층은 서로 의존하지 않으므로
@@ -269,7 +269,7 @@ def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
                 skip: Iterable[str] | None = None) -> list[str]:
     """무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다.
 
-    `prep` 은 늘 남긴다 — 이미 코드 지도가 있으면 건너뛸지를 `runner/wiki/prep.mjs` 가
+    `prep` 은 늘 남긴다 — 이미 코드 지도가 있으면 건너뛸지를 `runner/wiki/prep.py` 가
     스스로 정한다. 여기서 미리 빼면 그 판단을 뺏는 것이다.
 
     LLM 단계 둘은 **각자 자기 산출물로 걸린다.** `survey` 는 읽기 레코드가 있으면,
@@ -685,13 +685,13 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.node_argv']"/>
-# runner/wiki/ 아래의 .mjs 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.
+# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.wiki_argv']"/>
+# runner/wiki/ 아래의 파이썬 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists
 # ── 5. 기계 단계의 명령줄 ────────────────────────────────────────────────
-def node_argv(root: str, script: str, repo: str) -> list[str]:
-    """`runner/wiki/*.mjs` 하나를 부른다. node 는 PATH 에서 찾는다."""
-    return ["node", os.path.join(root, "runner", "wiki", script), repo]
+def wiki_argv(python: str, root: str, script: str, repo: str) -> list[str]:
+    """`runner/wiki/*.py` 하나를 부른다."""
+    return [python, os.path.join(root, "runner", "wiki", script), repo]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.terms_argv']"/>
@@ -1353,7 +1353,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                                  codegraph if os.path.exists(codegraph) else None,
                                  reading if os.path.exists(reading) else None)
             else:
-                cmd = node_argv(ROOT, stage + ".mjs", repo)
+                cmd = wiki_argv(sys.executable, ROOT, stage + ".py", repo)
             rc = run_machine(cmd, stage)
             ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
             seconds = time.monotonic() - t0

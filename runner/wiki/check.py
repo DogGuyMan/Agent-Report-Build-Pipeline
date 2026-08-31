@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='runner/wiki/check.py']"/>
+# 위키 산문의 인용을 검증하는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 import subprocess

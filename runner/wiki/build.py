@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# <include file="machine/comments.xml" path="//term[@id='runner/wiki/build.py']"/>
+# 산문을 사전 렌더 그림으로 바꾸고 정적 사이트를 짓는 파일.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 import shutil

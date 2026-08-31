@@ -26,11 +26,8 @@
   <term id="blocks.tsx" kind="file" module="viz/src/components" where="viz/src/components/blocks.tsx:1" source="reading">
     <means>경고 · 번복 · 정정 · 분류 같은 네모 상자 조각들이 있는 파일.</means>
   </term>
-  <term id="builderVersion" kind="key" module="viz" where="viz/init.mjs:92" source="reading">
+  <term id="builderVersion" kind="key" module="viz" where="viz/init.py:95" source="reading">
     <means>data.ts 에 박히는 빌더 버전 문자열 칸. viz/check.mjs 와 viz/build.mjs 가 현재 버전과 비교해 경고를 낸다.</means>
-  </term>
-  <term id="clang-doc.mjs" kind="file" module="runner/wiki" where="runner/wiki/clang-doc.mjs:1" source="reading">
-    <means>clang-doc 실행 파일을 기계에 상관없이 찾는 파일.</means>
   </term>
   <term id="clang_doc.py" kind="file" module="machine" where="machine/clang_doc.py:1" source="reading">
     <means>clang-doc 가 여러 파일로 흩뿌린 결과를 심볼 목록 하나로 모으는 도구.</means>
@@ -50,13 +47,13 @@
   <term id="comments.xml" kind="artifact" module="machine" where="machine/xmldoc.py:66" source="reading">
     <means>주석 본문을 한 곳에 모은 파일. terms-reading.json 의 파생물이라 손으로 고치지 않는다.</means>
   </term>
-  <term id="compdb.mjs" kind="file" module="runner/wiki" where="runner/wiki/compdb.mjs:1" source="reading">
+  <term id="compdb.py" kind="file" module="runner/wiki" where="runner/wiki/compdb.py:1" source="reading">
     <means>C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.</means>
   </term>
   <term id="confidence" kind="key" module="machine" where="machine/terms_db.py:83" source="reading">
     <means>용어 레코드 하나의 확신도 칸(HIGH/MEDIUM/LOW). 검사기는 이 칸을 읽지 않고 사람과 Mode 2 가 읽는다.</means>
   </term>
-  <term id="data.ts" kind="artifact" module="viz" where="viz/init.mjs:89" source="reading">
+  <term id="data.ts" kind="artifact" module="viz" where="viz/init.py:92" source="reading">
     <means>report init 이 만드는 보고서 뼈대 파일 중 결정 데이터만 담는 쪽.</means>
   </term>
   <term id="declmap.py" kind="file" module="machine" where="machine/declmap.py:1" source="reading">
@@ -68,7 +65,7 @@
   <term id="dispatch.mjs" kind="file" module="runner" where="runner/dispatch.mjs:1" source="reading">
     <means>bin 진입점들이 같이 쓰는 명령 갈림길.</means>
   </term>
-  <term id="doctor.mjs" kind="file" module="tools" where="tools/doctor.mjs:1" source="reading">
+  <term id="doctor.py" kind="file" module="tools" where="tools/doctor.py:1" source="reading">
     <means>이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.</means>
   </term>
   <term id="emit.mjs" kind="file" module="runner/term" where="runner/term/emit.mjs:1" source="reading">
@@ -89,7 +86,7 @@
   <term id="graph-math.ts" kind="file" module="viz/src/runtime" where="viz/src/runtime/graph-math.ts:1" source="reading">
     <means>관계도 런타임이 쓰는 순수 계산만 모아 둔 파일.</means>
   </term>
-  <term id="init.mjs" kind="file" module="viz" where="viz/init.mjs:1" source="reading">
+  <term id="init.py" kind="file" module="viz" where="viz/init.py:1" source="reading">
     <means>새 보고서의 뼈대 파일을 만드는 스크립트.</means>
   </term>
   <term id="lang-select.json" kind="artifact" module="machine" where="machine/lang_select.py:7" source="reading">
@@ -101,7 +98,7 @@
   <term id="lib.mjs" kind="file" module="viz" where="viz/lib.mjs:1" source="reading">
     <means>테스트가 읽을 수 있도록 src 를 한 덩이로 묶는 스크립트.</means>
   </term>
-  <term id="link-paths.mjs" kind="file" module="viz" where="viz/link-paths.mjs:1" source="reading">
+  <term id="link_paths.py" kind="file" module="viz" where="viz/link_paths.py:1" source="reading">
     <means>본문에 글자로 적힌 파일 경로를 그 파일을 여는 링크로 바꾸는 스크립트.</means>
   </term>
   <term id="machine" kind="module" module="machine" source="reading">
@@ -2177,6 +2174,9 @@
     <uses to="machine.warmup.decl_hash" kind="dependency" label="파일 내용 해시를 구하려고 file_hash() 를 부른다" where="machine/warmup.py:162"/>
     <uses to="machine.warmup.load" kind="dependency" label="선언 목록 해시를 구하려고 decl_hash() 를 부른다" where="machine/warmup.py:154"/>
   </term>
+  <term id="machine.xmldoc.SHEBANG_PYTHON" kind="key" module="machine.xmldoc" where="machine/xmldoc.py:73" source="reading">
+    <means>셔뱅에서 파이썬을 알아보는 낱말.</means>
+  </term>
   <term id="machine.xmldoc.Term" kind="class" module="machine.xmldoc" where="machine/xmldoc.py:47" source="reading">
     <means>용어 하나를 표현하는 자료 구조다. 파이썬 TypedDict 로 만들어, json 의 한 항목이 어떤 필드를 갖는지 타입으로 못박은 것이다.</means>
     <does>kind, means, module, source, where, uses(이 용어가 쓰는 다른 용어들의 목록) 를 필수 필드로 갖고, does 와 confidence 는 있어도 되고 없어도 되는 선택 필드로 둔다.</does>
@@ -2186,119 +2186,124 @@
     <means>용어 하나가 다른 무엇을 쓰는지를 담는 자료 한 칸의 모양을 정의하는 타입.</means>
     <does>TypedDict 로, to·kind·label·where 네 개의 필수 문자열 필드와 source 라는 선택적 필드를 선언한다. terms-reading.json 안 uses[] 배열의 각 항목이 이 모양을 따른다.</does>
   </term>
-  <term id="machine.xmldoc.anchor_name" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:115" source="reading">
+  <term id="machine.xmldoc.anchor_name" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:134" source="reading">
     <means>용어 id 에서, 소스 코드 그 줄에 실제로 적혀 있을 이름만 뽑아내는 함수.</means>
     <does>id 를 점(.)으로 나눈 마지막 조각을 취하고, 배열 표시인 뒤쪽 대괄호("[]")를 떼서 돌려준다.</does>
   </term>
-  <term id="machine.xmldoc.block_extent" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:275" source="reading">
+  <term id="machine.xmldoc.block_extent" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:294" source="reading">
     <means>코드에 이미 박혀 있는 레퍼런스 블록(마커+뜻+의존 세 줄짜리 묶음)이 실제로 몇 줄을 차지하는지 세는 함수.</means>
     <does>주어진 줄 위치부터 include 줄이 연속으로 몇 개(c)인지 센다. include 줄과 뜻 줄은 항상 쌍으로 있으니 2*c 줄로 잡고, 그 뒤에 의존 줄(USES_LINE_RE 로 알아보는 줄)이 실제로 몇 개 더 있는지 세어 더한다. (용어 개수, 전체 줄 수) 튜플을 돌려준다.</does>
-    <uses to="machine.xmldoc.INCLUDE_RE" kind="dependency" label="include 줄인지 정규식으로 확인한다" where="machine/xmldoc.py:281"/>
-    <uses to="machine.xmldoc.USES_LINE_RE" kind="dependency" label="의존 줄인지 정규식으로 확인한다" where="machine/xmldoc.py:285"/>
+    <uses to="machine.xmldoc.INCLUDE_RE" kind="dependency" label="include 줄인지 정규식으로 확인한다" where="machine/xmldoc.py:279"/>
+    <uses to="machine.xmldoc.USES_LINE_RE" kind="dependency" label="의존 줄인지 정규식으로 확인한다" where="machine/xmldoc.py:283"/>
   </term>
-  <term id="machine.xmldoc.block_lines" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:226" source="reading">
+  <term id="machine.xmldoc.block_lines" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:245" source="reading">
     <means>한 곳의 소스 코드 줄 위에 붙일 주석 블록(여러 줄)을 만드는 함수다.</means>
     <does>용어 id 목록(tids)을 받아, 각 용어마다 include 태그 줄과 뜻(means) 줄, 쓰는 것/쓰이는 곳(uses_line) 줄을 접두사(prefix)와 들여쓰기(indent)를 붙여 문자열 리스트로 만든다. 한 줄에 용어가 여러 개 걸리면 라벨을 붙여 구분한다. used_by 인덱스가 안 주어지면 직접 계산한다.</does>
-    <uses to="machine.xmldoc.used_by_index" kind="dependency" label="used_by 가 없으면 역색인을 직접 계산한다" where="machine/xmldoc.py:230"/>
-    <uses to="machine.xmldoc.uses_line" kind="dependency" label="용어별 쓰는 것/쓰이는 곳 한 줄을 만든다" where="machine/xmldoc.py:238"/>
+    <uses to="machine.xmldoc.used_by_index" kind="dependency" label="used_by 가 없으면 역색인을 직접 계산한다" where="machine/xmldoc.py:228"/>
+    <uses to="machine.xmldoc.uses_line" kind="dependency" label="용어별 쓰는 것/쓰이는 곳 한 줄을 만든다" where="machine/xmldoc.py:236"/>
   </term>
-  <term id="machine.xmldoc.carry_lines" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:447" source="reading">
+  <term id="machine.xmldoc.carry_lines" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:466" source="reading">
     <means>레퍼런스 블록을 끼워 넣어서 밀린 코드 줄 번호를, 마커가 없어 스스로 제자리를 못 찾는 다른 기록에도 따라서 옮겨주는 함수다.</means>
     <does>마커를 직접 갖는 용어(skip 집합)를 제외한 모든 용어의 where 와, 모든 용어의 uses[].where 를 검사해, 그 파일·줄 번호가 이번에 밀린 줄 대응표(line_map)에 있으면 새 줄 번호로 고쳐 쓴다. 고친 건수를 세어 돌려준다.</does>
-    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열을 파일 경로와 줄 번호로 분리" where="machine/xmldoc.py:456"/>
+    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열을 파일 경로와 줄 번호로 분리" where="machine/xmldoc.py:454"/>
   </term>
-  <term id="machine.xmldoc.collect_targets" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:425" source="reading">
+  <term id="machine.xmldoc.collect_targets" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:444" source="reading">
     <means>terms-reading.json 의 모든 용어를 훑어서 파일별로 묶고, 코드에 마커를 박을 수 없는 것은 따로 가려내는 함수다.</means>
     <does>용어마다 where 값에서 파일 경로를 뽑아, 위치가 없거나(all_kinds 가 아니면) kind 가 선언 종류(DECL_KINDS)가 아니면 skipped 목록에 이유와 함께 넣는다. 나머지는 그 파일이 실제로 저장소에 있는지 확인한 뒤(없으면 즉시 종료) {파일경로: [용어id…]} 표에 쌓아, 파일별 용어 목록과 건너뛴 용어 목록 두 가지를 돌려준다.</does>
-    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열을 파일 경로와 줄 번호로 분리" where="machine/xmldoc.py:431"/>
+    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열을 파일 경로와 줄 번호로 분리" where="machine/xmldoc.py:429"/>
   </term>
-  <term id="machine.xmldoc.emit_xml" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:125" source="reading">
+  <term id="machine.xmldoc.emit_xml" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:144" source="reading">
     <means>전수조사 결과(용어 딕셔너리)를 comments.xml 파일 내용이 될 XML 문자열로 바꾸는 함수.</means>
     <does>용어를 id 순으로 정렬해 각각 &lt;term&gt; 태그를 만든다. kind·module·where·source 는 속성으로, means·does 는 본문 태그로, uses[] 는 &lt;uses/&gt; 태그들로 붙인다. 본문이 없는 용어는 자기닫힘 태그로 낸다. 전체를 XML 헤더와 &lt;terms&gt; 로 감싼 문자열을 돌려준다.</does>
-    <uses to="xml.sax.saxutils.escape" kind="dependency" label="본문 텍스트를 XML 이스케이프한다" where="machine/xmldoc.py:145"/>
+    <uses to="xml.sax.saxutils.escape" kind="dependency" label="본문 텍스트를 XML 이스케이프한다" where="machine/xmldoc.py:143"/>
     <uses to="xml.sax.saxutils.quoteattr" kind="dependency" label="속성값을 XML 이스케이프해 따옴표로 감싼다" where="machine/xmldoc.py:139"/>
   </term>
-  <term id="machine.xmldoc.file_anchor" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:245" source="reading">
+  <term id="machine.xmldoc.file_anchor" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:264" source="reading">
     <means>파일 전체를 설명하는 레퍼런스 블록을 어느 줄에 끼워 넣을지 정하는 함수.</means>
     <does>파일의 첫 줄이 셔뱅(#!) 이면 그 다음 줄(1)을 자리로 돌려주고, 아니면 맨 위(0)를 돌려준다.</does>
   </term>
-  <term id="machine.xmldoc.in_py_string" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:253" source="reading">
+  <term id="machine.xmldoc.in_py_string" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:272" source="reading">
     <means>파이썬 파일에서 특정 줄이 삼중따옴표 문자열 한복판인지 대략 짐작하는 함수.</means>
     <does>파이썬(.py) 파일이 아니면 무조건 False. 맞으면 그 줄 이전까지의 텍스트에서 큰따옴표 세 개(\"\"\") 또는 작은따옴표 세 개(''') 가 나온 횟수를 세어, 홀수면(짝이 안 맞으면) 문자열 안이라고 보고 True 를 돌려준다. 정확한 파싱이 아니라 안전판용 어림 계산이라고 주석에 적혀 있다.</does>
   </term>
-  <term id="machine.xmldoc.is_commentish" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:180" source="reading">
+  <term id="machine.xmldoc.is_commentish" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:199" source="reading">
     <means>한 줄이 주석처럼 보이는 줄인지 판정하는 함수.</means>
     <does>줄 양끝 공백을 없앤 뒤 비어 있으면 False, 아니면 COMMENTISH 목록(#, //, /*, *, */) 중 하나로 시작하는지를 돌려준다.</does>
-    <uses to="machine.xmldoc.COMMENTISH" kind="dependency" label="주석으로 볼 접두사 목록을 참조한다" where="machine/xmldoc.py:182"/>
+    <uses to="machine.xmldoc.COMMENTISH" kind="dependency" label="주석으로 볼 접두사 목록을 참조한다" where="machine/xmldoc.py:180"/>
   </term>
-  <term id="machine.xmldoc.name_list" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:202" source="reading">
+  <term id="machine.xmldoc.name_list" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:221" source="reading">
     <means>이름들의 목록을 사람이 읽기 좋은 한 줄 문자열로 만드는 함수.</means>
     <does>중복된 이름을 없애고, 앞에서부터 최대 5개(USES_SHOWN)까지 쉼표로 나열한다. 5개를 넘으면 "(+남은개수)"를 덧붙인다. 목록이 비었으면 "없음"을 돌려준다.</does>
-    <uses to="machine.xmldoc.USES_SHOWN" kind="dependency" label="몇 개까지 나열할지 상수를 참조한다" where="machine/xmldoc.py:210"/>
+    <uses to="machine.xmldoc.USES_SHOWN" kind="dependency" label="몇 개까지 나열할지 상수를 참조한다" where="machine/xmldoc.py:208"/>
   </term>
-  <term id="machine.xmldoc.plan_file" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:347" source="reading">
+  <term id="machine.xmldoc.plan_file" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:366" source="reading">
     <means>소스 파일 한 개에 주석 블록들을 실제로 끼워 넣는 계획을 세우는 함수. 마커가 이미 박혀 있으면 그 자리를 믿고, 새 용어는 json의 위치 정보를 쓴다.</means>
     <does>먼저 옛 블록을 전부 걷어내고(strip_blocks), 파일 단위 용어는 맨 위에, 나머지는 각자의 선언 줄 위(주석 덩어리보다 위, 앞선 블록보다는 아래)에 block_lines로 만든 블록을 끼워 넣는다. 앵커가 옛 블록 안이거나 그 줄에 이름이 없거나 문자열 안이면 SystemExit로 멈춘다. 반환값은 (새 본문 문자열, {용어: 새 줄번호}, {옛 줄번호: 새 줄번호}) 세 가지이고, 셋째 값은 마커를 못 박는 용어(key·artifact 등)와 uses[].where를 밀린 만큼 같이 옮기는 데 쓴다.</does>
-    <uses to="machine.xmldoc.relocate" kind="dependency" label="마커 위치로 각 용어의 현재 줄을 다시 센다" where="machine/xmldoc.py:358"/>
-    <uses to="machine.xmldoc.strip_blocks" kind="dependency" label="옛 블록을 통째로 걷어낸다" where="machine/xmldoc.py:359"/>
-    <uses to="machine.xmldoc.prefix_for" kind="dependency" label="확장자별 주석 접두사를 얻는다" where="machine/xmldoc.py:366"/>
-    <uses to="machine.xmldoc.used_by_index" kind="dependency" label="누가 이 용어를 쓰는지 역인덱스를 만든다" where="machine/xmldoc.py:367"/>
-    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열에서 줄번호를 뽑는다" where="machine/xmldoc.py:375"/>
-    <uses to="machine.xmldoc.file_anchor" kind="dependency" label="파일 단위 블록을 넣을 최소 위치(셔뱅 등 다음)를 찾는다" where="machine/xmldoc.py:382"/>
-    <uses to="machine.xmldoc.block_lines" kind="dependency" label="실제 블록 세 줄을 만든다" where="machine/xmldoc.py:384"/>
-    <uses to="machine.xmldoc.anchor_name" kind="dependency" label="앵커 줄에 있어야 할 이름을 정한다" where="machine/xmldoc.py:395"/>
-    <uses to="machine.xmldoc.in_py_string" kind="dependency" label="앵커가 문자열 리터럴 안인지 검사한다" where="machine/xmldoc.py:398"/>
-    <uses to="machine.xmldoc.scan_top" kind="dependency" label="선언 위 주석 덩어리보다 더 위의 삽입 지점을 찾는다" where="machine/xmldoc.py:404"/>
+    <uses to="machine.xmldoc.relocate" kind="dependency" label="마커 위치로 각 용어의 현재 줄을 다시 센다" where="machine/xmldoc.py:356"/>
+    <uses to="machine.xmldoc.strip_blocks" kind="dependency" label="옛 블록을 통째로 걷어낸다" where="machine/xmldoc.py:357"/>
+    <uses to="machine.xmldoc.prefix_for" kind="dependency" label="확장자별 주석 접두사를 얻는다" where="machine/xmldoc.py:364"/>
+    <uses to="machine.xmldoc.used_by_index" kind="dependency" label="누가 이 용어를 쓰는지 역인덱스를 만든다" where="machine/xmldoc.py:365"/>
+    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열에서 줄번호를 뽑는다" where="machine/xmldoc.py:373"/>
+    <uses to="machine.xmldoc.file_anchor" kind="dependency" label="파일 단위 블록을 넣을 최소 위치(셔뱅 등 다음)를 찾는다" where="machine/xmldoc.py:380"/>
+    <uses to="machine.xmldoc.block_lines" kind="dependency" label="실제 블록 세 줄을 만든다" where="machine/xmldoc.py:382"/>
+    <uses to="machine.xmldoc.anchor_name" kind="dependency" label="앵커 줄에 있어야 할 이름을 정한다" where="machine/xmldoc.py:393"/>
+    <uses to="machine.xmldoc.in_py_string" kind="dependency" label="앵커가 문자열 리터럴 안인지 검사한다" where="machine/xmldoc.py:396"/>
+    <uses to="machine.xmldoc.scan_top" kind="dependency" label="선언 위 주석 덩어리보다 더 위의 삽입 지점을 찾는다" where="machine/xmldoc.py:402"/>
   </term>
-  <term id="machine.xmldoc.prefix_for" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:92" source="reading">
+  <term id="machine.xmldoc.prefix_for" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:95" source="reading">
     <means>파일 경로를 보고 그 언어에서 쓰는 한 줄 주석 기호(# 또는 //)를 알려주는 함수.</means>
     <does>경로의 확장자를 뽑아 LINE_COMMENT 표에서 찾는다. 표에 없는 확장자면 SystemExit 로 즉시 프로그램을 끝낸다.</does>
     <uses to="machine.xmldoc.LINE_COMMENT" kind="dependency" label="확장자별 주석 기호 표를 찾아본다" where="machine/xmldoc.py:94"/>
   </term>
-  <term id="machine.xmldoc.relocate" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:293" source="reading">
+  <term id="machine.xmldoc.relocate" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:312" source="reading">
     <means>소스 파일에 이미 박혀 있는 레퍼런스 마커를 읽어, 용어마다 실제 선언이 몇 번째 줄에 있는지 표로 만드는 함수다.</means>
     <does>파일을 한 줄씩 훑다가 include 마커(INCLUDE_RE)를 찾으면 block_extent 로 그 블록에 딸린 용어 수와 블록이 차지하는 줄 수를 구하고, 각 include 줄의 @id 속성에서 용어 id 를 읽는다(없으면 종료). 블록 뒤에 남아 있는, 마커가 아닌 주석 덩어리(원래 있던 JSDoc 등)를 지나쳐 첫 코드 줄을 찾고, 그 줄 번호(1-based)를 각 용어의 위치로 기록해 {용어id: 줄번호} 표를 돌려준다.</does>
-    <uses to="machine.xmldoc.is_commentish" kind="dependency" label="블록 뒤 남은 줄이 주석인지 판정해 코드 줄까지 건너뜀" where="machine/xmldoc.py:314"/>
-    <uses to="machine.xmldoc.block_extent" kind="dependency" label="include 블록이 차지하는 용어 수와 줄 수 계산" where="machine/xmldoc.py:305"/>
+    <uses to="machine.xmldoc.is_commentish" kind="dependency" label="블록 뒤 남은 줄이 주석인지 판정해 코드 줄까지 건너뜀" where="machine/xmldoc.py:312"/>
+    <uses to="machine.xmldoc.block_extent" kind="dependency" label="include 블록이 차지하는 용어 수와 줄 수 계산" where="machine/xmldoc.py:303"/>
   </term>
-  <term id="machine.xmldoc.run_check" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:505" source="reading">
+  <term id="machine.xmldoc.run_check" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:524" source="reading">
     <means>코드에 박힌 주석 마커와 terms-reading.json 에 적힌 줄 번호가 서로 맞는지 확인하는 함수다.</means>
     <does>terms-reading.json 을 읽어 파일별 용어 목록(collect_targets)을 구하고, 각 파일을 실제로 열어 마커 위치(relocate)를 찾는다. 마커가 없으면 문제로 기록하고, where 의 줄 번호(split_where)가 마커 기준 위치와 다르면 문제로 기록한다. 끝으로 comments.xml 이 없거나 emit_xml 결과와 다르면 문제로 기록하고, 문제 목록을 최대 20개 찍은 뒤 문제가 있으면 1, 없으면 0을 돌려준다.</does>
-    <uses to="machine.xmldoc.collect_targets" kind="dependency" label="파일별로 검사할 용어 목록을 모은다" where="machine/xmldoc.py:508"/>
-    <uses to="machine.xmldoc.relocate" kind="dependency" label="파일 안 마커 위치를 다시 찾는다" where="machine/xmldoc.py:513"/>
-    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열에서 줄 번호를 뽑는다" where="machine/xmldoc.py:515"/>
-    <uses to="machine.xmldoc.emit_xml" kind="dependency" label="comments.xml 이 최신인지 재생성해서 대조한다" where="machine/xmldoc.py:526"/>
+    <uses to="machine.xmldoc.collect_targets" kind="dependency" label="파일별로 검사할 용어 목록을 모은다" where="machine/xmldoc.py:506"/>
+    <uses to="machine.xmldoc.relocate" kind="dependency" label="파일 안 마커 위치를 다시 찾는다" where="machine/xmldoc.py:511"/>
+    <uses to="machine.xmldoc.split_where" kind="dependency" label="where 문자열에서 줄 번호를 뽑는다" where="machine/xmldoc.py:513"/>
+    <uses to="machine.xmldoc.emit_xml" kind="dependency" label="comments.xml 이 최신인지 재생성해서 대조한다" where="machine/xmldoc.py:524"/>
   </term>
-  <term id="machine.xmldoc.run_inject" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:471" source="reading">
+  <term id="machine.xmldoc.run_inject" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:490" source="reading">
     <means>terms-reading.json 의 용어 레코드를 실제 소스 파일에 주석 마커로 박아 넣고, comments.xml 과 원본 json 의 where 좌표를 최신 상태로 맞추는 함수다.</means>
     <does>READING 경로에서 용어 전체를 읽어 collect_targets 로 파일별 대상 용어 목록과 건너뛴 것들을 나눈다. 파일마다 원본 소스를 읽어 plan_file 로 마커가 삽입된 새 본문과 각 용어의 삽입 줄, 줄 밀림표(line_map)를 얻고, dry 가 아니면 실제로 덮어쓴다. 삽입된 줄을 기준으로 각 용어의 where 를 file:line 으로 갱신하고(moved 카운트), carry_lines 로 마커가 없는 uses[].where 도 같은 파일 안에서 줄 밀림만큼 따라 옮긴다(carried 카운트). dry 면 요약만 찍고 끝내고, 아니면 갱신된 terms 를 READING 에 다시 쓰고 emit_xml 로 comments.xml 도 다시 쓴 뒤, 건너뛴 용어의 종류별 개수와 함께 완료 메시지를 찍는다.</does>
-    <uses to="machine.xmldoc.collect_targets" kind="dependency" label="용어를 파일별 대상과 건너뛴 것으로 나눈다" where="machine/xmldoc.py:473"/>
-    <uses to="machine.xmldoc.plan_file" kind="dependency" label="파일 하나에 마커를 심은 새 본문과 삽입 위치·줄 밀림표를 얻는다" where="machine/xmldoc.py:480"/>
-    <uses to="machine.xmldoc.carry_lines" kind="dependency" label="마커 없는 uses[].where 를 줄 밀림만큼 따라 옮긴다" where="machine/xmldoc.py:490"/>
-    <uses to="machine.xmldoc.emit_xml" kind="dependency" label="갱신된 terms 를 comments.xml 텍스트로 직렬화해 다시 쓴다" where="machine/xmldoc.py:496"/>
+    <uses to="machine.xmldoc.collect_targets" kind="dependency" label="용어를 파일별 대상과 건너뛴 것으로 나눈다" where="machine/xmldoc.py:471"/>
+    <uses to="machine.xmldoc.plan_file" kind="dependency" label="파일 하나에 마커를 심은 새 본문과 삽입 위치·줄 밀림표를 얻는다" where="machine/xmldoc.py:478"/>
+    <uses to="machine.xmldoc.carry_lines" kind="dependency" label="마커 없는 uses[].where 를 줄 밀림만큼 따라 옮긴다" where="machine/xmldoc.py:488"/>
+    <uses to="machine.xmldoc.emit_xml" kind="dependency" label="갱신된 terms 를 comments.xml 텍스트로 직렬화해 다시 쓴다" where="machine/xmldoc.py:494"/>
   </term>
-  <term id="machine.xmldoc.scan_top" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:264" source="reading">
+  <term id="machine.xmldoc.scan_top" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:283" source="reading">
     <means>코드 한 줄 위에 붙어 있는 주석 덩어리가 어디서 시작하는지 찾는 함수다.</means>
     <does>앵커 줄 인덱스에서 시작해 바로 위 줄이 주석처럼 보이는 동안 계속 위로 올라가고, 주석이 아닌 줄을 만나거나 파일 맨 위에 닿으면 멈춰 그 자리(주석 덩어리의 첫 줄 인덱스)를 돌려준다.</does>
     <uses to="machine.xmldoc.is_commentish" kind="dependency" label="한 줄이 주석처럼 보이는지 판정" where="machine/xmldoc.py:267"/>
   </term>
-  <term id="machine.xmldoc.split_where" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:102" source="reading">
+  <term id="machine.xmldoc.shebang_is_python" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:107" source="reading">
+    <means>확장자가 없는 파일의 첫 줄 셔뱅을 읽어 파이썬인지 판정하는 함수다.</means>
+    <does>파일의 첫 줄만 읽어 `#!` 로 시작하면서 `python` 이라는 낱말을 담고 있는지 본다. 읽지 못하면 거짓이다.</does>
+    <uses to="machine.xmldoc.SHEBANG_PYTHON" kind="dependency" label="셔뱅에서 찾을 낱말" where="machine/xmldoc.py:112"/>
+  </term>
+  <term id="machine.xmldoc.split_where" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:121" source="reading">
     <means>"파일경로:줄번호" 처럼 콜론으로 합쳐진 문자열을 파일과 줄번호로 다시 나누는 함수.</means>
     <does>문자열을 오른쪽 콜론 기준으로 나누고, 뒤쪽이 숫자면 (경로, 줄번호정수) 를 돌려준다. 위치 문자열이 비었거나 숫자가 아니면 (None, None) 을 돌려준다.</does>
   </term>
-  <term id="machine.xmldoc.strip_blocks" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:327" source="reading">
+  <term id="machine.xmldoc.strip_blocks" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:346" source="reading">
     <means>소스 코드에서 이미 박혀 있는 레퍼런스 블록들을 전부 걷어내 깨끗한 코드로 되돌리는 함수다.</means>
     <does>파일을 한 줄씩 보다가 include 마커를 찾으면 block_extent 로 그 블록이 차지하는 줄 수를 구해 그만큼 통째로 건너뛰고, 마커가 아닌 나머지 줄만 새 목록에 모은다. 동시에 남은 줄마다 그 앞에서 몇 줄이 지워졌는지도 같이 기록해 (깨끗한 줄들, 지워진 줄 수 목록) 을 돌려준다.</does>
-    <uses to="machine.xmldoc.block_extent" kind="dependency" label="블록이 차지하는 줄 수 계산" where="machine/xmldoc.py:336"/>
+    <uses to="machine.xmldoc.block_extent" kind="dependency" label="블록이 차지하는 줄 수 계산" where="machine/xmldoc.py:334"/>
   </term>
-  <term id="machine.xmldoc.used_by_index" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:188" source="reading">
+  <term id="machine.xmldoc.used_by_index" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:207" source="reading">
     <means>어떤 용어를 어떤 용어들이 쓰고 있는지, 거꾸로 찾을 수 있게 뒤집은 표를 만드는 함수.</means>
     <does>모든 용어의 uses[] 를 훑어 각 항목의 to 값을 열쇠로 삼아, 그것을 쓰는 용어 id 들을 집합으로 모은다. 마지막에 정렬된 리스트 딕셔너리로 바꿔 돌려준다.</does>
   </term>
-  <term id="machine.xmldoc.uses_line" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:218" source="reading">
+  <term id="machine.xmldoc.uses_line" kind="function" module="machine.xmldoc" where="machine/xmldoc.py:237" source="reading">
     <means>용어 하나가 무엇을 쓰고 무엇에 쓰이는지 한 줄 문자열로 만드는 함수다.</means>
     <does>이 용어의 uses[] 에서 to 값들을 뽑아 '쓰는 것' 목록으로, used_by 역색인에서 이 용어를 가리키는 것들을 뽑아 '쓰이는 곳' 목록으로 삼아, name_list 로 각각을 줄인 뒤 '쓰는 것: … · 쓰이는 곳: …' 꼴 문자열을 만든다.</does>
-    <uses to="machine.xmldoc.name_list" kind="dependency" label="이름 목록을 다섯 개까지 줄여 한 줄로 이어붙임" where="machine/xmldoc.py:220"/>
+    <uses to="machine.xmldoc.name_list" kind="dependency" label="이름 목록을 다섯 개까지 줄여 한 줄로 이어붙임" where="machine/xmldoc.py:218"/>
   </term>
   <term id="modules.md" kind="artifact" module="machine" where="machine/facts.py:335" source="reading">
     <means>codegraph.json 에서 뽑은 모듈 사실 표 파일. facts/ 디렉토리 아래 classes.md · external.md · entrypoints.md · hotspot.md 와 함께 만들어진다.</means>
@@ -2312,16 +2317,16 @@
   <term id="patch-legacy.mjs" kind="file" module="viz" where="viz/patch-legacy.mjs:1" source="reading">
     <means>옛 HTML 보고서에 새 스타일과 확대 토글을 덧대 보던 일회용 스크립트.</means>
   </term>
-  <term id="paths.mjs" kind="file" module="runner/wiki" where="runner/wiki/paths.mjs:1" source="reading">
+  <term id="paths.py" kind="file" module="runner/wiki" where="runner/wiki/paths.py:1" source="reading">
     <means>위키 세 명령이 함께 보는 경로 규약.</means>
   </term>
-  <term id="prep.mjs" kind="file" module="runner/wiki" where="runner/wiki/prep.mjs:1" source="reading">
+  <term id="prep.py" kind="file" module="runner/wiki" where="runner/wiki/prep.py:1" source="reading">
     <means>정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.</means>
   </term>
   <term id="pycalls.py" kind="file" module="machine" where="machine/pycalls.py:1" source="reading">
     <means>파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기.</means>
   </term>
-  <term id="python.mjs" kind="file" module="tools" where="tools/python.mjs:1" source="reading">
+  <term id="python.py" kind="file" module="tools" where="tools/python.py:1" source="reading">
     <means>파이썬 해석기를 기계에 상관없이 찾아 주는 파일.</means>
   </term>
   <term id="quiz.mjs" kind="file" module="runner/term" where="runner/term/quiz.mjs:1" source="reading">
@@ -2348,10 +2353,10 @@
   <term id="report-wiki" kind="file" module="bin" where="bin/report-wiki:1" source="reading">
     <means>코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.</means>
   </term>
-  <term id="report.html" kind="artifact" module="viz" where="viz/build.mjs:149" source="reading">
+  <term id="report.html" kind="artifact" module="viz" where="viz/build.py:152" source="reading">
     <means>구워진 보고서 하나짜리 HTML 파일. &lt;script&gt; 태그는 1개까지만 허용된다.</means>
   </term>
-  <term id="report.tsx" kind="artifact" module="viz" where="viz/init.mjs:106" source="reading">
+  <term id="report.tsx" kind="artifact" module="viz" where="viz/init.py:109" source="reading">
     <means>report init 이 만드는 보고서 뼈대 파일 중 서사 · 옵션표 · 판정 등 나머지 전부를 담는 쪽.</means>
   </term>
   <term id="reverse_refs.py" kind="file" module="machine" where="machine/reverse_refs.py:1" source="reading">
@@ -2461,7 +2466,7 @@
     <uses to="runner.run_mode1.run_survey" kind="dependency" label="survey 단계에서 층별 전수조사 세션을 돌린다" where="runner/run_mode1.py:1339"/>
     <uses to="runner.run_mode1.run_wiki" kind="dependency" label="wiki 단계에서 층별 위키 장 세션을 돌린다" where="runner/run_mode1.py:1342"/>
     <uses to="runner.run_mode1.terms_argv" kind="dependency" label="terms 단계 자식 프로세스 인자를 만든다" where="runner/run_mode1.py:1351"/>
-    <uses to="runner.run_mode1.node_argv" kind="dependency" label="prep/build/check 단계 자식 프로세스 인자를 만든다" where="runner/run_mode1.py:1355"/>
+    <uses to="runner.run_mode1.wiki_argv" kind="dependency" label="prep/build/check 단계 자식 프로세스 인자를 만든다" where="runner/run_mode1.py:1355"/>
     <uses to="runner.run_mode1.run_machine" kind="dependency" label="결정론 자식 프로세스를 돌린다" where="runner/run_mode1.py:1356"/>
     <uses to="runner.run_mode1.format_report" kind="dependency" label="측정 표를 문자열로 만든다" where="runner/run_mode1.py:1370"/>
     <uses to="runner.run_mode1.stage_totals" kind="dependency" label="단계별 토큰·비용 소계를 낸다" where="runner/run_mode1.py:1372"/>
@@ -2472,10 +2477,6 @@
     <means>여러 배치 세션이 따로 쓴 결과 조각(샤드) 파일들을 하나의 레코드 사전으로 합치는 함수다.</means>
     <does>샤드 디렉터리의 모든 .json 파일을 이름 순서로 읽어 기존(existing, 조사 이전 원본) 레코드에 병합한다. 같은 키인데 내용이 다르면(!= 비교) 양쪽 레코드를 모두 파일 줄기를 붙인 이름으로 바꿔 충돌을 해소한다. 깨져서 읽을 수 없는 샤드는 건너뛰고 stderr에 알린다.</does>
     <uses to="runner.run_mode1._qualified" kind="dependency" label="이름이 겹친 레코드를 파일 줄기를 붙인 이름으로 바꾼다" where="runner/run_mode1.py:937"/>
-  </term>
-  <term id="runner.run_mode1.node_argv" kind="function" module="runner.run_mode1" where="runner/run_mode1.py:692" source="reading">
-    <means>runner/wiki/ 아래의 .mjs 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.</means>
-    <does>['node', root/runner/wiki/script, repo] 형태의 리스트를 반환한다. node 실행 파일 자체는 PATH 에서 찾도록 경로를 박지 않는다.</does>
   </term>
   <term id="runner.run_mode1.nonnode_prompt" kind="function" module="runner.run_mode1" where="runner/run_mode1.py:513" source="reading">
     <means>코드 지도의 노드가 아닌 용어들(파일·모듈·산출물·설정 키·개념)을 조사할 마지막 세션에게 줄 프롬프트 글을 만드는 함수다.</means>
@@ -2596,6 +2597,10 @@
     <means>전수조사 배치 프롬프트 뒤에 붙는, 증분 조사 범위를 알리는 지시문 글을 만드는 함수다.</means>
     <does>targets 가 비어 있으면 빈 문자열을 반환한다. 있으면 targets 파일 목록을 줄마다 나열하고, reading_path(repo, ROOT) 로 지난 조사 결과 위치를, len(targets)/total 로 전체 대비 비율을, '이 목록에 없는 파일은 읽지 마라' 등 제약을 담은 한국어 지시문 문자열을 반환한다. 함수 안에서 %-포맷을 쓰기 때문에 부르는 쪽이 나중에 .format()을 하면 안 된다고 주석에 경고돼 있다.</does>
     <uses to="runner.run_mode1.reading_path" kind="dependency" label="지난 조사 결과 파일 경로를 얻어 지시문에 박아 넣는다" where="runner/run_mode1.py:402"/>
+  </term>
+  <term id="runner.run_mode1.wiki_argv" kind="function" module="runner.run_mode1" where="runner/run_mode1.py:692" source="reading">
+    <means>runner/wiki/ 아래의 파이썬 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.</means>
+    <does>['node', root/runner/wiki/script, repo] 형태의 리스트를 반환한다. node 실행 파일 자체는 PATH 에서 찾도록 경로를 박지 않는다.</does>
   </term>
   <term id="runner.run_mode1.wiki_catalogue_prompt" kind="function" module="runner.run_mode1" where="runner/run_mode1.py:596" source="reading">
     <means>위키의 목차(장 목록과 각 장이 다룰 심볼)를 정할 첫 세션에게 줄 프롬프트 글을 만드는 함수다.</means>
@@ -2838,7 +2843,7 @@
   <term id="runner.test_run_mode1.test_every_runner_script_path_actually_exists" kind="function" module="runner.test_run_mode1" where="runner/test_run_mode1.py:899" source="reading">
     <means>세 실행기(Mode 1·1.5·2)가 부르는 node 스크립트 경로가 실제로 디스크에 존재하는지 확인해, 디렉토리 개편 후에도 옛 경로를 가리킨 채 시험만 통과하는 일을 막는 시험이다.</means>
     <does>run_mode1_5·run_mode2 모듈을 동적으로 import 한 뒤, Mode 1 의 node_argv 로 prep.mjs·build.mjs·check.mjs 경로를, Mode 1.5 의 _term_script 로 collect.mjs·emit.mjs·quiz.mjs 경로를, Mode 2 의 script_argv 로 init·build·check 단계 경로를 각각 얻어 os.path.isfile 로 실재를 assert 한다.</does>
-    <uses to="runner.run_mode1.node_argv" kind="dependency" label="node_argv" where="runner/test_run_mode1.py:912"/>
+    <uses to="runner.run_mode1.wiki_argv" kind="dependency" label="node_argv" where="runner/test_run_mode1.py:912"/>
     <uses to="runner.run_mode1_5._term_script" kind="dependency" label="_term_script" where="runner/test_run_mode1.py:917"/>
     <uses to="runner.run_mode2.script_argv" kind="dependency" label="script_argv" where="runner/test_run_mode1.py:920"/>
   </term>
@@ -3672,11 +3677,14 @@
   <term id="runner/wiki" kind="module" module="runner/wiki" source="reading">
     <means>Mode 1(코드베이스 위키) 세 명령 — prep · build · check — 이 있는 디렉토리.</means>
   </term>
-  <term id="runner/wiki/build.mjs" kind="file" module="runner/wiki" where="runner/wiki/build.mjs:1" source="reading">
+  <term id="runner/wiki/build.py" kind="file" module="runner/wiki" where="runner/wiki/build.py:1" source="reading">
     <means>산문을 사전 렌더 그림으로 바꾸고 정적 사이트를 짓는 파일.</means>
   </term>
-  <term id="runner/wiki/check.mjs" kind="file" module="runner/wiki" where="runner/wiki/check.mjs:1" source="reading">
+  <term id="runner/wiki/check.py" kind="file" module="runner/wiki" where="runner/wiki/check.py:1" source="reading">
     <means>위키 산문의 인용을 검증하는 파일.</means>
+  </term>
+  <term id="runner/wiki/clang_doc.py" kind="file" module="runner/wiki" where="runner/wiki/clang_doc.py:1" source="reading">
+    <means>clang-doc 실행 파일을 기계에 상관없이 찾는 파일.</means>
   </term>
   <term id="schema_version" kind="key" module="machine" where="machine/terms_db.py:283" source="reading">
     <means>codegraph.json 의 스키마 버전 칸. 현재 값은 2.</means>
@@ -4017,10 +4025,10 @@
     <does>받은 클래스 이름 목록(names)을 (길이, 이름) 순으로 정렬해 짧은 이름 위주로 앞 3개만 뽑고, 각 이름에서 마지막 조각(:: 또는 . 뒤)만 남긴다. 남은 개수는 '외 N' 으로 붙인다. 모듈 이름 굵게 한 줄, '클래스 N개' 한 줄, 대표 이름 목록 한 줄을 담은 Graphviz HTML-like 라벨 문자열(&lt;&lt;TABLE ...&gt;&gt;)을 반환한다.</does>
     <uses to="viz.render_modules.esch" kind="dependency" label="esch 로 문자열 이스케이프" where="viz/render_modules.py:177"/>
   </term>
-  <term id="viz/build.mjs" kind="file" module="viz" where="viz/build.mjs:1" source="reading">
+  <term id="viz/build.py" kind="file" module="viz" where="viz/build.py:1" source="reading">
     <means>보고서 원고를 하나짜리 HTML 파일로 굽는 스크립트.</means>
   </term>
-  <term id="viz/check.mjs" kind="file" module="viz" where="viz/check.mjs:1" source="reading">
+  <term id="viz/check.py" kind="file" module="viz" where="viz/check.py:1" source="reading">
     <means>구운 보고서가 규칙을 지켰는지 보는 검사 스크립트.</means>
   </term>
   <term id="viz/src" kind="module" module="viz/src" source="reading">
@@ -4041,7 +4049,7 @@
   <term id="warmup.py" kind="file" module="machine" where="machine/warmup.py:1" source="reading">
     <means>전수조사를 매번 전량 다시 하지 않게 하는 캐시와 무효화의 파일.</means>
   </term>
-  <term id="wrap-terms.mjs" kind="file" module="viz" where="viz/wrap-terms.mjs:1" source="reading">
+  <term id="wrap_terms.py" kind="file" module="viz" where="viz/wrap_terms.py:1" source="reading">
     <means>다 만들어진 HTML 글자에서 용어집 용어를 찾아 뜻 카드가 뜨는 참조로 감싸는 스크립트.</means>
   </term>
   <term id="xmldoc.py" kind="file" module="machine" where="machine/xmldoc.py:1" source="reading">
@@ -4050,7 +4058,7 @@
   <term id="근거 없음" kind="concept" module="machine" where="machine/verify_citations.py:239" source="reading">
     <means>인용 검증의 세 번째 판정값. L1·L2 는 통과했지만 codegraph 에 그 자리의 선언이 등록돼 있지 않을 때의 값이다.</means>
   </term>
-  <term id="산출물 불변식" kind="concept" module="viz" where="viz/check.mjs:13" source="reading">
+  <term id="산출물 불변식" kind="concept" module="viz" where="viz/check.py:16" source="reading">
     <means>빌드된 report.html 안의 &lt;script&gt; 태그가 1개를 넘으면 안 된다는 산출물 규칙. viz/build.mjs 와 viz/check.mjs 둘 다 세어서 검사한다.</means>
   </term>
 </terms>

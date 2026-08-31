@@ -895,7 +895,7 @@ def test_lang_of_maps_every_collector_language_to_declmap(tmp_path: Path) -> Non
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_every_runner_script_path_actually_exists']"/>
 # 세 실행기(Mode 1·1.5·2)가 부르는 node 스크립트 경로가 실제로 디스크에 존재하는지 확인해, 디렉토리 개편 후에도 옛 경로를 가리킨 채 시험만 통과하는 일을 막는 시험이다.
-# 쓰는 것: runner.run_mode1.node_argv, runner.run_mode1_5._term_script, runner.run_mode2.script_argv · 쓰이는 곳: 없음
+# 쓰는 것: runner.run_mode1.wiki_argv, runner.run_mode1_5._term_script, runner.run_mode2.script_argv · 쓰이는 곳: 없음
 def test_every_runner_script_path_actually_exists() -> None:
     """세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다.
 
@@ -908,8 +908,8 @@ def test_every_runner_script_path_actually_exists() -> None:
     import run_mode1_5 as R15
     import run_mode2 as R2
 
-    for script in ("prep.mjs", "build.mjs", "check.mjs"):
-        p = R.node_argv(root, script, "/대상")[1]
+    for script in ("prep.py", "build.py", "check.py"):
+        p = R.wiki_argv(sys.executable, root, script, "/대상")[1]
         assert os.path.isfile(p), f"Mode 1 이 없는 파일을 가리킨다: {p}"
     for name in ("collect.mjs", "emit.mjs", "quiz.mjs"):
         # 이 시험만 모듈 전용 헬퍼를 들여다본다 — 경로가 실재하는지 보는 것이 목적이고

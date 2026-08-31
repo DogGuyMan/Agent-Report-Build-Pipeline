@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-// <include file="machine/comments.xml" path="//term[@id='report-wiki']"/>
-// 코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.
-// 쓰는 것: 없음 · 쓰이는 곳: 없음
+# <include file="machine/comments.xml" path="//term[@id='report-wiki']"/>
+# 코드베이스 위키를 만드는 진입점. 세 명령으로 갈린다.
+# 쓰는 것: 없음 · 쓰이는 곳: 없음
 import os
 import sys
 

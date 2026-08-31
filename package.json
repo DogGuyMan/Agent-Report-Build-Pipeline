@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:py": "npx --yes pyright@1.1.413",
     "pretest": "node viz/lib.mjs",
-    "doctor": "node tools/doctor.mjs"
+    "doctor": "python3 tools/doctor.py"
   },
   "keywords": [],
   "author": "",
