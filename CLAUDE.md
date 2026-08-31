@@ -220,9 +220,18 @@ $GRAPHICS_REPO/doc/
 실제로 그 장르의 보고서를 쓸 일이 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다.
 컴포넌트 후보로 횟수와 함께 기록만 한다.
 
-스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이다 — 2026-08-29 사용자 이전).
+스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 저장소 안 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전).
 
-⚠ **이 문서의 이전 판은 `.claude/skills/` 쪽이 심볼릭 링크라고 적었으나 사실이 아니다**(🔵 2026-08-31 `ls -ld` 실측 — 양쪽 다 일반 디렉토리). 그래서 **사본이 조용히 표류한다** — 실제로 `.claude/` 쪽이 워크플로 7단계 시절 구판으로 남아 있었고(18788B 대 12994B), 층 병렬 배치 절이 통째로 없었다. 고칠 때 **양쪽을 함께 고치고 `diff` 로 확인한다.**
+⚠ **`.claude/skills/` 는 두 자리에 있다. 헷갈리지 말 것**(🔵 2026-08-31 실측 — 한 세션이 실제로 헛짚었다).
+
+| 자리 | 무엇 | git |
+|---|---|---|
+| `<repo>/.claude/skills/` | `../../.agents/skills/` 로 가는 **심볼릭 링크**. 링크 자체가 추적된다 | 추적됨(20개) |
+| `~/.claude/skills/` | 홈의 **독립 사본**. 저장소 밖이라 어느 저장소도 추적하지 않는다 | 밖 |
+
+`.gitignore` 에 `.claude` 는 없다 — 저장소 안 것이 git 밖인 이유는 무시라서가 아니라
+**홈 경로가 애초에 워킹 트리 밖**이기 때문이다. 홈 사본은 조용히 표류한다(🔵 2026-08-31 —
+워크플로 7단계 시절 구판으로 남아 층 병렬 배치 절이 통째로 없었다. 원본으로 맞췄다).
 
 Track A 대상은 `confidence-and-sourcing`,
 `design-decision-discipline`, `architecture-design-workflow` 이고, Track B 는 `graphviz-class-diagram` 과
