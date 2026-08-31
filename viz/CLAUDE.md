@@ -3,8 +3,9 @@
 > 루트 나침반은 `../CLAUDE.md`. 이 문서는 **산출물을 그리는 코드만** 다룬다.
 > 결정론 기계는 `../machine/CLAUDE.md`, 러너는 `../runner/CLAUDE.md`, 컴포넌트는 `src/CLAUDE.md`.
 
-**이 폴더의 기준은 언어가 아니라 성격이다** (2026-08-30 축 분리). `.py` 든 `.py` 든
-**사람이 볼 것을 만들면** 여기 산다. 그래서 Graphviz 를 부르는 파이썬 셋이 여기 함께 있다.
+**이 폴더의 기준은 언어가 아니라 성격이다** (2026-08-30 축 분리). `.py` 든 `.mjs` 든
+**사람이 볼 것을 만들면** 여기 산다. 본체는 파이썬이고, `.mjs` 는 esbuild 와 React 가
+실제로 읽는 경계 둘(`svg.mjs` · `lib.mjs`)에만 남는다.
 
 ## 무엇이 여기 있나
 
@@ -12,23 +13,27 @@
 |---|---|
 | `src/` | React 컴포넌트 17개 · `theme.css` · 브라우저 런타임 |
 | `init.py` · `build.py` · `check.py` | Mode 2 (`report-spec`) 의 세 단계 |
-| `svg.py` · `wrap_terms.py` · `link_paths.py` | 빌드 후처리 세 통과 |
-| `lib.py` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
+| `svg.mjs` · `wrap_terms.py` · `link_paths.py` | 빌드 후처리 세 통과. `svg.mjs` 만 JS 다(아래) |
+| `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
 | `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
 | `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
-| `patch-legacy.py` | Phase 1 잔재. 옛 HTML 을 깁던 일회용 |
+| `patch-legacy.mjs` | Phase 1 잔재. 옛 HTML 을 깁던 일회용 |
 
 **Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를
 불러 **그림을 굽는 것**이다. 코드 지도를 계산하지 않고 이미 계산된 것을 그린다.
 
-### `viz/*.py` 는 직접 실행 가드를 둔다 — 규약
+### 직접 실행 가드를 둔다 — 규약
 
-```js
-if (process.argv[1] && process.argv[1].endsWith("check.py")) { /* CLI 본체 */ }
+```python
+if __name__ == "__main__":
+    sys.exit(main())
 ```
 
-import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가 import 하는 순간 `process.exit()` 가
-호출돼 러너 자체가 죽는다(`init.py` 에서 실제로 발생). 새 스크립트도 이 패턴을 따른다.
+import 시에는 순수 함수만 노출한다. 가드가 없으면 시험이 import 하는 순간 CLI 본체가 돌아
+`sys.exit()` 이 러너를 죽인다. 새 스크립트도 이 패턴을 따른다.
+
+⚠ **`svg.mjs` 는 JavaScript 라 다르다.** `report.tsx` 가 `report-builder/svg` 로 **import** 하고
+esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지 못한다. 순수 함수만 있어 가드가 필요 없다.
 
 ### 모듈 해결이 런타임과 타입 검사에서 서로 다른 경로를 탄다
 
@@ -37,10 +42,10 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 
 | | 담당 | 가리키는 곳 |
 |---|---|---|
-| 런타임 | `viz/build.py` 의 esbuild `alias` | `viz/src/index.ts` · `viz/src/types.ts` · **`viz/svg.py`** |
+| 런타임 | `viz/build.py` 의 esbuild `alias` | `viz/src/index.ts` · `viz/src/types.ts` · **`viz/svg.mjs`** |
 | 타입 | `viz/check.py` 가 **임시 생성**하는 tsconfig 의 `paths` | 같음. 단 svg 는 **`viz/svg.d.mts`** (선언 파일) |
 
-`paths` 가 `.py` 를 직접 가리키면 TypeScript 가 형제 `.d.mts` 를 찾지 않아 `TS7016` 이 난다.
+`paths` 가 `.mjs` 를 직접 가리키면 TypeScript 가 형제 `.d.mts` 를 찾지 않아 `TS7016` 이 난다.
 같은 이유로 임시 tsconfig 는 `typeRoots: [<ROOT>/node_modules/@types]` 를 명시한다 —
 기본 `typeRoots` 는 tsconfig 파일 위치 기준이라 `@types/node` 를 못 찾고 `TS2688` 이 난다.
 
@@ -51,8 +56,10 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 검사 대상은 `include` 글로브가 아니라 `files` 에 **절대경로로 열거**한다 — 글로브는 tsconfig 위치
 기준으로 해석되는데 그 파일은 `ROOT` 에 있고 검사 대상은 `cwd` 라 서로 다르다.
 
-**빌드 임시 번들(`.tmp-report.py`)은 `cwd` 가 아니라 `ROOT` 에 쓴다.** 동적 `import()` 는 파일 위치
+**빌드 임시 번들(`.tmp-report.mjs`)은 `cwd` 가 아니라 `ROOT` 에 쓴다.** 동적 `import()` 는 파일 위치
 기준으로 `react/jsx-runtime` 을 찾으므로, 외부 저장소에 두면 `ERR_MODULE_NOT_FOUND` 로 즉사한다.
+**렌더 프로세스의 `cwd` 는 반대로 보고서 폴더여야 한다** — `report.tsx` 가 `before.svg` 같은
+곁 파일을 상대 경로로 읽는다. 임시 파일 자리(ROOT)와 프로세스 cwd(보고서 폴더)는 별개다.
 
 ### 렌더 경로
 
@@ -73,7 +80,7 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 저장소 루트 → `out/codegraph-raw` → `git ls-files` 이름 유일. **없는 파일은 링크하지 않는다** — 계획에만 있는 파일이 링크되면 독자가 속는다.
 용어(`term-ref`) 안은 건너뛴다 — 용어는 뜻 카드, 코드 글꼴은 파일 링크로 역할이 갈린다.
 
-### Graphviz SVG 인라인 규칙 (`viz/svg.py`)
+### Graphviz SVG 인라인 규칙 (`viz/svg.mjs`)
 
 - `dot -Tsvg_inline` 사용 — `<?xml?>`·DOCTYPE 없이 나와 HTML 본문 삽입에 맞다.
 - `width`/`height` 제거, `viewBox` 유지.
@@ -103,10 +110,10 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 `plans/` 는 계획서만 있어 가드가 필요 없다.
 
 ⚠ **관례가 `viz/init.py` 의 `DOC_DIRS` 와 `../runner/run_mode2.py` 의 `DOC_DIRS` 두 곳에 산다.**
-언어가 달라 한 곳에 모을 수 없다 — 한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는
-어긋남이 조용히 생긴다. 고칠 때 반드시 둘 다 본다.
+한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다. 고칠 때 반드시 둘 다 본다.
+**둘이 같은 언어가 된 뒤로 한 곳에 모을 수 있게 됐지만 아직 합치지 않았다** — 합칠지는 결정 대상이다.
 
-**주입하는 네 값은 전부 `JSON.stringify` 로 이스케이프한다.** 실제 spec 제목에 백틱이 있어
+**주입하는 네 값은 전부 `json.dumps` 로 이스케이프한다.** 실제 spec 제목에 백틱이 있어
 (`` # `back_face` → `flip_faces` ``) 템플릿 리터럴에 그대로 꽂으면 `data.ts` 가 문법 오류가 된다.
 
 ### `report-spec check` 의 용어 대조 — 경고이지 실패가 아니다
@@ -135,18 +142,18 @@ import 시에는 순수 함수만 노출한다. 가드가 없으면 테스트가
 ## 흔한 변경 패턴 (Common modification patterns)
 
 ```bash
-# 새 .py 를 더했다 — 직접 실행 가드부터 넣는다
-node --test test/<해당>.py      # 가드가 없으면 import 순간 process.exit 로 러너가 죽는다
+# 새 스크립트를 더했다 — 직접 실행 가드부터 넣는다
+.venv/bin/python -m pytest test/test_<해당>.py   # 가드가 없으면 import 순간 CLI 가 돌아 러너가 죽는다
 
-# viz/src/ 를 고쳤는데 테스트가 옛 동작을 보인다 — .tmp/lib.mjs 가 낡았다
-npm test                              # pretest 가 다시 번들한다
+# viz/src/ 를 고쳤는데 시험이 옛 동작을 보인다 — .tmp/lib.mjs 가 낡았다
+npm test                              # pretest 가 viz/lib.mjs 로 다시 번들한다
 
-# 새 mode 명령을 더한다 — bin 의 table 한 줄과 scripts 파일 하나
-$EDITOR bin/report-<mode>             # table: { <명령>: "scripts/…mjs" }
+# 새 mode 명령을 더한다 — bin 의 table 한 줄과 스크립트 파일 하나
+$EDITOR bin/report-<mode>             # table: { <명령>: "viz/….py" }
 ```
 
 **함정 — `node --test test/` 는 Node v25.8.0 에서 죽는다.** 디렉토리를 테스트 파일로 취급한다.
-**인자 없는 `node --test`** 를 쓰면 Node 가 알아서 찾는다.
+**인자 없는 `node --test`** 를 쓰면 Node 가 알아서 찾는다. 지금 node 시험은 `test/svg.test.mjs` 하나다.
 
 ## 비직관적인 것 (Gotchas)
 

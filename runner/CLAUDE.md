@@ -12,9 +12,9 @@
 | `run_mode1.py` | Mode 1 열 단계 — `lang-select→prep→warmup→survey-plan→survey→warmup-save→terms→wiki→build→check`. LLM 칸은 `lang-select`(1회) · `survey`(층별) · `wiki`(층별) 셋(`AGENT_STAGES`) |
 | `run_mode1_5.py` | Mode 1.5 — `collect→[사람]→grade→emit`. 사람 칸에서 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
-| `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`runDispatch`). `report` 만 예외다 |
-| `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang-doc` · `paths` |
-| `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit` |
+| `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
+| `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
+| `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. **아직 `.mjs` 다** |
 
 **`bin/` 은 왜 여기 없나.** `~/.zshrc` 가 `$REPO_ROOT/bin` 을 PATH 에 넣으므로 **옮기면 셸이 깨진다.**
 성격은 러너축이지만 자리는 뿌리에 고정이다.
@@ -22,12 +22,15 @@
 ## 두 방향의 자식 프로세스 — 순환이 아니다
 
 ```
-bin/*  →  dispatch.py  →  viz/*.py · runner/wiki/*.py · runner/term/*.py
-run_mode*.py  →  node runner/wiki/*.py · node viz/*.py   (되돌아오는 방향)
-              →  .venv/bin/python machine/*.py
+bin/*  →  dispatch.py  →  viz/*.py · runner/wiki/*.py · runner/term/*.mjs(아직 JS)
+run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는 방향)
+              →  python machine/*.py
 ```
 
-**Why — 서로 부르는데 왜 순환이 아닌가.** 파이썬 실행기가 최상위 오케스트레이터이고 `.py` 는
+**`dispatch.py` 는 확장자를 보고 해석기를 고른다** — `.py` 면 python, 아니면 node.
+`runner/term/*.mjs` 셋이 아직 JS 라 이 갈림이 필요하다.
+
+**Why — 서로 부르는데 왜 순환이 아닌가.** 파이썬 실행기가 최상위 오케스트레이터이고 얼갈이는
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로
 갈려 있어, 어느 쪽도 상대의 메모리를 보지 않는다.
 
@@ -37,11 +40,12 @@ run_mode*.py  →  node runner/wiki/*.py · node viz/*.py   (되돌아오는 방
 
 ## `.py` 는 직접 실행 가드를 둔다 — 규약
 
-```js
-if (process.argv[1] && process.argv[1].endsWith("prep.py")) { /* CLI 본체 */ }
+```python
+if __name__ == "__main__":
+    sys.exit(main())
 ```
 
-가드가 없으면 테스트가 import 하는 순간 `process.exit()` 가 호출돼 러너 자체가 죽는다.
+가드가 없으면 시험이 import 하는 순간 CLI 본체가 돌아 `sys.exit()` 이 러너 자체를 죽인다.
 
 ## 이 모듈이 소유하는 것 (Owns)
 

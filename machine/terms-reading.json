@@ -78,16 +78,7 @@
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/init.mjs:92"
-  },
-  "clang-doc.mjs": {
-    "confidence": "HIGH",
-    "kind": "file",
-    "means": "clang-doc 실행 파일을 기계에 상관없이 찾는 파일.",
-    "module": "runner/wiki",
-    "source": "reading",
-    "uses": [],
-    "where": "runner/wiki/clang-doc.mjs:1"
+    "where": "viz/init.py:95"
   },
   "clang_doc.py": {
     "confidence": "HIGH",
@@ -143,14 +134,14 @@
     "uses": [],
     "where": "machine/xmldoc.py:66"
   },
-  "compdb.mjs": {
+  "compdb.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "C++ 저장소의 컴파일 명령 목록을 전부 찾아 합치는 파일.",
     "module": "runner/wiki",
     "source": "reading",
     "uses": [],
-    "where": "runner/wiki/compdb.mjs:1"
+    "where": "runner/wiki/compdb.py:1"
   },
   "confidence": {
     "confidence": "HIGH",
@@ -168,7 +159,7 @@
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/init.mjs:89"
+    "where": "viz/init.py:92"
   },
   "declmap.py": {
     "confidence": "HIGH",
@@ -197,14 +188,14 @@
     "uses": [],
     "where": "runner/dispatch.mjs:1"
   },
-  "doctor.mjs": {
+  "doctor.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "이 컴퓨터에서 무엇이 되고 무엇이 안 되는지 한 화면으로 말하는 파일.",
     "module": "tools",
     "source": "reading",
     "uses": [],
-    "where": "tools/doctor.mjs:1"
+    "where": "tools/doctor.py:1"
   },
   "emit.mjs": {
     "confidence": "HIGH",
@@ -260,14 +251,14 @@
     "uses": [],
     "where": "viz/src/runtime/graph-math.ts:1"
   },
-  "init.mjs": {
+  "init.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "새 보고서의 뼈대 파일을 만드는 스크립트.",
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/init.mjs:1"
+    "where": "viz/init.py:1"
   },
   "lang-select.json": {
     "confidence": "MEDIUM",
@@ -296,14 +287,14 @@
     "uses": [],
     "where": "viz/lib.mjs:1"
   },
-  "link-paths.mjs": {
+  "link_paths.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "본문에 글자로 적힌 파일 경로를 그 파일을 여는 링크로 바꾸는 스크립트.",
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/link-paths.mjs:1"
+    "where": "viz/link_paths.py:1"
   },
   "machine": {
     "confidence": "HIGH",
@@ -3956,7 +3947,8 @@
       {
         "kind": "dependency",
         "label": "반환 타입",
-        "to": "machine.clang_doc.Symbol"
+        "to": "machine.clang_doc.Symbol",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:544"
@@ -3972,7 +3964,8 @@
       {
         "kind": "dependency",
         "label": "자식 프로세스로 griffe dump 실행",
-        "to": "griffe"
+        "to": "griffe",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:1077"
@@ -3988,7 +3981,8 @@
       {
         "kind": "dependency",
         "label": "반환 타입",
-        "to": "machine.codegraph_types.CodeGraph"
+        "to": "machine.codegraph_types.CodeGraph",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:163"
@@ -4004,7 +3998,8 @@
       {
         "kind": "dependency",
         "label": "반환 타입",
-        "to": "machine.normalize.GriffeDump"
+        "to": "machine.normalize.GriffeDump",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:901"
@@ -4020,7 +4015,8 @@
       {
         "kind": "dependency",
         "label": "자식 프로세스로 verify_citations.py 실행",
-        "to": "machine.verify_citations"
+        "to": "machine.verify_citations",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:296"
@@ -4168,7 +4164,8 @@
       {
         "kind": "dependency",
         "label": "대응표 조회",
-        "to": "machine.normalize.CLANG_UML_KIND"
+        "to": "machine.normalize.CLANG_UML_KIND",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:32"
@@ -4184,7 +4181,8 @@
       {
         "kind": "dependency",
         "label": "대응표 조회",
-        "to": "machine.normalize.CLANG_UML_KIND"
+        "to": "machine.normalize.CLANG_UML_KIND",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:44"
@@ -4268,7 +4266,8 @@
       {
         "kind": "dependency",
         "label": "대응표 키 존재 확인",
-        "to": "machine.normalize.CLANG_UML_KIND"
+        "to": "machine.normalize.CLANG_UML_KIND",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:53"
@@ -4335,7 +4334,8 @@
       {
         "kind": "dependency",
         "label": "대응표 전량성 확인",
-        "to": "machine.normalize.CS_KIND"
+        "to": "machine.normalize.CS_KIND",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:62"
@@ -4800,7 +4800,8 @@
       {
         "kind": "dependency",
         "label": "대응표 값 집합 확인",
-        "to": "machine.normalize.PY_KIND"
+        "to": "machine.normalize.PY_KIND",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:665"
@@ -4918,7 +4919,8 @@
       {
         "kind": "dependency",
         "label": "원시 타입 목록 조회",
-        "to": "machine.normalize.PY_R7"
+        "to": "machine.normalize.PY_R7",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:675"
@@ -4951,7 +4953,8 @@
       {
         "kind": "dependency",
         "label": "투과 목록 조회",
-        "to": "machine.normalize.PY_TRANSPARENT"
+        "to": "machine.normalize.PY_TRANSPARENT",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:685"
@@ -5207,7 +5210,8 @@
       {
         "kind": "dependency",
         "label": "투과 목록 조회",
-        "to": "machine.normalize.CS_TRANSPARENT_DEFS"
+        "to": "machine.normalize.CS_TRANSPARENT_DEFS",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:96"
@@ -5223,7 +5227,8 @@
       {
         "kind": "dependency",
         "label": "원시 타입 목록 조회",
-        "to": "machine.normalize.CS_R7"
+        "to": "machine.normalize.CS_R7",
+        "where": null
       }
     ],
     "where": "machine/test_normalize.py:108"
@@ -7614,6 +7619,15 @@
     ],
     "where": "machine/warmup.py:128"
   },
+  "machine.xmldoc.SHEBANG_PYTHON": {
+    "confidence": "HIGH",
+    "kind": "key",
+    "means": "셔뱅에서 파이썬을 알아보는 낱말.",
+    "module": "machine.xmldoc",
+    "source": "reading",
+    "uses": [],
+    "where": "machine/xmldoc.py:73"
+  },
   "machine.xmldoc.Term": {
     "confidence": "HIGH",
     "does": "kind, means, module, source, where, uses(이 용어가 쓰는 다른 용어들의 목록) 를 필수 필드로 갖고, does 와 confidence 는 있어도 되고 없어도 되는 선택 필드로 둔다.",
@@ -7649,7 +7663,7 @@
     "module": "machine.xmldoc",
     "source": "reading",
     "uses": [],
-    "where": "machine/xmldoc.py:115"
+    "where": "machine/xmldoc.py:134"
   },
   "machine.xmldoc.block_extent": {
     "confidence": "HIGH",
@@ -7663,16 +7677,16 @@
         "kind": "dependency",
         "label": "include 줄인지 정규식으로 확인한다",
         "to": "machine.xmldoc.INCLUDE_RE",
-        "where": "machine/xmldoc.py:281"
+        "where": "machine/xmldoc.py:279"
       },
       {
         "kind": "dependency",
         "label": "의존 줄인지 정규식으로 확인한다",
         "to": "machine.xmldoc.USES_LINE_RE",
-        "where": "machine/xmldoc.py:285"
+        "where": "machine/xmldoc.py:283"
       }
     ],
-    "where": "machine/xmldoc.py:275"
+    "where": "machine/xmldoc.py:294"
   },
   "machine.xmldoc.block_lines": {
     "confidence": "HIGH",
@@ -7686,16 +7700,16 @@
         "kind": "dependency",
         "label": "used_by 가 없으면 역색인을 직접 계산한다",
         "to": "machine.xmldoc.used_by_index",
-        "where": "machine/xmldoc.py:230"
+        "where": "machine/xmldoc.py:228"
       },
       {
         "kind": "dependency",
         "label": "용어별 쓰는 것/쓰이는 곳 한 줄을 만든다",
         "to": "machine.xmldoc.uses_line",
-        "where": "machine/xmldoc.py:238"
+        "where": "machine/xmldoc.py:236"
       }
     ],
-    "where": "machine/xmldoc.py:226"
+    "where": "machine/xmldoc.py:245"
   },
   "machine.xmldoc.carry_lines": {
     "confidence": "HIGH",
@@ -7709,10 +7723,10 @@
         "kind": "dependency",
         "label": "where 문자열을 파일 경로와 줄 번호로 분리",
         "to": "machine.xmldoc.split_where",
-        "where": "machine/xmldoc.py:456"
+        "where": "machine/xmldoc.py:454"
       }
     ],
-    "where": "machine/xmldoc.py:447"
+    "where": "machine/xmldoc.py:466"
   },
   "machine.xmldoc.collect_targets": {
     "confidence": "HIGH",
@@ -7726,10 +7740,10 @@
         "kind": "dependency",
         "label": "where 문자열을 파일 경로와 줄 번호로 분리",
         "to": "machine.xmldoc.split_where",
-        "where": "machine/xmldoc.py:431"
+        "where": "machine/xmldoc.py:429"
       }
     ],
-    "where": "machine/xmldoc.py:425"
+    "where": "machine/xmldoc.py:444"
   },
   "machine.xmldoc.emit_xml": {
     "confidence": "HIGH",
@@ -7743,7 +7757,7 @@
         "kind": "dependency",
         "label": "본문 텍스트를 XML 이스케이프한다",
         "to": "xml.sax.saxutils.escape",
-        "where": "machine/xmldoc.py:145"
+        "where": "machine/xmldoc.py:143"
       },
       {
         "kind": "dependency",
@@ -7752,7 +7766,7 @@
         "where": "machine/xmldoc.py:139"
       }
     ],
-    "where": "machine/xmldoc.py:125"
+    "where": "machine/xmldoc.py:144"
   },
   "machine.xmldoc.file_anchor": {
     "confidence": "HIGH",
@@ -7762,7 +7776,7 @@
     "module": "machine.xmldoc",
     "source": "reading",
     "uses": [],
-    "where": "machine/xmldoc.py:245"
+    "where": "machine/xmldoc.py:264"
   },
   "machine.xmldoc.in_py_string": {
     "confidence": "HIGH",
@@ -7772,7 +7786,7 @@
     "module": "machine.xmldoc",
     "source": "reading",
     "uses": [],
-    "where": "machine/xmldoc.py:253"
+    "where": "machine/xmldoc.py:272"
   },
   "machine.xmldoc.is_commentish": {
     "confidence": "HIGH",
@@ -7786,10 +7800,10 @@
         "kind": "dependency",
         "label": "주석으로 볼 접두사 목록을 참조한다",
         "to": "machine.xmldoc.COMMENTISH",
-        "where": "machine/xmldoc.py:182"
+        "where": "machine/xmldoc.py:180"
       }
     ],
-    "where": "machine/xmldoc.py:180"
+    "where": "machine/xmldoc.py:199"
   },
   "machine.xmldoc.name_list": {
     "confidence": "HIGH",
@@ -7803,10 +7817,10 @@
         "kind": "dependency",
         "label": "몇 개까지 나열할지 상수를 참조한다",
         "to": "machine.xmldoc.USES_SHOWN",
-        "where": "machine/xmldoc.py:210"
+        "where": "machine/xmldoc.py:208"
       }
     ],
-    "where": "machine/xmldoc.py:202"
+    "where": "machine/xmldoc.py:221"
   },
   "machine.xmldoc.plan_file": {
     "confidence": "HIGH",
@@ -7820,64 +7834,64 @@
         "kind": "dependency",
         "label": "마커 위치로 각 용어의 현재 줄을 다시 센다",
         "to": "machine.xmldoc.relocate",
-        "where": "machine/xmldoc.py:358"
+        "where": "machine/xmldoc.py:356"
       },
       {
         "kind": "dependency",
         "label": "옛 블록을 통째로 걷어낸다",
         "to": "machine.xmldoc.strip_blocks",
-        "where": "machine/xmldoc.py:359"
+        "where": "machine/xmldoc.py:357"
       },
       {
         "kind": "dependency",
         "label": "확장자별 주석 접두사를 얻는다",
         "to": "machine.xmldoc.prefix_for",
-        "where": "machine/xmldoc.py:366"
+        "where": "machine/xmldoc.py:364"
       },
       {
         "kind": "dependency",
         "label": "누가 이 용어를 쓰는지 역인덱스를 만든다",
         "to": "machine.xmldoc.used_by_index",
-        "where": "machine/xmldoc.py:367"
+        "where": "machine/xmldoc.py:365"
       },
       {
         "kind": "dependency",
         "label": "where 문자열에서 줄번호를 뽑는다",
         "to": "machine.xmldoc.split_where",
-        "where": "machine/xmldoc.py:375"
+        "where": "machine/xmldoc.py:373"
       },
       {
         "kind": "dependency",
         "label": "파일 단위 블록을 넣을 최소 위치(셔뱅 등 다음)를 찾는다",
         "to": "machine.xmldoc.file_anchor",
-        "where": "machine/xmldoc.py:382"
+        "where": "machine/xmldoc.py:380"
       },
       {
         "kind": "dependency",
         "label": "실제 블록 세 줄을 만든다",
         "to": "machine.xmldoc.block_lines",
-        "where": "machine/xmldoc.py:384"
+        "where": "machine/xmldoc.py:382"
       },
       {
         "kind": "dependency",
         "label": "앵커 줄에 있어야 할 이름을 정한다",
         "to": "machine.xmldoc.anchor_name",
-        "where": "machine/xmldoc.py:395"
+        "where": "machine/xmldoc.py:393"
       },
       {
         "kind": "dependency",
         "label": "앵커가 문자열 리터럴 안인지 검사한다",
         "to": "machine.xmldoc.in_py_string",
-        "where": "machine/xmldoc.py:398"
+        "where": "machine/xmldoc.py:396"
       },
       {
         "kind": "dependency",
         "label": "선언 위 주석 덩어리보다 더 위의 삽입 지점을 찾는다",
         "to": "machine.xmldoc.scan_top",
-        "where": "machine/xmldoc.py:404"
+        "where": "machine/xmldoc.py:402"
       }
     ],
-    "where": "machine/xmldoc.py:347"
+    "where": "machine/xmldoc.py:366"
   },
   "machine.xmldoc.prefix_for": {
     "confidence": "HIGH",
@@ -7894,7 +7908,7 @@
         "where": "machine/xmldoc.py:94"
       }
     ],
-    "where": "machine/xmldoc.py:92"
+    "where": "machine/xmldoc.py:95"
   },
   "machine.xmldoc.relocate": {
     "confidence": "HIGH",
@@ -7908,16 +7922,16 @@
         "kind": "dependency",
         "label": "블록 뒤 남은 줄이 주석인지 판정해 코드 줄까지 건너뜀",
         "to": "machine.xmldoc.is_commentish",
-        "where": "machine/xmldoc.py:314"
+        "where": "machine/xmldoc.py:312"
       },
       {
         "kind": "dependency",
         "label": "include 블록이 차지하는 용어 수와 줄 수 계산",
         "to": "machine.xmldoc.block_extent",
-        "where": "machine/xmldoc.py:305"
+        "where": "machine/xmldoc.py:303"
       }
     ],
-    "where": "machine/xmldoc.py:293"
+    "where": "machine/xmldoc.py:312"
   },
   "machine.xmldoc.run_check": {
     "confidence": "HIGH",
@@ -7931,28 +7945,28 @@
         "kind": "dependency",
         "label": "파일별로 검사할 용어 목록을 모은다",
         "to": "machine.xmldoc.collect_targets",
-        "where": "machine/xmldoc.py:508"
+        "where": "machine/xmldoc.py:506"
       },
       {
         "kind": "dependency",
         "label": "파일 안 마커 위치를 다시 찾는다",
         "to": "machine.xmldoc.relocate",
-        "where": "machine/xmldoc.py:513"
+        "where": "machine/xmldoc.py:511"
       },
       {
         "kind": "dependency",
         "label": "where 문자열에서 줄 번호를 뽑는다",
         "to": "machine.xmldoc.split_where",
-        "where": "machine/xmldoc.py:515"
+        "where": "machine/xmldoc.py:513"
       },
       {
         "kind": "dependency",
         "label": "comments.xml 이 최신인지 재생성해서 대조한다",
         "to": "machine.xmldoc.emit_xml",
-        "where": "machine/xmldoc.py:526"
+        "where": "machine/xmldoc.py:524"
       }
     ],
-    "where": "machine/xmldoc.py:505"
+    "where": "machine/xmldoc.py:524"
   },
   "machine.xmldoc.run_inject": {
     "confidence": "HIGH",
@@ -7966,28 +7980,28 @@
         "kind": "dependency",
         "label": "용어를 파일별 대상과 건너뛴 것으로 나눈다",
         "to": "machine.xmldoc.collect_targets",
-        "where": "machine/xmldoc.py:473"
+        "where": "machine/xmldoc.py:471"
       },
       {
         "kind": "dependency",
         "label": "파일 하나에 마커를 심은 새 본문과 삽입 위치·줄 밀림표를 얻는다",
         "to": "machine.xmldoc.plan_file",
-        "where": "machine/xmldoc.py:480"
+        "where": "machine/xmldoc.py:478"
       },
       {
         "kind": "dependency",
         "label": "마커 없는 uses[].where 를 줄 밀림만큼 따라 옮긴다",
         "to": "machine.xmldoc.carry_lines",
-        "where": "machine/xmldoc.py:490"
+        "where": "machine/xmldoc.py:488"
       },
       {
         "kind": "dependency",
         "label": "갱신된 terms 를 comments.xml 텍스트로 직렬화해 다시 쓴다",
         "to": "machine.xmldoc.emit_xml",
-        "where": "machine/xmldoc.py:496"
+        "where": "machine/xmldoc.py:494"
       }
     ],
-    "where": "machine/xmldoc.py:471"
+    "where": "machine/xmldoc.py:490"
   },
   "machine.xmldoc.scan_top": {
     "confidence": "HIGH",
@@ -8004,7 +8018,24 @@
         "where": "machine/xmldoc.py:267"
       }
     ],
-    "where": "machine/xmldoc.py:264"
+    "where": "machine/xmldoc.py:283"
+  },
+  "machine.xmldoc.shebang_is_python": {
+    "confidence": "HIGH",
+    "does": "파일의 첫 줄만 읽어 `#!` 로 시작하면서 `python` 이라는 낱말을 담고 있는지 본다. 읽지 못하면 거짓이다.",
+    "kind": "function",
+    "means": "확장자가 없는 파일의 첫 줄 셔뱅을 읽어 파이썬인지 판정하는 함수다.",
+    "module": "machine.xmldoc",
+    "source": "reading",
+    "uses": [
+      {
+        "kind": "dependency",
+        "label": "셔뱅에서 찾을 낱말",
+        "to": "machine.xmldoc.SHEBANG_PYTHON",
+        "where": "machine/xmldoc.py:112"
+      }
+    ],
+    "where": "machine/xmldoc.py:107"
   },
   "machine.xmldoc.split_where": {
     "confidence": "HIGH",
@@ -8014,7 +8045,7 @@
     "module": "machine.xmldoc",
     "source": "reading",
     "uses": [],
-    "where": "machine/xmldoc.py:102"
+    "where": "machine/xmldoc.py:121"
   },
   "machine.xmldoc.strip_blocks": {
     "confidence": "HIGH",
@@ -8028,10 +8059,10 @@
         "kind": "dependency",
         "label": "블록이 차지하는 줄 수 계산",
         "to": "machine.xmldoc.block_extent",
-        "where": "machine/xmldoc.py:336"
+        "where": "machine/xmldoc.py:334"
       }
     ],
-    "where": "machine/xmldoc.py:327"
+    "where": "machine/xmldoc.py:346"
   },
   "machine.xmldoc.used_by_index": {
     "confidence": "HIGH",
@@ -8041,7 +8072,7 @@
     "module": "machine.xmldoc",
     "source": "reading",
     "uses": [],
-    "where": "machine/xmldoc.py:188"
+    "where": "machine/xmldoc.py:207"
   },
   "machine.xmldoc.uses_line": {
     "confidence": "HIGH",
@@ -8055,10 +8086,10 @@
         "kind": "dependency",
         "label": "이름 목록을 다섯 개까지 줄여 한 줄로 이어붙임",
         "to": "machine.xmldoc.name_list",
-        "where": "machine/xmldoc.py:220"
+        "where": "machine/xmldoc.py:218"
       }
     ],
-    "where": "machine/xmldoc.py:218"
+    "where": "machine/xmldoc.py:237"
   },
   "modules.md": {
     "confidence": "HIGH",
@@ -8096,23 +8127,23 @@
     "uses": [],
     "where": "viz/patch-legacy.mjs:1"
   },
-  "paths.mjs": {
+  "paths.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "위키 세 명령이 함께 보는 경로 규약.",
     "module": "runner/wiki",
     "source": "reading",
     "uses": [],
-    "where": "runner/wiki/paths.mjs:1"
+    "where": "runner/wiki/paths.py:1"
   },
-  "prep.mjs": {
+  "prep.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.",
     "module": "runner/wiki",
     "source": "reading",
     "uses": [],
-    "where": "runner/wiki/prep.mjs:1"
+    "where": "runner/wiki/prep.py:1"
   },
   "pycalls.py": {
     "confidence": "HIGH",
@@ -8123,14 +8154,14 @@
     "uses": [],
     "where": "machine/pycalls.py:1"
   },
-  "python.mjs": {
+  "python.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "파이썬 해석기를 기계에 상관없이 찾아 주는 파일.",
     "module": "tools",
     "source": "reading",
     "uses": [],
-    "where": "tools/python.mjs:1"
+    "where": "tools/python.py:1"
   },
   "quiz.mjs": {
     "confidence": "HIGH",
@@ -8211,7 +8242,7 @@
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/build.mjs:149"
+    "where": "viz/build.py:152"
   },
   "report.tsx": {
     "confidence": "HIGH",
@@ -8220,7 +8251,7 @@
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/init.mjs:106"
+    "where": "viz/init.py:109"
   },
   "reverse_refs.py": {
     "confidence": "HIGH",
@@ -8584,7 +8615,7 @@
       {
         "kind": "dependency",
         "label": "prep/build/check 단계 자식 프로세스 인자를 만든다",
-        "to": "runner.run_mode1.node_argv",
+        "to": "runner.run_mode1.wiki_argv",
         "where": "runner/run_mode1.py:1355"
       },
       {
@@ -8636,16 +8667,6 @@
       }
     ],
     "where": "runner/run_mode1.py:906"
-  },
-  "runner.run_mode1.node_argv": {
-    "confidence": "HIGH",
-    "does": "['node', root/runner/wiki/script, repo] 형태의 리스트를 반환한다. node 실행 파일 자체는 PATH 에서 찾도록 경로를 박지 않는다.",
-    "kind": "function",
-    "means": "runner/wiki/ 아래의 .mjs 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.",
-    "module": "runner.run_mode1",
-    "source": "reading",
-    "uses": [],
-    "where": "runner/run_mode1.py:692"
   },
   "runner.run_mode1.nonnode_prompt": {
     "confidence": "HIGH",
@@ -9088,6 +9109,16 @@
       }
     ],
     "where": "runner/run_mode1.py:389"
+  },
+  "runner.run_mode1.wiki_argv": {
+    "confidence": "HIGH",
+    "does": "['node', root/runner/wiki/script, repo] 형태의 리스트를 반환한다. node 실행 파일 자체는 PATH 에서 찾도록 경로를 박지 않는다.",
+    "kind": "function",
+    "means": "runner/wiki/ 아래의 파이썬 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.",
+    "module": "runner.run_mode1",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/run_mode1.py:692"
   },
   "runner.run_mode1.wiki_catalogue_prompt": {
     "confidence": "HIGH",
@@ -9926,7 +9957,7 @@
       {
         "kind": "dependency",
         "label": "node_argv",
-        "to": "runner.run_mode1.node_argv",
+        "to": "runner.run_mode1.wiki_argv",
         "where": "runner/test_run_mode1.py:912"
       },
       {
@@ -12966,23 +12997,32 @@
     "uses": [],
     "where": null
   },
-  "runner/wiki/build.mjs": {
+  "runner/wiki/build.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "산문을 사전 렌더 그림으로 바꾸고 정적 사이트를 짓는 파일.",
     "module": "runner/wiki",
     "source": "reading",
     "uses": [],
-    "where": "runner/wiki/build.mjs:1"
+    "where": "runner/wiki/build.py:1"
   },
-  "runner/wiki/check.mjs": {
+  "runner/wiki/check.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "위키 산문의 인용을 검증하는 파일.",
     "module": "runner/wiki",
     "source": "reading",
     "uses": [],
-    "where": "runner/wiki/check.mjs:1"
+    "where": "runner/wiki/check.py:1"
+  },
+  "runner/wiki/clang_doc.py": {
+    "confidence": "HIGH",
+    "kind": "file",
+    "means": "clang-doc 실행 파일을 기계에 상관없이 찾는 파일.",
+    "module": "runner/wiki",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/wiki/clang_doc.py:1"
   },
   "schema_version": {
     "confidence": "HIGH",
@@ -14090,23 +14130,23 @@
     ],
     "where": "viz/render_modules.py:169"
   },
-  "viz/build.mjs": {
+  "viz/build.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "보고서 원고를 하나짜리 HTML 파일로 굽는 스크립트.",
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/build.mjs:1"
+    "where": "viz/build.py:1"
   },
-  "viz/check.mjs": {
+  "viz/check.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "구운 보고서가 규칙을 지켰는지 보는 검사 스크립트.",
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/check.mjs:1"
+    "where": "viz/check.py:1"
   },
   "viz/src": {
     "confidence": "HIGH",
@@ -14162,14 +14202,14 @@
     "uses": [],
     "where": "machine/warmup.py:1"
   },
-  "wrap-terms.mjs": {
+  "wrap_terms.py": {
     "confidence": "HIGH",
     "kind": "file",
     "means": "다 만들어진 HTML 글자에서 용어집 용어를 찾아 뜻 카드가 뜨는 참조로 감싸는 스크립트.",
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/wrap-terms.mjs:1"
+    "where": "viz/wrap_terms.py:1"
   },
   "xmldoc.py": {
     "confidence": "HIGH",
@@ -14196,6 +14236,6 @@
     "module": "viz",
     "source": "reading",
     "uses": [],
-    "where": "viz/check.mjs:13"
+    "where": "viz/check.py:16"
   }
 }

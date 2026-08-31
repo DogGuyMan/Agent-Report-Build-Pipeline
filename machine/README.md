@@ -666,6 +666,7 @@ terms-db 우선 파이프라인의 회귀 시험.
 | **`Use`** | *class* | `uses[]` 한 칸 — 이 용어가 무엇을 쓰는가. |
 | **`Term`** | *class* | 용어 하나. 열쇠 이름은 json 의 것 그대로다. |
 | `prefix_for` | `(path: str) -> str` |  |
+| `shebang_is_python` | `(path: str) -> bool` | 확장자 없는 파일의 첫 줄 셔뱅이 파이썬을 가리키는지 본다. |
 | `split_where` | `(where: str \| None) -> tuple[str \| None, int \| None]` | `file:line` -> (file, line). 위치가 없으면 (None, None). |
 | `anchor_name` | `(term_id: str) -> str` | 앵커 줄에서 찾을 이름. 점 표기는 마지막 마디, 배열 키는 [] 를 뗀다. |
 | `emit_xml` | `(terms: Terms) -> str` |  |

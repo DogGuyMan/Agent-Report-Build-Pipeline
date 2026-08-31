@@ -7,9 +7,24 @@
 
 | 파일 | 하는 일 |
 |---|---|
+| [`__init__.py`](__init__.py) | — |
+| [`doctor.py`](doctor.py) | — |
 | [`gen_readme.py`](gen_readme.py) | 소스에서 디렉토리별 README.md 를 생성한다. |
+| [`python.py`](python.py) | — |
 | [`scrub_local_paths.py`](scrub_local_paths.py) | 로컬 사용자 경로와 개인 식별자를 작업 트리와 git 히스토리에서 지운다. |
 | [`test_gen_readme.py`](test_gen_readme.py) | README 가 소스와 어긋나지 않는지 본다. |
+
+---
+
+## `doctor.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `probe` | `(cmd: str \| None, args: list[str]) -> str \| None` | 명령 하나를 돌려 첫 줄을 돌려준다. 못 돌리면 None. |
+| `line` | `(name: str, version: str \| None, required: bool) -> str` | 결과 줄 하나를 글자로. 필수인데 없으면 없음, 선택이면 선택. |
+| `main` | `() -> int` |  |
 
 ---
 
@@ -23,6 +38,17 @@
 | `cell` | `(text: str) -> str` |  |
 | `render_dir` | `(repo: str, d: str) -> str` |  |
 | `main` | `() -> int` |  |
+
+---
+
+## `python.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `pythonCandidates` | `(root: str, platform: str, env: Dict[str, str]) -> List[str]` |  |
+| `pythonPath` | `(root: str, platform: str, env: Dict[str, str]) -> str` |  |
 
 ---
 

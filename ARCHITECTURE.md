@@ -71,7 +71,7 @@ flowchart LR
 
 |       | 담당                                                   | 가리키는 곳                                              |
 | ----- | ---------------------------------------------------- | --------------------------------------------------- |
-| 런타임   | `viz/build.py:54` 의 esbuild `alias`             | `viz/src/index.ts` · `viz/src/types.ts` · `viz/svg.py` |
+| 런타임   | `viz/build.py:54` 의 esbuild `alias`             | `viz/src/index.ts` · `viz/src/types.ts` · `viz/svg.mjs` |
 | 타입 검사 | `viz/check.py:124` 가 임시 생성하는 tsconfig 의 `paths` | 같음. 단 svg 는 선언 파일 `viz/svg.d.mts`               |
 
 
@@ -99,10 +99,11 @@ flowchart LR
 | 2    | `report-spec` | `runner/run_mode2.py`   | 설계 문서를 한 장짜리 HTML 보고서로 압축한다    |
 
 
-`bin/report` 는 옛 이름이며 `bin/report-spec` 을 자식 프로세스로 그대로 실행한다 (`bin/report:13`).
+`bin/report` 는 옛 이름이며 `bin/report-spec` 을 자식 프로세스로 그대로 실행한다 (`bin/report:14`).
 
-세 진입점은 명령표만 다르고 갈림길 함수는 하나를 공유한다 — `runner/dispatch.py:25` 의 `runDispatch` 가
-명령 이름을 스크립트 경로로 바꿔(`runner/dispatch.py:13`) 자식 프로세스로 띄운다(`runner/dispatch.py:32`).
+세 진입점은 명령표만 다르고 갈림길 함수는 하나를 공유한다 — `runner/dispatch.py:15` 의 `run_dispatch` 가
+명령 이름을 스크립트 경로로 바꿔(`runner/dispatch.py:9`) 자식 프로세스로 띄운다(`runner/dispatch.py:34`).
+**해석기는 확장자로 고른다**(`runner/dispatch.py:32`) — `.py` 면 파이썬, 아니면 node.
 
 ### 세 갈래의 단계 — 파랑은 기계, 주황은 LLM, 초록은 사람
 
@@ -425,7 +426,7 @@ sequenceDiagram
 건너뛴다 — 실패가 아니다. 변수가 비었을 때 빈 문자열이 되면 상대경로로 풀려 **이 저장소의 산출물을
 골든으로 착각한다.** 그래서 존재할 수 없는 경로를 준다 (`machine/test_normalize.py:28`).
 
-**테스트가 `viz/src/` 를 직접 import 하지 않는다.** `node --test` 는 JSX 를 못 읽으므로 `viz/lib.mjs` 가
+**시험이 `viz/src/` 를 직접 import 하지 않는다.** JSX 를 파이썬도 node 도 그대로 읽지 못하므로 `viz/lib.mjs` 가
 `.tmp/lib.mjs` 로 먼저 굽고 테스트가 그것을 읽는다 (`test/test_components.py:5`).
 
 ---
@@ -474,7 +475,7 @@ sequenceDiagram
 `viz/src/runtime/term-graph.ts` 하나뿐이며 React 훅은 쓰지 않는다.
 
 다이어그램 확대는 자바스크립트 0줄로 되어 있다 — 체크박스 하나와 형제 결합자다
-(`viz/src/theme.css:77-79`). 그 복구의 급소는 `--svg-w` 로, `viz/svg.py:18` 이 원본 크기를 px 로 환산해
+(`viz/src/theme.css:77-79`). 그 복구의 급소는 `--svg-w` 로, `viz/svg.mjs:18` 이 원본 크기를 px 로 환산해
 돌려주고 `viz/src/components/BeforeAfter.tsx:14` 가 인라인 style 로 주입한다. 연결고리 하나만 끊겨도
 "실제 크기" 모드가 조용히 죽는다.
 

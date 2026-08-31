@@ -7,12 +7,31 @@
 
 | 파일 | 하는 일 |
 |---|---|
+| [`__init__.py`](__init__.py) | — |
+| [`dispatch.py`](dispatch.py) | — |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
 | [`run_mode2.py`](run_mode2.py) | Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
 | [`test_run_mode2.py`](test_run_mode2.py) | Mode 2 실행기의 회귀 시험. |
+| [`build.py`](build.py) | — |
+| [`check.py`](check.py) | — |
+| [`clang_doc.py`](clang_doc.py) | — |
+| [`compdb.py`](compdb.py) | — |
+| [`paths.py`](paths.py) | — |
+| [`prep.py`](prep.py) | — |
+
+---
+
+## `dispatch.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `resolve_script` | `(table: dict[str, str], cmd: str) -> str \| None` | 명령 이름을 스크립트 경로로 바꾼다. 표에 없으면 None. |
+| `run_dispatch` | `(root: str, table: dict[str, str], argv: list[str], usage: str) -> None` |  |
 
 ---
 
@@ -43,7 +62,7 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
 | `wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
-| `node_argv` | `(root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.mjs` 하나를 부른다. node 는 PATH 에서 찾는다. |
+| `wiki_argv` | `(python: str, root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.py` 하나를 부른다. |
 | `terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
 | `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
 | `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다. |
@@ -108,7 +127,7 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `plan_stages` | `(has_manuscript: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `manuscript_is_written` | `(data_source: str \| None, report_source: str \| None) -> bool` | 원고가 이미 채워졌는가. 뼈대와 채워진 글을 **글자로** 가른다. |
 | `find_spec` | `(filenames: Iterable[str], slug: str, doc_dir: str = 'specs') -> dict[str, str] \| None` | 한 자리의 파일 목록에서 이 slug 의 원본 문서를 찾는다. 없으면 `None`. |
-| `script_argv` | `(root: str, stage: str, slug: str) -> list[str]` | `viz/<단계>.mjs` 하나를 부른다. node 는 PATH 에서 찾는다. |
+| `script_argv` | `(root: str, stage: str, slug: str) -> list[str]` | `viz/<단계>.py` 하나를 부른다. |
 | `agent_prompt` | `(project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, doc_dir: str = 'specs') -> str` | 원고를 쓰는 한 세션이 할 일 전부. |
 | `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None, doc_dir: str = 'specs') -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
@@ -273,7 +292,7 @@ Mode 2 실행기의 회귀 시험.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `test_init_runs_at_the_project_root` | `()` | `init` 은 `specs/` 가 있는 프로젝트 뿌리에서 돈다. `init.mjs` 가 `join(cwd, "specs")` 를 본다. |
+| `test_init_runs_at_the_project_root` | `()` | `init` 은 `specs/` 가 있는 프로젝트 뿌리에서 돈다. `init.py` 가 `join(cwd, "specs")` 를 본다. |
 | `test_the_agent_also_runs_at_the_project_root` | `()` | 모형은 설계 문서(`specs/*-design.md`)와 보고서 폴더를 **둘 다** 봐야 한다. 뿌리에 세운다. |
 | `test_build_and_check_run_inside_the_report_folder` | `()` | `build`·`check` 는 보고서 폴더를 `cwd` 로 본다 — 거기서 data.ts 와 report.tsx 를 읽는다. |
 | `test_stage_cwd_rejects_an_unknown_stage` | `()` |  |
@@ -281,7 +300,7 @@ Mode 2 실행기의 회귀 시험.
 | `test_plan_runs_all_four_stages_on_an_empty_report` | `()` |  |
 | `test_only_one_stage_calls_the_model` | `()` | 모형을 부르는 자리는 **원고 쓰기 하나**다. 나머지 셋은 기계다. |
 | `test_plan_skips_the_agent_when_the_manuscript_is_already_written` | `()` | 사람이 쓴 원고를 모형이 덮어쓰면 안 된다. 이미 채워졌으면 굽기만 한다. |
-| `test_plan_keeps_init_even_when_the_manuscript_exists` | `()` | `init` 은 늘 부른다 — 건너뛸지는 `init.mjs` 자신이 정한다(data.ts 가 있으면 exit 0). |
+| `test_plan_keeps_init_even_when_the_manuscript_exists` | `()` | `init` 은 늘 부른다 — 건너뛸지는 `init.py` 자신이 정한다(data.ts 가 있으면 exit 0). |
 | `test_plan_only_and_skip_are_honoured` | `()` |  |
 | `test_plan_rejects_an_unknown_stage` | `()` |  |
 | `test_a_fresh_skeleton_is_not_a_manuscript` | `()` | `decisions: []` 는 `init` 이 방금 만든 뼈대다. 모형을 불러야 한다. |
@@ -291,7 +310,7 @@ Mode 2 실행기의 회귀 시험.
 | `test_find_spec_returns_the_date_from_the_filename` | `()` |  |
 | `test_find_spec_returns_nothing_for_an_unknown_slug` | `()` |  |
 | `test_find_spec_does_not_match_a_partial_slug` | `()` | 부분 문자열로 걸리면 엉뚱한 문서를 원본으로 삼는다. |
-| `test_doc_dirs_matches_the_javascript_side` | `()` | `viz/init.mjs` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다. |
+| `test_doc_dirs_matches_the_javascript_side` | `()` | `viz/init.py` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다. |
 | `test_find_spec_reads_plans_without_the_design_suffix` | `()` | plans/ 는 `-design` 접미사가 없다. 계획서만 사는 자리라 가드가 필요 없다. |
 | `test_find_spec_keeps_the_suffix_guard_for_specs` | `()` | specs/ 에서는 접미사가 없으면 안 잡힌다 — 같은 폴더에 다른 산출물이 함께 산다. |
 | `test_find_spec_defaults_to_specs` | `()` | 자리를 안 주면 specs 다 — 옛 호출을 깨지 않는다. |
@@ -311,4 +330,77 @@ Mode 2 실행기의 회귀 시험.
 | `test_the_measuring_code_is_reused_not_reimplemented` | `()` | 두 실행기가 각자 세면 같은 이름의 숫자가 서로 다른 뜻을 갖는다. |
 | `test_a_machine_stage_row_is_all_zero_tokens` | `()` |  |
 | `test_the_report_table_has_a_row_per_stage_and_a_total` | `()` |  |
+
+---
+
+## `build.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `sidebarFrom` | `(files: list[str]) -> list[dict[str, str]]` |  |
+| `vitepressConfig` | `(repoName: str, sidebar: list[dict[str, str]], outDir: str) -> str` |  |
+| `run` | `(cmd: str, args: list[str], cwd: str \| None = None) -> None` |  |
+
+---
+
+## `check.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `checkArgs` | `(repo: str, codegraph: str, detail: str \| None, docs: list[str]) -> list[str]` |  |
+
+---
+
+## `clang_doc.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `clangDocCandidates` | `(env: Mapping[str, str], prefixes: list[str]) -> list[str]` |  |
+| `brewPrefixes` | `(run: Callable[..., Any] = subprocess.run) -> list[str]` |  |
+| `clangDocPath` | `(env: Mapping[str, str] \| None = None, exists: Callable[[str], bool] = os.path.exists, prefixes: list[str] \| None = None) -> str \| None` |  |
+| `clangDocArgs` | `(outDir: str, repo: str, compdbPath: str, flags: list[str] \| None = None) -> list[str]` |  |
+
+---
+
+## `compdb.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `findCompdbs` | `(repo: str) -> list[str]` |  |
+| `mergeEntries` | `(lists: list[list[dict[str, Any]]], repo: str) -> list[dict[str, Any]]` |  |
+| `relativeFiles` | `(entries: list[dict[str, Any]], repo: str) -> list[str]` |  |
+| `clangUmlConfig` | `(compdbDir: str, repo: str, outDir: str, files: list[str], flags: list[str], paths: list[str]) -> str` |  |
+| `readAuthorConfig` | `(path: str) -> dict[str, list[str]]` |  |
+
+---
+
+## `paths.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `wikiPaths` | `(repo: str) -> dict[str, str]` |  |
+| `collectorFor` | `(entries: list[str]) -> str` |  |
+| `collectorFromSelect` | `(text: str) -> Optional[str]` |  |
+
+---
+
+## `prep.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool) -> dict[str, Any]` |  |
+| `pyRoots` | `(repo: str) -> list[str]` |  |
+| `run` | `(cmd: str, args: list[str], cwd: Optional[str] = None) -> None` |  |
 
