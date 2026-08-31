@@ -64,3 +64,7 @@ if (process.argv[1] && process.argv[1].endsWith("prep.mjs")) { /* CLI 본체 */ 
 - **주의 — 대상 저장소의 전수조사 원본은 `<repo>/docs/codegraph/terms-reading.json` 이다.**
   이 저장소 자신의 것만 `../machine/terms-reading.json` 으로 옮겨져 있어 두 경로가 다르다.
   `run_mode1.py` 의 프롬프트 문자열은 **대상 저장소 쪽**을 말한다 — 고칠 때 헷갈리지 말 것.
+- **Gotcha — Mode 2 의 원본 문서 자리 규칙이 두 곳에 중복돼 산다.** `run_mode2.py` 의
+  `DOC_DIRS` 와 `../viz/init.mjs` 의 `DOC_DIRS` 가 같은 값이어야 한다(`specs/` 는
+  `-design.md`, `plans/` 는 접미사 없음). 언어가 달라 한 곳에 못 모은다 — 한쪽만 고치면
+  `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다. 전체 표는 `../viz/CLAUDE.md` 에 있다.

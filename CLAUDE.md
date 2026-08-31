@@ -101,10 +101,10 @@ node --test --test-name-pattern="접두사" test/svg.test.mjs    # 단일 테스
 보고서 쪽 명령은 **보고서가 있는 저장소의 스펙 디렉토리에서** 실행한다:
 
 ```bash
-cd <프로젝트>                      # specs/ 가 있는 저장소
-report-spec init                   # 보고서가 없는 spec 을 날짜 내림차순으로 나열, exit 1
-report-spec init <slug>            # 대응 specs/YYYY-MM-DD-<slug>-design.md 가 있어야 스켈레톤 생성
-cd specs/<slug> && report-spec build   # → out/report.html
+cd <프로젝트>                      # specs/ 나 plans/ 가 있는 저장소
+report-spec init                   # 보고서가 없는 문서를 날짜 내림차순으로 나열, exit 1
+report-spec init <slug>            # specs/YYYY-MM-DD-<slug>-design.md 또는 plans/YYYY-MM-DD-<slug>.md
+cd <자리>/<slug> && report-spec build  # → out/report.html. <자리> 는 원본이 있던 곳
 report-spec check                      # script 수 · tsc · 링크 무결성 · 용어집 대조(경고) · builderVersion
 ```
 
@@ -213,9 +213,12 @@ $GRAPHICS_REPO/doc/
 ```
 
 `번복기록/` 의 분석 보고서들은 spec 에 딸리지 않고, 수용 판정란이 없고, before/after 쌍이 아니라
-현황 그래프 한 장을 쓴다. **현재 `report-spec init` 은 대응 `*-design.md` 를 요구하므로 이 장르를 구조적으로
-배제한다.** 그래도 **지금 두 번째 mode 를 추가하지 말 것** — 실제로 그 장르의 보고서를 쓸 일이
-생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다. 컴포넌트 후보로 횟수와 함께 기록만 한다.
+현황 그래프 한 장을 쓴다. ~~현재 `report-spec init` 은 대응 `*-design.md` 를 요구하므로 이 장르를 구조적으로
+배제한다.~~ **2026-08-31 에 절반 풀렸다** — `init` 이 `plans/YYYY-MM-DD-<slug>.md` 도 받으므로
+접미사 없는 문서를 넣을 자리는 생겼다(`viz/CLAUDE.md` 의 "원본은 두 자리에 산다"). 다만 수용
+판정란과 before/after 쌍이라는 **장르 차이는 그대로다.** 그래도 **지금 두 번째 mode 를 추가하지 말 것** —
+실제로 그 장르의 보고서를 쓸 일이 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다.
+컴포넌트 후보로 횟수와 함께 기록만 한다.
 
 스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전). Track A 대상은 `confidence-and-sourcing`,
 `design-decision-discipline`, `architecture-design-workflow` 이고, Track B 는 `graphviz-class-diagram` 과
