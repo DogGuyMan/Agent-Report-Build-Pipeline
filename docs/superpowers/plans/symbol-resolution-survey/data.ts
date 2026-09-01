@@ -66,8 +66,9 @@ export const data: ReportData = {
     },
   ],
 
-  // 용어집 — Mode 1.5(용어 이해도 점검)가 아직 돌지 않아 mental 은 비어 있다.
-  // 따라서 아래 선정은 실측이 아니라 이 보고서 저자의 판단이다.
+  // 용어집 — 뜻과 선정은 이 보고서 저자의 판단이고, mental 은 Mode 1.5 실측이다.
+  // 출처: out/mode1_5/symbol-resolution-survey/terms.json (20개 용어 · 60문항).
+  // mental 이 없는 용어는 그 시험의 출제 범위 밖이라 측정되지 않았다 — "미측정" 으로 뜬다.
   terms: [
     {
       id: "전수조사",
@@ -83,6 +84,7 @@ export const data: ReportData = {
       short: "정적 도구가 코드에서 뽑아낸 심볼 목록과 그 사이의 화살표를 담은 파일, 곧 코드 지도다.",
       body: "노드(nodes)와 간선(edges) 두 배열로 되어 있다. 노드 하나가 클래스 또는 함수 하나이고, 간선 하나가 「A 가 B 를 쓴다」 는 화살표다. 노드에는 사람이 읽는 이름(name)과 별개로 기계가 붙인 짧은 번호(id)가 함께 들어 있다.",
       kind: "artifact",
+      mental: "확실",
       links: ["내부 번호", "survey-plan.json", "전수조사"],
     },
     {
@@ -99,6 +101,7 @@ export const data: ReportData = {
       short: "코드 지도를 층과 배치로 나눠 「어느 순서로 무엇을 읽을지」 를 적어 둔 작업 계획서다.",
       body: "의존하는 것이 없는 심볼부터 0층에 놓고, 그것에 기대는 심볼을 1층에 놓는 식으로 층을 쌓는다. 같은 층 안은 여러 배치로 쪼개 동시에 읽는다. 배치마다 자기 심볼과 그 심볼이 기대는 대상 목록(depends_on)이 함께 적힌다.",
       kind: "artifact",
+      mental: "확실",
       links: ["depends_on", "Bottom-Up 층", "codegraph.json"],
     },
     {
@@ -123,6 +126,7 @@ export const data: ReportData = {
       short: "전수조사가 읽어 낸 심볼 레코드 사전이다. 열쇠가 사람이 읽는 이름이다.",
       body: "심볼 이름 하나에 그 뜻(means)·있는 자리(where)·쓰는 것들(uses)이 딸린 사전이다. 열쇠가 이름이라는 점이 중요하다 — 번호로 찾으면 영원히 못 찾는다.",
       kind: "artifact",
+      mental: "모름",
       links: ["uses.to", "dep_excerpt", "전수조사"],
     },
     {
@@ -131,7 +135,17 @@ export const data: ReportData = {
       short: "레코드가 「나는 이것을 쓴다」 며 가리키는 상대 심볼의 이름이다.",
       body: "레코드마다 uses 배열이 있고 그 안의 to 칸이 가리키는 대상이다. 가리킨 이름이 사전에 없으면 지금은 검사가 그 자리에서 파이프라인을 멈춘다. 이 계획이 손대는 곳이 바로 여기다.",
       kind: "artifact",
+      mental: "모름",
       links: ["terms-reading.json", "resolve_uses", "근거 없음"],
+    },
+    {
+      id: "해석 사다리",
+      label: "해석 사다리",
+      short: "사전에 없는 참조를 정해진 순서로 처리하는 절차다. 정확한 조상 → 짧은 이름 → 저장소 밖·파일 합성 → 근거 없음 순으로 내려간다.",
+      body: "사다리라 부르는 것은 위 칸에서 풀리면 아래 칸을 보지 않기 때문이다. 첫 칸이 되돌리기(rollup), 마지막 칸이 격하다. 이 계획의 D3·D4·D6 이 전부 이 사다리의 어느 칸을 어떻게 놓을지에 대한 결정이다.",
+      kind: "concept",
+      mental: "모름",
+      links: ["resolve_target", "rollup", "synthesize_record", "근거 없음"],
     },
     {
       id: "resolve_target",
@@ -147,6 +161,7 @@ export const data: ReportData = {
       short: "긴 이름을 그 이름을 품은 더 짧은 조상 이름으로 바꿔 다는 것이다.",
       body: "A::B::C 가 사전에 없고 A::B 가 있으면 A::B 로 바꿔 단다. 「AddHandler 라는 멤버 함수는 없지만 그것이 속한 MessageRouter 는 안다」 는 식으로 한 칸 물러서는 것이다. 가리키는 정밀도를 조금 잃는 대신 화살표가 끊기지 않는다.",
       kind: "concept",
+      mental: "모름",
       links: ["resolve_target", "synthesize_record"],
     },
     {
@@ -187,7 +202,17 @@ export const data: ReportData = {
       short: "검사 결과 세 값 중 하나다. 문제로 적어 남기되 파이프라인을 멈추지는 않는다.",
       body: "「실패」 는 파이프라인을 멈춰 세우고, 「근거 없음」 은 기록만 남기고 통과시킨다. 세션이 실제로 읽은 심볼인데 정적 수집기가 노드로 뽑지 않은 경우(익명 이름공간의 상수 같은 것)가 섞여 있어서, 그것만으로 멈추는 것은 지나치다는 판단이다.",
       kind: "decision",
+      mental: "모름",
       links: ["uses.to", "resolve_uses"],
+    },
+    {
+      id: "K5",
+      label: "K5(비노드 층 제약)",
+      short: "그래프 노드가 아닌 용어는 심볼을 다 읽은 뒤 맨 마지막 층에서 한꺼번에 처리한다는 규약이다.",
+      body: "파일 · 모듈 · 산출물 이름처럼 코드 지도에 노드로 잡히지 않는 용어들이 여기 모인다. 이 계획은 K5 를 건드리지 않는다 — 그 층을 쪼개 병렬로 돌리려면 규약 자체를 바꿔야 하고, 그것은 별도 결정이기 때문이다.",
+      kind: "concept",
+      mental: "모름",
+      links: ["Bottom-Up 층", "survey-plan.json"],
     },
     {
       id: "Bottom-Up 층",

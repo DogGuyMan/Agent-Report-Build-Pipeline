@@ -9,6 +9,7 @@
 |---|---|
 | [`__init__.py`](__init__.py) | — |
 | [`dispatch.py`](dispatch.py) | — |
+| [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
 | [`run_mode2.py`](run_mode2.py) | Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
@@ -16,6 +17,7 @@
 | [`collect.py`](collect.py) | — |
 | [`emit.py`](emit.py) | — |
 | [`quiz.py`](quiz.py) | — |
+| [`test_run_grade.py`](test_run_grade.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
 | [`test_run_mode2.py`](test_run_mode2.py) | Mode 2 실행기의 회귀 시험. |
@@ -36,6 +38,17 @@
 |---|---|---|
 | `resolve_script` | `(table: dict[str, str], cmd: str) -> str \| None` | 명령 이름을 스크립트 경로로 바꾼다. 표에 없으면 None. |
 | `run_dispatch` | `(root: str, table: dict[str, str], argv: list[str], usage: str) -> None` |  |
+
+---
+
+## `run_grade.py`
+
+채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `find_sheet` | `(workdir: str, names: Sequence[str] = SHEET_NAMES) -> str \| None` | 채운 기입란의 경로. 없으면 None. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
 
@@ -105,6 +118,8 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `unasked_known` | `(candidates: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다. |
 | `answer_sheet` | `(doc: dict[str, Any] \| None) -> dict[str, Any]` | `questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다. |
 | `validate_answers` | `(sheet: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록). |
+| `plan_slug` | `(plan: str) -> str` | 계획서 경로에서 작업 폴더 이름으로 쓸 slug 를 뽑는다. |
+| `default_workdir` | `(root: str, plan: str) -> str` | `--workdir` 를 안 주면 여기로 떨어진다 — `<root>/out/mode1_5/<slug>/`. |
 | `_term_script` | `(root: str, name: str) -> str` | `runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다. |
 | `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.py` 명령줄. node 는 PATH 에서 찾는다. |
 | `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
@@ -172,6 +187,30 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `tally_sheet` | `(sheet: dict[str, Any], doc: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]` |  |
 | `grade_one` | `(counts: dict[str, Any]) -> dict[str, Any]` |  |
 | `grade_all` | `(answers: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]` |  |
+
+---
+
+## `test_run_grade.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `_questions` | `() -> dict[str, Any]` |  |
+| `_sheet` | `(answers: list[str]) -> dict[str, Any]` |  |
+| `_workdir` | `(tmp_path: Path, sheet_name: str, answers: list[str]) -> Path` |  |
+| `test_answers_json_wins_over_answer_sheet` | `(tmp_path: Path)` | 둘 다 있으면 answers.json 이 이긴다 — 스킬이 따로 떠 놓은 것이 사람의 최종 답안이다. |
+| `test_falls_back_to_answer_sheet` | `(tmp_path: Path)` | answers.json 이 없으면 실행기가 깔아 준 기입란을 그대로 본다. |
+| `test_returns_none_when_no_sheet` | `(tmp_path: Path)` |  |
+| `test_grades_the_answer_sheet_in_place` | `(tmp_path: Path)` | answer-sheet.json 만 있어도 채점하고 term-grades.json 을 그 폴더에 낸다. |
+| `test_dont_know_twice_is_모름` | `(tmp_path: Path)` |  |
+| `test_explicit_answers_path_overrides_lookup` | `(tmp_path: Path)` |  |
+| `test_missing_workdir_fails` | `(tmp_path: Path)` |  |
+| `test_missing_questions_fails` | `(tmp_path: Path)` |  |
+| `test_missing_sheet_fails` | `(tmp_path: Path)` |  |
+| `test_broken_questions_are_refused_before_grading` | `(tmp_path: Path)` | 문항지가 채점 불가능한 꼴이면 quiz.py 를 부르지 않고 멈춘다. |
+| `test_plan_flag_resolves_the_slug_workdir` | `()` | --plan 은 run_mode1_5 와 같은 자리를 잡는다 — 두 실행기가 어긋나면 안 된다. |
+| `test_needs_workdir_or_plan` | `(tmp_path: Path)` |  |
 
 ---
 
@@ -322,6 +361,9 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_known_terms_that_were_neither_asked_nor_excluded_are_reported` | `()` | 출제도 안 되고 `excluded` 에도 안 적힌 용어를 잡는다 — 무엇이 빠졌는지 보여야 |
 | `test_nothing_is_reported_when_every_known_term_is_accounted_for` | `()` |  |
 | `test_the_gate_notice_lists_the_silently_dropped_terms` | `()` |  |
+| `test_plan_slug_strips_the_date_prefix` | `()` |  |
+| `test_plan_slug_falls_back_to_the_bare_filename` | `()` | 날짜 접두사가 없으면 확장자만 뗀 파일 이름을 그대로 쓴다 — 빈 문자열을 내지 않는다. |
+| `test_two_plans_get_two_different_workdirs` | `()` |  |
 
 ---
 

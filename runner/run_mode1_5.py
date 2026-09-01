@@ -362,8 +362,6 @@ def validate_answers(sheet: dict[str, Any] | None,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.plan_slug']"/>
-# 계획서 파일 이름에서 slug 를 뽑는 함수다. Mode 2(`run_mode2.py` 의 `DOC_DIRS`)와
 # 같은 규칙을 쓴다 — 두 Mode 가 같은 계획서를 다른 이름으로 부르면 사람이 헷갈린다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1_5.default_workdir
 _PLAN_FILENAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)\.md$")
@@ -382,9 +380,6 @@ def plan_slug(plan: str) -> str:
     return m.group(2) if m else os.path.splitext(name)[0]
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.default_workdir']"/>
-# --workdir 를 안 준 경우에 쓸 작업 폴더 경로를 계획서 이름으로부터 결정하는 함수다.
-# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: runner.run_mode1_5.main
 def default_workdir(root: str, plan: str) -> str:
     """`--workdir` 를 안 주면 여기로 떨어진다 — `<root>/out/mode1_5/<slug>/`.
 
@@ -419,7 +414,7 @@ def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.grade_argv']"/>
 # 채점 스크립트 quiz.mjs 를 실행할 명령줄을 만드는 함수다.
-# 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts, runner.test_run_mode1_5.test_grade_argv_hands_over_both_files
+# 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_grade.main, runner.run_mode1_5.main, runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts, runner.test_run_mode1_5.test_grade_argv_hands_over_both_files
 def grade_argv(root: str, answers: str, questions: str) -> list[str]:
     """`quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다.
 
@@ -511,7 +506,7 @@ def _read_json(path: str) -> Any:
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.run_machine']"/>
 # 기계 단계 하나(collect/grade/emit 등)를 실제로 실행시키는 함수다.
-# 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: 없음
+# 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: runner.run_grade.main
 def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
     """기계 단계 하나. 출력은 그대로 흘려보낸다.
 

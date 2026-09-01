@@ -18,8 +18,31 @@ export default function Report() {
         <TermGraph terms={data.terms ?? []} />
       </Section>
 
+      <Section title="용어 이해도 실측 — Mode 1.5">
+        <EvidenceNote
+          measured={[
+            "용어 20개에 3문항씩 60문항을 내고 채점했다. 확실 9 · 모름 11 이다. 근거는 out/mode1_5/symbol-resolution-survey/term-grades.json 이고, 문항지는 out/mode1_5/symbol-resolution-survey/questions.json, 답안은 out/mode1_5/symbol-resolution-survey/answer-sheet.json 이다.",
+            "판정 규칙은 「모르겠다」 를 두 번 이상 고르면 모름, 아니면 세 문항 중 두 문항 이상 맞히면 확실이다. 그래서 정답률 33% 도 모름으로 떨어진다.",
+            "확실 9개는 전부 이미 저장소에 있는 파일과 도구다 — bin · codegraph.json · run_mode1.py · survey-plan.json · survey_plan.py · terms_db.py 와 시험 파일 셋.",
+            "모름 11개 중 다섯은 이 계획서가 새로 들여오는 어휘다 — 해석 사다리 · rollup · 근거 없음 · K5 · mode1-qtvisionedit-resolved.json. 정답률은 각각 0~33% 다.",
+            "나머지 여섯은 기존 어휘인데도 모름이 나왔다 — comments.xml · confidence · report · terms-reading.json · uses.to(시험은 uses[] 라 불렀다) · 그리고 2026-08-30 실행 기록 파일.",
+            "위 용어집에서 mental 이 붙지 않은 항목은 이 시험의 출제 범위 밖이라 측정되지 않았다. 확실도 모름도 아니다.",
+          ]}
+          judged={[
+            "이 실측이 결정 표에 그대로 얹힌다. D3(해석 사다리 순서) · D4(짧은 이름 포기) · D6(근거 없음 격하) 세 건이 모두 모름으로 나온 어휘 위에 서 있다 — 해석 사다리 · rollup · 근거 없음 · uses.to 넷이 전부 모름이다. 판정을 내리기 전에 그 넷을 먼저 읽는 편이 낫다.",
+            "반대로 D2(의존 목록을 이름으로)는 survey-plan.json 과 codegraph.json 이 둘 다 확실이라, 지금 바로 판정할 수 있는 유일한 결정이다.",
+            "기존 어휘 여섯이 모름으로 나온 것은 이 계획서의 문제가 아니라 저장소 문서의 문제일 수 있다. 다만 표본이 사람 한 명이라 그렇게 단정할 수 없다.",
+          ]}
+        />
+      </Section>
+
       <Section title="먼저 볼 것">
         <TriageBlock items={[
+          {
+            id: "T0",
+            title: "판정에 필요한 어휘 넷이 실측 「모름」 이다",
+            why: "해석 사다리 · rollup · 근거 없음 · uses.to 넷이 모두 모름으로 나왔고, D3 · D4 · D6 이 그 넷 위에 서 있다. 용어집 절을 먼저 읽고 결정 표로 내려가는 편이 낫다. 학습 노트는 out/mode1_5/symbol-resolution-survey/term-study-note.md 에 있다.",
+          },
           {
             id: "T1",
             title: "계획서가 가리키는 경로가 지금 저장소에 없다",

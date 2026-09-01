@@ -117,14 +117,14 @@
     "where": "machine/codegraph_types.py:1"
   },
   "collect.py": {
-    "kind": "file",
-    "module": "runner/term",
-    "where": "runner/term/collect.py:1",
-    "means": "이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.",
-    "does": "",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "",
+    "kind": "file",
+    "means": "이 Plan 을 읽는 데 필요한 용어를 모으는 스크립트. Mode 1.5 의 1단계다.",
+    "module": "runner/term",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/collect.py:1"
   },
   "comments.xml": {
     "confidence": "HIGH",
@@ -199,14 +199,14 @@
     "where": "tools/doctor.py:1"
   },
   "emit.py": {
-    "kind": "file",
-    "module": "runner/term",
-    "where": "runner/term/emit.py:1",
-    "means": "채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.",
-    "does": "",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "",
+    "kind": "file",
+    "means": "채점 결과를 학습 노트와 용어집 두 갈래로 내보내는 스크립트.",
+    "module": "runner/term",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/emit.py:1"
   },
   "facts.py": {
     "confidence": "HIGH",
@@ -8166,14 +8166,14 @@
     "where": "tools/python.py:1"
   },
   "quiz.py": {
-    "kind": "file",
-    "module": "runner/term",
-    "where": "runner/term/quiz.py:1",
-    "means": "객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.",
-    "does": "",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "",
+    "kind": "file",
+    "means": "객관식 답안을 채점하는 스크립트. 사람에게 묻지 않는다.",
+    "module": "runner/term",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:1"
   },
   "ranking.json": {
     "confidence": "HIGH",
@@ -8265,6 +8265,15 @@
     "uses": [],
     "where": "machine/reverse_refs.py:1"
   },
+  "run_grade.py": {
+    "confidence": "HIGH",
+    "kind": "file",
+    "means": "채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기.",
+    "module": "runner",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/run_grade.py:1"
+  },
   "run_mode1.py": {
     "confidence": "HIGH",
     "kind": "file",
@@ -8300,6 +8309,73 @@
     "source": "reading",
     "uses": [],
     "where": null
+  },
+  "runner.run_grade.SHEET_NAMES": {
+    "confidence": "HIGH",
+    "kind": "key",
+    "means": "채운 기입란을 찾을 파일 이름과 그 순서.",
+    "module": "runner.run_grade",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/run_grade.py:37"
+  },
+  "runner.run_grade.find_sheet": {
+    "confidence": "HIGH",
+    "does": "SHEET_NAMES 순서대로 작업 폴더를 뒤져 먼저 있는 파일의 경로를 낸다. answers.json 이 있으면 그것이 이기고, 없을 때만 answer-sheet.json 을 본다. 둘 다 없으면 None 이다.",
+    "kind": "function",
+    "means": "작업 폴더에서 채운 기입란 파일을 찾아 그 경로를 돌려주는 함수다.",
+    "module": "runner.run_grade",
+    "source": "reading",
+    "uses": [
+      {
+        "kind": "dependency",
+        "label": "찾을 이름과 순서",
+        "to": "runner.run_grade.SHEET_NAMES",
+        "where": "runner/run_grade.py:43"
+      }
+    ],
+    "where": "runner/run_grade.py:43"
+  },
+  "runner.run_grade.main": {
+    "confidence": "HIGH",
+    "does": "작업 폴더를 인자나 --plan 으로 정하고, 문항지와 채운 기입란을 찾아, 문항지가 채점 가능한 꼴인지 먼저 본 뒤 quiz.py 를 작업 폴더를 cwd 로 하여 부른다.",
+    "kind": "function",
+    "means": "채점만 하는 실행기의 진입점.",
+    "module": "runner.run_grade",
+    "source": "reading",
+    "uses": [
+      {
+        "kind": "dependency",
+        "label": "채운 기입란을 찾는다",
+        "to": "runner.run_grade.find_sheet",
+        "where": "runner/run_grade.py:97"
+      },
+      {
+        "kind": "dependency",
+        "label": "채점 명령줄을 만든다",
+        "to": "runner.run_mode1_5.grade_argv",
+        "where": "runner/run_grade.py:121"
+      },
+      {
+        "kind": "dependency",
+        "label": "작업 폴더를 cwd 로 주고 부른다",
+        "to": "runner.run_mode1_5.run_machine",
+        "where": "runner/run_grade.py:121"
+      },
+      {
+        "kind": "dependency",
+        "label": "--plan 이면 slug 폴더를 잡는다",
+        "to": "runner.run_mode1_5.default_workdir",
+        "where": "runner/run_grade.py:84"
+      },
+      {
+        "kind": "dependency",
+        "label": "문항지 꼴을 먼저 본다",
+        "to": "runner.run_mode1_5.validate_questions",
+        "where": "runner/run_grade.py:109"
+      }
+    ],
+    "where": "runner/run_grade.py:59"
   },
   "runner.run_mode1.Heartbeat": {
     "confidence": "HIGH",
@@ -9178,7 +9254,7 @@
         "where": "runner/run_mode1_5.py:300"
       }
     ],
-    "where": "runner/run_mode1_5.py:279"
+    "where": "runner/run_mode1_5.py:286"
   },
   "runner.run_mode1_5.choice_number": {
     "confidence": "HIGH",
@@ -9202,10 +9278,10 @@
         "kind": "dependency",
         "label": "_term_script 로 collect.mjs 의 절대 경로를 만든다",
         "to": "runner.run_mode1_5._term_script",
-        "where": "runner/run_mode1_5.py:396"
+        "where": "runner/run_mode1_5.py:391"
       }
     ],
-    "where": "runner/run_mode1_5.py:367"
+    "where": "runner/run_mode1_5.py:403"
   },
   "runner.run_mode1_5.emit_argv": {
     "confidence": "HIGH",
@@ -9219,10 +9295,10 @@
         "kind": "dependency",
         "label": "_term_script 로 emit.mjs 의 절대 경로를 만든다",
         "to": "runner.run_mode1_5._term_script",
-        "where": "runner/run_mode1_5.py:419"
+        "where": "runner/run_mode1_5.py:414"
       }
     ],
-    "where": "runner/run_mode1_5.py:394"
+    "where": "runner/run_mode1_5.py:430"
   },
   "runner.run_mode1_5.flatten_questions": {
     "confidence": "HIGH",
@@ -9253,10 +9329,10 @@
         "kind": "dependency",
         "label": "실제로 돌린 단계들의 성공/실패 표를 만든다",
         "to": "runner.run_mode1.format_report",
-        "where": "runner/run_mode1_5.py:587"
+        "where": "runner/run_mode1_5.py:582"
       }
     ],
-    "where": "runner/run_mode1_5.py:443"
+    "where": "runner/run_mode1_5.py:479"
   },
   "runner.run_mode1_5.gate_notice": {
     "confidence": "HIGH",
@@ -9280,10 +9356,10 @@
         "kind": "dependency",
         "label": "_term_script 로 quiz.mjs 의 절대 경로를 만든다",
         "to": "runner.run_mode1_5._term_script",
-        "where": "runner/run_mode1_5.py:411"
+        "where": "runner/run_mode1_5.py:406"
       }
     ],
-    "where": "runner/run_mode1_5.py:382"
+    "where": "runner/run_mode1_5.py:418"
   },
   "runner.run_mode1_5.human_gate_open": {
     "confidence": "HIGH",
@@ -9303,7 +9379,7 @@
     "module": "runner.run_mode1_5",
     "source": "reading",
     "uses": [],
-    "where": "runner/run_mode1_5.py:137"
+    "where": "runner/run_mode1_5.py:144"
   },
   "runner.run_mode1_5.main": {
     "confidence": "HIGH",
@@ -9416,7 +9492,7 @@
         "where": "runner/run_mode1_5.py:774"
       }
     ],
-    "where": "runner/run_mode1_5.py:488"
+    "where": "runner/run_mode1_5.py:524"
   },
   "runner.run_mode1_5.plan_stages": {
     "confidence": "HIGH",
@@ -9440,10 +9516,10 @@
         "kind": "dependency",
         "label": "run_mode1.py 의 Heartbeat 클래스로 진행 중 표시를 한다",
         "to": "runner.run_mode1.Heartbeat",
-        "where": "runner/run_mode1_5.py:612"
+        "where": "runner/run_mode1_5.py:607"
       }
     ],
-    "where": "runner/run_mode1_5.py:474"
+    "where": "runner/run_mode1_5.py:510"
   },
   "runner.run_mode1_5.split_new_concepts": {
     "confidence": "HIGH",
@@ -9483,10 +9559,10 @@
         "kind": "dependency",
         "label": "choice_number 로 UserAns 값을 정수로 변환해 범위를 검사한다",
         "to": "runner.run_mode1_5.choice_number",
-        "where": "runner/run_mode1_5.py:368"
+        "where": "runner/run_mode1_5.py:366"
       }
     ],
-    "where": "runner/run_mode1_5.py:305"
+    "where": "runner/run_mode1_5.py:312"
   },
   "runner.run_mode1_5.validate_questions": {
     "confidence": "HIGH",
@@ -9747,94 +9823,94 @@
     "where": "runner/run_mode2.py:114"
   },
   "runner.term.collect.find_new_concepts": {
-    "kind": "function",
-    "module": "runner/term/collect.py",
-    "where": "runner/term/collect.py:28",
-    "means": "Plan 이 새로 만든 개념을 찾는다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "Plan 이 새로 만든 개념을 찾는다.",
+    "module": "runner/term/collect.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/collect.py:28"
   },
   "runner.term.collect.pick_terms": {
-    "kind": "function",
-    "module": "runner/term/collect.py",
-    "where": "runner/term/collect.py:16",
-    "means": "코드베이스 용어 DB 중 Plan 본문에 실제로 등장하는 것만 고른다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "코드베이스 용어 DB 중 Plan 본문에 실제로 등장하는 것만 고른다.",
+    "module": "runner/term/collect.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/collect.py:16"
   },
   "runner.term.emit.to_study_note": {
-    "kind": "function",
-    "module": "runner/term/emit.py",
-    "where": "runner/term/emit.py:25",
-    "means": "사람이 읽는 학습 노트를 생성한다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "사람이 읽는 학습 노트를 생성한다.",
+    "module": "runner/term/emit.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/emit.py:25"
   },
   "runner.term.emit.to_terms_db": {
-    "kind": "function",
-    "module": "runner/term/emit.py",
-    "where": "runner/term/emit.py:13",
-    "means": "Mode 2 로 넘길 용어집 DB를 가공한다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "Mode 2 로 넘길 용어집 DB를 가공한다.",
+    "module": "runner/term/emit.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/emit.py:13"
   },
   "runner.term.quiz.choice_number": {
-    "kind": "function",
-    "module": "runner/term/quiz.py",
-    "where": "runner/term/quiz.py:49",
-    "means": "UserAns 를 보기 번호로 읽는다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "UserAns 를 보기 번호로 읽는다.",
+    "module": "runner/term/quiz.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:49"
   },
   "runner.term.quiz.flatten_questions": {
-    "kind": "function",
-    "module": "runner/term/quiz.py",
-    "where": "runner/term/quiz.py:18",
-    "means": "중첩된 문항지를 한 줄로 펴고 QNum 을 1부터 매긴다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "중첩된 문항지를 한 줄로 펴고 QNum 을 1부터 매긴다.",
+    "module": "runner/term/quiz.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:18"
   },
   "runner.term.quiz.grade_all": {
-    "kind": "function",
-    "module": "runner/term/quiz.py",
-    "where": "runner/term/quiz.py:154",
-    "means": "답안 전체를 채점한다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "답안 전체를 채점한다.",
+    "module": "runner/term/quiz.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:154"
   },
   "runner.term.quiz.grade_one": {
-    "kind": "function",
-    "module": "runner/term/quiz.py",
-    "where": "runner/term/quiz.py:137",
-    "means": "한 용어의 답안을 채점한다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "한 용어의 답안을 채점한다.",
+    "module": "runner/term/quiz.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:137"
   },
   "runner.term.quiz.tally_sheet": {
-    "kind": "function",
-    "module": "runner/term/quiz.py",
-    "where": "runner/term/quiz.py:62",
-    "means": "채운 기입란을 문항지와 대조해 용어마다 맞힌 수를 센다.",
-    "does": "파이썬으로 포팅됨.",
-    "uses": [],
     "confidence": "HIGH",
-    "source": "reading"
+    "does": "파이썬으로 포팅됨.",
+    "kind": "function",
+    "means": "채운 기입란을 문항지와 대조해 용어마다 맞힌 수를 센다.",
+    "module": "runner/term/quiz.py",
+    "source": "reading",
+    "uses": [],
+    "where": "runner/term/quiz.py:62"
   },
   "runner.test_run_mode1._shard": {
     "confidence": "HIGH",
@@ -11961,7 +12037,7 @@
         "kind": "dependency",
         "label": "good_doc 으로 정상 문서를 만든 뒤 excluded 를 채운다",
         "to": "runner.test_run_mode1_5.good_doc",
-        "where": "runner/test_run_mode1_5.py:649"
+        "where": "runner/test_run_mode1_5.py:640"
       }
     ],
     "where": "runner/test_run_mode1_5.py:596"
@@ -12416,7 +12492,7 @@
         "kind": "dependency",
         "label": "validate_questions 를 호출해 검사한다",
         "to": "runner.run_mode1_5.validate_questions",
-        "where": "runner/test_run_mode1_5.py:638"
+        "where": "runner/test_run_mode1_5.py:632"
       },
       {
         "kind": "dependency",

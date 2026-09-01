@@ -622,25 +622,16 @@ def test_the_gate_notice_lists_the_silently_dropped_terms():
     assert "실패" not in text
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_plan_slug_strips_the_date_prefix']"/>
-# 날짜 접두사가 붙은 계획서 파일 이름에서 slug 가 날짜를 뗀 나머지인지 보는 시험이다.
-# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: 없음
 # ── 7. 계획서별 작업 폴더 — 두 계획서가 같은 자리를 쓰면 한쪽이 죽는다 ──────
 def test_plan_slug_strips_the_date_prefix():
     assert R.plan_slug("/a/b/2026-08-30-symbol-resolution-survey.md") == "symbol-resolution-survey"
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_plan_slug_falls_back_to_the_bare_filename']"/>
-# 날짜 접두사가 없는 계획서 파일 이름이면 slug 가 확장자만 뗀 파일 이름인지 보는 시험이다.
-# 쓰는 것: runner.run_mode1_5.plan_slug · 쓰이는 곳: 없음
 def test_plan_slug_falls_back_to_the_bare_filename():
     """날짜 접두사가 없으면 확장자만 뗀 파일 이름을 그대로 쓴다 — 빈 문자열을 내지 않는다."""
     assert R.plan_slug("/a/b/plan.md") == "plan"
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_two_plans_get_two_different_workdirs']"/>
-# 계획서 둘의 기본 작업 폴더가 서로 다른지 확인하는 시험이다 — 겹치면 한쪽 산출물이 다른 쪽을 덮어쓴다.
-# 쓰는 것: runner.run_mode1_5.default_workdir · 쓰이는 곳: 없음
 def test_two_plans_get_two_different_workdirs():
     a = R.default_workdir("/repo", "/plans/2026-08-30-symbol-resolution-survey.md")
     b = R.default_workdir("/repo", "/plans/2026-08-30-llm-load-reduction.md")
