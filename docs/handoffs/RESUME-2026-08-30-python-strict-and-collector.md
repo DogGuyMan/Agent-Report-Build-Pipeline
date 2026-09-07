@@ -54,7 +54,7 @@ Python 쪽을 pyright strict 0 으로 만들었고(5,409 → 0), `codegraph.json
 | `tools/gen_readme.py` | 소스에서 디렉토리별 README 를 생성. `--check` 로 드리프트 판정 |
 | `tools/test_gen_readme.py` | 위의 드리프트 게이트 4건 |
 | `machine/README.md` · `runner/` · `viz/` · `tools/` | **생성물. 손으로 고치지 마라** |
-| `machine/lang_select.py` | **언어 판별.** 모형의 제안을 결정론 검사로 거른다 |
+| `machine/lang_select.py` | **언어 판별.** LLM Model의 제안을 결정론 검사로 거른다 |
 | `machine/test_lang_select.py` | 위의 회귀 시험 9건 |
 | `docs/superpowers/plans/2026-08-30-griffe-python-collector.md` | Python 수집기 실행 계획(완료됨) |
 | `docs/superpowers/specs/griffe-python-collector/` | 그 계획의 Mode 2 검토 대시보드 |
@@ -309,7 +309,7 @@ README 를 손으로 고치면 **깨진다**(일치 exit 0 · 낡음 exit 1 로 
 .venv/bin/python machine/lang_select.py <저장소> --propose py -o out/codegraph-raw/lang-select.json
 ```
 
-**설계 원칙 — 모형은 제안하고, 결정론이 판정한다.** Haiku(`claude-haiku-4-5-20251001`)가
+**설계 원칙 — LLM Model은 제안하고, 결정론이 판정한다.** Haiku(`claude-haiku-4-5-20251001`)가
 루트 문서(README·CLAUDE·ARCHITECTURE·AGENTS)를 읽고 `cpp|cs|py|ts` 중 낱말 하나를 낸다.
 `machine/lang_select.py` 가 그 제안을 세 가지로 거른다:
 
@@ -321,7 +321,7 @@ README 를 손으로 고치면 **깨진다**(일치 exit 0 · 낡음 exit 1 로 
 | 통과 | 따른다. 파일 수 1위와 다르면 `why` 에 적는다 |
 
 소수파 제안을 **따르는 것이 의도**다 — 세는 것으로는 "많은 쪽이 도구이고 주제는 적은 쪽"을
-알 수 없고 그게 모형이 문서를 읽는 이유다.
+알 수 없고 그게 LLM Model이 문서를 읽는 이유다.
 
 ⚠ **실제로 돌려 보니 Haiku 가 `ts` 를 제안했다.** 이 저장소의 루트 `CLAUDE.md` 는
 React/TypeScript 서사가 지배적이라 틀린 판단은 아니지만 **TS 는 수집기가 없다.**

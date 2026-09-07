@@ -23,7 +23,7 @@
 ## 이 파이프라인의 LLM 자리는 **원고 쓰기** 하나다
 
 `init` 은 스켈레톤만 만든다. 결정 표 · 서사 · 확신도 배지 · 옵션표를 채우는 절차의
-정본은 `spec-review-dashboard` 스킬이다. **판정(수용/보류/번복)은 절대 모형이 하지
+정본은 `spec-review-dashboard` 스킬이다. **판정(수용/보류/번복)은 절대 LLM Model이 하지
 않는다** — `VerdictFooter` 는 비워서 낸다.
 
 ## 함정
@@ -36,11 +36,11 @@
 - **재는 코드를 새로 짜지 않는다.** 토큰 세기·합계·표 그리기는 `run_mode1` 에 있다.
   각자 세면 같은 이름의 숫자가 두 실행기에서 서로 다른 뜻을 갖는다.
 - **Mode 1.5 의 `terms.json` 을 기계로 병합하지 않는다.** 있으면 프롬프트에 **알려 주기만**
-  하고, 옮겨 적는 것은 모형의 일이다.
+  하고, 옮겨 적는 것은 LLM Model의 일이다.
 
 ## 쓰는 법
 
-    .venv/bin/python runner/run_mode2.py <프로젝트> <slug> [--model <모형 ID>]
+    .venv/bin/python runner/run_mode2.py <프로젝트> <slug> [--model <LLM Model ID>]
                                             [--only init,build] [--skip agent]
                                             [--json 측정.json] [--dry-run]
 
@@ -116,7 +116,7 @@ def stage_cwd(stage: str, project: str, report_dir: str) -> str:
 
     `init.py` 는 `cwd` 아래 `specs/`·`plans/` 를 보므로 프로젝트 뿌리가 필요하고,
     `build.py`·`check.py` 는 `cwd` 에서 `data.ts`·`report.tsx` 를 읽으므로 보고서
-    폴더가 필요하다. 모형(`agent`)은 둘 다 봐야 해서 뿌리에 세운다.
+    폴더가 필요하다. LLM Model(`agent`)은 둘 다 봐야 해서 뿌리에 세운다.
     """
     if stage not in STAGES:
         raise ValueError("모르는 단계: %s (있는 것: %s)" % (stage, ", ".join(STAGES)))
@@ -124,10 +124,10 @@ def stage_cwd(stage: str, project: str, report_dir: str) -> str:
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.is_agent_stage']"/>
-# 이 단계가 LLM(큰 언어 모형)을 실제로 부르는 자리인지 참/거짓으로 답해 주는 함수다.
+# 이 단계가 LLM(큰 언어 LLM Model)을 실제로 부르는 자리인지 참/거짓으로 답해 주는 함수다.
 # 쓰는 것: runner.run_mode2.AGENT_STAGES · 쓰이는 곳: runner.test_run_mode2.test_only_one_stage_calls_the_model
 def is_agent_stage(stage: str) -> bool:
-    """이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다."""
+    """이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
@@ -142,7 +142,7 @@ def plan_stages(has_manuscript: bool, only: Iterable[str] | None = None,
     `init` 은 늘 남긴다 — 이미 `data.ts` 가 있으면 건너뛸지를 `init.py` 자신이
     정한다(멱등 경로에서 exit 0). 여기서 미리 빼면 그 판단을 뺏는 것이다.
 
-    `agent` 만은 **원고가 이미 채워졌을 때** 뺀다 — 사람이 쓴 글을 모형이 덮어쓰면
+    `agent` 만은 **원고가 이미 채워졌을 때** 뺀다 — 사람이 쓴 글을 LLM Model이 덮어쓰면
     되돌릴 수 없다.
     """
     for name in list(only or []) + list(skip or []):
@@ -224,11 +224,11 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
     """원고를 쓰는 한 세션이 할 일 전부.
 
     **기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
-    무결성은 `check` 가 잡지만, 판정을 모형이 채웠는지 · D축 필드를 넣었는지는
+    무결성은 `check` 가 잡지만, 판정을 LLM Model이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.
 
     `doc_dir` 는 원본이 사는 자리(`specs` 또는 `plans`)다. **프롬프트에 박으면 안 된다** —
-    모형이 없는 경로를 열어 보고 막힌다.
+    LLM Model이 없는 경로를 열어 보고 막힌다.
     """
     folder = report_dir(project, slug, doc_dir)
     terms_block = ""
@@ -313,7 +313,7 @@ def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
               doc_dir: str = "specs") -> tuple[int, M.AgentResult | None]:
     """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`.
 
-    `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다 — 한쪽만 주면 모형이
+    `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다 — 한쪽만 주면 LLM Model이
     설계 문서나 컴포넌트 규약 중 하나를 못 본다.
     """
     argv = claude_argv(model=model, repo=project, extra_dirs=[root])
@@ -363,7 +363,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("slug",
                     help="보고서 slug. specs/YYYY-MM-DD-<slug>-design.md 또는 "
                          "plans/YYYY-MM-DD-<slug>.md 가 있어야 한다")
-    ap.add_argument("--model", default="opus", help="에이전트가 쓸 모형 (기본: opus)")
+    ap.add_argument("--model", default="opus", help="에이전트가 쓸 LLM Model (기본: opus)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
@@ -416,7 +416,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("프로젝트 %s" % project)
     print("보고서   %s" % folder)
     print("설계문서 %s" % spec_file)
-    print("모형 %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
+    print("LLM Model %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
     print("이미 있는 것 — 뼈대 %s · 채워진 원고 %s · 용어집 재료 %s"
           % (data_src is not None, has_manuscript, bool(terms_json)))
     if a.dry_run:

@@ -47,7 +47,7 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 
 ### LLM 단계 셋은 프롬프트만 다른 것이 아니다
 
-| 단계 | 모형 호출 | 병렬 | 호출 뒤에 하는 일 |
+| 단계 | LLM Model 호출 | 병렬 | 호출 뒤에 하는 일 |
 |---|---|---|---|
 | `lang-select` | 1회 | 없음 | 낱말 하나 파싱 → **`machine/lang_select.py` 를 자식 프로세스로** 돌려 제안을 기각/채택 |
 | `survey` | 층마다 N회 | 동시 8 | 층이 끝날 때마다 `merge_shards` 로 샤드 병합 → 디스크 쓰기 |
@@ -150,7 +150,7 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 호출 횟수·병렬·거두기까지 다르다" 를 들었는데, **그 셋을 Mode 1 만 보고 셌다.**
 Mode 2 와 Mode 1.5 를 함께 재니 그림이 달라졌다.
 
-| 자리 | 모드 | 세션 수 | 병렬 | 모형 | 호출 뒤 |
+| 자리 | 모드 | 세션 수 | 병렬 | LLM Model | 호출 뒤 |
 |---|---|---|---|---|---|
 | `lang-propose` | 1 | **1** | — | **haiku 고정 상수** | 낱말 파싱 |
 | `wiki` 목차 | 1 | **1** | — | `--model` | `wiki-plan.json` 이 나왔는지 확인 |
@@ -161,7 +161,7 @@ Mode 2 와 Mode 1.5 를 함께 재니 그림이 달라졌다.
 
 **축을 둘 뭉쳐 놨었다.** 실제로는 직교하는 축이 둘이다.
 
-  - **모형을 부르는가** — 토큰이 나오는 자리인가. LLM 5 · 기계 13
+  - **LLM Model을 부르는가** — 토큰이 나오는 자리인가. LLM 5 · 기계 13
   - **세션을 몇 개 띄우는가** — LLM 중 단일 3 · 팬아웃 2. **기계 중 팬아웃은 0건이다**
 
 두 축이 상관은 있지만(팬아웃은 전부 LLM) 같지 않다. 훅 셋은 두 번째 축만 보고 지은 것이라
@@ -193,7 +193,7 @@ Mode 2 와 Mode 1.5 를 함께 재니 그림이 달라졌다.
 
 **`model` 훅이 새로 생긴 이유** — `lang-propose` 만 `LANG_SELECT_MODEL`(haiku) 상수를 쓴다.
 지금은 `run_lang_select` 안에 박힌 특수 경우인데, 훅으로 올리면 그것이 **선언**이 된다.
-싼 모형을 쓰는 단계가 늘어도 자리가 이미 있다.
+싼 LLM Model을 쓰는 단계가 늘어도 자리가 이미 있다.
 
 **두 클래스로 가르지 않는 이유** — `abstractstage` → `llmstage` → `{Single, Fanout}` 로
 3단이 된다. §3 이 경고한 "부모가 추상이 아니라 자식들의 합집합으로 부푼다" 가 정확히 그 꼴이고,
@@ -204,9 +204,9 @@ Mode 2 와 Mode 1.5 를 함께 재니 그림이 달라졌다.
 - Status: `[승인됨]` — 사용자 선택 (2026-09-08)
 - 확신도: 🔵 88
 - 옵션 2 (두 단계로 쪼개기 / 한 단계로 두고 `harvest` 안에서 검사기 부르기)
-- `lang-propose`(llmstage, 모형에게 언어를 묻는다) → `lang-decide`(rulebasestage,
+- `lang-propose`(llmstage, LLM Model에게 언어를 묻는다) → `lang-decide`(rulebasestage,
   `machine/lang_select.py` 로 제안을 기각/채택)
-- **이것이 D0 의 Fall-Back 착지점의 첫 실사용처다.** 지금은 모형 호출 실패가
+- **이것이 D0 의 Fall-Back 착지점의 첫 실사용처다.** 지금은 LLM Model 호출 실패가
   `run_lang_select` 안의 `try/except` 에 숨어 있다. 쪼개면 전이표 한 줄이 된다:
 
       ('lang-propose', FAIL) -> 'lang-decide'    # 제안 없이 파일 수만으로 고른다

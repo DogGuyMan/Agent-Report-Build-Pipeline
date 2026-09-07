@@ -70,10 +70,10 @@ def test_grading_only_starts_once_a_human_answered():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_no_stage_calls_the_model']"/>
-# Mode 1.5 실행기에 모형을 부르는 단계가 하나도 없음을 못박는 시험이다.
+# Mode 1.5 실행기에 LLM Model을 부르는 단계가 하나도 없음을 못박는 시험이다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def test_no_stage_calls_the_model():
-    """**이 실행기는 모형을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다.
+    """**이 실행기는 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다.
 
     CLI 칸으로 되돌리면 스킬과 두 곳에서 같은 일을 하게 되고, 헤드리스 세션은
     사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.

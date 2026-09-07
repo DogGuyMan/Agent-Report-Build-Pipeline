@@ -48,7 +48,7 @@
 >                    └─ claude_argv(model=...)  →  claude -p --model claude-sonnet-5
 > ```
 >
-> **이 사슬 어디에서도 모형을 바꾸지 않는다.** 중간에 다른 기본값을 끼워 넣으면 책임이 끊긴다.
+> **이 사슬 어디에서도 LLM Model을 바꾸지 않는다.** 중간에 다른 기본값을 끼워 넣으면 책임이 끊긴다.
 >
 > 🔵 이번 세션 확인 — 그 세션들이 **다시 띄우는** deep-wiki 서브에이전트 셋
 > (`wiki-architect` · `wiki-researcher` · `wiki-writer`, `~/.claude/plugins/cache/skills/deep-wiki/2.0.0/agents/`)은
@@ -57,7 +57,7 @@
 > **코드에 박히는 자리 — `run_mode1.py` 의 `main()` 인자 기본값 한 곳뿐이다:**
 > ```python
 > ap.add_argument("--model", default="claude-sonnet-5",
->                 help="배치·장 세션이 쓸 모형 (기본: claude-sonnet-5). "
+>                 help="배치·장 세션이 쓸 LLM Model (기본: claude-sonnet-5). "
 >                      "별명이 아니라 정확한 ID 를 적는다 — 별명은 최신판을 따라 움직여 측정이 흔들린다")
 > ```
 > 예전 기본값은 `opus` 였다. **이 한 줄이 바뀌는 것을 잊지 마라.**
@@ -65,16 +65,16 @@
 **⚠ 이것이 A/B 대조를 오염시킨다 — 반드시 알고 있어야 한다.**
 
 🔵 기준선(26분 53.1초 · $15.4991)은 **opus 한 세션**으로 잰 값이다. 새 구조는
-**sonnet-5 여러 세션**이다. 즉 한 번에 **변수 둘**(모형 · 세션 위상)이 바뀐다.
-그래서 "층 병렬 덕분에 빨라졌다" 고 말할 수 없다 — 모형이 싸고 빨라서일 수도 있다.
+**sonnet-5 여러 세션**이다. 즉 한 번에 **변수 둘**(LLM Model · 세션 위상)이 바뀐다.
+그래서 "층 병렬 덕분에 빨라졌다" 고 말할 수 없다 — LLM Model이 싸고 빨라서일 수도 있다.
 
 귀속(attribution)이 필요하면 측정을 **셋** 해야 한다:
 
-| 조건 | 모형 | 위상 | 무엇을 알려주나 |
+| 조건 | LLM Model | 위상 | 무엇을 알려주나 |
 |---|---|---|---|
 | 기준선 (있음) | opus | 한 세션 | 출발점 |
 | 새 하네스 | `claude-sonnet-5` | 층 병렬 | **done 조건이 보는 값** |
-| (선택) 대조군 | `claude-sonnet-5` | 한 세션 — 이 구조에서는 못 만든다 | 모형 몫과 위상 몫의 분리 |
+| (선택) 대조군 | `claude-sonnet-5` | 한 세션 — 이 구조에서는 못 만든다 | LLM Model 몫과 위상 몫의 분리 |
 
 세 번째는 옛 다섯 단계 코드가 필요하므로 `git worktree add /tmp/rb-old 9223143` 로 떼어 돌린다.
 **하지 않아도 done 조건은 닫힌다**(K8 은 벽시계만 본다). 다만 "무엇 덕분인가" 를 물으면
@@ -940,7 +940,7 @@ def test_warmup_관문이_survey_를_감싼다():
     assert p.index("warmup-save") < p.index("wiki")
 
 
-def test_두_단계가_모형을_부른다():
+def test_두_단계가_LLM Model을_부른다():
     """예전에는 `agent` 한 칸이었고 그것이 **이 설계의 급소**라고 적혀 있었다.
 
     이유는 캐시였다 — 세션을 쪼개면 두 번째가 저장소를 처음부터 다시 읽어 토큰이 부풀고,
@@ -990,7 +990,7 @@ def test_산출물이_있는_LLM_단계만_각자_빠진다():
 # 단계는 여덟 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
 STAGES = ["prep", "warmup", "survey", "warmup-save", "terms", "wiki", "build", "check"]
 
-# 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
+# LLM Model을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
 AGENT_STAGES = {"survey", "wiki"}
 ```
 
@@ -1035,7 +1035,7 @@ def plan_stages(has_codegraph, has_reading, has_prose, only=None, skip=None):
 기대: 실패가 남는다 — `main()` 이 아직 `stage == "agent"` 를 보고, `agent_prompt` 를 쓰는 `test_the_prompt_names_both_halves_of_the_one_agent_job` 도 살아 있다. **`plan_stages` 관련 시험 세 개가 통과하는 것만 확인하고 다음 Task 로 간다:**
 
 ```bash
-.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "단계 or 모형을_부른다 or 산출물이_있는 or warmup_관문"
+.venv/bin/python -m pytest codegraph/test_run_mode1.py -q -k "단계 or LLM Model을_부른다 or 산출물이_있는 or warmup_관문"
 ```
 
 기대: `4 passed`.
@@ -1114,10 +1114,10 @@ def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatc
     assert len(rows) == 3
 
 
-def test_빈_층은_모형을_부르지_않는다(monkeypatch):
+def test_빈_층은_LLM Model을_부르지_않는다(monkeypatch):
     """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
     monkeypatch.setattr(R, "run_agent_with",
-                        lambda *a, **k: pytest.fail("빈 층에서 모형을 불렀다"))
+                        lambda *a, **k: pytest.fail("빈 층에서 LLM Model을 불렀다"))
     assert R.run_layer("opus", "/r", "/root", []) == []
 ```
 
@@ -1143,7 +1143,7 @@ import time
 
 ```python
 # <include file="docs/codegraph/comments.xml" path="//term[@id='run_mode1.run_agent_with']"/>
-# 주어진 글로 모형을 한 번 부르고 걸린 시간과 결과를 함께 낸다.
+# 주어진 글로 LLM Model을 한 번 부르고 걸린 시간과 결과를 함께 낸다.
 # 쓰는 것: run_mode1.claude_argv · 쓰이는 곳: run_mode1.run_layer
 def run_agent_with(model, repo, root, prompt, timeout=None, label=None):
     """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
@@ -2248,7 +2248,7 @@ def run_wiki(model, repo, root, plan, concurrency, timeout):
     # 🔴 서브에이전트 모델은 Claude Sonnet 5 다. 별명(`sonnet`)이 아니라 정확한 ID 를 적는다 —
     #    별명은 최신판을 따라 움직여 측정이 흔들린다. 예전 기본값은 `opus` 였다.
     ap.add_argument("--model", default="claude-sonnet-5",
-                    help="배치·장 세션이 쓸 모형 (기본: claude-sonnet-5)")
+                    help="배치·장 세션이 쓸 LLM Model (기본: claude-sonnet-5)")
     ap.add_argument("--concurrency", type=int, default=8,
                     help="한 층에서 동시에 띄울 세션 수 (기본 8 = K4)")
     ap.add_argument("--target", type=int, default=8,
@@ -2277,8 +2277,8 @@ import survey_plan  # noqa: E402
 .venv/bin/python codegraph/run_mode1.py . --dry-run
 ```
 
-기대: `모형 claude-sonnet-5 · 단계 prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check` 가 찍힌다.
-**모형이 `opus` 로 나오면 기본값을 안 바꾼 것이다.** (이 저장소는 `docs/codegraph/terms-reading.json` 이 있으므로 실제로는 `survey` 가 빠진 목록이 나올 수 있다 — 그때는 `--skip` 없이 빈 임시 폴더로 확인한다:)
+기대: `LLM Model claude-sonnet-5 · 단계 prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check` 가 찍힌다.
+**LLM Model이 `opus` 로 나오면 기본값을 안 바꾼 것이다.** (이 저장소는 `docs/codegraph/terms-reading.json` 이 있으므로 실제로는 `survey` 가 빠진 목록이 나올 수 있다 — 그때는 `--skip` 없이 빈 임시 폴더로 확인한다:)
 
 ```bash
 mkdir -p /tmp/빈저장소 && .venv/bin/python codegraph/run_mode1.py /tmp/빈저장소 --dry-run
@@ -2418,7 +2418,7 @@ Mode 1    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─�
 이어서 `agent` 가 `survey` 와 `wiki` 로 갈려 **여덟**이 됐다(`codegraph/CLAUDE.md` 의 K1~K7).
 배치·장 세션은 **`claude-sonnet-5`** 로 돈다.
 **새 구조의 값은 아직 재지 않았다.** 재면 `evals/runs/` 에 쌓고 이 표를 갱신한다.
-기준선과 모형이 다르므로 **"층 병렬 덕분"이라고 귀속할 수 없다**는 것도 함께 적는다.
+기준선과 LLM Model이 다르므로 **"층 병렬 덕분"이라고 귀속할 수 없다**는 것도 함께 적는다.
 ```
 
 - [x] **Step 3b: `ARCHITECTURE.md:97-98` 의 mermaid 를 고친다**
@@ -2454,7 +2454,7 @@ Mode 1    prep ─▶ warmup ─▶ survey ─▶ warmup-save ─▶ terms ─�
 Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
 **`claude-sonnet-5` 로 띄울 책임은 이 두 칸에 있고**, 실제 경로는 `run_mode1.py` 의
 `--model` 기본값 하나다(`main` → `run_survey`/`run_wiki` → `run_layer` → `run_agent_with`
-→ `claude_argv`). 사슬 중간에서 모형을 바꾸지 않는다.
+→ `claude_argv`). 사슬 중간에서 LLM Model을 바꾸지 않는다.
 ```
 
 그 아래 문장 둘도 이제 틀렸으니 고친다:
@@ -2733,7 +2733,7 @@ Task 4 부터는 서브에이전트가 세션 한도(429)에 걸려 오케스트
    영원히 거짓이 됐다. 조사가 실패해도 매니페스트가 갱신된다. 배경 보안 검토도 같은 곳을 짚었다
 3. **`merge_shards` 가 멱등이 아니었다** — 층마다 부르며 누적본을 다시 넘기면, 같은 샤드를
    다시 읽은 새 객체를 `is not` 이 남으로 보고 자기 자신과 충돌했다고 판정해 개명한다.
-   🔵 가짜 모형 연기 시험에서 레코드 수가 `16→20→38→27→42→30` 으로 오르내리는 것으로 드러났다.
+   🔵 가짜 LLM Model 연기 시험에서 레코드 수가 `16→20→38→27→42→30` 으로 오르내리는 것으로 드러났다.
    **단위 시험 6개가 전부 통과하는데도 남아 있던 버그다** — 시험이 `merge_shards` 를 한 번만
    불렀기 때문이다. 고친 뒤 `16→20→22→23→24→25` 로 단조 증가한다
 
@@ -2745,7 +2745,7 @@ npm test                    160 pass, 0 fail           (변동 없음 — Node �
 survey_plan 결정론          diff 없음
 층 안 파일 중복             전 층 없음
 --dry-run                   prep -> warmup -> survey -> warmup-save -> terms -> wiki -> build -> check
-모형                        claude-sonnet-5
+LLM Model                        claude-sonnet-5
 xmldoc check                레퍼런스 291건 · 문제 0건
 terms_db                    용어 344개 / 실패 0 / 근거 없음 14
 심볼릭 링크                 ../../.agents/skills/codebase-terms-survey (유지)
@@ -2785,7 +2785,7 @@ terms_db                    용어 344개 / 실패 0 / 근거 없음 14
 
 1. `wiki` 목차 세션(J3) — K6 의 "인용 심볼의 최대 층" 을 알려면 페이지 목록이 먼저 있어야 한다
 2. `format_report(wall_seconds=)` — 병렬이면 행의 초 합계가 사람이 기다린 시간이 아니다
-3. **서브에이전트 모델 `claude-sonnet-5`** — 사용자 지시(2026-08-30). 사양은 모형을 안 정했다
+3. **서브에이전트 모델 `claude-sonnet-5`** — 사용자 지시(2026-08-30). 사양은 LLM Model을 안 정했다
 4. **warmup 배선과의 합치기** — 사양이 쓰일 때 그 배선이 없었다. 단계가 여섯이 아니라 **여덟**이 되고,
    `save_warmup` 의 실패 판정에 조용한 버그가 생기며, `targets` 가 `only_files` 로 흘러든다
 5. **층 안 파일 배타성 게이트 시험 둘** — lock 없는 설계의 전제인데 사양의 시험은 합성 자료뿐이었다

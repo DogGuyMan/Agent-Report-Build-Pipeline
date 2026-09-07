@@ -49,7 +49,7 @@ def test_no_proposal_falls_back_to_file_counts(tmp_path: Path) -> None:
 def test_proposal_can_override_the_count(tmp_path: Path) -> None:
     """세는 것으로는 '많은 쪽이 도구이고 주제는 적은 쪽' 을 알 수 없다.
 
-    그게 모형이 문서를 읽는 이유다. 소수파 제안도 검사를 통과하면 따른다.
+    그게 LLM Model이 문서를 읽는 이유다. 소수파 제안도 검사를 통과하면 따른다.
     """
     r = _repo(tmp_path, {"a.py": "", "b.py": "", "c.cs": ""})
     got = L.select(r, "cs")
@@ -86,7 +86,7 @@ def test_proposal_without_a_collector_falls_back(tmp_path: Path) -> None:
 # select 가 모르는 언어 이름이 제안되면 그 제안을 버리는지 확인하는 시험 함수다.
 # 쓰는 것: machine.test_lang_select._repo, machine.lang_select.select · 쓰이는 곳: 없음
 def test_unknown_word_is_rejected(tmp_path: Path) -> None:
-    """모형이 아는 낱말 밖을 내면 버린다."""
+    """LLM Model이 아는 낱말 밖을 내면 버린다."""
     r = _repo(tmp_path, {"a.py": ""})
     got = L.select(r, "rust")
     assert got["language"] == "py" and "아는 언어가 아니다" in got["why"]
@@ -118,7 +118,7 @@ def test_collector_names_match_prep(tmp_path: Path) -> None:
 # 저장소 루트에 있는 문서 파일만 읽어오는지 확인하는 시험 함수다.
 # 쓰는 것: machine.test_lang_select._repo, machine.lang_select.read_docs · 쓰이는 곳: 없음
 def test_read_docs_picks_root_documents(tmp_path: Path) -> None:
-    """모형에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다."""
+    """LLM Model에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다."""
     r = _repo(tmp_path, {"README.md": "읽기\n", "CLAUDE.md": "규약\n"})
     text = L.read_docs(r)
     assert "README.md" in text and "CLAUDE.md" in text and "읽기" in text

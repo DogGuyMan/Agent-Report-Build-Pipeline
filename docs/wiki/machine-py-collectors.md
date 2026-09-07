@@ -120,9 +120,9 @@ python3 machine/pycalls.py machine runner --repo . -o pycalls.json
 사람이 매번 알려주지 않아도 되어야 한다. `lang_select.py` 는 "이 저장소는 어느 언어
 소스가 많으니 이 수집기를 쓰자"는 결정을 자동으로 내린다.
 
-### 세는 것은 기계, 읽는 것은 모형 — 두 갈래를 합친다
+### 세는 것은 기계, 읽는 것은 LLM Model — 두 갈래를 합친다
 
-`../CLAUDE.md` 의 표현을 그대로 빌리면 "세는 것은 기계가, 읽는 것은 모형이 한다"
+`../CLAUDE.md` 의 표현을 그대로 빌리면 "세는 것은 기계가, 읽는 것은 LLM Model이 한다"
 (`machine/lang_select.py:10`). 이 도구는 두 입력을 합쳐서 최종 판단을 내린다.
 
 1. **`count_sources(repo)`**(`machine/lang_select.py:63`) — 결정론적 계산이다. `git
@@ -130,14 +130,14 @@ python3 machine/pycalls.py machine runner --repo . -o pycalls.json
    `node_modules` 같은 것을 자연히 피한다), 확장자별로 개수를 센다. `git` 명령이
    실패하면(예: git 저장소가 아니면) `os.walk` 로 디렉토리를 직접 훑되 `.git`,
    `node_modules`, `__pycache__`, `.venv` 는 건너뛴다(`machine/lang_select.py:67-71`).
-2. **모형의 제안(`--propose`)** — 사람 또는 LLM 이 그 저장소의 루트 문서(`README.md`,
+2. **LLM Model의 제안(`--propose`)** — 사람 또는 LLM 이 그 저장소의 루트 문서(`README.md`,
    `CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md`)를 읽고 "이 언어가 맞다"고 낸 판단
    하나를 `select()` 에 넘길 수 있다. 문서를 모으는 함수가
    `read_docs(repo, limit=6000)`(`machine/lang_select.py:83`) 이다 — 각 문서를 앞의
    6000자까지만 잘라 이어 붙인다.
 
 이 제안은 **검사를 통과할 때만** 받아들여진다는 것이 이 도구의 규율이다
-(`machine/lang_select.py:15-16`). "모형은 근거를 대는 자리이지 결정하는 자리가
+(`machine/lang_select.py:15-16`). "LLM Model은 근거를 대는 자리이지 결정하는 자리가
 아니다."
 
 ### `select()` — 최종 판단

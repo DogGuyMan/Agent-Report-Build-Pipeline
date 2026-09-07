@@ -396,10 +396,10 @@ clang-doc 적재기의 회귀 시험.
 | `test_proposal_can_override_the_count` | `(tmp_path: Path) -> None` | 세는 것으로는 '많은 쪽이 도구이고 주제는 적은 쪽' 을 알 수 없다. |
 | `test_proposal_with_no_sources_is_rejected` | `(tmp_path: Path) -> None` | 그 언어의 소스가 한 개도 없으면 헛소리다. 버리고 파일 수로 간다. |
 | `test_proposal_without_a_collector_falls_back` | `(tmp_path: Path) -> None` | 수집기가 없는 언어(ts)를 고르면 prep 이 막힌다 — 수집 가능한 쪽으로 물러선다. |
-| `test_unknown_word_is_rejected` | `(tmp_path: Path) -> None` | 모형이 아는 낱말 밖을 내면 버린다. |
+| `test_unknown_word_is_rejected` | `(tmp_path: Path) -> None` | LLM Model이 아는 낱말 밖을 내면 버린다. |
 | `test_empty_repo_selects_nothing` | `(tmp_path: Path) -> None` | 소스가 하나도 없으면 고르지 않는다 — 지어내지 않는다. |
 | `test_collector_names_match_prep` | `(tmp_path: Path) -> None` | 여기서 내는 수집기 이름이 prep 이 아는 이름과 같아야 한다. |
-| `test_read_docs_picks_root_documents` | `(tmp_path: Path) -> None` | 모형에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다. |
+| `test_read_docs_picks_root_documents` | `(tmp_path: Path) -> None` | LLM Model에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다. |
 
 ---
 

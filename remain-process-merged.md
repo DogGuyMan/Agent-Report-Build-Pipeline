@@ -141,7 +141,7 @@
 
 - [ ] **`~/.claude/skills/term-benchmark/SKILL.md` 가 없어진 `author` 단계를 설명한다.**
       🔵 두 곳 — 54줄 "단계는 `collect → author → grade → emit` 넷이고", 235줄
-      "`run_mode1_5.py` 가 `author` 단계에서 모형을 부르는 것은…".
+      "`run_mode1_5.py` 가 `author` 단계에서 LLM Model을 부르는 것은…".
       실제 단계는 `collect → [사람] → grade → emit` 셋이다(`927684f` 에서 제거).
       머리말의 두 층 설명과 Common pitfalls 의 층 구분 3줄도 함께 봐야 한다.
       ⚠ 위 §3 의 "심볼릭 링크로 바꿀지" 와 얽힌다 — 홈 사본을 고쳐도 저장소 원본과 다시 갈린다.

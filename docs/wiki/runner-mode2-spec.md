@@ -1,8 +1,8 @@
 # 러너축 — Mode 2 설계 검토 보고서 (run_mode2.py)
 
 이 문서는 `runner/run_mode2.py` 하나를 다룬다. 이 파일은 "설계 검토 보고서"(Design Review Report)를
-만드는 네 단계짜리 파이프라인을 순서대로 돌리면서, 단계마다 걸린 시간과 큰 언어 모형(LLM, Large
-Language Model)이 쓴 토큰(token, 모형이 글을 셈하는 단위)을 재는 실행기(runner)다.
+만드는 네 단계짜리 파이프라인을 순서대로 돌리면서, 단계마다 걸린 시간과 큰 언어 LLM Model(LLM, Large
+Language Model)이 쓴 토큰(token, LLM Model이 글을 셈하는 단위)을 재는 실행기(runner)다.
 
 읽는 사람이 객체지향과 명령줄 도구를 갓 배운 대학 1학년이라고 가정하고, 개념부터 하나씩 쌓는다.
 
@@ -52,7 +52,7 @@ Heartbeat = M.Heartbeat
 ```
 (runner/run_mode2.py:63-73)
 
-Mode 1(코드베이스 위키)의 실행기가 먼저 "시간을 hms(시:분:초) 형식으로 바꾸기", "모형 응답에서
+Mode 1(코드베이스 위키)의 실행기가 먼저 "시간을 hms(시:분:초) 형식으로 바꾸기", "LLM Model 응답에서
 토큰 사용량 뽑아내기", "여러 단계의 사용량을 합산하기" 같은 재는 로직을 갖고 있고, Mode 2는 그것을
 그대로 재사용한다. **이 파일 안에는 그 사본이 없다** — 같은 이름의 숫자가 두 실행기에서 다른 뜻을
 갖게 되는 것을 막기 위해서다(runner/run_mode2.py:36-37). 이 항목은 이 저장소가 세 실행기
@@ -136,7 +136,7 @@ def stage_cwd(stage, project, report_dir):
 | 단계 | 작업 디렉토리 | 왜 |
 |---|---|---|
 | `init` | 프로젝트 뿌리 | `viz/init.py`가 `cwd` 아래의 `specs/`·`plans/`를 스스로 찾아 뒤진다 |
-| `agent` | 프로젝트 뿌리 | 모형이 설계 문서와 보고서 폴더를 **둘 다** 봐야 한다 |
+| `agent` | 프로젝트 뿌리 | LLM Model이 설계 문서와 보고서 폴더를 **둘 다** 봐야 한다 |
 | `build` | 보고서 폴더 | `viz/build.py`가 `cwd`에서 바로 `data.ts`·`report.tsx`를 읽는다 |
 | `check` | 보고서 폴더 | `viz/check.py`도 마찬가지로 `cwd` 기준이다 |
 
@@ -203,14 +203,14 @@ def plan_stages(has_manuscript, only=None, skip=None):
 - `only`가 있으면 그 목록에 속한 단계만, `STAGES`(`init, agent, build, check`)의 순서를 지켜 돌려준다.
 - `only`가 없으면 `skip`에 있는 단계를 뺀 나머지를 돌려준다.
 - **`agent`만은 특별하다.** `has_manuscript`가 참이면 `skip`을 안 줘도 자동으로 빠진다 — 사람이
-  이미 쓴 글을 모형이 덮어쓰면 되돌릴 수 없기 때문이다(runner/run_mode2.py:145-146).
+  이미 쓴 글을 LLM Model이 덮어쓰면 되돌릴 수 없기 때문이다(runner/run_mode2.py:145-146).
 - **`init`은 절대 빼지 않는다.** 이미 `data.ts`가 있어도 `init` 단계 자체는 계획에 남는다.
   건너뛸지 말지는 `init.py` 자신이 판단해서 멱등(idempotent, 여러 번 실행해도 결과가 같은
   성질) 경로로 조용히 종료 코드 0을 낸다 — 여기서 미리 빼면 그 판단 권한을 `init.py`에게서
   뺏는 셈이다(runner/run_mode2.py:142-144).
 
 시험 네 개가 이 규칙 각각을 고정한다: 빈 보고서면 네 단계 전부
-(`test_plan_runs_all_four_stages_on_an_empty_report`), 모형을 부르는 자리는 `agent` 하나뿐
+(`test_plan_runs_all_four_stages_on_an_empty_report`), LLM Model을 부르는 자리는 `agent` 하나뿐
 (`test_only_one_stage_calls_the_model`), 원고가 이미 있으면 `agent`만 빠짐
 (`test_plan_skips_the_agent_when_the_manuscript_is_already_written`), 원고가 있어도 `init`은
 맨 앞에 남음(`test_plan_keeps_init_even_when_the_manuscript_exists`)
@@ -242,11 +242,11 @@ flowchart TD
   거기서 에러로 끝난다(runner/run_mode2.py:398-401).
 - **`terms.json`이 보고서 폴더에 있으면 경로만 넘긴다.** Mode 1.5(용어 이해도 점검)가 낸 산출물을
   기계가 자동으로 병합하지 않는다 — 프롬프트에 "이런 재료가 있다"고 알려주기만 하고, 실제로
-  `data.ts`의 `terms` 배열 형태로 옮겨 적는 것은 `agent` 단계의 모형이 손으로 한다
+  `data.ts`의 `terms` 배열 형태로 옮겨 적는 것은 `agent` 단계의 LLM Model이 손으로 한다
   (runner/run_mode2.py:38-39, 234-245).
 - **단계 하나가 실패하면 그 자리에서 멈춘다.** 뒤 단계는 앞 단계의 산출물에 의존하므로, 실패한
   단계 이후는 아예 돌리지 않는다(runner/run_mode2.py:456-458).
-- **`claude`(모형을 부르는 CLI)는 막혀도 종료 코드 0을 낼 수 있다.** 그래서 `run_agent`의
+- **`claude`(LLM Model을 부르는 CLI)는 막혀도 종료 코드 0을 낼 수 있다.** 그래서 `run_agent`의
   결과는 `agent_verdict(rc, result)`로 판정한다 — 단순히 프로세스 종료 코드만 보지 않고,
   `run_mode1.py`가 정의한 `is_error`·`subtype` 같은 필드까지 함께 본다
   (runner/run_mode2.py:34-35, 437). 이 판정 함수 자체의 내부 로직은 `run_mode1.py`에 있어
@@ -257,7 +257,7 @@ flowchart TD
 ### 명령줄 사용법
 
 ```bash
-.venv/bin/python runner/run_mode2.py <프로젝트> <slug> [--model <모형 ID>]
+.venv/bin/python runner/run_mode2.py <프로젝트> <slug> [--model <LLM Model ID>]
                                         [--only init,build] [--skip agent]
                                         [--json 측정.json] [--dry-run]
 ```

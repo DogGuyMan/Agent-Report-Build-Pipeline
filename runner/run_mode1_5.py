@@ -19,7 +19,7 @@
 | `grade`   | 사람이 쓴 답안을 채점한다(확실 / 모름) | `runner/term/quiz.py` |
 | `emit`    | 용어집과 학습 노트를 낸다 | `runner/term/emit.py` |
 
-**이 실행기에는 모형을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
+**이 실행기에는 LLM Model을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
 스킬이 `questions.json` 을 쓰고, 실행기는 그것을 **기계로 검사**해 정답을 뺀 기입란을 깐다.
 오답 보기의 그럴듯함은 기계가 만들 수 없고, 묻는 자리에는 사람이 있어야 한다.
 
@@ -117,7 +117,7 @@ import run_mode1 as M  # noqa: E402
 # 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
 STAGES = ["collect", "grade", "emit"]
 
-# 모형을 부르는 단계. **비어 있다.** 출제를 CLI 칸으로 두면 스킬과 두 곳에서 같은 일을
+# LLM Model을 부르는 단계. **비어 있다.** 출제를 CLI 칸으로 두면 스킬과 두 곳에서 같은 일을
 # 하게 되고, 헤드리스 세션은 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
 AGENT_STAGES: set[str] = set()
 
@@ -142,7 +142,7 @@ GRADES = "term-grades.json"
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 # ── 1. 단계 고르기 (파일 시스템을 보지 않는 순수 함수) ──────────────────
 def is_agent_stage(stage: str) -> bool:
-    """이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다."""
+    """이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
@@ -212,7 +212,7 @@ def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     out: list[str] = []
     spots: list[int] = []        # spots — 정답이 놓인 자리. 한곳에 몰렸는지 뒤에서 본다
     # 형 주석은 무엇이 올 것이라 보고 짰는지를 적은 것이고, 실제 검사는 `isinstance` 다 —
-    # 문항지는 모형이 쓰고 사람이 손댈 수 있는 JSON 이라 무엇이든 올 수 있다.
+    # 문항지는 LLM Model이 쓰고 사람이 손댈 수 있는 JSON 이라 무엇이든 올 수 있다.
     terms: list[dict[str, Any] | None] | None = (doc or {}).get("terms")
     if not isinstance(terms, list) or not terms:
         return ["문항지에 용어가 하나도 없다 — `terms` 배열이 비었거나 없다"]
@@ -608,7 +608,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for stage in stages:
         print("\n── %s ──────────────────────────────" % stage, flush=True)
         t0 = time.monotonic()
-        # 세 단계 모두 기계다. 모형을 부르는 자리가 없어 토큰은 늘 0이다.
+        # 세 단계 모두 기계다. LLM Model을 부르는 자리가 없어 토큰은 늘 0이다.
         usage = M.normalize_usage(None)
         if stage == "collect":
             cmd = collect_argv(ROOT, plan, terms_db)

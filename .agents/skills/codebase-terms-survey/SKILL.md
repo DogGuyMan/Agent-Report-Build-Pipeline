@@ -179,7 +179,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 **deep-wiki 플러그인 파일을 고치지 않는다.** `~/.claude/plugins/cache/` 에 사는 캐시라 업데이트에
 덮인다. 우리 프롬프트(`run_mode1.py` 의 `wiki_page_prompt`)가 감싸서 지시한다.
 
-**서브에이전트 모형은 `claude-sonnet-5` 다.** 오케스트레이터가 `--model` 로 박아 넣는다.
+**서브에이전트 LLM Model은 `claude-sonnet-5` 다.** 오케스트레이터가 `--model` 로 박아 넣는다.
 
 ## 산출물
 

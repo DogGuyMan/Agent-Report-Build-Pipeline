@@ -36,7 +36,7 @@ export default function Report() {
             { color: "#d9534f", label: "결함 — import 부작용, 형 없는 값" },
             { color: "#8fa4d4", label: "재는 코드 · 형과 검증" },
             { color: "#6aa06f", label: "새로 생기는 공통축" },
-            { color: "#9a7fd4", label: "모형을 부르는 자리" },
+            { color: "#9a7fd4", label: "LLM Model을 부르는 자리" },
           ]}
         />
       </Section>
@@ -153,7 +153,7 @@ export default function Report() {
           columns={["LLM 을 부르는 자리", "세션 수", "병렬", "구현하는 훅"]}
           rows={[
             { cells: ["mode2-agent · wiki-catalogue", "1", "—", "prompt"], recommended: false },
-            { cells: ["lang-propose", "1", "—", "prompt · model (싼 모형 고정)"], recommended: false },
+            { cells: ["lang-propose", "1", "—", "prompt · model (싼 LLM Model 고정)"], recommended: false },
             { cells: ["wiki-pages", "층마다 N", "동시 8", "rounds · jobs"], recommended: false },
             { cells: ["survey", "층마다 N", "동시 8", "rounds · jobs · harvest"], recommended: true },
             { cells: ["기계 단계 13개 (세 모드 전부)", "자식 1", "0건", "— (llmstage 가 아니다)"], recommended: false },
@@ -165,8 +165,8 @@ export default function Report() {
         <OptionTable
           columns={["안", "무엇", "판정 · 출처"]}
           rows={[
-            { cells: ["두 단계로 쪼갠다", "lang-propose(모형) → lang-decide(기계 판정)", "채택 (D4) — 사용자 선택. 폴백이 전이표 한 줄로 드러난다"], recommended: true },
-            { cells: ["한 단계로 두고 harvest 안에서 검사기를 부른다", "지금 구조 그대로", "기각 — \"모형만 부르는 단계\" 라는 불변식이 깨진다"], recommended: false },
+            { cells: ["두 단계로 쪼갠다", "lang-propose(LLM Model) → lang-decide(기계 판정)", "채택 (D4) — 사용자 선택. 폴백이 전이표 한 줄로 드러난다"], recommended: true },
+            { cells: ["한 단계로 두고 harvest 안에서 검사기를 부른다", "지금 구조 그대로", "기각 — \"LLM Model만 부르는 단계\" 라는 불변식이 깨진다"], recommended: false },
           ]}
         />
       </Section>

@@ -12,7 +12,7 @@
 ## 0. 한 문단 요약
 
 이 저장소는 **렌더러**다. 자기 안에 보고서를 쌓지 않고, **다른 저장소**를 읽거나 다른 저장소에 산출물을 만든다.
-갈래는 셋이고 각각 CLI 진입점 하나와 파이썬 실행기 하나를 갖는다. 갈래마다 큰 언어 모형(LLM)을 부르는 칸이
+갈래는 셋이고 각각 CLI 진입점 하나와 파이썬 실행기 하나를 갖는다. 갈래마다 큰 언어 LLM Model(LLM)을 부르는 칸이
 **정확히 하나**이며, 실측상 그 한 칸이 전체 시간의 99% 를 쓴다. 나머지는 전부 결정론적 기계 단계다.
 
 ---
@@ -134,7 +134,7 @@ flowchart LR
 Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
 **그 세션을 `claude-sonnet-5` 로 띄울 책임은 이 두 칸에 있고**, 실제 경로는 `run_mode1.py` 의
 `--model` 기본값 하나다(`main` → `run_survey`/`run_wiki` → `run_layer` → `run_agent_with`
-→ `claude_argv`). 사슬 중간에서 모형을 바꾸지 않는다.
+→ `claude_argv`). 사슬 중간에서 LLM Model을 바꾸지 않는다.
 
 **Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
 
@@ -143,7 +143,7 @@ Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운�
 | ------------- | ------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
 | `prep`        | 기계            | `runner/wiki/prep.py`    | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg`      |
 | `warmup`      | 기계            | `machine/warmup.py`      | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다)                                           |
-| `survey-plan` | 기계            | `machine/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/survey-plan.json` (층·배치. **모형을 부르지 않는다**)                     |
+| `survey-plan` | 기계            | `machine/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/survey-plan.json` (층·배치. **LLM Model을 부르지 않는다**)                     |
 | `survey`      | **LLM 층별 N회** | `claude -p` 배치마다           | 소스 + `facts/*.md` + `survey-plan.json` → `_shards/*.json` → 합쳐서 `machine/terms-reading.json` |
 | `warmup-save` | 기계            | `machine/warmup.py`      | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**전수조사가 성공했을 때만**)                                        |
 | `terms`       | 기계            | `machine/terms_db.py`    | 읽기 레코드 + `codegraph.json` → `terms-db.json`                                                         |
@@ -171,7 +171,7 @@ Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운�
 Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 `answers.json` 이 없으면 실행기가 뒤 단계로 가지 않고 멈춘다 (`runner/run_mode1_5.py:150`).
 
-💭 왜 사람을 모형으로 대신할 수 없나 — 이 도구가 재려는 값 자체가 *사람의* 이해도라서다. 모형에게
+💭 왜 사람을 LLM Model으로 대신할 수 없나 — 이 도구가 재려는 값 자체가 *사람의* 이해도라서다. LLM Model에게
 답을 시키면 재는 대상이 바뀐다. 이 논거는 `runner/run_mode1_5.py` 머리 주석에 적혀 있다.
 
 한 용어당 문항은 3개로 고정이며 채점 구간도 상수다 (`runner/term/quiz.py:12`). CLI 는 사람에게 묻지 않는다 —
@@ -226,7 +226,7 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 새 구조 값은 여전히 없다.**
 
 **옛 구조(opus, 5단계, 합쳐진 `agent` 한 칸) 대 새 구조(sonnet, `survey` 만) 비교** — 대상·백지
-상태는 같지만 **모형도 다르고 재는 범위도 다르다**(새 쪽은 `wiki` 가 빠졌다). 그래서 아래는
+상태는 같지만 **LLM Model도 다르고 재는 범위도 다르다**(새 쪽은 `wiki` 가 빠졌다). 그래서 아래는
 참고용이지 "몇 배 빨라졌다/느려졌다" 로 읽으면 안 된다.
 
 
@@ -243,7 +243,7 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 
 **남은 일** — `terms` 실패의 원인(외부 라이브러리 심볼을 `uses.to` 로 채운 레코드를 어떻게
 다룰지)을 고치거나 우회한 뒤 다시 돌려야 `wiki`·`build`·`check` 를 포함한 새 구조 전체 실측이
-나온다. 그전까지 **"층 병렬 덕분" 이라고 귀속할 수 없다** — 기준선과 모형이 다르고, 이번 실행은
+나온다. 그전까지 **"층 병렬 덕분" 이라고 귀속할 수 없다** — 기준선과 LLM Model이 다르고, 이번 실행은
 완주도 못 했다.
 
 🔵 Mode 2 도 같은 모양이다. 같은 실행기로 잰 연습 실행(haiku)에서 전체 149.2초 중 `agent` 가 147.98초로
@@ -346,7 +346,7 @@ graph LR
 | `out/codegraph-raw/facts/*.md` · `ranking.json` | `machine/facts.py` (`runner/wiki/prep.py:135`)     | LLM 이 프롬프트로 받는다                                                          |
 | `machine/terms-reading.json`             | LLM (`agent` 단계)                                       | `machine/terms_db.py`                                                  |
 | `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `runner/term/collect.py`                                               |
-| `term-candidates.json`                          | `runner/term/collect.py:26` · `:45`                  | 사람 / 출제 모형                                                               |
+| `term-candidates.json`                          | `runner/term/collect.py:26` · `:45`                  | 사람 / 출제 LLM Model                                                               |
 | `answers.json`                                  | **사람**                                                 | `runner/term/quiz.py:1742`                                               |
 | `term-grades.json`                              | `runner/term/quiz.py`                                | `runner/term/emit.py`                                                  |
 | `terms.json` · `term-study-note.md`             | `runner/term/emit.py:18` · `:33`                     | 사람. Mode 2 의 `data.ts` 로 **손으로** 옮긴다                                     |

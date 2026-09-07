@@ -5,15 +5,15 @@
 """lang_select.py — 어떤 정적 수집기를 돌릴지 고른다.
 
     python3 lang_select.py <저장소> -o lang-select.json
-    python3 lang_select.py <저장소> --propose py -o lang-select.json   # 모형의 제안을 받아
+    python3 lang_select.py <저장소> --propose py -o lang-select.json   # LLM Model의 제안을 받아
 
-두 갈래를 합친다. **세는 것은 기계가, 읽는 것은 모형이 한다.**
+두 갈래를 합친다. **세는 것은 기계가, 읽는 것은 LLM Model이 한다.**
 
   · `count_sources` — 확장자별 파일 수를 센다. 결정론이다.
-  · `--propose` — 루트 문서(README·CLAUDE·ARCHITECTURE)를 읽은 모형이 낸 언어 하나.
+  · `--propose` — 루트 문서(README·CLAUDE·ARCHITECTURE)를 읽은 LLM Model이 낸 언어 하나.
 
-모형의 제안은 **검사를 통과할 때만** 채택된다. 그 언어의 소스가 실제로 한 개도 없으면
-버리고 파일 수가 가장 많은 언어로 간다. 모형은 근거를 대는 자리이지 결정하는 자리가 아니다.
+LLM Model의 제안은 **검사를 통과할 때만** 채택된다. 그 언어의 소스가 실제로 한 개도 없으면
+버리고 파일 수가 가장 많은 언어로 간다. LLM Model은 근거를 대는 자리이지 결정하는 자리가 아니다.
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ COLLECTOR: dict[Lang, str] = {
     "ts": "none",            # 수집기가 아직 없다. 고르면 prep 이 막힌다
 }
 
-# 루트에서 모형에게 읽힐 문서. 없으면 건너뛴다.
+# 루트에서 LLM Model에게 읽힐 문서. 없으면 건너뛴다.
 DOC_NAMES = ("README.md", "CLAUDE.md", "ARCHITECTURE.md", "AGENTS.md")
 
 
@@ -78,7 +78,7 @@ def count_sources(repo: str) -> dict[str, int]:
 # <include file="machine/comments.xml" path="//term[@id='machine.lang_select.read_docs']"/>
 # 모델(LLM)에게 저장소를 소개할 때 읽힐 문서 몇 개를 모아 하나의 긴 문자열로 만들어주는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: machine.lang_select.main, machine.test_lang_select.test_read_docs_picks_root_documents
-# 모형에게 읽힐 루트 문서를 모은다.
+# LLM Model에게 읽힐 루트 문서를 모은다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def read_docs(repo: str, limit: int = 6000) -> str:
     """루트 문서 몇 개를 앞부분만 잘라 잇는다. 없으면 빈 문자열이다."""
@@ -95,7 +95,7 @@ def read_docs(repo: str, limit: int = 6000) -> str:
 # <include file="machine/comments.xml" path="//term[@id='machine.lang_select.select']"/>
 # 이 저장소가 C++/C#/Python/TypeScript 중 어떤 언어의 소스를 대상으로 정적 수집을 돌릴지, 그리고 어떤 수집기를 쓸지 최종적으로 고르는 함수다.
 # 쓰는 것: machine.lang_select.count_sources · 쓰이는 곳: machine.lang_select.main, machine.test_lang_select.test_empty_repo_selects_nothing, machine.test_lang_select.test_no_proposal_falls_back_to_file_counts, machine.test_lang_select.test_proposal_can_override_the_count, machine.test_lang_select.test_proposal_with_no_sources_is_rejected (+2)
-# 세어 본 것과 모형의 제안을 합쳐 수집기를 고른다.
+# 세어 본 것과 LLM Model의 제안을 합쳐 수집기를 고른다.
 # 쓰는 것: count_sources · 쓰이는 곳: lang_select.main
 def select(repo: str, proposed: str | None = None) -> LangSelect:
     """제안이 검사를 통과하면 그것을, 아니면 파일 수가 가장 많은 언어를 고른다.
@@ -150,8 +150,8 @@ def select(repo: str, proposed: str | None = None) -> LangSelect:
 def main() -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("repo")
-    ap.add_argument("--propose", default=None, help="모형이 낸 언어 하나 (cpp|cs|py|ts)")
-    ap.add_argument("--print-docs", action="store_true", help="모형에게 줄 문서만 찍고 끝낸다")
+    ap.add_argument("--propose", default=None, help="LLM Model이 낸 언어 하나 (cpp|cs|py|ts)")
+    ap.add_argument("--print-docs", action="store_true", help="LLM Model에게 줄 문서만 찍고 끝낸다")
     ap.add_argument("-o", "--out", default=None)
     a = ap.parse_args()
 

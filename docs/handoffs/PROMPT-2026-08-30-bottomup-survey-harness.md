@@ -397,7 +397,7 @@ if __name__ == "__main__":
 # 단계는 여섯 고정이다. 레지스트리도 플러그인도 만들지 않는다(거울 함정).
 STAGES = ["prep", "survey", "terms", "wiki", "build", "check"]
 
-# 모형을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
+# LLM Model을 부르는 단계. **둘 다 층 오름차순으로 여러 번** 부른다 — 예전의 한 번이 아니다.
 AGENT_STAGES = {"survey", "wiki"}
 ```
 
@@ -566,7 +566,7 @@ def merge_shards(shard_dir, existing):
 ========================================================================
 - `test_only_one_stage_calls_the_model` (`:34`) → **갈아 끼운다**:
 ```python
-def test_두_단계가_모형을_부른다():
+def test_두_단계가_LLM Model을_부른다():
     """예전에는 agent 한 칸이었다. 2026-08-30 사용자 결정으로 survey · wiki 로 갈렸다 —
     층 오름차순 병렬이 세션 분리를 전제하기 때문이다. 캐시 비용은 아직 재지 않았다."""
     stages = R.plan_stages(False, False, False)

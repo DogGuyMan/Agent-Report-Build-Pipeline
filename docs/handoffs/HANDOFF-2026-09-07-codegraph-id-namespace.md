@@ -108,7 +108,7 @@ B 로 옛 레코드 898개를 구제한다. C 는 튼튼하지만 줄 드리프�
 
 | 파일 | 무엇 | 누구 |
 |---|---|---|
-| `runner/run_mode1.py` | 주석의 `모형` → `Model` 이름 바꾸기 27줄. **로직 변경 없음** | 사용자가 IDE 에서 작업 중 |
+| `runner/run_mode1.py` | 주석의 `LLM Model` → `Model` 이름 바꾸기 27줄. **로직 변경 없음** | 사용자가 IDE 에서 작업 중 |
 | `runner/wiki/prep.py` · `runner/wiki/build.py` · `runner/wiki/check.py` | `ModuleNotFoundError` 수정 · VitePress `ignoreDeadLinks` · `check` 종료 코드 뒤집힘 수정 | 2026-09-07 세션 |
 | `runner/test_run_mode1.py` · `test/test_wiki.py` · `machine/test_survey_plan.py` | 회귀 시험 추가 · 층 분포 기대값 갱신 | 같음 |
 | `machine/terms-reading.json` | 재조사 결과 813 → 898 레코드 (키 복원 적용본 — 짝 문서의 ④ 를 보라) | 같음 |

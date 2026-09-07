@@ -273,7 +273,7 @@ A 는 마지막에 — 기본 경로에서 비싼 실행이 자동으로 시작�
 
 | 파일 | 무엇 | 누구 |
 |---|---|---|
-| `runner/run_mode1.py` | 주석의 `모형` → `Model` 이름 바꾸기 27줄. 로직 변경 없음 | 사용자가 IDE 에서 작업 중 |
+| `runner/run_mode1.py` | 주석의 `LLM Model` → `Model` 이름 바꾸기 27줄. 로직 변경 없음 | 사용자가 IDE 에서 작업 중 |
 | `runner/wiki/prep.py` · `runner/wiki/build.py` · `runner/wiki/check.py` | ⑴ 스크립트 실행 시 `ModuleNotFoundError` 수정 ⑵ VitePress `ignoreDeadLinks` ⑶ `check` 의 종료 코드 뒤집힘 수정 | 2026-09-07 세션 |
 | `runner/test_run_mode1.py` · `test/test_wiki.py` | 위 셋의 회귀 시험 | 같음 |
 | `machine/test_survey_plan.py` | 층 분포 기대값 갱신 (`[232,217,145,87,12,4]`/697 → `[287,254,146,86,9,4]`/786). 코드지도 재수집으로 실제 값이 바뀌었고, 그 시험의 독스트링이 "코드가 바뀌면 기대값을 함께 고친다" 라고 지시한다 | 같음 |

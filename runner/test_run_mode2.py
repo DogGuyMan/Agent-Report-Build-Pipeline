@@ -30,10 +30,10 @@ def test_init_runs_at_the_project_root():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_agent_also_runs_at_the_project_root']"/>
-# 원고를 쓰는 모형(에이전트) 단계도 프로젝트 뿌리에서 돌아야 한다는 것을 확인하는 시험이다.
+# 원고를 쓰는 LLM Model(에이전트) 단계도 프로젝트 뿌리에서 돌아야 한다는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.stage_cwd · 쓰이는 곳: 없음
 def test_the_agent_also_runs_at_the_project_root():
-    """모형은 설계 문서(`specs/*-design.md`)와 보고서 폴더를 **둘 다** 봐야 한다. 뿌리에 세운다."""
+    """LLM Model은 설계 문서(`specs/*-design.md`)와 보고서 폴더를 **둘 다** 봐야 한다. 뿌리에 세운다."""
     assert R.stage_cwd("agent", project="/프로젝트", report_dir="/프로젝트/specs/붙임") == "/프로젝트"
 
 
@@ -71,19 +71,19 @@ def test_plan_runs_all_four_stages_on_an_empty_report():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_only_one_stage_calls_the_model']"/>
-# 네 단계 중 모형(LLM)을 부르는 자리는 agent 하나뿐이라는 것을 확인하는 시험이다.
+# 네 단계 중 LLM Model(LLM)을 부르는 자리는 agent 하나뿐이라는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.plan_stages, runner.run_mode2.is_agent_stage · 쓰이는 곳: 없음
 def test_only_one_stage_calls_the_model():
-    """모형을 부르는 자리는 **원고 쓰기 하나**다. 나머지 셋은 기계다."""
+    """LLM Model을 부르는 자리는 **원고 쓰기 하나**다. 나머지 셋은 기계다."""
     stages = R.plan_stages(has_manuscript=False)
     assert [s for s in stages if R.is_agent_stage(s)] == ["agent"]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_plan_skips_the_agent_when_the_manuscript_is_already_written']"/>
-# 사람이 이미 원고를 다 썼다면 모형을 다시 부르지 않아야 한다는 것을 확인하는 시험이다.
+# 사람이 이미 원고를 다 썼다면 LLM Model을 다시 부르지 않아야 한다는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.plan_stages · 쓰이는 곳: 없음
 def test_plan_skips_the_agent_when_the_manuscript_is_already_written():
-    """사람이 쓴 원고를 모형이 덮어쓰면 안 된다. 이미 채워졌으면 굽기만 한다."""
+    """사람이 쓴 원고를 LLM Model이 덮어쓰면 안 된다. 이미 채워졌으면 굽기만 한다."""
     p = R.plan_stages(has_manuscript=True)
     assert "agent" not in p
     assert p == ["init", "build", "check"]
@@ -141,7 +141,7 @@ FILLED_REPORT = '''export default function Report() {
 # init 이 방금 만든 빈 뼈대(decisions가 빈 배열)는 아직 원고가 아니라는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode2.manuscript_is_written · 쓰이는 곳: 없음
 def test_a_fresh_skeleton_is_not_a_manuscript():
-    """`decisions: []` 는 `init` 이 방금 만든 뼈대다. 모형을 불러야 한다."""
+    """`decisions: []` 는 `init` 이 방금 만든 뼈대다. LLM Model을 불러야 한다."""
     assert R.manuscript_is_written(SKELETON_DATA, SKELETON_REPORT) is False
 
 
@@ -274,7 +274,7 @@ def _prompt(project: str = "/프로젝트", slug: str = "붙임",
 # agent_prompt 가 만든 문자열에 판정 금지 문구가 들어있는지 확인하는 테스트 함수다.
 # 쓰는 것: runner.test_run_mode2._prompt · 쓰이는 곳: 없음
 def test_the_prompt_forbids_the_model_from_filling_the_verdict():
-    """수용/보류/번복은 **언제나 사용자 몫**이다. 이 한 줄이 빠지면 모형이 채운다."""
+    """수용/보류/번복은 **언제나 사용자 몫**이다. 이 한 줄이 빠지면 LLM Model이 채운다."""
     p = _prompt()
     assert "VerdictFooter" in p
     assert "비워" in p
@@ -289,10 +289,10 @@ def test_the_prompt_states_the_single_script_invariant():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_prompt_forbids_the_d_axis']"/>
-# D축(보류 중인 평가 축)을 모형이 함부로 채우지 못하게 프롬프트가 언급하는지 확인하는 테스트 함수다.
+# D축(보류 중인 평가 축)을 LLM Model이 함부로 채우지 못하게 프롬프트가 언급하는지 확인하는 테스트 함수다.
 # 쓰는 것: runner.test_run_mode2._prompt · 쓰이는 곳: 없음
 def test_the_prompt_forbids_the_d_axis():
-    """D축은 보류 상태다. 프롬프트가 말하지 않으면 모형이 필드를 넣는다."""
+    """D축은 보류 상태다. 프롬프트가 말하지 않으면 LLM Model이 필드를 넣는다."""
     assert "D축" in _prompt()
 
 
@@ -312,7 +312,7 @@ def test_the_prompt_uses_korean_status_tags_only():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_prompt_names_the_paths_the_model_must_touch']"/>
-# 모형이 실제로 건드려야 할 프로젝트 경로와 파일명이 프롬프트 안에 다 적혀 있는지 확인하는 테스트 함수다.
+# LLM Model이 실제로 건드려야 할 프로젝트 경로와 파일명이 프롬프트 안에 다 적혀 있는지 확인하는 테스트 함수다.
 # 쓰는 것: runner.test_run_mode2._prompt · 쓰이는 곳: 없음
 def test_the_prompt_names_the_paths_the_model_must_touch():
     p = _prompt()
@@ -322,7 +322,7 @@ def test_the_prompt_names_the_paths_the_model_must_touch():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_prompt_forbids_committing']"/>
-# 프롬프트가 모형에게 커밋을 하지 말라고 명시하는지 확인하는 테스트 함수다.
+# 프롬프트가 LLM Model에게 커밋을 하지 말라고 명시하는지 확인하는 테스트 함수다.
 # 쓰는 것: runner.test_run_mode2._prompt · 쓰이는 곳: 없음
 def test_the_prompt_forbids_committing():
     assert "커밋하지 마라" in _prompt()
@@ -340,7 +340,7 @@ def test_the_prompt_mentions_the_glossary_source_only_when_it_exists():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_prompt_is_not_passed_on_the_command_line']"/>
-# 모형에게 줄 프롬프트를 명령줄 인자로 싣지 않는다는 것을 확인하는 시험이다.
+# LLM Model에게 줄 프롬프트를 명령줄 인자로 싣지 않는다는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: 없음
 def test_the_prompt_is_not_passed_on_the_command_line():
     """프롬프트는 표준 입력으로 준다 — 명령줄에 실으면 길이 한계와 따옴표 지옥에 걸린다."""

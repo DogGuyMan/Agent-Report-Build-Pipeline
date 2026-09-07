@@ -83,12 +83,12 @@ export const terms: Term[] = [
   // ── 클래스
   { id: "llmstage", kind: "decision",
     label: "llmstage",
-    short: "큰 언어 모형(Claude)을 실제로 부르는 단계의 부모 클래스. 토큰이 잡히는 자리는 여기뿐이다",
-    body: "지금은 어떤 단계가 모형을 부르는지가 AGENT_STAGES 라는 이름 집합으로만 표시된다. 그것을 클래스 종류로 올리면 토큰을 세는 코드가 한 곳에만 남는다.",
+    short: "큰 언어 LLM Model(Claude)을 실제로 부르는 단계의 부모 클래스. 토큰이 잡히는 자리는 여기뿐이다",
+    body: "지금은 어떤 단계가 LLM Model을 부르는지가 AGENT_STAGES 라는 이름 집합으로만 표시된다. 그것을 클래스 종류로 올리면 토큰을 세는 코드가 한 곳에만 남는다.",
     links: ["단계", "rulebasestage", "Context"] },
   { id: "rulebasestage", kind: "decision",
     label: "rulebasestage",
-    short: "모형을 부르지 않고 정해진 규칙대로만 도는 단계의 부모 클래스. 자식 프로세스를 띄우고 끝난다",
+    short: "LLM Model을 부르지 않고 정해진 규칙대로만 도는 단계의 부모 클래스. 자식 프로세스를 띄우고 끝난다",
     body: "토큰이 언제나 0이다. 지금은 그 0을 사람이 아홉 군데에 손으로 적고 있다.",
     links: ["단계", "llmstage"] },
   { id: "Context", kind: "decision",
@@ -152,7 +152,7 @@ export const terms: Term[] = [
     links: ["파사드", "os.execv"] },
   { id: "lang-propose", kind: "artifact",
     label: "lang-propose / lang-decide",
-    short: "언어 선택을 둘로 쪼갠 뒤의 두 단계. 앞은 모형에게 묻고, 뒤는 그 제안을 기계가 기각하거나 채택한다",
+    short: "언어 선택을 둘로 쪼갠 뒤의 두 단계. 앞은 LLM Model에게 묻고, 뒤는 그 제안을 기계가 기각하거나 채택한다",
     links: ["Fall-Back 착지점", "llmstage", "rulebasestage"] },
 ];
 
