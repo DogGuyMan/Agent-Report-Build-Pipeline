@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
   Page, Section, DecisionTable, OptionTable, LockTable, NewStructNote,
-  EvidenceNote, BeforeAfter, VerdictFooter, Glossary, TermGraph, Reversal,
+  EvidenceNote, BeforeAfter, VerdictFooter, Glossary, TermGraph, Reversal, Correction, TriageBlock,
 } from "report-builder";
 import { inlineSvg } from "report-builder/svg";
 import { data } from "./data.js";
@@ -54,6 +54,9 @@ export default function Report() {
             "설정에 reportExplicitAny 와 reportAny 를 넣어도 pyright 1.1.413 은 무시한다. 오류 수가 5로 그대로였다. 그 둘은 basedpyright 의 규칙이다.",
             "같은 코드를 object 로 받으면 검사기가 잡는다 — reportIndexIssue. 그리고 Any 를 한 개도 쓰지 않고 pyright strict 0 오류가 되는 모양을 실제로 짜서 통과시켰다.",
             "러너의 Any 는 24곳이다 — run_mode1_5.py 20 · run_mode1.py 4. run_mode2.py 와 run_grade.py 는 이미 0이다.",
+            "증분이 도달 불가였다 — 레코드가 한 번 생기면 plan_stages 가 survey 를 목록에서 영구히 뺀다. should_call_agent 는 불러야 한다고 답하는데 불릴 자리가 없다. (2026-09-07 인계 문서 실측)",
+            "targets 가 프로세스 지역 변수라 단계를 쪼개면 조용히 전량으로 돌아간다. 한 프로세스면 배치 17개, 쪼개면 88개다. 경고가 없어서 실제로 $50.73 이 나갔다. (같은 문서)",
+            "prep 은 저장소 경로 하나만 받는다. 강제 재수집 플래그가 없고 코드 지도를 무효화하는 코드도 저장소에 없다 — 다시 수집하려면 손으로 파일을 지우는 수밖에 없다.",
             "시험 네 파일(2,011줄)이 모듈 최상위 이름을 약 200회 참조한다. plan_stages 만 29회다.",
           ]}
           judged={[
@@ -61,6 +64,7 @@ export default function Report() {
             "💭 전이표를 밖에 두면 단계만 읽어서는 다음이 어딘지 모른다. 흐름 전체가 한 화면에 모이는 대신 두 곳을 봐야 한다.",
             "💭 D12(비순환 고정)의 근거는 사용자가 고른 이름이지 실측이 아니다. 다만 지금 세 실행기에 재시도 폴백은 한 건도 없어서, 지금 잃는 것은 없다.",
             "💭 시뮬레이터가 손 검토보다 나은 유일한 이유는 산출물 사슬 검사다. 갈림길이 생기면 \"앞 단계가 썼나\" 가 경로마다 달라진다.",
+            "💭 D15 는 수집기가 부분 수집을 지원하는지 아직 재지 않았다. clang-uml 과 roslyn-dump 가 파일 목록을 받는지 확인하기 전에는 --force 플래그가 안전하다.",
           ]}
         />
       </Section>
@@ -249,8 +253,55 @@ export default function Report() {
         />
       </Section>
 
+      <Section title="D13 · Mode 1 을 증분 그래프와 전량 그래프 둘로 나눈다">
+        <OptionTable
+          columns={["안", "무엇", "판정 · 출처"]}
+          rows={[
+            { cells: ["지금처럼 한 흐름", "정적 건너뜀과 동적 건너뜀이 겹쳐 있다", "기각 — 레코드가 생기면 조사 단계가 영구히 빠진다 (인계 문서 ①)"], recommended: false },
+            { cells: ["그래프 둘로 나눈다", "팩토리가 cold 여부로 고른다", "권고 — 정적인 것은 그래프 선택으로 올라가고 동적인 것만 갈래로 남는다"], recommended: true },
+            { cells: ["mode 를 하나 더 만든다", "Mode 1 과 Mode 1-cold", "기각 — 루트 규약이 mode 축 도입을 거울 함정으로 지목했다"], recommended: false },
+          ]}
+        />
+        <TriageBlock
+          items={[
+            { id: "동작 변경", title: "이것은 이 문서의 1:1 보존 원칙의 유일한 예외다",
+              why: "조사 단계가 목록에서 빠지는 결함을 고치는 것이 곧 그래프를 나누는 것이라 분리할 수 없다. 나머지 전이는 지금 동작과 같은 값을 적는다." },
+            { id: "안전장치", title: "예상 세션 수를 먼저 보이고 확인받는 관문이 함께 가야 한다",
+              why: "조사 단계를 기본 경로에 되살리면 실수로 배치 88개(약 $50)가 시작될 수 있다. 인계 문서가 같은 경고를 남겼다." },
+            { id: "순서 제약", title: "인계 문서의 결함 ③④가 고쳐지기 전에는 증분 그래프를 쓰지 않는다",
+              why: "③은 남은 조각이 남의 배치를 대신하게 하고, ④는 재조사마다 레코드 키를 갈아 버린다. 둘 다 이 문서의 범위 밖이다." },
+          ]}
+        />
+      </Section>
+
+      <Section title="D14 · survey-plan.json 이 자기가 좁혀진 것인지 스스로 말한다">
+        <OptionTable
+          columns={["안", "범위를 어디에 두는가", "판정 · 출처"]}
+          rows={[
+            { cells: ["프로세스 지역 변수", "지금 방식", "기각 — 단계를 쪼개면 조용히 사라진다. $50.73 의 직접 원인 (인계 문서 ②)"], recommended: false },
+            { cells: ["디스크에서 읽을 때 경고만", "사람이 화면을 보고 판단한다", "기각 — 인계 문서의 갈래 D. --dry-run 이 좁히기를 못 보이는 결함이 남는다"], recommended: false },
+            { cells: ["계획 파일에 범위를 싣는다", "only_files 칸을 스키마에 더한다", "권고 — 프로세스 경계를 넘고, 시뮬레이터가 사슬로 검사할 수 있게 된다"], recommended: true },
+          ]}
+        />
+      </Section>
+
+      <Section title="D15 · prep 의 건너뜀 판정을 targets 로 바꾼다">
+        <OptionTable
+          columns={["안", "무엇", "대가 · 판정"]}
+          rows={[
+            { cells: ["지금대로 파일 존재로", "코드 지도가 있으면 수집기를 건너뛴다", "기각 — 지도가 낡은 채 남고, 다시 수집하려면 손으로 파일을 지워야 한다"], recommended: false },
+            { cells: ["--force 플래그만 더한다", "전량 그래프가 강제 재수집을 부른다", "💭 미결 — 싸지만 두 판정자가 여전히 둘로 남는다. 부분 수집을 못 재봤으면 이쪽이 안전하다"], recommended: false },
+            { cells: ["targets 를 받는다", "증분 그래프가 바뀐 파일 목록을 넘긴다", "💭 미결 — 판정이 하나로 합쳐진다. 얼갈이 경계를 한 파일만큼 연다"], recommended: true },
+          ]}
+        />
+      </Section>
+
       <Section title="컴포넌트 후보">
         <p>없다. 이 보고서는 기존 컴포넌트 밖으로 나가지 않았다.</p>
+        <Correction
+          target="이 세션이 앞서 보고한 machine/xmldoc.py check 의 문제 94건"
+          correction="원인 미상의 기존 실패라고 보고했으나, 인계 문서에 정체가 있었다. merge_shards 가 재조사를 충돌로 오인해 키 675개를 개명했고(0 → 737건) 2026-09-07 세션이 복원해 94건까지 내렸다. 남은 94건은 진짜 새 심볼 85개가 아직 주석 마커를 못 받은 정상 상태다. 고장이 아니라 사용자 판단을 기다리는 상태다."
+        />
       </Section>
 
       <Section title="수용 판정 — 사용자 기입란">
