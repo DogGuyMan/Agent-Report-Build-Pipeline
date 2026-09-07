@@ -9,6 +9,7 @@
 |---|---|
 | [`__init__.py`](__init__.py) | — |
 | [`dispatch.py`](dispatch.py) | — |
+| [`measure.py`](measure.py) | 세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트. |
 | [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
@@ -17,6 +18,7 @@
 | [`collect.py`](collect.py) | — |
 | [`emit.py`](emit.py) | — |
 | [`quiz.py`](quiz.py) | — |
+| [`test_measure.py`](test_measure.py) | — |
 | [`test_run_grade.py`](test_run_grade.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
@@ -38,6 +40,32 @@
 |---|---|---|
 | `resolve_script` | `(table: dict[str, str], cmd: str) -> str \| None` | 명령 이름을 스크립트 경로로 바꾼다. 표에 없으면 None. |
 | `run_dispatch` | `(root: str, table: dict[str, str], argv: list[str], usage: str) -> None` |  |
+
+---
+
+## `measure.py`
+
+세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`StageRow`** | *class* | 측정 표의 한 줄. 세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다. |
+| `as_map` | `(v: object) -> dict[str, object]` | 열쇠가 문자열인 사전이면 그것을, 아니면 빈 사전을 낸다. |
+| `as_int` | `(v: object) -> int` | 정수면 그것을, 아니면 0. `bool` 은 정수가 아니다 — 참/거짓이 수로 세어지면 안 된다. |
+| `as_float` | `(v: object) -> float` | 정수나 실수면 실수로, 아니면 0.0. `bool` 은 제외한다. |
+| `as_str` | `(v: object) -> str` | 문자열이면 그것을, 아니면 빈 문자열. |
+| `normalize_usage` | `(result: AgentResult \| None) -> Usage` | `claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다. |
+| `sum_usage` | `(usages: Sequence[Usage]) -> Usage` | `normalize_usage` 가 낸 사전들을 열쇠별로 접는다. 표 맨 아래 '합계' 줄이 이것이다. |
+| `agent_verdict` | `(returncode: int, result: AgentResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
+| `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
+| `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
+| `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 실행기의 산출물 본체다. |
+| `stage_totals` | `(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]` | `survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`. |
+| **`Heartbeat`** | *class* | 오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다. |
+| `Heartbeat.__init__` | `(self, label: str, every: float = 30.0) -> None` |  |
+| `Heartbeat._tick` | `(self) -> None` |  |
+| `Heartbeat.__enter__` | `(self) -> 'Heartbeat'` |  |
+| `Heartbeat.__exit__` | `(self, *_) -> None` |  |
 
 ---
 
@@ -64,7 +92,7 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `lang_of` | `(codegraph_path: str \| None) -> str \| None` | 코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다. |
 | `changed_seed` | `(판정: warmup.Verdicts) -> list[str]` | 다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.** |
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
-| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 모형을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
+| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `normalize_usage` | `(result: AgentResult \| None) -> Usage` | `claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다. |
 | `sum_usage` | `(usages: Sequence[Usage]) -> Usage` | `normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다. |
@@ -95,7 +123,7 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
 | `_qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
-| `run_lang_select` | `(repo: str, root: str, timeout: float \| None) -> tuple[bool, str, Usage]` | 루트 문서를 모형에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다. |
+| `run_lang_select` | `(repo: str, root: str, timeout: float \| None) -> tuple[bool, str, Usage]` | 루트 문서를 Model에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다. |
 | `run_warmup` | `(repo: str, codegraph: str, hops: int) -> tuple[list[str] \| None, warmup.Manifest \| None, str \| None, int, bool, str]` | 관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.** |
 | `save_warmup` | `(cache_path: str \| None, entries: warmup.Manifest \| None, rows: Sequence[StageRow]) -> tuple[bool, str]` | 관문 ② — **전수조사가 실제로 해낸 뒤에만** 매니페스트를 갱신한다. |
 | `run_survey` | `(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan, concurrency: int, timeout: float \| None, reading_path: str, targets: Sequence[str] \| None = None, total: int = 0) -> list[StageRow]` | 층 사이는 순차, 층 안은 병렬(K2). `[행, …]` 을 낸다. |
@@ -110,7 +138,7 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다. |
+| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다. |
 | `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `human_gate_open` | `(has_answers: bool) -> bool` | 사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다. |
 | `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: dict[str, Any] \| None) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
@@ -140,7 +168,7 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 |---|---|---|
 | `report_dir` | `(project: str, slug: str, doc_dir: str = 'specs') -> str` | 보고서가 사는 폴더. **원본 문서 옆**이다 — `specs/<slug>/` 또는 `plans/<slug>/`. |
 | `stage_cwd` | `(stage: str, project: str, report_dir: str) -> str` | 단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.** |
-| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 모형을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다. |
+| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_manuscript: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `manuscript_is_written` | `(data_source: str \| None, report_source: str \| None) -> bool` | 원고가 이미 채워졌는가. 뼈대와 채워진 글을 **글자로** 가른다. |
 | `find_spec` | `(filenames: Iterable[str], slug: str, doc_dir: str = 'specs') -> dict[str, str] \| None` | 한 자리의 파일 목록에서 이 slug 의 원본 문서를 찾는다. 없으면 `None`. |
@@ -190,6 +218,34 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 
 ---
 
+## `test_measure.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `test_문자열_열쇠_사전만_통과시킨다` | `()` |  |
+| `test_정수가_아니면_0이다` | `()` |  |
+| `test_수가_아니면_0점0이다` | `()` |  |
+| `test_문자열이_아니면_빈_문자열이다` | `()` |  |
+| `test_토큰_합계는_캐시_둘을_포함한다` | `()` |  |
+| `test_결과가_없으면_전부_0이다` | `()` |  |
+| `test_망가진_값은_예외가_아니라_0이다` | `()` |  |
+| `test_사용량을_열쇠별로_접는다` | `()` |  |
+| `test_종료_코드가_0이어도_is_error_면_실패다` | `()` |  |
+| `test_결과_JSON_이_없으면_실패다` | `()` |  |
+| `test_정상이면_성공이다` | `()` |  |
+| `test_명령줄에_프롬프트를_싣지_않는다` | `()` |  |
+| `test_초를_사람이_읽는_꼴로` | `()` |  |
+| `_행` | `(name: str, ok: bool = True, skipped: bool = False) -> M.StageRow` |  |
+| `test_표는_단계마다_한_줄과_합계를_낸다` | `()` |  |
+| `test_벽시계를_주면_합계_시간이_그것이다` | `()` |  |
+| `test_건너뛴_단계는_실패가_아니다` | `()` |  |
+| `test_배치_행을_단계_이름으로_접는다` | `()` |  |
+| `test_하트비트는_문맥_관리자다` | `()` |  |
+
+---
+
 ## `test_run_grade.py`
 
 
@@ -222,7 +278,7 @@ Mode 1 실행기의 회귀 테스트.
 |---|---|---|
 | `test_빈_저장소면_열_단계를_순서대로_돈다` | `()` | `terms` 가 `survey` 와 `wiki` 사이인 것은 산문 세션이 **인용 검사를 통과한** |
 | `test_warmup_관문이_survey_를_감싼다` | `()` | 관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `wiki` 뒤에 확정을 두면 |
-| `test_세_단계가_모형을_부른다` | `()` | 모형을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다. |
+| `test_세_단계가_LLM_Model을_부른다` | `()` | LLM Model을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다. |
 | `test_산출물이_있는_LLM_단계만_각자_빠진다` | `()` | LLM 단계 둘은 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다. |
 | `test_the_save_gate_comes_before_terms` | `()` | 매니페스트 확정이 terms 뒤로 밀리면, terms 가 실패했을 때 판정이 사라진다. |
 | `test_skip_은_열_단계_흐름_기준으로_걸러낸다` | `()` | `skip` 이 열 단계 목록에서 걸러내는 필터로 옳게 도는지만 본다. |
@@ -269,7 +325,7 @@ Mode 1 실행기의 회귀 테스트.
 | `test_run_layer_는_동시_한도를_넘지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | K4 — 한 층에서 동시에 8배치까지. 넘으면 rate limit 에 걸려 층 전체가 무너진다. |
 | `test_run_layer_는_라벨_순서로_돌려준다` | `(monkeypatch: pytest.MonkeyPatch)` | 배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다. |
 | `test_run_layer_는_한_배치가_죽어도_나머지를_돌린다` | `(monkeypatch: pytest.MonkeyPatch)` | 배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다. |
-| `test_빈_층은_모형을_부르지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | 샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4). |
+| `test_빈_층은_LLM_Model을_부르지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | 샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4). |
 | `_shard` | `(tmp_path: Path, name: str, payload: R.Records) -> str` |  |
 | `test_샤드를_하나로_합친다` | `(tmp_path: Path)` |  |
 | `test_키가_겹치면_양쪽_다_개명한다` | `(tmp_path: Path)` | 한쪽만 한정하면 나중에 또 겹친다. `main` 이 9파일이면 9개 전부 개명이다. |
@@ -292,6 +348,7 @@ Mode 1 실행기의 회귀 테스트.
 | `test_계획_요약은_층과_배치와_합계를_낸다` | `()` | 돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다. |
 | `test_lang_of_maps_every_collector_language_to_declmap` | `(tmp_path: Path) -> None` | 코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다. |
 | `test_every_runner_script_path_actually_exists` | `() -> None` | 세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다. |
+| `test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다` | `() -> None` | `runner/wiki/*.py` 를 **스크립트로** 띄웠을 때 import 가 서는가. |
 | `test_자기호스팅_읽기레코드_경로가_실재한다` | `() -> None` | 이 저장소 자신을 조사할 때 원본은 `machine/terms-reading.json` 이다. |
 | `test_남의_저장소는_docs_codegraph_아래를_본다` | `() -> None` |  |
 | `test_배치_프롬프트의_범위_지시문이_같은_자리를_말한다` | `() -> None` | 프롬프트가 말하는 자리와 실행기가 읽고 쓰는 자리가 갈리면 세션이 없는 파일을 찾는다. |
@@ -308,7 +365,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `good_doc` | `() -> dict[str, Any]` | 정상 `questions.json` 한 장. 용어 하나 · 문항 셋. |
 | `test_a_fresh_run_stops_before_grading` | `()` | 아무것도 없으면 모으고 **거기서 끝난다.** 출제도 답안도 사람 쪽 일이다. |
 | `test_grading_only_starts_once_a_human_answered` | `()` | 답안이 생긴 뒤에야 채점과 산출이 붙는다. |
-| `test_no_stage_calls_the_model` | `()` | **이 실행기는 모형을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다. |
+| `test_no_stage_calls_the_model` | `()` | **이 실행기는 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다. |
 | `test_collect_is_skipped_when_candidates_already_exist` | `()` | 다시 모으면 앞 실행이 쌓은 후보 파일을 덮어쓴다. |
 | `test_nothing_runs_while_the_human_turn_is_open` | `()` | 후보는 있고 답안은 없는 자리가 사람 차례다 — 돌릴 기계 단계가 없다. |
 | `test_only_and_skip_are_honoured` | `()` |  |
@@ -374,17 +431,17 @@ Mode 2 실행기의 회귀 시험.
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `test_init_runs_at_the_project_root` | `()` | `init` 은 `specs/` 가 있는 프로젝트 뿌리에서 돈다. `init.py` 가 `join(cwd, "specs")` 를 본다. |
-| `test_the_agent_also_runs_at_the_project_root` | `()` | 모형은 설계 문서(`specs/*-design.md`)와 보고서 폴더를 **둘 다** 봐야 한다. 뿌리에 세운다. |
+| `test_the_agent_also_runs_at_the_project_root` | `()` | LLM Model은 설계 문서(`specs/*-design.md`)와 보고서 폴더를 **둘 다** 봐야 한다. 뿌리에 세운다. |
 | `test_build_and_check_run_inside_the_report_folder` | `()` | `build`·`check` 는 보고서 폴더를 `cwd` 로 본다 — 거기서 data.ts 와 report.tsx 를 읽는다. |
 | `test_stage_cwd_rejects_an_unknown_stage` | `()` |  |
 | `test_report_dir_is_specs_slash_slug` | `()` |  |
 | `test_plan_runs_all_four_stages_on_an_empty_report` | `()` |  |
-| `test_only_one_stage_calls_the_model` | `()` | 모형을 부르는 자리는 **원고 쓰기 하나**다. 나머지 셋은 기계다. |
-| `test_plan_skips_the_agent_when_the_manuscript_is_already_written` | `()` | 사람이 쓴 원고를 모형이 덮어쓰면 안 된다. 이미 채워졌으면 굽기만 한다. |
+| `test_only_one_stage_calls_the_model` | `()` | LLM Model을 부르는 자리는 **원고 쓰기 하나**다. 나머지 셋은 기계다. |
+| `test_plan_skips_the_agent_when_the_manuscript_is_already_written` | `()` | 사람이 쓴 원고를 LLM Model이 덮어쓰면 안 된다. 이미 채워졌으면 굽기만 한다. |
 | `test_plan_keeps_init_even_when_the_manuscript_exists` | `()` | `init` 은 늘 부른다 — 건너뛸지는 `init.py` 자신이 정한다(data.ts 가 있으면 exit 0). |
 | `test_plan_only_and_skip_are_honoured` | `()` |  |
 | `test_plan_rejects_an_unknown_stage` | `()` |  |
-| `test_a_fresh_skeleton_is_not_a_manuscript` | `()` | `decisions: []` 는 `init` 이 방금 만든 뼈대다. 모형을 불러야 한다. |
+| `test_a_fresh_skeleton_is_not_a_manuscript` | `()` | `decisions: []` 는 `init` 이 방금 만든 뼈대다. LLM Model을 불러야 한다. |
 | `test_a_filled_data_and_report_is_a_manuscript` | `()` |  |
 | `test_decisions_without_matching_sections_is_not_a_manuscript` | `()` | 결정은 있는데 본문 절이 없으면 반쯤 쓰다 만 것이다. 이어 쓰게 다시 부른다. |
 | `test_missing_files_are_not_a_manuscript` | `()` |  |
@@ -399,9 +456,9 @@ Mode 2 실행기의 회귀 시험.
 | `test_script_argv_points_at_the_renderer_scripts` | `()` |  |
 | `test_only_init_takes_the_slug_on_the_command_line` | `()` | `build`·`check` 는 `cwd` 로 대상을 안다. slug 를 주면 인자를 오해한다. |
 | `_prompt` | `(project: str = '/프로젝트', slug: str = '붙임', spec_file: str = '2026-08-28-붙임-design.md', root: str = '/도구/뿌리', terms_json: str \| None = None) -> str` | `agent_prompt` 를 기본값으로 부른다. 시험마다 바꾸는 칸만 이름 인자로 준다. |
-| `test_the_prompt_forbids_the_model_from_filling_the_verdict` | `()` | 수용/보류/번복은 **언제나 사용자 몫**이다. 이 한 줄이 빠지면 모형이 채운다. |
+| `test_the_prompt_forbids_the_model_from_filling_the_verdict` | `()` | 수용/보류/번복은 **언제나 사용자 몫**이다. 이 한 줄이 빠지면 LLM Model이 채운다. |
 | `test_the_prompt_states_the_single_script_invariant` | `()` |  |
-| `test_the_prompt_forbids_the_d_axis` | `()` | D축은 보류 상태다. 프롬프트가 말하지 않으면 모형이 필드를 넣는다. |
+| `test_the_prompt_forbids_the_d_axis` | `()` | D축은 보류 상태다. 프롬프트가 말하지 않으면 LLM Model이 필드를 넣는다. |
 | `test_the_prompt_names_the_canonical_procedure_skill` | `()` |  |
 | `test_the_prompt_uses_korean_status_tags_only` | `()` |  |
 | `test_the_prompt_names_the_paths_the_model_must_touch` | `()` |  |

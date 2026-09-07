@@ -7,6 +7,10 @@
 **`Any` 를 쓰지 않는다.** 바깥 프로그램이 꼴을 정하는 값은 `object` 로 받고 아래
 좁히기 도우미로 하나씩 확인한다.
 """
+import collections
+import sys
+import threading
+import time
 from collections.abc import Iterable, Sequence
 from typing import NotRequired, TypedDict, cast
 
@@ -141,3 +145,88 @@ def hms(seconds: float) -> str:
     if s < 60:
         return "%.1f초" % s
     return "%d분 %04.1f초" % (int(s // 60), s % 60)
+
+
+def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -> str:
+    """단계별 표 + 합계 줄. 실행기의 산출물 본체다.
+
+    `wall_seconds` 를 주면 합계 줄의 시간이 그 값이 되고, 안 주면 행의 초를 더한다.
+    층 안에서 배치가 동시에 돌면 행의 합이 사람이 기다린 시간보다 커지므로, 병렬로 도는
+    쪽이 진짜 벽시계를 재서 넘긴다.
+    """
+    head = ["단계", "상태", "시간", "입력", "출력", "캐시읽기", "캐시생성", "합계", "턴", "비용($)"]
+    body: list[list[str]] = []
+    for r in rows:
+        u = r["usage"]
+        body.append([
+            r["stage"],
+            "건너뜀" if r.get("skipped") else ("성공" if r.get("ok") else "실패"),
+            hms(r["seconds"]),
+            "{:,}".format(u["input"]), "{:,}".format(u["output"]),
+            "{:,}".format(u["cache_read"]), "{:,}".format(u["cache_write"]),
+            "{:,}".format(u["total"]), str(u["turns"]), "%.4f" % u["cost_usd"],
+        ])
+    tot = sum_usage([r["usage"] for r in rows])
+    total_seconds = (sum(float(r["seconds"]) for r in rows)
+                     if wall_seconds is None else float(wall_seconds))
+    body.append([
+        "합계", "", hms(total_seconds),
+        "{:,}".format(tot["input"]), "{:,}".format(tot["output"]),
+        "{:,}".format(tot["cache_read"]), "{:,}".format(tot["cache_write"]),
+        "{:,}".format(tot["total"]), str(tot["turns"]), "%.4f" % tot["cost_usd"],
+    ])
+
+    # 한글은 폭이 두 칸이라 len() 으로는 안 맞는다. 표시 폭을 따로 센다.
+    def w(s: object) -> int:
+        return sum(2 if ord(c) > 0x2E80 else 1 for c in str(s))
+    cols = [max(w(head[i]), max(w(row[i]) for row in body)) for i in range(len(head))]
+
+    def line(cells: Sequence[str]) -> str:
+        return "  ".join(str(c) + " " * (cols[i] - w(c)) for i, c in enumerate(cells)).rstrip()
+
+    out = [line(head), "  ".join("-" * c for c in cols)]
+    out += [line(r) for r in body[:-1]]
+    out += ["  ".join("-" * c for c in cols), line(body[-1])]
+    for r in rows:
+        if r.get("skipped"):
+            out.append("건너뜀 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
+        elif not r.get("ok"):
+            out.append("실패 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
+    return "\n".join(out)
+
+
+def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]:
+    """`survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`."""
+    byname: collections.OrderedDict[str, list[Usage]] = collections.OrderedDict()
+    for r in rows:
+        name = r["stage"].split("/")[0]
+        byname.setdefault(name, []).append(r["usage"])
+    return collections.OrderedDict((k, sum_usage(v)) for k, v in byname.items())
+
+
+# ── 오래 도는 단계 옆에서 경과를 알린다 ──────────────────────────────────
+
+
+class Heartbeat:
+    """오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다.
+
+    `--output-format json` 은 끝나야 한 덩이로 나오므로 그 사이 아무것도 찍히지 않는다.
+    """
+
+    def __init__(self, label: str, every: float = 30.0) -> None:
+        self.label, self.every = label, every
+        self._stop = threading.Event()
+        self._t0 = time.monotonic()
+        self._th = threading.Thread(target=self._tick, daemon=True)
+
+    def _tick(self) -> None:
+        while not self._stop.wait(self.every):
+            print("    … %s 진행 중 (%s)" % (self.label, hms(time.monotonic() - self._t0)),
+                  file=sys.stderr, flush=True)
+
+    def __enter__(self) -> "Heartbeat":
+        self._th.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop.set()

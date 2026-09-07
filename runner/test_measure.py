@@ -83,3 +83,37 @@ def test_명령줄에_프롬프트를_싣지_않는다():
 def test_초를_사람이_읽는_꼴로():
     assert M.hms(9.25) == "9.2초"
     assert M.hms(61.5) == "1분 01.5초"
+
+
+def _행(name: str, ok: bool = True, skipped: bool = False) -> M.StageRow:
+    row: M.StageRow = {"stage": name, "seconds": 1.0,
+                       "usage": M.normalize_usage(None), "ok": ok, "why": ""}
+    if skipped:
+        row["skipped"] = True
+    return row
+
+
+def test_표는_단계마다_한_줄과_합계를_낸다():
+    out = M.format_report([_행("prep"), _행("check")])
+    assert "prep" in out and "check" in out and "합계" in out
+
+
+def test_벽시계를_주면_합계_시간이_그것이다():
+    out = M.format_report([_행("a"), _행("b")], wall_seconds=1.0)
+    assert "1.0초" in out
+
+
+def test_건너뛴_단계는_실패가_아니다():
+    out = M.format_report([_행("survey", skipped=True)])
+    assert "건너뜀" in out and "실패" not in out
+
+
+def test_배치_행을_단계_이름으로_접는다():
+    rows = [_행("survey/L0-B00"), _행("survey/L0-B01"), _행("terms")]
+    tot = M.stage_totals(rows)
+    assert list(tot) == ["survey", "terms"]
+
+
+def test_하트비트는_문맥_관리자다():
+    with M.Heartbeat("시험", every=3600.0) as h:
+        assert h.label == "시험"
