@@ -1,0 +1,93 @@
+// 2026-09-07 — report-builder 세 갈래 파이프라인, 병렬 DAG 로 간추린 판
+//
+// 목표 · 범위 — 세 갈래를 하나의 의존 그래프로 잇는다. 노드는 대표 작업 아홉과 입력 둘뿐이다.
+//   survey 뒤에서 warmup-save · wiki · term-benchmark 셋이 갈라진다 — 서로 기다리지 않는다.
+//   그 셋 중 term-benchmark 갈래만 agent → build 로 이어진다.
+//
+// 근거 — runner/run_mode1.py:141 · runner/run_mode1_5.py:118 · runner/run_mode2.py:76 의 STAGES.
+//   남긴 노드 밖의 단계(lang-select · warmup · survey-plan · terms · build · check · collect ·
+//   init · check)는 일부러 뺐다. 그 단계가 내는 것은 엣지 라벨에 흡수했다(예: terms 가 내는 terms-db).
+//
+// 읽는 법 — 노드는 "무엇을 하는가", 화살표 라벨은 "앞 칸이 무엇을 냈는가". 확장자는 뺐다.
+//   파랑 = 기계 · 주황 = LLM(claude -p) · 주황 점선 = 실행기 밖 스킬 차례 · 초록 = 사람 · 회색 = 입력.
+//   보라 화살표 = 앞 갈래의 산출물이 뒤 갈래의 재료가 되는 자리.
+//   warmup-save 가 낸 warmup 은 **다음 실행**의 재료다 — 되돌아가는 화살표를 그리면 DAG 가 깨지므로
+//   노드 안에 적었다.
+//
+// 배치 — 세 블록을 전부 왼쪽 끝에 맞춘다(가로 길이를 줄이려고). 그래서 갈래 사이 보라 엣지는
+//   랭크를 밀지 않는다(constraint=false). 그 대신 두 장치가 필요하다:
+//   · 보이지 않는 뿌리 R 이 세 블록의 첫 노드를 잡아 위→아래 순서를 고정한다.
+//   · grem → agent 는 뒤로 가는 엣지라 dot 이 맨 아래로 돌려 그린다. 용어 블록 안 랭크 3 에
+//     보이지 않는 경유점 V 를 두고 agent ← V ← grem 두 토막으로 잇는다. V 는 블록 아래쪽에 앉아
+//     선이 두 블록 사이 틈으로만 지나간다.
+//
+// 렌더 — dot -Tsvg docs/diagrams/2026-09-07-mode-pipeline.dot -o docs/diagrams/2026-09-07-mode-pipeline.svg
+//        dot -Tpng -Gdpi=140 docs/diagrams/2026-09-07-mode-pipeline.dot -o docs/diagrams/2026-09-07-mode-pipeline.png
+
+digraph mode_pipeline {
+  rankdir=LR;
+  graph [fontname="Apple SD Gothic Neo", fontsize=12, bgcolor="transparent",
+         nodesep=0.3, ranksep=0.45, splines=spline, labeljust=l,
+         label="파랑 기계 · 주황 LLM · 주황 점선 스킬 차례 · 초록 사람 · 회색 입력 · 보라 화살표 = 앞 갈래의 산출물이 뒤 갈래의 재료",
+         labelloc=b, fontcolor="#5b6472"];
+  node  [fontname="Apple SD Gothic Neo", fontsize=10, shape=box, style="filled,rounded",
+         fillcolor="#e8f0fe", color="#4a6fa5", penwidth=1.1, margin="0.16,0.09"];
+  edge  [fontname="Apple SD Gothic Neo", fontsize=9, color="#8b93a1", fontcolor="#5b6472", arrowsize=0.7];
+
+  // ── 코드베이스 → 코드 지도 · 위키 (runner/run_mode1.py) ────────────────────────────────
+  subgraph cluster_wiki {
+    label="코드베이스 → 코드 지도 · 위키"; color="#c3c8d0"; fontcolor="#3b4450"; style=rounded; labelloc=t;
+
+    prep [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>prep</B></FONT><BR/>코드 지도 만들기<BR/><FONT POINT-SIZE="8" COLOR="#5b6472">clang-uml · roslyn-dump · griffe</FONT>>];
+    surv [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>survey</B></FONT><BR/>층별 전수조사<BR/><FONT POINT-SIZE="8" COLOR="#8a5a1a">LLM 층별 N회 · codebase-terms-survey</FONT>>,
+          fillcolor="#fde8c8", color="#c07a1e", penwidth=2];
+    wsav [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>warmup-save</B></FONT><BR/>점진적 증분 대응<BR/><FONT POINT-SIZE="8" COLOR="#5b6472">warmup → 다음 실행이 읽는다</FONT>>];
+    wiki [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>wiki</B></FONT><BR/>코드 로직 주석 작성<BR/><FONT POINT-SIZE="8" COLOR="#8a5a1a">LLM 층별 N회 · deep-wiki → docs/wiki</FONT>>,
+          fillcolor="#fde8c8", color="#c07a1e", penwidth=2];
+
+    prep -> surv [label="codegraph · facts"];
+    surv -> wsav [label="terms-reading"];
+    surv -> wiki [label="terms-db"];
+  }
+
+  // ── 용어 이해도 → 용어집 · 학습 노트 (runner/run_mode1_5.py + term-benchmark 스킬) ─────
+  subgraph cluster_term {
+    label="용어 이해도 → 용어집 · 학습 노트"; color="#c3c8d0"; fontcolor="#3b4450"; style=rounded; labelloc=t;
+
+    V    [shape=point, style=invis, width=0.01, height=0.01, label=""];
+    plan [label="Plan 문서", fillcolor="#f4f5f7", color="#c3c8d0", style="filled,rounded"];
+    auth [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>term-benchmark</B></FONT><BR/>3문항 × 5지선다 출제<BR/><FONT POINT-SIZE="8" COLOR="#8a5a1a">스킬 차례 · 실행기 밖</FONT>>,
+          fillcolor="#fde8c8", color="#c07a1e", penwidth=1.6, style="filled,rounded,dashed"];
+    hum  [label=<<B>사람</B><BR/>정답 입력<BR/><FONT POINT-SIZE="8" COLOR="#2f6b3a">없으면 실행기가 멈춘다</FONT>>,
+          fillcolor="#e6f4ea", color="#3a7d44", penwidth=2];
+    grem [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>grade · emit</B></FONT><BR/>채점 &amp; 용어집 · 학습 노트 내기<BR/><FONT POINT-SIZE="8" COLOR="#5b6472">→ term-study-note</FONT>>];
+
+    plan -> auth;
+    auth -> hum  [label="answer-sheet"];
+    hum  -> grem [label="answers"];
+  }
+
+  // ── 설계 문서 → 한 장 HTML 보고서 (runner/run_mode2.py) ────────────────────────────────
+  subgraph cluster_spec {
+    label="설계 문서 → 한 장 HTML 보고서"; color="#c3c8d0"; fontcolor="#3b4450"; style=rounded; labelloc=t;
+
+    spec [label="설계 문서\nspecs/*-design · plans/*", fillcolor="#f4f5f7", color="#c3c8d0", style="filled,rounded"];
+    agnt [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>agent</B></FONT><BR/>원고 쓰기<BR/><FONT POINT-SIZE="8" COLOR="#8a5a1a">LLM 1회 · spec-review-dashboard</FONT>>,
+          fillcolor="#fde8c8", color="#c07a1e", penwidth=2];
+    bld  [label=<<FONT FACE="Menlo" POINT-SIZE="9.5"><B>build</B></FONT><BR/>컴포넌트 조립<BR/><FONT POINT-SIZE="8" COLOR="#5b6472">esbuild → React 정적 렌더 → out/report</FONT>>];
+
+    spec -> agnt;
+    agnt -> bld [label="data · report"];
+  }
+
+  // ── 블록 순서 — 보이지 않는 뿌리 R 이 세 블록의 첫 노드를 잡아 위→아래로 쌓는다 ─────────
+  R [style=invis, shape=point, width=0, height=0, label=""];
+  edge [style=invis, constraint=true, weight=100];
+  R -> prep; R -> plan; R -> spec;
+
+  // ── 갈래 사이 — 앞 갈래의 산출물이 뒤 갈래의 재료다 ──────────────────────────────────
+  edge [color="#7030a0", fontcolor="#7030a0", penwidth=1.8, style=solid];
+  surv -> auth [constraint=false, label="terms-db        "];
+  agnt -> V    [dir=back, constraint=true, weight=3, label="terms · 사람이 data 에 옮겨 적는다"];
+  V    -> grem [dir=none, constraint=true, weight=3];
+}

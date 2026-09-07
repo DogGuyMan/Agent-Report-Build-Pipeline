@@ -1,5 +1,10 @@
 # report-builder
 
+<div align=center>
+    <img src="docs/diagrams/2026-09-07-mode-pipeline.png" width="100%">
+    <h5></h5>
+</div>
+
 설계 문서와 코드베이스를 **사람이 판정하기 좋은 산출물**로 바꾸는 도구 모음이다.
 세 갈래(mode)가 있고, 앞 갈래의 산출물이 뒤 갈래의 재료가 된다.
 
