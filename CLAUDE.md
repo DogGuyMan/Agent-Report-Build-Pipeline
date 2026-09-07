@@ -11,7 +11,9 @@
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
 | [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
+| [`docs/wiki/`](docs/wiki/index.md) | **이 저장소의 RAG.** 자기 자신에게 Mode 1 을 돌려 구운 위키 21쪽. 코드를 뒤지기 전에 여기를 먼저 grep 한다 |
 | [`docs/decisions/`](docs/decisions/README.md) | 기각·취소·보류된 것들. **같은 제안을 다시 하기 전에 읽는다** |
+| [`docs/overturn/`](docs/overturn/README.md) | 뒤집힌 **판단**과 그 패턴. **무언가를 기각하려 하기 전에 검사표를 읽는다** |
 | [`docs/CLAUDE.md`](docs/CLAUDE.md) | 보관소. **첨부되지 않은 인계·계획 문서는 스스로 열지 않는다** |
 
 ## ⚠ 방향 — 옛 산출물은 기준이 아니다 (2026-08-29 확정)
@@ -55,6 +57,49 @@
   486px 패널로 눌려 "있기는 한데 너무너무 작다"(창 1200px · 배율 100%). 패치본은 토글이 보이고,
   누르면 1열로 펴지며 문구가 바뀌고 가로·세로 스크롤이 생긴다. **결함은 실재했고 체크박스 토글로 복구된다.**
 - **옛 출력 재현(Phase 6) — 취소.** 아래 "Phase 6 취소" 절을 보라.
+
+## 위키는 아카이브가 아니라 RAG 다 (🔵 2026-09-08 실측)
+
+`docs/wiki/` 는 이 저장소가 **자기 자신에게 Mode 1 을 돌려 만든** 코드베이스 위키다.
+`docs/` 아래 있지만 성격이 정반대다 — **검색해서 읽으라고 있는 코퍼스**이므로
+[`docs/CLAUDE.md`](docs/CLAUDE.md) 의 "첨부되지 않으면 열지 않는다" 규칙은 여기에 적용되지 않는다.
+
+| 실측 | 값 |
+|---|---|
+| 페이지 | 21개 · 4067줄. 하위 폴더 없는 평평한 이름이라 파일명이 곧 주제다 |
+| 코드 인용 | `파일:줄` 꼴 304건 (그중 줄 번호까지 붙은 것 92건) |
+| 그림 | Mermaid 블록 30개. graphviz 치환 표식은 아직 0건 |
+| 미검증 | `Unknown - verify` 29건 |
+
+**쓰는 법 — 코드를 grep 하기 전에 위키를 먼저 grep 한다.** 인용이 `파일:줄` 이라 거기서
+바로 코드로 내려갈 수 있다. 다만 셋을 지킨다:
+
+- **`Unknown - verify` 가 붙은 문장은 근거가 없다.** 그대로 인용하지 말고 코드로 확인한다.
+- **위키는 스냅샷이다.** 코드가 그 뒤로 움직였으면 조용히 표류한다 — 줄 번호부터 낡는다.
+- **충돌하면 코드와 모듈 CLAUDE.md 가 맞다.** 위키는 그것들에서 파생된 2차 산출물이다.
+
+다시 굽는 것은 Mode 1 이다 — [`runner/CLAUDE.md`](runner/CLAUDE.md) 를 보라.
+
+### 그림은 두 도구가 굽고, 정적 사이트에 JS 를 남기지 않는다
+
+| 도구 | 부르는 곳 | 무엇 | `doctor` |
+|---|---|---|---|
+| Graphviz `dot` | `viz/render_modules.py` · `viz/render_classes.py` | networkx 로 짠 그래프를 DOT 로 적고 `-Tsvg`/`-Tpng` 로 굽는다 | **필수** |
+| Graphviz `dot -Tsvg_inline` | `viz/svg.mjs` | 보고서 HTML 본문에 그대로 삽입 | **필수** |
+| Mermaid `npx mmdc` | `viz/demermaid.py` | 위키 산문의 Mermaid 를 **빌드 전에** SVG 로 사전 렌더 | 선택 |
+
+**둘은 서로의 대체재가 아니다.** 산문 안의 그림은 LLM 이 쓰기 쉬운 Mermaid 로 들어오고,
+코드 지도에서 **계산해서** 그리는 그림은 Graphviz 다 — `constraint=true/false` 분리가
+Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
+
+- **사전 렌더가 핵심이다.** VitePress 의 mermaid 플러그인은 브라우저에서 그린다.
+  `viz/demermaid.py` 가 빌드 전에 전면 치환해 **산출물에 JS 의존이 남지 않게** 한다.
+  ⚠ 원본 위키는 고치지 않는다 — 인용 검증기의 대상으로 그대로 남아야 해서 치환본만 따로 낸다.
+- **Mermaid 블록 앞줄의 `<!-- graphviz: <이름> -->` 표식**이 있으면 mmdc 대신 미리 구운
+  SVG 로 바꾼다. 산문을 손대지 않고 그림만 갈아 끼우는 자리다.
+- 손으로 쓴 DOT 는 `docs/diagrams/<날짜>-<이름>.dot` 에 `.svg`·`.png` 와 함께 둔다.
+
+세부는 [`viz/CLAUDE.md`](viz/CLAUDE.md) 의 "렌더 경로" 와 "Graphviz SVG 인라인 규칙" 절에 있다.
 
 ## 사양 원본과 인계 문서 3종
 
@@ -291,6 +336,8 @@ Track A 대상은 `confidence-and-sourcing`,
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.
 - 구조 신설 제안 시 `design-decision-discipline` §2.5 의 4항목을 공개하고 §2.7 의 축을 선언한다.
+- **남의 제안을 기각할 때는 `docs/overturn/README.md` 의 검사표를 먼저 지난다.** 제안에는
+  §2.5·§2.7 의 의무가 붙지만 기각에는 없어서, 지금까지 뒤집힌 판단 3건이 전부 기각 쪽이었다.
 - **컴포넌트는 추가만 한다.** props 제거·의미 변경 금지. 컴포넌트 API 가 바뀌는 갱신마다 태그(`v1`, `v2`).
   옛 버전 빌드가 필요하면 `git worktree add /tmp/rb-v1 v1`.
 - 설명은 메커니즘 우선(원리 → API 세부), 한국어 + 영문 기술용어 병기.
