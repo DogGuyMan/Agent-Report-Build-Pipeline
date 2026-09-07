@@ -1,0 +1,442 @@
+# 러너 세 실행기의 공통 단계 기계 (Stage Machine) — 설계 검토
+
+`runner/` 의 세 실행기(`run_mode1.py` · `run_mode1_5.py` · `run_mode2.py`)가 각자 갖고 있는
+**단계 루프 · 단계 고르기 · 재는 코드**를 하나로 모으고, 단계를 `Stage` 클래스로 올려
+파이프라인 밖 전이표(transition table)로 잇는다. `run_mode1.py`(1,391줄)는 그 과정에서
+모듈로 쪼개진다.
+
+동기는 사용자 문장 그대로다 — **"한 코드의 길이가 너무 길다"**, 그리고
+**"확장에 열려있고 변경에 닫혀있는 구조"**(개방-폐쇄 원칙, Open-Closed Principle).
+
+원본 pseudo code 는 `runner/runner_presudo.md` 에 있다. 이 문서는 그것을 실측과 대조해
+고친 것이다.
+
+## 배경 — 실측 (🔵 2026-09-08)
+
+### 중복은 실재한다
+
+| 중복 | 어디 | 벌 수 |
+|---|---|---|
+| `for stage in stages:` 단계 루프 | `run_mode1.main` · `run_mode1_5.main` · `run_mode2.main` | 3 |
+| `plan_stages()` (only/skip 검증 + 재개 거르기) | 같은 셋 | 3 |
+| `is_agent_stage()` + `AGENT_STAGES` 집합 | 같은 셋 | 3 |
+| `normalize_usage(None)` 을 손으로 적기 (기계 단계의 토큰 0) | `run_mode1` 7 · 나머지 각 1 | 9 |
+
+### 재는 코드를 얻으려고 `run_mode1` 을 import 하는 것이 부작용을 낳는다
+
+`run_mode1_5.py` 와 `run_mode2.py` 는 `hms` · `format_report` · `Heartbeat` 같은
+**재는 코드 9개**를 쓰려고 `import run_mode1 as M` 한다. 그런데 `run_mode1.py` 는
+모듈 최상단에서 `_bootstrap_venv()` 를 호출하고 `machine/survey_plan.py` 를 import 한다.
+
+    $ /opt/homebrew/bin/python3 probe.py      # 시스템 파이썬으로 run_mode2 를 import
+    prefix: <저장소>/.venv                     ← os.execv 로 해석기가 통째로 바뀌었다
+    networkx loaded: True                     ← Mode 2 는 networkx 를 쓰지 않는다
+    survey_plan loaded: True
+
+Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는 코드가 `run_mode1` 에
+얹혀 있다는 이유 하나로 딸려 온다.
+
+### 단계 사이를 건너다니는 값이 다섯 개 있다
+
+`run_mode1.main` 이 지역 변수로 들고 다니는 것들이다. `warmup` 이 담아 `survey-plan` 과
+`survey` 와 `warmup-save` 가 꺼내 쓴다.
+
+    targets · entries · warmup_cache · tracked_n · plan_json
+
+이 값들이 pseudo code 에는 없다. `perform()` 이 인자를 받지 않기 때문이다.
+
+### LLM 단계 셋은 프롬프트만 다른 것이 아니다
+
+| 단계 | 모형 호출 | 병렬 | 호출 뒤에 하는 일 |
+|---|---|---|---|
+| `lang-select` | 1회 | 없음 | 낱말 하나 파싱 → **`machine/lang_select.py` 를 자식 프로세스로** 돌려 제안을 기각/채택 |
+| `survey` | 층마다 N회 | 동시 8 | 층이 끝날 때마다 `merge_shards` 로 샤드 병합 → 디스크 쓰기 |
+| `wiki` | 목차 1회 + 장마다 N회 | 동시 8 | `wiki-plan.json` 을 읽어 층을 다시 계산 |
+
+근거는 `run_mode1.py` 의 `run_lang_select` · `run_survey` · `run_wiki` · `run_layer` 다.
+그래서 `getabstract_llm_prompt() -> string` 이라는 **단수 훅 하나**로는 셋을 못 덮는다.
+
+### 한 단계가 측정 행을 여러 개 낸다
+
+`run_survey` 와 `run_wiki` 의 반환형이 `list[StageRow]` 다 — 세션마다 한 행.
+`perform()` 이 단수 결과를 내면 이 모양을 담지 못한다.
+
+## §2.5 구조 신설 선언 — grep 으로 잰 것
+
+| 항목 | 실측 |
+|---|---|
+| 구현자 수 (지금/예상) | 3 / 3. `run_grade.py` 는 단계 루프가 없어 제외 |
+| 소비자 수 (지금/예상) | 3 실행기 + 시험 4개. 시험이 모듈 최상위 이름을 약 200회 참조한다 |
+| 삭제 시험 | 이 구조를 지우면 위 표의 중복 3벌·9곳이 그대로 되살아난다. 지금이 바로 그 상태다 |
+| 계획서 관계 | **계획 밖.** `docs/superpowers/plans/` 어디에도 이 항목이 없다 |
+
+계획 밖이므로 대체불가 논거가 필요하다. 두 가지다 —
+**① import 부작용**(위 실측)은 구조를 안 바꾸면 못 고친다.
+**② 사용자가 요구한 개방-폐쇄**는 데이터로 표현되는 전이표 없이는 `if/elif` 수정으로만 확장된다.
+
+## §2.7 축 선언 — 이 제안에 든 축 넷
+
+1. **공통 추상의 두께** — D0 에서 결정 (사용자 선택)
+2. **착지점을 정하는 자리** — D1 에서 결정 (사용자 선택)
+3. **`lang-select` 의 혼합 성격 처리** — D4 에서 결정 (사용자 선택)
+4. **모듈 경계** — D7. **미결.** 아래에 옵션 3개를 두고 사용자 판정을 기다린다
+
+## Decision Log
+
+| # | 결정 | 상태 | 신뢰도 |
+|---|---|---|---|
+| D0 | 공통축을 `Stage` 기반 클래스 + 교체 가능한 착지점으로 세운다 | `[승인됨]` | 🔵 90 |
+| D1 | 전이표는 파이프라인 밖에 하나 둔다 | `[승인됨]` | 🔵 90 |
+| D2 | `Stage` 는 상태를 갖지 않는다. 갈래는 `Outcome` 반환값이다 | `[제안됨]` | 🔵 85 |
+| D3 | `llmstage` 의 가상 훅은 셋 — `jobs` · `harvest` · `rounds` | `[제안됨]` | 🔵 82 |
+| D4 | `lang-select` 를 `lang-propose` + `lang-decide` 로 쪼갠다 | `[승인됨]` | 🔵 88 |
+| D5 | 단계 사이의 값은 `Context` 로 명시적으로 넘긴다 | `[제안됨]` | 🔵 88 |
+| D6 | `pipeline.run` 은 가상 함수가 아니다 | `[제안됨]` | 🔵 90 |
+| D7 | 모듈 경계 | `[미결]` | 💭 — |
+| D8 | `run_mode1.py` 는 옛 이름을 재수출하는 파사드로 남는다 | `[제안됨]` | 🔵 85 |
+| D9 | `--only` · `--skip` · 재개 거르기는 전이가 아니라 사전 거르기로 남는다 | `[제안됨]` | 🟡 75 |
+| D10 | 단계의 입력·출력은 `machine/` 의 기존 TypedDict 로 못 박고 경계에서 검증한다 | `[제안됨]` | 🔵 88 |
+
+### D0 · 공통축은 `Stage` 기반 클래스 + 교체 가능한 착지점 (Option A)
+
+- Status: `[승인됨]` — 사용자 선택 (2026-09-08)
+- 확신도: 🔵 90 — 중복 3벌이 실측이고, 소비자 3은 `design-decision-discipline` §4 의
+  "두 번 이상 나타난 뒤에 추상화한다" 를 넘는다
+- 옵션 4 (데이터 주도 드라이버 / 재는 코드만 분리 / 추상 기반 클래스 / State·Transition 그래프)
+- 사용자 근거: *"추후 파이프라인 개발 후 확장에 열려있고 변경에 닫혀있는 구조를 원했다.
+  Mode 1 에서 항상 고정적으로 흘러가는 게 아니라 손쉬운 Fall-Back 착지점, Cascade 분기
+  착지점을 교체할 수 있을 것이라 보았다."*
+
+**주의 — Fall-Back 과 Cascade 는 아직 코드에 없다.** 지금 세 루프의 실패는 전부 `break`
+한 갈래로 흡수된다. 그러므로 이 결정은 §4 YAGNI 상 **미리 짓는 것**이고, 근거는 실측이
+아니라 사용자의 확장 의도다. D4 가 그 첫 실사용처가 된다.
+
+### D1 · 전이표는 파이프라인 밖에 하나
+
+- Status: `[승인됨]` — 사용자 선택 (2026-09-08)
+- 확신도: 🔵 90
+- 옵션 3 (Stage 가 기본값·파이프라인이 덮어쓰기 / `Outcome` 이 착지점을 들고 오기 /
+  파이프라인 밖 전이표 하나)
+- 대가로 받아들이는 것: **Stage 만 읽어서는 다음이 어딘지 모른다.** 흐름을 알려면
+  전이표를 함께 봐야 한다(두 곳 보기). 대신 흐름 전체가 한 화면에 있고 통째로 교체된다
+
+### D2 · `Stage` 는 상태를 갖지 않는다
+
+- Status: `[제안됨]`
+- 확신도: 🔵 85 — `run_survey` 가 같은 단계를 **층마다 다시** 도는 것이 실측이다
+- 옵션 2 (`curtransition` 을 멤버 변수로 / `Outcome` 반환값으로)
+- pseudo code 의 `curtransition -> int` 를 멤버로 두면 재진입에서 앞 층의 값이 남는다.
+  `emits`(낼 수 있는 갈래의 비트합)만 클래스에 남기고, 실제로 난 갈래는 반환한다
+- `emits` 는 선언이므로 **시작 전에 전이표 완결성을 검사**할 수 있다 —
+  비트가 섰는데 전이표에 대응 행이 없으면 그 자리에서 죽인다
+
+### D3 · `llmstage` 의 가상 훅은 셋
+
+- Status: `[제안됨]`
+- 확신도: 🔵 82 — 세 LLM 단계의 실제 모양이 실측이다(배경 절의 표)
+- 옵션 2 (프롬프트 훅 하나 / 훅 셋)
+- `jobs(ctx, round) -> [(라벨, 프롬프트)]` · `harvest(ctx, results, round) -> Outcome` ·
+  `rounds(ctx) -> int`
+- 훅 하나로는 `survey` 의 층별 병렬과 `wiki` 의 목차-먼저를 못 담는다.
+  `run_layer`(동시 실행 + 라벨 정렬 + 배치 하나가 터져도 층을 살리기)는 `llmstage.perform`
+  안으로 들어가 **한 벌만 남는다**
+
+### D4 · `lang-select` 를 두 단계로 쪼갠다 (Option A)
+
+- Status: `[승인됨]` — 사용자 선택 (2026-09-08)
+- 확신도: 🔵 88
+- 옵션 2 (두 단계로 쪼개기 / 한 단계로 두고 `harvest` 안에서 검사기 부르기)
+- `lang-propose`(llmstage, 모형에게 언어를 묻는다) → `lang-decide`(rulebasestage,
+  `machine/lang_select.py` 로 제안을 기각/채택)
+- **이것이 D0 의 Fall-Back 착지점의 첫 실사용처다.** 지금은 모형 호출 실패가
+  `run_lang_select` 안의 `try/except` 에 숨어 있다. 쪼개면 전이표 한 줄이 된다:
+
+      ('lang-propose', FAIL) -> 'lang-decide'    # 제안 없이 파일 수만으로 고른다
+
+- **비호환 하나** — Mode 1 의 단계가 10개에서 11개가 된다. `--only lang-select` 를
+  쓰던 명령줄이 깨진다. 별명 한 줄로 막는다: `lang-select` 는 두 단계로 펴진다
+
+### D5 · 단계 사이의 값은 형이 붙은 `Context` 로 넘긴다 — 자루(bag)를 두지 않는다
+
+- Status: `[제안됨]`
+- 확신도: 🔵 88 — 건너다니는 값 다섯이 실측이고, `pyright strict` 가 게이트다
+- 옵션 4 (Stage 멤버 / 모듈 전역 / `dict[str, Any]` 자루 / **칸마다 이름과 형이 있는 dataclass**)
+- Stage 멤버에 담으면 Stage 끼리 서로를 알게 되고, 전역에 두면 시험이 격리되지 않는다
+- **`dict[str, Any]` 자루는 거부한다.** `pyrightconfig.json` 이 `runner` 를 포함한
+  `typeCheckingMode: strict` 라, 자루를 쓰면 꺼내 쓰는 자리마다 `cast` 가 붙는다.
+  형 검사를 켜 둔 채로 형 검사를 끄는 셈이다
+- 모드마다 자기 `Context` 를 갖고, 공통 부모는 얇게 둔다. `Stage` 와 `pipeline` 은
+  형 인자 하나로 그것을 받는다(`Stage[C]` · `Pipeline[C]`). **형 인자는 하나뿐이다** —
+  그 이상 일반화하지 않는다
+
+      @dataclass
+      class RunContext:                     # 세 모드가 공유하는 것만
+          root: str
+          model: str
+          timeout: float | None
+
+      @dataclass
+      class Mode1Context(RunContext):
+          repo: str
+          concurrency: int
+          target: int
+          hops: int
+          # 단계 사이를 건너다니는 값 — 전부 이름과 형이 있다
+          targets:      list[str] | None            = None
+          entries:      warmup.Manifest | None      = None
+          warmup_cache: str | None                  = None
+          tracked_n:    int                         = 0
+          plan:         survey_plan.SurveyPlan | None = None
+
+### D6 · `pipeline.run` 은 가상 함수가 아니다
+
+- Status: `[제안됨]`
+- 확신도: 🔵 90
+- pseudo code 는 `run_mode1 : pipeline` 이 `run` 을 override 하게 두었다. 그러면
+  드라이버 루프가 다시 3벌이 되어 이 작업이 없애려는 중복이 그대로 돌아온다
+- 개방-폐쇄로 보면 방향이 반대다. **`run` 은 수정에 닫히는 쪽**이고, 열리는 것은
+  단계 목록과 전이표라는 **데이터**다
+- 같은 이유로 pseudo code 의 `stages.foreach.Run()` 도 고친다 — `foreach` 는
+  `next_stage` 를 버린다. 전이가 뜻을 가지려면 `while cur:` 여야 한다
+
+### D7 · 모듈 경계 — **미결. 사용자 판정을 기다린다**
+
+- Status: `[미결]`
+- 확신도: 💭 — 셋 다 동작하므로 취향과 탐색 비용의 문제다
+
+| 안 | 모양 | 대가 |
+|---|---|---|
+| **A. 공통 2파일 + mode1 패키지** | `runner/measure.py` · `runner/pipeline.py` · `runner/mode1/{prompts,stages,layers,edges}.py` | 파일 9개. 모든 파일이 400줄 아래로 내려간다 |
+| **B. 공통도 패키지로** | `runner/pipeline/{outcome,stage,transition,driver,measure}.py` + mode1 패키지 | 개념당 파일 하나로 찾기 쉽다. 소비자 3에 파일 5는 거울 함정 위험 |
+| **C. 평면 — 패키지 없이** | `runner/` 아래 형제 모듈만 (`mode1_prompts.py` 등) | `sys.path` 장난이 지금과 똑같아 import 가 가장 덜 바뀐다. `runner/` 가 평평해진다 |
+
+💭 A 를 권한다. B 는 파일 5개를 만들 만큼 개념이 무겁지 않고, C 는 `mode1_` 접두사가
+패키지를 흉내 내는 이름 규약이 된다.
+
+### D8 · `run_mode1.py` 는 파사드로 남는다
+
+- Status: `[제안됨]`
+- 확신도: 🔵 85 — 시험의 참조 횟수가 실측이다
+- 시험 4개(2,011줄)가 `R.plan_stages`(29회) · `R.normalize_usage`(22회) 처럼 모듈
+  최상위 이름을 약 200회 참조한다. 옛 이름을 재수출하면 **시험 파일을 한 줄도 안 고치고**
+  분리할 수 있다
+- 되돌릴 조건: 시험이 새 모듈을 직접 부르도록 옮겨지면 파사드를 지운다
+
+### D9 · `--only` · `--skip` · 재개 거르기는 사전 거르기로 남는다
+
+- Status: `[제안됨]`
+- 확신도: 🟡 75 — 다른 설계도 가능하다
+- 옵션 2 (전이 갈래로 흡수 / 루프 전 사전 거르기로 유지)
+- 지금 `plan_stages` 는 루프 **전에** 목록을 줄인다. 이것을 전이로 바꾸면 "돌지 않은
+  단계" 와 "돌았는데 건너뛴 단계" 가 같은 자리에서 정해져 `--dry-run` 이 무엇을 보여줄지
+  모호해진다. 사전 거르기로 두면 전이표는 **실행 중에 생긴 갈래**만 다룬다
+- 다만 `plan_stages` 자체는 세 벌을 한 벌로 합친다 — 모드별로 다른 것은
+  건너뛸 조건뿐이므로 그 조건만 데이터로 받는다
+
+### D10 · 입력·출력을 `machine/` 의 기존 TypedDict 로 못 박고 경계에서 검증한다
+
+- Status: `[제안됨]`
+- 확신도: 🔵 88 — 스키마가 이미 있다는 것과 검증 선례가 있다는 것 둘 다 실측이다
+- 옵션 3 (지금처럼 `dict[str, Any]` + `.get()` / `cast` 만 붙이기 / **경계에서 검증**)
+
+**스키마를 새로 만들지 않는다.** `machine/` 이 이미 JSON 산출물마다 TypedDict 를 선언해
+두었다 — `codegraph_types.CodeGraph` · `survey_plan.SurveyPlan` · `warmup.Manifest` ·
+`warmup.Entry` · `lang_select.LangSelect` · `declmap.FileDecls` 등. 러너는 **가져다 쓴다.**
+러너가 새로 선언할 것은 러너만 아는 두 개뿐이다(`StageRow` · `WikiPage`, 지금도 그렇다).
+
+**`cast` 는 검증이 아니다.** 지금 `run_mode1.main` 은 디스크에서 읽은 층 계획을
+`cast(survey_plan.SurveyPlan, json.load(f))` 로 받으며 주석에 *"디스크에서 읽은 것이라
+기계가 꼴을 확인할 수 없다"* 고 적어 두었다. `cast` 는 검사기에게 거짓말을 하는 것이라
+꼴이 어긋나면 **엉뚱한 자리에서** 터진다.
+
+**Mode 1.5 에 이미 선례가 있다.** `run_mode1_5.validate_questions` 와 `validate_answers`
+가 바로 이 일을 한다 — 읽은 JSON 이 채점 가능한 꼴인지 보고 불평 목록을 낸다.
+D10 은 그것을 세 모드로 넓히는 것이다.
+
+각 Stage 는 자기가 읽고 쓰는 산출물을 **선언**한다. `emits` 가 갈래의 계약인 것과 같은 자리다.
+
+    class Artifact(Generic[T]):
+        path(ctx)  -> string          # 자리는 ctx 가 정한다. 경로를 박지 않는다
+        schema     -> type[T]         # machine/ 의 TypedDict
+        check(obj) -> [string]        # 불평 목록. 비면 통과
+
+    abstractstage
+        reads  -> [Artifact]          # 없으면 단계를 돌리기 전에 죽는다
+        writes -> [Artifact]          # 돌린 뒤 꼴을 보고 어긋나면 FAIL
+
+    load(artifact, ctx) -> T | None   # cast 를 쓰지 않는다. check 를 통과해야 낸다
+    dump(artifact, ctx, obj: T)       # 쓰기 전에 check
+
+**검증의 깊이는 얕게 못 박는다 — 거울 함정 경계.** 최상위 필수 열쇠가 있는지와 그 열쇠의
+성긴 형(list 인가 dict 인가 int 인가)까지만 본다. 안쪽 원소는 믿는다. 스키마 언어·검증
+데코레이터·JSON Schema 파일을 도입하지 않는다. `validate_questions` 가 지금 하는 깊이가
+그 기준선이다.
+
+**이것이 주는 것 둘.**
+
+1. `--only survey` 처럼 앞칸을 건너뛰고 불러 층 계획이 없을 때, 지금은 `main` 안의
+   `if not os.path.exists(...)` 특례로 막는다. `reads` 선언이 있으면 **드라이버가 공통으로**
+   막고 어느 산출물이 없어서 못 도는지 이름으로 말해 준다
+2. 전이표 완결성 검사(D2)와 같은 자리에서 **산출물 사슬 검사**가 공짜로 생긴다 —
+   어떤 단계의 `reads` 를 앞선 어떤 단계도 `writes` 하지 않으면 시작 전에 죽는다
+
+### 산출물과 스키마 대조표
+
+| 산출물 | 쓰는 단계 | 읽는 단계 | 스키마 |
+|---|---|---|---|
+| `out/codegraph-raw/lang-select.json` | `lang-decide` | `prep` | `machine/lang_select.py` 의 `LangSelect` |
+| `out/codegraph-raw/codegraph.json` | `prep` | `warmup` · `survey-plan` · `terms` | `machine/codegraph_types.py` 의 `CodeGraph` |
+| `out/codegraph-raw/survey-plan.json` | `survey-plan` | `survey` · `wiki` | `machine/survey_plan.py` 의 `SurveyPlan` |
+| warmup 매니페스트 | `warmup-save` | `warmup` | `machine/warmup.py` 의 `Manifest` |
+| `docs/codegraph/terms-reading.json` | `survey` | `terms` | 러너의 `Records` (레코드 칸은 배치 세션이 정하므로 못 박지 않는다) |
+| `out/codegraph-raw/wiki-plan.json` | `wiki`(목차) | `wiki`(장) | 러너의 `WikiPage` 목록 |
+| `term-candidates.json` | `collect` | `grade` | Mode 1.5 — 러너가 선언 |
+| `questions.json` · `answer-sheet.json` · `answers.json` | 스킬 / `collect` | `grade` | **이미 `validate_questions` · `validate_answers` 가 있다** |
+| `term-grades.json` | `grade` | `emit` | Mode 1.5 — 러너가 선언 |
+
+`Records` 를 못 박지 않는 이유는 지금 코드가 적어 둔 그대로다 — 레코드의 칸은 배치 세션이
+채우므로 러너가 정하지 않는다. **바깥 프로그램이 꼴을 정하는 것은 못 박지 않는다**
+(`AgentResult` 도 같은 이유로 `dict[str, Any]` 다).
+
+## 설계
+
+### 형과 클래스
+
+    Outcome                       # perform() 의 반환. Stage 는 상태를 갖지 않는다 (D2)
+        kind   -> int             # OK | FAIL | SKIP | GATE  (정확히 하나)
+        why    -> string
+        rows   -> [StageRow]      # 세션 N개면 N행. 기계 단계는 1행
+
+    RunContext                    # 드라이버가 소유한다 (D5). 자루(bag)를 두지 않는다
+        root, model, timeout
+    Mode1Context : RunContext     # 모드마다 자기 것. 칸마다 이름과 형이 있다
+        repo, concurrency, target, hops
+        targets      -> [string] | None
+        entries      -> warmup.Manifest | None
+        warmup_cache -> string | None
+        tracked_n    -> int
+        plan         -> survey_plan.SurveyPlan | None
+
+    Artifact[T]                   # 단계가 읽고 쓰는 JSON 하나 (D10)
+        path(ctx)  -> string
+        schema     -> type[T]     # machine/ 의 기존 TypedDict
+        check(obj) -> [string]    # 얕은 검증. 불평 목록
+
+    abstractstage[C]              # C = 그 모드의 Context 형. 형 인자는 하나뿐이다
+        name             -> string
+        emits            -> int   # 낼 수 있는 갈래의 비트합. 선언이지 상태가 아니다
+        reads            -> [Artifact]   # 없으면 돌리기 전에 죽는다 (D10)
+        writes           -> [Artifact]   # 돌린 뒤 꼴이 어긋나면 FAIL
+        perform(ctx: C)  -> Outcome
+
+    rulebasestage : abstractstage
+        argv(ctx)        : virtual -> [string]
+        cwd(ctx)         : virtual -> string          # Mode 2 는 단계마다 다르다
+        perform(ctx)     : 재정의 금지                 # 자식 프로세스 + 토큰 0 + 1행
+
+    llmstage : abstractstage                          # (D3)
+        rounds(ctx)                  : virtual -> int  # 1 또는 층 수
+        jobs(ctx, round)             : virtual -> [(라벨, 프롬프트)]
+        harvest(ctx, results, round) : virtual -> Outcome
+        perform(ctx)     : 재정의 금지                 # round 마다 run_layer + harvest
+
+    Edges                         # 파이프라인 밖 (D1). Stage 는 자기 다음을 모른다
+        (stage_name, kind) -> dest_name | HALT | NEXT
+        validate(stages)          # emits 비트가 섰는데 행이 없으면 시작 전에 죽는다
+
+    pipeline[C]                   # 가상 함수 아님 (D6). mode 는 데이터만 넘긴다
+        stages -> {name: abstractstage[C]}    # 이름으로 점프하므로 사전이다
+        edges  -> Edges
+        validate()                # 전이표 완결성(D2) + 산출물 사슬(D10). 시작 전에 죽인다
+        run(ctx: C) -> [StageRow]
+            cur = first
+            while cur:
+                out = stages[cur].perform(ctx)
+                rows += out.rows
+                cur = edges.resolve(cur, out.kind)
+
+### Before / After — Mode 1 의 흐름
+
+**Before** — 단계 10개. 실패는 전부 한 갈래(`break`)로 흡수되고, 언어 선택의 폴백은
+`run_lang_select` 안의 `try/except` 에 숨어 있다.
+
+    lang-select ─▶ prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save
+      └ (내부 try/except 폴백)                                    │
+                                                          terms ─▶ wiki ─▶ build ─▶ check
+
+    실패하면: break — 어느 단계든 같다
+
+**After** — 단계 11개. 언어 선택의 폴백이 전이표의 한 줄로 드러난다.
+
+    lang-propose ─▶ lang-decide ─▶ prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save
+         │              ▲                                                          │
+         └── FAIL ──────┘  (전이표 한 줄)                                            │
+                                                          terms ─▶ wiki ─▶ build ─▶ check
+
+    MODE1_EDGES = {
+        ('lang-propose', FAIL): 'lang-decide',    # 제안 없이 파일 수만으로 고른다
+        ('survey',       SKIP): 'warmup-save',    # 바뀐 파일 0개
+        ('*',            FAIL): HALT,             # 나머지는 지금과 같다
+    }
+
+Graphviz 판(`docs/diagrams/`)은 구현 단계에서 그린다 — 지금은 흐름이 확정되지 않았다.
+
+### 갈래 넷이 어디서 왔는지
+
+새 어휘를 지어내지 않았다. 넷 다 지금 코드에 있는 것에 이름만 붙였다.
+
+| 갈래 | 지금 코드 | 어디 |
+|---|---|---|
+| `OK` | `rows.append(ok=True)` 뒤 계속 | 세 실행기 전부 |
+| `FAIL` | `break` + `"막힘 —"` | 세 실행기 전부 |
+| `SKIP` | `continue` + `skipped: True` | `run_mode1.main` 의 `survey` (바뀐 파일 0개) |
+| `GATE` | 루프 밖 `gate` — 실패가 아닌데 멈춘다 | `run_mode1_5.main` 의 사람 관문 |
+
+## 범위 밖 — 이번에 하지 않는 것
+
+- **`runner/wiki/` 와 `runner/term/` 은 손대지 않는다.** 자식 프로세스로 불리는 얼갈이
+  단계이고, 이 작업은 부르는 쪽만 바꾼다
+- **새 갈래를 만들지 않는다.** 위 표의 넷 고정. 좋은 아이디어가 나와도 기록만 하고 보고한다
+- **Cascade 분기를 실제로 배선하지 않는다.** D4 의 Fall-Back 한 줄만 넣는다.
+  나머지 전이표는 지금 동작과 1:1로 같은 값을 적는다 — 구조 변경과 동작 변경을 섞지 않는다
+- **`machine/` 과 `viz/` 는 소유하지 않는다** (`runner/CLAUDE.md` 의 Owns 절).
+  스키마도 새로 선언하지 않고 거기 있는 TypedDict 를 가져다 쓴다
+- **스키마 언어를 도입하지 않는다.** JSON Schema 파일 · pydantic · 검증 데코레이터 ·
+  스키마 등록기를 만들지 않는다. `check` 는 손으로 쓴 얕은 함수다 (D10)
+- **형 인자를 하나 넘게 만들지 않는다.** `Stage[C]` 의 `C` 하나뿐이다. `Outcome` 이나
+  `Artifact` 의 반환형까지 파이프라인 서명에 끌어올리지 않는다
+
+## 위험
+
+- **거울 함정.** 과잉 설계를 잡는 도구를 만들며 그 도구를 과잉 설계하는 것.
+  경계선을 미리 긋는다 — 갈래는 넷 고정, 계층 상태(hierarchical state)·가드 함수·
+  이벤트 큐·플러그인 등록기를 만들지 않는다. 그런 것이 나오면 그 자체가 이 작업이
+  잡으려던 실패다
+- **동작 변경이 섞여 들어가는 것.** 전이표의 값이 지금 동작과 다르면 리팩터링이 아니다.
+  게이트가 이것을 잡는다 — 시험 483개가 그대로 통과해야 한다
+- **D0 이 실측이 아니라 의도에 기반한다.** Fall-Back·Cascade 는 아직 소비자가 D4 하나다.
+  D4 를 넣고도 두 번째 소비자가 오래 안 생기면 전이표는 `if/elif` 보다 무거운 채로 남는다
+
+## 완료 조건 — 게이트 일곱이 전부 초록
+
+리팩터링이므로 **숫자가 그대로여야 한다.**
+
+| 게이트 | 명령 | 지금 |
+|---|---|---|
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 483 통과 · 19 건너뜀 |
+| JS 시험 | `npm test` | 8 통과 |
+| TS 타입 | `npm run typecheck` | 통과 |
+| 파이썬 타입 | `npm run typecheck:py` | 0 errors |
+| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | 문제 0건 |
+| README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` | 4개 일치 |
+| 환경 | `npm run doctor` | 필수 전부 있다 |
+
+추가로 세 가지를 눈으로 확인한다.
+
+1. **import 부작용이 사라졌는지** — 시스템 파이썬으로 `run_mode2` 를 import 했을 때
+   `sys.prefix` 가 안 바뀌고 `networkx` 가 안 실린다
+2. **`--dry-run` 출력이 세 모드 모두 이전과 같은지**
+3. **`runner/CLAUDE.md` 와 `runner/README.md` 가 새 구조를 가리키는지** —
+   `gen_readme.py` 게이트가 README 는 잡지만 `CLAUDE.md` 는 안 잡는다. 손으로 고친다
+4. **`cast` 가 줄었는지** — `grep -rn "cast(" runner/` 가 D10 이 덮는 산출물 자리에서
+   0건이어야 한다. 지금 `run_mode1.main` 의 층 계획 읽기가 그 자리다
