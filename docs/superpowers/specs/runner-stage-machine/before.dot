@@ -1,0 +1,29 @@
+digraph before {
+  rankdir=TB; bgcolor="transparent"; compound=true;
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=11 color="#b9c0cc" fillcolor="#f4f6f9"];
+  edge [color="#8a93a3" fontname="Helvetica" fontsize=9];
+
+  subgraph cluster_m1 { label="run_mode1.py  (1,391줄)"; style=dashed; color="#d2a03c"; fontsize=10;
+    m1loop [label="main() — for stage in stages\nif/elif 78줄" fillcolor="#fdf3e0" color="#d2a03c"];
+    m1plan [label="plan_stages()" fillcolor="#fdf3e0" color="#d2a03c"];
+    m1meas [label="재는 코드 9개\nhms · format_report · Heartbeat\nnormalize_usage · agent_verdict …" fillcolor="#dce6f7" color="#8fa4d4"];
+    m1boot [label="_bootstrap_venv()\nimport survey_plan → networkx" fillcolor="#f7dcdc" color="#d9534f"];
+    m1var  [label="지역 변수 5개가 단계 사이를 건너다닌다\ntargets · entries · warmup_cache\ntracked_n · plan_json" fillcolor="#f7dcdc" color="#d9534f" shape=note];
+  }
+
+  subgraph cluster_m15 { label="run_mode1_5.py"; style=dashed; color="#b9c0cc"; fontsize=10;
+    m15loop [label="main() — for stage in stages\n(같은 모양, 다른 사본)" fillcolor="#fdf3e0" color="#d2a03c"];
+    m15plan [label="plan_stages()  (사본 2)" fillcolor="#fdf3e0" color="#d2a03c"];
+  }
+
+  subgraph cluster_m2 { label="run_mode2.py"; style=dashed; color="#b9c0cc"; fontsize=10;
+    m2loop [label="main() — for stage in stages\n(같은 모양, 다른 사본)" fillcolor="#fdf3e0" color="#d2a03c"];
+    m2plan [label="plan_stages()  (사본 3)" fillcolor="#fdf3e0" color="#d2a03c"];
+  }
+
+  m1loop -> m1var [style=dotted arrowhead=none];
+
+  m15loop -> m1meas [label="import run_mode1" color="#d9534f" fontcolor="#d9534f"];
+  m2loop  -> m1meas [label="import run_mode1" color="#d9534f" fontcolor="#d9534f"];
+  m1meas  -> m1boot [label="같은 파일이라 딸려 온다" style=dashed color="#d9534f" fontcolor="#d9534f"];
+}

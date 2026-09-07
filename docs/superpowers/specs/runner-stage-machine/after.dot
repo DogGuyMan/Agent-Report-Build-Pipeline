@@ -1,0 +1,34 @@
+digraph after {
+  rankdir=TB; bgcolor="transparent"; compound=true;
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=11 color="#b9c0cc" fillcolor="#f4f6f9"];
+  edge [color="#8a93a3" fontname="Helvetica" fontsize=9];
+
+  subgraph cluster_core { label="공통축 — 한 벌만 있다"; style=dashed; color="#6aa06f"; fontsize=10;
+    drive [label="pipeline.run()\nwhile cur: perform → edges.resolve\n가상 함수 아님 (D6)" fillcolor="#e3efe4" color="#6aa06f"];
+    plan  [label="plan_stages()  (한 벌)\n건너뛸 조건만 데이터로 받는다 (D9)" fillcolor="#e3efe4" color="#6aa06f"];
+    meas  [label="measure — 재는 코드 9개\nmachine/ 을 import 하지 않는다" fillcolor="#dce6f7" color="#8fa4d4"];
+    stage [label="abstractstage[C]\nemits · reads · writes · perform(ctx)" fillcolor="#e3efe4" color="#6aa06f"];
+    llm   [label="llmstage\nrounds · jobs · harvest (D3)" fillcolor="#e6dcf7" color="#9a7fd4"];
+    rule  [label="rulebasestage\nargv · cwd" fillcolor="#e3efe4" color="#6aa06f"];
+    art   [label="Artifact[T] + load/dump\nmachine/ 의 TypedDict 로 경계 검증 (D10)" fillcolor="#dce6f7" color="#8fa4d4"];
+    ctx   [label="Mode1Context (dataclass)\n칸마다 이름과 형이 있다 — 자루 없음 (D5)" fillcolor="#dce6f7" color="#8fa4d4"];
+  }
+
+  stage -> llm  [dir=back arrowtail=onormal arrowhead=none];
+  stage -> rule [dir=back arrowtail=onormal arrowhead=none];
+  drive -> stage [label="perform(ctx)"];
+  drive -> meas  [label="StageRow 를 쌓는다" style=dashed];
+  stage -> art   [label="reads / writes" style=dashed];
+  drive -> ctx   [label="소유한다" style=dashed];
+
+  e1 [label="MODE1_EDGES\n('lang-propose', FAIL) → 'lang-decide'" shape=note fillcolor="#fdf3e0" color="#d2a03c"];
+  e2 [label="MODE1_5_EDGES\n(…, GATE) → HALT" shape=note fillcolor="#fdf3e0" color="#d2a03c"];
+  e3 [label="MODE2_EDGES" shape=note fillcolor="#fdf3e0" color="#d2a03c"];
+
+  m1  [label="run_mode1.py\nmain + argparse + 단계 목록"];
+  m15 [label="run_mode1_5.py"];
+  m2  [label="run_mode2.py"];
+
+  m1 -> e1 [style=dotted arrowhead=none]; m15 -> e2 [style=dotted arrowhead=none]; m2 -> e3 [style=dotted arrowhead=none];
+  e1 -> drive; e2 -> drive; e3 -> drive;
+}

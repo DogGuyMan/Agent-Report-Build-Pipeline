@@ -80,6 +80,7 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 2. **착지점을 정하는 자리** — D1 에서 결정 (사용자 선택)
 3. **`lang-select` 의 혼합 성격 처리** — D4 에서 결정 (사용자 선택)
 4. **모듈 경계** — D7. **미결.** 아래에 옵션 3개를 두고 사용자 판정을 기다린다
+5. **경계의 형 엄격도** — D10·D11 에서 결정 (사용자 요구)
 
 ## Decision Log
 
@@ -96,6 +97,7 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 | D8 | `run_mode1.py` 는 옛 이름을 재수출하는 파사드로 남는다 | `[제안됨]` | 🔵 85 |
 | D9 | `--only` · `--skip` · 재개 거르기는 전이가 아니라 사전 거르기로 남는다 | `[제안됨]` | 🟡 75 |
 | D10 | 단계의 입력·출력은 `machine/` 의 기존 TypedDict 로 못 박고 경계에서 검증한다 | `[제안됨]` | 🔵 88 |
+| D11 | `Any` 를 러너에서 **완전히 없애고** `object` + 좁히기로 바꾼다. 게이트로 강제한다 | `[제안됨]` | 🔵 92 |
 
 ### D0 · 공통축은 `Stage` 기반 클래스 + 교체 가능한 착지점 (Option A)
 
@@ -280,6 +282,83 @@ D10 은 그것을 세 모드로 넓히는 것이다.
 2. 전이표 완결성 검사(D2)와 같은 자리에서 **산출물 사슬 검사**가 공짜로 생긴다 —
    어떤 단계의 `reads` 를 앞선 어떤 단계도 `writes` 하지 않으면 시작 전에 죽는다
 
+### D11 · `Any` 를 러너에서 완전히 없앤다 — `object` + 좁히기 사다리
+
+- Status: `[제안됨]`
+- 확신도: 🔵 92 — 이번 세션에 탐침을 짜서 `pyright` 로 실제로 돌려 봤다
+- 옵션 3 (지금대로 `Any` 허용 / `Any` 를 줄이되 경계에만 남기기 / **완전히 없애고 게이트로 막기**)
+- 사용자 요구: *"Stage 경계마다도 인풋, 리턴 JSON 스키마가 엄격하게 달라야 한다. 똑같은
+  JSON 문자열을 주고받더라도 직렬화·역직렬화에서는 반드시 엄격한 타입을 가지고 `Any` 를
+  일절 쓰지 않도록. 파이썬 컴파일러를 통해서도 잡을 수 있도록."*
+
+**실측 ① — `pyright strict` 는 명시적 `Any` 를 잡지 못한다.**
+
+    def read_any(path: str) -> Any: ...
+    def use_any(path: str) -> int:
+        d = read_any(path)
+        return d["layers"][0].nope     # ← 오류 0건. 조용히 통과한다
+
+`pyrightconfig.json` 에 `reportExplicitAny` 와 `reportAny` 를 넣어도 pyright 1.1.413 은
+**그 설정을 무시한다**(오류 수가 5로 그대로였다). 그 둘은 basedpyright 의 규칙이다.
+`strict` 가 잡는 것은 `Unknown` 의 **전파**이지 저자가 손으로 적은 `Any` 가 아니다.
+
+**실측 ② — `object` 로 받으면 검사기가 실제로 잡는다.**
+
+    def read_obj(path: str) -> object: ...
+    def use_obj(path: str) -> int:
+        d = read_obj(path)
+        return d["layers"]             # ← error: "__getitem__" 이 "object" 에 없다
+
+**실측 ③ — `isinstance(v, dict)` 하나로는 부족하다.** 그렇게 좁히면 `dict[Unknown, Unknown]`
+이 되어 `.get()` 이 다시 `reportUnknownMemberType` 으로 걸린다. 열쇠와 값의 형까지 좁혀야 한다.
+
+**실측 ④ — `Any` 0개로 `pyright strict` 0 오류가 실제로 가능하다.** 아래 모양을 짜서 통과시켰다.
+
+    def is_map(v: object) -> TypeIs[dict[str, object]]:
+        if not isinstance(v, dict):
+            return False
+        keys = cast(dict[object, object], v).keys()
+        return all(isinstance(k, str) for k in keys)
+
+    def read_json(path: str) -> object:
+        with open(path, encoding="utf-8") as f:
+            return cast(object, json.load(f))     # json.load 의 Any 를 막는 유일한 자리
+
+    def parse_plan(raw: object) -> tuple[Plan | None, list[str]]:
+        if not is_map(raw):
+            return None, ["최상위가 객체가 아니다"]
+        target = raw.get("target")                # target: object
+        ...                                       # isinstance 로 하나씩 좁힌다
+
+**`cast` 두 종류를 갈라야 한다.** D10 이 거부한 `cast` 와 여기 쓰는 `cast` 는 다른 것이다.
+
+| 쓰는 `cast` | 무엇을 주장하나 | 판정 |
+|---|---|---|
+| `cast(SurveyPlan, json.load(f))` | 안 본 값이 깊은 스키마와 같다고 **주장한다** | 거부 (D10) |
+| `cast(dict[object, object], v)` | `isinstance` 가 이미 증명한 것에 "값은 object" 를 더한다 | 허용 — 항상 참인 문장이다 |
+| `cast(object, json.load(f))` | `Any` 를 `object` 로 **좁힌다**. 넓히지 않는다 | 허용 — `Any` 를 막는 자리다 |
+
+**`Any` 를 정말 못 쓰는 자리는 어떻게 하나.** 바깥 프로그램이 꼴을 정하는 둘(`AgentResult`
+— `claude -p` 가 내는 JSON, `Records` — 배치 세션이 칸을 채우는 레코드)도 예외가 아니다.
+`dict[str, Any]` 대신 **`dict[str, object]`** 로 적고 꺼내 쓰는 자리에서 `isinstance` 로
+좁힌다. 모양을 못 박지 못하는 것과 `Any` 를 쓰는 것은 다른 문제다 —
+전자는 스키마의 문제이고 후자는 검사를 끄는 것이다.
+
+**강제는 게이트로 한다.** pyright 가 못 잡으므로 시험 하나를 더한다.
+
+    # test/test_no_any.py
+    grep -rn "\bAny\b" runner/**.py   →  형 자리에 나오면 실패
+
+**지금 얼마나 있나 (🔵 실측).** 러너의 `Any` 는 **24곳**이다 —
+`run_mode1_5.py` 20 · `run_mode1.py` 4. 여기에 `runner/term/quiz.py` 와
+`runner/wiki/check.py` 가 더 있으나 그 둘은 범위 밖이다(얼갈이 단계).
+`run_mode2.py` 와 `run_grade.py` 는 이미 0이다.
+
+**각 구체 단계가 자기 직렬화 모듈을 갖는다.** 단계 A 와 단계 B 가 같은 JSON 문자열을
+주고받더라도, A 의 `writes` 스키마와 B 의 `reads` 스키마는 **각각 따로 선언한다.**
+한쪽을 고치면 다른 쪽이 검사기에서 깨져야 하기 때문이다. 공용 "만능 파서" 를 두면
+그 깨짐이 사라진다.
+
 ### 산출물과 스키마 대조표
 
 | 산출물 | 쓰는 단계 | 읽는 단계 | 스키마 |
@@ -294,9 +373,9 @@ D10 은 그것을 세 모드로 넓히는 것이다.
 | `questions.json` · `answer-sheet.json` · `answers.json` | 스킬 / `collect` | `grade` | **이미 `validate_questions` · `validate_answers` 가 있다** |
 | `term-grades.json` | `grade` | `emit` | Mode 1.5 — 러너가 선언 |
 
-`Records` 를 못 박지 않는 이유는 지금 코드가 적어 둔 그대로다 — 레코드의 칸은 배치 세션이
-채우므로 러너가 정하지 않는다. **바깥 프로그램이 꼴을 정하는 것은 못 박지 않는다**
-(`AgentResult` 도 같은 이유로 `dict[str, Any]` 다).
+`Records` 의 **안쪽 칸**은 못 박지 않는다 — 배치 세션이 채우므로 러너가 정하지 않는다.
+`AgentResult`(`claude -p` 의 출력)도 같다. **그러나 그것이 `Any` 를 쓸 이유는 아니다** —
+둘 다 `dict[str, object]` 로 적고 꺼내 쓰는 자리에서 좁힌다 (D11).
 
 ## 설계
 
@@ -405,6 +484,10 @@ Graphviz 판(`docs/diagrams/`)은 구현 단계에서 그린다 — 지금은 �
   스키마 등록기를 만들지 않는다. `check` 는 손으로 쓴 얕은 함수다 (D10)
 - **형 인자를 하나 넘게 만들지 않는다.** `Stage[C]` 의 `C` 하나뿐이다. `Outcome` 이나
   `Artifact` 의 반환형까지 파이프라인 서명에 끌어올리지 않는다
+- **`runner/term/` 과 `runner/wiki/` 의 `Any` 는 이번에 없애지 않는다** (D11). 얼갈이
+  단계라 범위 밖이다. 세 실행기와 공통축만 0으로 만든다
+- **basedpyright 로 갈아타지 않는다.** 검사기를 바꾸는 것은 이 작업의 범위가 아니다.
+  `Any` 금지는 grep 게이트로 막는다 (D11)
 
 ## 위험
 
@@ -438,5 +521,7 @@ Graphviz 판(`docs/diagrams/`)은 구현 단계에서 그린다 — 지금은 �
 2. **`--dry-run` 출력이 세 모드 모두 이전과 같은지**
 3. **`runner/CLAUDE.md` 와 `runner/README.md` 가 새 구조를 가리키는지** —
    `gen_readme.py` 게이트가 README 는 잡지만 `CLAUDE.md` 는 안 잡는다. 손으로 고친다
-4. **`cast` 가 줄었는지** — `grep -rn "cast(" runner/` 가 D10 이 덮는 산출물 자리에서
-   0건이어야 한다. 지금 `run_mode1.main` 의 층 계획 읽기가 그 자리다
+4. **`cast` 가 줄었는지** — 스키마를 **주장하는** `cast` 가 0건이어야 한다.
+   `isinstance` 뒤에 붙는 좁히기 `cast` 는 남는다 (D11 의 표)
+5. **`Any` 가 0인지** — 새 게이트 `test/test_no_any.py` 가 세 실행기와 공통축에서
+   형 자리의 `Any` 를 0으로 확인한다. 지금 24곳이다
