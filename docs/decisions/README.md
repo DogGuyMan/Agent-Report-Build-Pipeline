@@ -11,6 +11,7 @@
 | [0004](0004-d-axis-on-hold.md) | D축을 평가 없이 보류 | 보류 | 0002 가 게이트였다. `viz/src/types.ts` 에 필드를 넣지 않는다 |
 | [0005](0005-rejected-proposals.md) | 기각안과 부활 트리거 | 유효 | Vite · panzoom · Tailwind 등. 조건부다 |
 | [0006](0006-yellow-decisions-without-option-tables.md) | 🟡 결정의 빈 옵션표 | 확정 | 없는 대안을 지어내지 않고 보고만 한다 |
+| [0007](0007-xmldoc-include-deprecated.md) | `# <include …/>` 주석 주입 | **폐지 예정** | 지우지 않되 **새 코드에 새로 심지 않는다.** 대체안은 미정 |
 
 ## 새 기록을 더하는 법
 

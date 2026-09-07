@@ -64,7 +64,7 @@ export default function Report() {
             "💭 전이표를 밖에 두면 단계만 읽어서는 다음이 어딘지 모른다. 흐름 전체가 한 화면에 모이는 대신 두 곳을 봐야 한다.",
             "💭 D12(비순환 고정)의 근거는 사용자가 고른 이름이지 실측이 아니다. 다만 지금 세 실행기에 재시도 폴백은 한 건도 없어서, 지금 잃는 것은 없다.",
             "💭 시뮬레이터가 손 검토보다 나은 유일한 이유는 산출물 사슬 검사다. 갈림길이 생기면 \"앞 단계가 썼나\" 가 경로마다 달라진다.",
-            "💭 D15 는 수집기가 부분 수집을 지원하는지 아직 재지 않았다. clang-uml 과 roslyn-dump 가 파일 목록을 받는지 확인하기 전에는 --force 플래그가 안전하다.",
+            "💭 D15 는 채택됐지만 수집기가 부분 수집을 지원하는지 아직 재지 않았다. clang-uml 과 roslyn-dump 가 파일 목록을 받는지 확인하는 것이 구현의 첫 걸음이다.",
           ]}
         />
       </Section>
@@ -133,12 +133,30 @@ export default function Report() {
         />
       </Section>
 
-      <Section title="D3 · llmstage 의 가상 훅은 셋">
+      <Section title="D3 · llmstage 의 훅은 다섯이고 넷은 기본값이 있다">
+        <Reversal
+          rev="D3"
+          previous="가상 훅 셋 — rounds · jobs · harvest. 세 LLM 단계가 호출 횟수·병렬·거두기까지 다르다는 것이 근거였다"
+          now="훅 다섯 중 필수는 prompt 하나. model · rounds · jobs · harvest 는 기본값이 있어 단일 호출 단계는 하나만 구현한다"
+          reason="앞선 판은 세 LLM 단계를 Mode 1 만 보고 셌다. Mode 2 와 Mode 1.5 를 함께 재니 LLM 다섯 중 셋이 단일 호출이었다. 훅 셋을 강제하면 그 셋이 rounds()->1 과 목록 감싸기를 군더더기로 쓴다."
+        />
         <OptionTable
           columns={["안", "가상 훅", "판정 · 출처"]}
           rows={[
-            { cells: ["프롬프트 훅 하나", "getabstract_llm_prompt() → 문자열", "기각 — 원본 pseudo code 의 안. 세 LLM 단계가 호출 횟수·병렬·거두기까지 다르다"], recommended: false },
-            { cells: ["훅 셋", "rounds · jobs · harvest", "권고 — 층별 병렬 실행 코드가 한 벌만 남는다"], recommended: true },
+            { cells: ["프롬프트 훅 하나", "prompt 만", "기각 — 원본 pseudo code 의 안. 층별 병렬을 못 담는다"], recommended: false },
+            { cells: ["훅 셋", "rounds · jobs · harvest", "번복됨 — 앞선 판. 단일 호출 셋에 군더더기가 붙는다"], recommended: false },
+            { cells: ["두 클래스로 가르기", "SingleAgentStage 와 FanoutAgentStage", "기각 — 계층이 3단이 되고, 팬아웃이 단일의 일반화라 가를 경계가 없다"], recommended: false },
+            { cells: ["훅 다섯 + 기본값 넷", "prompt(필수) · model · rounds · jobs · harvest", "권고 — 단일 호출은 훅 하나로 끝난다"], recommended: true },
+          ]}
+        />
+        <OptionTable
+          columns={["LLM 을 부르는 자리", "세션 수", "병렬", "구현하는 훅"]}
+          rows={[
+            { cells: ["mode2-agent · wiki-catalogue", "1", "—", "prompt"], recommended: false },
+            { cells: ["lang-propose", "1", "—", "prompt · model (싼 모형 고정)"], recommended: false },
+            { cells: ["wiki-pages", "층마다 N", "동시 8", "rounds · jobs"], recommended: false },
+            { cells: ["survey", "층마다 N", "동시 8", "rounds · jobs · harvest"], recommended: true },
+            { cells: ["기계 단계 13개 (세 모드 전부)", "자식 1", "0건", "— (llmstage 가 아니다)"], recommended: false },
           ]}
         />
       </Section>
@@ -243,12 +261,39 @@ export default function Report() {
         />
       </Section>
 
-      <Section title="D12 · 그래프는 비순환(DAG)이다">
+      <Section title="D12 · 그래프는 비순환이고, 재시도는 재개 JSON 으로 한다">
+        <Reversal
+          rev="D12"
+          previous="비순환이므로 되돌아가는 재시도 폴백을 만들 수 없다. 다시 하려면 사람이 명령을 다시 돌린다"
+          now="그래프는 여전히 비순환이다. 실패하면 재개 JSON 을 남기고, 팩토리가 그것을 입력으로 받아 멈춘 자리부터 시작하는 더 작은 그래프를 짓는다"
+          reason="앞선 판은 재시도가 프로세스 안의 순환이어야 한다고 전제했다. 재시도를 프로세스 경계 밖으로 내보내면 순환 없이 된다. 계획 파일이 자기 범위를 실어 경계를 넘는 것(D14)과 같은 수법이다."
+        />
         <OptionTable
-          columns={["안", "무엇", "대가 · 판정"]}
+          columns={["안", "재시도를 어떻게 하나", "판정 · 출처"]}
           rows={[
-            { cells: ["비순환 고정", "되돌아가는 간선을 팩토리가 거부한다", "권고 — 사용자가 고른 이름(StageDagGraph)이 그 뜻이다. 재시도 폴백을 못 만든다"], recommended: true },
-            { cells: ["순환 허용 + 방문 횟수 상한", "실패한 단계로 되돌아가 다시 시도할 수 있다", "미검토 — 이 보고서가 추가. 순환을 허용하면 종료 검사가 성립하지 않는다"], recommended: false },
+            { cells: ["비순환 고정 + 재시도 포기", "사람이 처음부터 다시 돌린다", "번복됨 — 앞선 판"], recommended: false },
+            { cells: ["순환 허용 + 방문 횟수 상한", "실패한 단계로 되돌아간다", "기각 — 순환을 허용하면 종료 검사가 성립하지 않는다"], recommended: false },
+            { cells: ["비순환 + 재개 JSON", "다음 실행이 그 파일을 읽고 멈춘 자리부터", "채택 (D12) — 사용자 지시"], recommended: true },
+          ]}
+        />
+        <EvidenceNote
+          measured={[
+            "지금 세 실행기에 재시도 폴백은 한 건도 없다. 실패는 전부 멈춤 한 갈래로 흡수된다.",
+            "배치 수준의 재개 장치는 이미 있다 — 조사 단계가 조각 파일이 있는 배치를 건너뛴다. 다만 인계 문서 결함 ③ 때문에 그 건너뛰기는 신뢰할 수 없다.",
+          ]}
+          judged={[
+            "💭 재개 JSON 은 자동 재시도가 아니다. 사용자가 짚은 대로 실패의 원인이 설계와 프롬프트에 있다면, 같은 프롬프트로 다시 돌려도 같은 자리에서 또 실패한다. why 칸은 사람이 읽으라고 있다.",
+            "💭 그래서 resume.json 은 단계 수준만 담는다. 배치 수준 재개는 ③이 고쳐진 뒤에 얹는다.",
+          ]}
+        />
+      </Section>
+
+      <Section title="D16 · wiki 를 wiki-catalogue + wiki-pages 로 쪼갠다">
+        <OptionTable
+          columns={["안", "무엇", "판정 · 출처"]}
+          rows={[
+            { cells: ["한 단계로 둔다", "목차와 장 쓰기가 한 함수 안에", "기각 — 목차가 낸 파일을 장이 읽는다는 의존이 함수 안에 숨는다"], recommended: false },
+            { cells: ["두 단계로 쪼갠다", "D4 와 같은 패턴", "권고 — writes 선언이 손으로 쓴 산출물 검사를 대신하고, 산출물 사슬 검사의 대상이 된다"], recommended: true },
           ]}
         />
       </Section>
@@ -290,8 +335,8 @@ export default function Report() {
           columns={["안", "무엇", "대가 · 판정"]}
           rows={[
             { cells: ["지금대로 파일 존재로", "코드 지도가 있으면 수집기를 건너뛴다", "기각 — 지도가 낡은 채 남고, 다시 수집하려면 손으로 파일을 지워야 한다"], recommended: false },
-            { cells: ["--force 플래그만 더한다", "전량 그래프가 강제 재수집을 부른다", "💭 미결 — 싸지만 두 판정자가 여전히 둘로 남는다. 부분 수집을 못 재봤으면 이쪽이 안전하다"], recommended: false },
-            { cells: ["targets 를 받는다", "증분 그래프가 바뀐 파일 목록을 넘긴다", "💭 미결 — 판정이 하나로 합쳐진다. 얼갈이 경계를 한 파일만큼 연다"], recommended: true },
+            { cells: ["--force 플래그만 더한다", "전량 그래프가 강제 재수집을 부른다", "기각 — 두 판정자가 여전히 둘로 남는다"], recommended: false },
+            { cells: ["targets 를 받는다", "증분 그래프가 바뀐 파일 목록을 넘긴다", "채택 (D15) — 사용자 선택. 얼갈이 경계를 한 파일만큼 연다"], recommended: true },
           ]}
         />
       </Section>

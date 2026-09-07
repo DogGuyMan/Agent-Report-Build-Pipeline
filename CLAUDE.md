@@ -313,6 +313,7 @@ Track A 대상은 `confidence-and-sourcing`,
 - N값(지연 승격 커밋 수) — 근거 없는 임의값 금지
 - D 점수 구간 경계 — A1 취소로 판단 근거가 사라졌다. D축을 되살릴 때 함께 정한다
 - `[잠정됨]` 이라는 이름과 그 적용 범위
+- `# <include …/>` 를 **무엇으로 대체할지**(0007). 표시만 해 두었고 이주안은 비어 있다
 - `data.ts` 의 D축 필드 포함 여부 (D축 자체가 보류라 함께 잠겨 있다)
 
 **해소됨:** "콘솔 에러 0건" 검사는 넣지 않기로 확정(2026-08-28) — `<script>` 0개라 잡을 것이 없다.
@@ -364,4 +365,7 @@ Track A 대상은 `confidence-and-sourcing`,
 
 모듈·클래스·함수의 목록과 역할은 각 디렉토리의 `README.md` 에 둔다.
 `# <include …/>` 블록은 `machine/xmldoc.py` 가 자동 주입하는 것이라 손대지 않는다.
+
+⚠ **`# <include …/>` 는 폐지 예정이다**([`docs/decisions/0007`](docs/decisions/0007-xmldoc-include-deprecated.md)).
+있는 것은 그대로 두되 **새 코드에 새로 심지 않는다.** 대체 마크업은 미정이다.
 - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).
