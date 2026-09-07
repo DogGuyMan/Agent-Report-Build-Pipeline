@@ -29,6 +29,13 @@ digraph after {
   m15 [label="run_mode1_5.py"];
   m2  [label="run_mode2.py"];
 
+  fac [label="build_graph(ctx, only, skip)\n진입점에서 부른다 (D9)" fillcolor="#e3efe4" color="#6aa06f"];
+  sim [label="simulate() — 아무것도 실행하지 않는다\n완결성 · 도달성 · 산출물 사슬\n· 종료 · 비순환 (D9 · D12)" fillcolor="#dce6f7" color="#8fa4d4"];
+  dag [label="StageDagGraph\n보장된 흐름. --dry-run 이 이것을 찍는다" fillcolor="#e3efe4" color="#6aa06f"];
+
   m1 -> e1 [style=dotted arrowhead=none]; m15 -> e2 [style=dotted arrowhead=none]; m2 -> e3 [style=dotted arrowhead=none];
-  e1 -> drive; e2 -> drive; e3 -> drive;
+  e1 -> fac; e2 -> fac; e3 -> fac;
+  fac -> sim [label="보장을 요청한다"];
+  sim -> fac [label="어긋나면 여기서 죽는다" color="#d9534f" fontcolor="#d9534f" constraint=false];
+  fac -> dag; dag -> drive [label="run(graph, ctx)"];
 }

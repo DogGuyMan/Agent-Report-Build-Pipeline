@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
   Page, Section, DecisionTable, OptionTable, LockTable, NewStructNote,
-  EvidenceNote, BeforeAfter, VerdictFooter, Glossary, TermGraph,
+  EvidenceNote, BeforeAfter, VerdictFooter, Glossary, TermGraph, Reversal,
 } from "report-builder";
 import { inlineSvg } from "report-builder/svg";
 import { data } from "./data.js";
@@ -30,7 +30,7 @@ export default function Report() {
         <BeforeAfter
           id="rsm"
           before={{ title: "지금 — 같은 루프가 세 벌, 재는 코드는 run_mode1.py 에 얹혀 있다", diagram: before }}
-          after={{ title: "제안 — 공통축 한 벌 + 모드마다 전이표 하나", diagram: after }}
+          after={{ title: "제안 — 팩토리가 보장한 StageDagGraph 하나를 공통축이 돈다", diagram: after }}
           legend={[
             { color: "#d2a03c", label: "중복된 것 / 모드별 데이터" },
             { color: "#d9534f", label: "결함 — import 부작용, 형 없는 값" },
@@ -59,7 +59,8 @@ export default function Report() {
           judged={[
             "💭 Fall-Back 과 Cascade 는 아직 코드에 없다. 이 제안은 그 확장을 미리 짓는 것이고, 근거는 실측이 아니라 사용자가 밝힌 확장 의도다. D4 가 유일한 첫 소비자다.",
             "💭 전이표를 밖에 두면 단계만 읽어서는 다음이 어딘지 모른다. 흐름 전체가 한 화면에 모이는 대신 두 곳을 봐야 한다.",
-            "💭 D7(모듈 경계)은 셋 다 동작하므로 옳고 그름이 아니라 탐색 비용의 문제다.",
+            "💭 D12(비순환 고정)의 근거는 사용자가 고른 이름이지 실측이 아니다. 다만 지금 세 실행기에 재시도 폴백은 한 건도 없어서, 지금 잃는 것은 없다.",
+            "💭 시뮬레이터가 손 검토보다 나은 유일한 이유는 산출물 사슬 검사다. 갈림길이 생기면 \"앞 단계가 썼나\" 가 경로마다 달라진다.",
           ]}
         />
       </Section>
@@ -170,13 +171,13 @@ export default function Report() {
         />
       </Section>
 
-      <Section title="D7 · 모듈 경계">
+      <Section title="D7 · 모듈 경계 — 공통 2파일 + mode1/ 패키지">
         <OptionTable
           columns={["안", "모양", "대가 · 판정"]}
           rows={[
-            { cells: ["A. 공통 2파일 + mode1 패키지", "measure.py · pipeline.py · mode1/{prompts,stages,layers,edges}.py", "💭 권고 — 파일 9개. 모든 파일이 400줄 아래로 내려간다"], recommended: true },
-            { cells: ["B. 공통도 패키지로", "pipeline/{outcome,stage,transition,driver,measure}.py", "개념당 파일 하나지만 소비자 3에 파일 5는 거울 함정 위험"], recommended: false },
-            { cells: ["C. 평면 — 패키지 없이", "runner/ 아래 mode1_prompts.py 등 형제 모듈", "import 가 가장 덜 바뀌지만 접두사가 패키지를 흉내 낸다"], recommended: false },
+            { cells: ["A. 공통 2파일 + mode1 패키지", "measure.py · pipeline.py · mode1/{prompts,stages,layers,edges}.py", "채택 (D7) — 사용자 선택. 모든 파일이 400줄 아래로 내려간다"], recommended: true },
+            { cells: ["B. 공통도 패키지로", "pipeline/{outcome,stage,transition,driver,measure}.py", "기각 — 소비자 3에 파일 5는 거울 함정 위험"], recommended: false },
+            { cells: ["C. 평면 — 패키지 없이", "runner/ 아래 mode1_prompts.py 등 형제 모듈", "기각 — 접두사가 패키지를 흉내 낸다"], recommended: false },
           ]}
         />
       </Section>
@@ -191,12 +192,27 @@ export default function Report() {
         />
       </Section>
 
-      <Section title="D9 · --only · --skip · 재개 거르기는 사전 거르기로">
+      <Section title="D9 · 흐름 전체를 StageDagGraph 로 미리 짓는다">
+        <Reversal
+          rev="D9"
+          previous="--only · --skip · 재개 거르기를 루프 전의 사전 거르기로 두고, 전이표는 실행 중에 생긴 갈래만 다룬다"
+          now="팩토리가 진입점에서 StageDagGraph 를 짓고, 시뮬레이터로 보장한 뒤에야 단계를 돌린다"
+          reason="앞선 판의 반대 근거는 --dry-run 이 무엇을 보여줄지 모호해진다는 것이었다. 팩토리가 그래프를 미리 지으면 --dry-run 은 그 그래프를 그대로 찍으면 되므로, 그 근거가 오히려 팩토리를 요구한다."
+        />
         <OptionTable
-          columns={["안", "무엇", "판정 · 출처"]}
+          columns={["안", "흐름을 언제 확정하는가", "판정 · 출처"]}
           rows={[
-            { cells: ["전이 갈래로 흡수", "건너뛸 단계도 전이표가 정한다", "기각 — \"돌지 않은 단계\" 와 \"돌았는데 건너뛴 단계\" 가 섞여 --dry-run 이 모호해진다"], recommended: false },
-            { cells: ["루프 전 사전 거르기로 유지", "전이표는 실행 중에 생긴 갈래만 다룬다", "권고 — 다만 plan_stages 세 벌은 한 벌로 합친다"], recommended: true },
+            { cells: ["루프 전 사전 거르기", "단계 목록만 줄이고 흐름은 코드에 남는다", "번복됨 — 앞선 판. 흐름 전체를 볼 수 없다"], recommended: false },
+            { cells: ["팩토리가 검증된 그래프를 미리 만든다", "진입점에서. 어긋나면 단계를 하나도 안 돌리고 죽는다", "채택 (D9) — 사용자 지시"], recommended: true },
+          ]}
+        />
+        <OptionTable
+          columns={["시뮬레이터의 검사", "무엇이 어긋나면", "실행 중에는 왜 못 잡나"]}
+          rows={[
+            { cells: ["완결성", "낼 수 있다고 선언한 갈래에 간선이 없다", "그 갈래가 실제로 나야만 터진다"], recommended: false },
+            { cells: ["도달성", "어떤 단계로 가는 경로가 하나도 없다", "조용히 안 돌고 끝난다"], recommended: false },
+            { cells: ["산출물 사슬", "어떤 경로에서는 읽을 파일을 앞의 누구도 쓰지 않는다", "그 경로를 타야만 터진다 — 갈림길이 생긴 뒤로는 사람이 놓친다"], recommended: true },
+            { cells: ["종료", "어떤 경로가 끝에 닿지 않는다", "매달린 채 끝난다"], recommended: false },
           ]}
         />
       </Section>
@@ -219,6 +235,16 @@ export default function Report() {
             { cells: ["지금대로 Any 를 허용한다", "형 없는 자리 24곳을 그대로 둔다", "기각 — 사용자 요구가 \"일절 쓰지 않도록\" 이다"], recommended: false },
             { cells: ["줄이되 바깥 경계에는 남긴다", "claude 출력과 조사 레코드만 예외로", "기각 — 모양을 못 박지 못하는 것과 검사를 끄는 것은 다른 문제다"], recommended: false },
             { cells: ["완전히 없애고 게이트로 막는다", "object + isinstance 좁히기. grep 게이트 추가", "권고 — 탐침으로 pyright strict 0 오류를 확인했다"], recommended: true },
+          ]}
+        />
+      </Section>
+
+      <Section title="D12 · 그래프는 비순환(DAG)이다">
+        <OptionTable
+          columns={["안", "무엇", "대가 · 판정"]}
+          rows={[
+            { cells: ["비순환 고정", "되돌아가는 간선을 팩토리가 거부한다", "권고 — 사용자가 고른 이름(StageDagGraph)이 그 뜻이다. 재시도 폴백을 못 만든다"], recommended: true },
+            { cells: ["순환 허용 + 방문 횟수 상한", "실패한 단계로 되돌아가 다시 시도할 수 있다", "미검토 — 이 보고서가 추가. 순환을 허용하면 종료 검사가 성립하지 않는다"], recommended: false },
           ]}
         />
       </Section>
