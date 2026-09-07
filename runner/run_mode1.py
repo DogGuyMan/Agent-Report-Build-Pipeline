@@ -13,10 +13,10 @@
 
 | 단계 | 무엇 | 부르는 것 |
 |---|---|---|
-| `lang-select` | 어떤 정적 수집기를 돌릴지 고른다. 모형의 제안을 결정론 검사로 거른다 | `claude -p` 1회(가장 싼 모형) |
+| `lang-select` | 어떤 정적 수집기를 돌릴지 고른다. Model의 제안을 결정론 검사로 거른다 | `claude -p` 1회(가장 싼 Model) |
 | `prep`  | 정적 계층. clang-uml/clang-doc 또는 roslyn-dump 를 돌려 코드 지도를 만든다 | `runner/wiki/prep.py` |
 | `warmup` | 무엇을 다시 읽어야 하는지 **판정만** 한다. 매니페스트는 쓰지 않는다 | `machine/warmup.py` |
-| `survey-plan` | **기계.** 코드 지도를 의존 위상 층과 배치로 나눈다. 모형을 부르지 않는다 | `machine/survey_plan.py` |
+| `survey-plan` | **기계.** 코드 지도를 의존 위상 층과 배치로 나눈다. Model을 부르지 않는다 | `machine/survey_plan.py` |
 | `survey` | 전수조사. 위 계획의 **층 오름차순 · 층 안 병렬**로 배치를 돌린다 | `claude -p` 배치마다 1회 |
 | `warmup-save` | **전수조사가** 해낸 뒤에만 매니페스트를 **확정**한다 | `machine/warmup.py` |
 | `terms` | 읽기 레코드를 인용 검사(L1/L2/L3)하고 용어 DB 로 투영한다 | `machine/terms_db.py` |
@@ -35,15 +35,15 @@
 `terms` 가 `survey` 와 `wiki` 사이에 있는 이유 — 산문을 쓰는 세션이 **인용 검사를 통과한**
 `terms-db.json` 을 재료로 받게 하려는 것이다.
 
-## 모형을 정하는 자리는 하나뿐이다
+## Model을 정하는 자리는 하나뿐이다
 
 `main` 의 `--model` 기본값 하나가 `run_survey`/`run_wiki` -> `run_layer` ->
-`run_agent_with` -> `claude_argv` 사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지
+`run_agent_with` -> `claude_argv` 사슬을 그대로 타고 내려간다. **중간에서 Model을 바꾸지
 않는다.** 별명이 아니라 정확한 ID 를 쓴다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
 
-이 파일 자신은 모형이 아니다. 층 순서 · 배치 묶기 · 샤드 병합 · 키 충돌 해소를 전부
-결정론으로 하고, 모형을 부르는 자리는 자식 세션뿐이다. 그래서 **이 스크립트를 실행하는
-세션의 모형은 여기서 강제되지 않고, `--json` 이 남기는 `model` 칸에도 들어가지 않는다** —
+이 파일 자신은 Model이 아니다. 층 순서 · 배치 묶기 · 샤드 병합 · 키 충돌 해소를 전부
+결정론으로 하고, Model을 부르는 자리는 자식 세션뿐이다. 그래서 **이 스크립트를 실행하는
+세션의 Model은 여기서 강제되지 않고, `--json` 이 남기는 `model` 칸에도 들어가지 않는다** —
 그 칸은 자식 세션의 값이다.
 
 ## 재는 자리 넷
@@ -69,7 +69,7 @@
 
 ## 쓰는 법
 
-    .venv/bin/python runner/run_mode1.py <저장소> [--model <모형 ID>]
+    .venv/bin/python runner/run_mode1.py <저장소> [--model <Model ID>]
                                             [--only prep,check] [--skip wiki]
                                             [--concurrency 8] [--target 8]
                                             [--json 측정.json] [--dry-run] [--hops 1]
@@ -108,14 +108,12 @@ def _bootstrap_venv() -> None:
 _bootstrap_venv()
 
 import argparse
-import collections
 import json
 import subprocess
-import threading
 import time
 from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, NotRequired, TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 # 러너는 `runner/`, 결정론 기계는 `machine/` 이다. 이 파일이 CLI 로 돌 때 sys.path[0] 은
 # `runner/` 라 machine 을 못 찾는다 — 그래서 여기서 넣는다.
@@ -130,6 +128,15 @@ import declmap  # noqa: E402
 import survey_plan  # noqa: E402
 import warmup  # noqa: E402
 
+# 재는 코드의 원본은 `runner/measure.py` 하나다. 여기에 사본이 없다.
+# 옛 이름으로 부르는 곳이 있어 그대로 다시 내보낸다.
+import measure  # noqa: E402
+from measure import (  # noqa: E402,F401
+    AgentResult, Usage, StageRow, Heartbeat,
+    normalize_usage, sum_usage, agent_verdict, claude_argv,
+    hms, format_report, stage_totals,
+)
+
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -141,11 +148,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STAGES = ["lang-select", "prep", "warmup", "survey-plan", "survey", "warmup-save",
           "terms", "wiki", "build", "check"]
 
-# 모형을 부르는 단계. survey · wiki 는 **층 오름차순으로 여러 번** 부른다.
-# lang-select 는 한 번만, 그리고 가장 싼 모형으로 부른다 — 문서 몇 쪽을 읽고 낱말 하나를 낸다.
+# Model을 부르는 단계. survey · wiki 는 **층 오름차순으로 여러 번** 부른다.
+# lang-select 는 한 번만, 그리고 가장 싼 Model으로 부른다 — 문서 몇 쪽을 읽고 낱말 하나를 낸다.
 AGENT_STAGES = {"lang-select", "survey", "wiki"}
 
-# 언어 판별에 쓸 모형. 문서를 읽고 `cpp|cs|py|ts` 중 하나를 내는 것이 전부라 가장 싼 것을 쓴다.
+# 언어 판별에 쓸 Model. 문서를 읽고 `cpp|cs|py|ts` 중 하나를 내는 것이 전부라 가장 싼 것을 쓴다.
 # `--model` 은 survey·wiki 몫이라 여기에 쓰지 않는다.
 LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
 
@@ -153,39 +160,13 @@ LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
 # 다시 하지 않는다 — 판별 규칙이 두 곳에 생기면 조용히 어긋난다.
 LANG_ALIAS = {"csharp": "cs", "python": "py"}
 
-# ── 이 파일이 정하는 형 이름은 아래 다섯뿐이다. 코드 지도 · 층 계획 · 매니페스트 · 선언
+# ── 이 파일이 정하는 형 이름은 아래 셋뿐이다. 코드 지도 · 층 계획 · 매니페스트 · 선언
 #    훑기의 꼴은 `machine/` 의 `codegraph_types` · `survey_plan` · `warmup` · `declmap` 이
-#    이미 적어 두었으므로 여기서 다시 적지 않는다.
+#    이미 적어 두었고, 재는 값의 꼴은 `measure` 가 가지므로 여기서 다시 적지 않는다.
 
-# `claude -p --output-format json` 이 stdout 으로 내는 객체 하나. 꼴을 정하는 것은 바깥
-# 프로그램이라 칸을 못 박지 않는다 — 읽는 자리마다 `.get` 으로 없을 수 있음을 받아들인다.
-AgentResult = dict[str, Any]
-
-# 잰 값 한 묶음. **정수 여섯에 실수 하나(`cost_usd`)가 섞인 의도된 이종 사전**이다.
-# 값 타입을 `float` 으로 적는 것은 파이썬에서 정수가 실수의 부분형이라 둘 다 담기기
-# 때문이다. 넣는 값을 실수로 바꾸지 않는다 — `normalize_usage` 는 그대로 정수를 넣는다.
-Usage = dict[str, float]
-
-# 전수조사 레코드 하나와 그 묶음. 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다.
-Record = dict[str, Any]
+# 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
+Record = dict[str, object]
 Records = dict[str, Record]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.StageRow']"/>
-# 측정 표에서 단계 하나를 나타내는 한 줄의 꼴을 정의하는 타입(TypedDict)이다.
-# 쓰는 것: runner.run_mode1.Usage · 쓰이는 곳: runner.test_run_mode1.test_report_has_a_row_per_stage_and_a_total
-class StageRow(TypedDict):
-    """측정 표의 한 줄. **세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다.**
-
-    `skipped` 만 선택 항목이다 — 건너뛴 단계에만 붙는다.
-    """
-
-    stage: str
-    seconds: float
-    usage: Usage
-    ok: bool
-    why: str
-    skipped: NotRequired[bool]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.WikiPage']"/>
@@ -234,7 +215,7 @@ def changed_seed(판정: warmup.Verdicts) -> list[str]:
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.should_call_agent']"/>
-# 전수조사 단계에서 큰 언어 모형(에이전트)을 실제로 부를지 말지를 정하는 함수다.
+# 전수조사 단계에서 큰 언어 Model(에이전트)을 실제로 부를지 말지를 정하는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.test_run_mode1.test_agent_is_skipped_when_nothing_changed_and_records_exist, runner.test_run_mode1.test_agent_runs_when_something_changed, runner.test_run_mode1.test_agent_runs_when_warmup_could_not_judge, runner.test_run_mode1.test_agent_still_runs_when_there_are_no_records_yet
 def should_call_agent(targets: Sequence[str] | None, has_reading: bool) -> bool:
     """에이전트를 부를 것인가.
@@ -253,11 +234,11 @@ def should_call_agent(targets: Sequence[str] | None, has_reading: bool) -> bool:
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.is_agent_stage']"/>
-# 주어진 단계 이름이 모형(LLM)을 부르는 단계인지 검사하는 함수다.
-# 쓰는 것: runner.run_mode1.AGENT_STAGES · 쓰이는 곳: runner.test_run_mode1.test_세_단계가_모형을_부른다, runner.test_run_mode1.test_층_계획은_LLM_단계가_아니다
+# 주어진 단계 이름이 Model(LLM)을 부르는 단계인지 검사하는 함수다.
+# 쓰는 것: runner.run_mode1.AGENT_STAGES · 쓰이는 곳: runner.test_run_mode1.test_세_단계가_Model을_부른다, runner.test_run_mode1.test_층_계획은_LLM_단계가_아니다
 # ── 1. 단계 고르기 ──────────────────────────────────────────────────────
 def is_agent_stage(stage: str) -> bool:
-    """이 단계가 모형을 부르는가. 토큰이 잡히는 자리는 여기뿐이다."""
+    """이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다."""
     return stage in AGENT_STAGES
 
 
@@ -293,85 +274,10 @@ def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.normalize_usage']"/>
-# claude -p 세션이 낸 JSON 결과에서 토큰 사용량·비용·턴수를 뽑아 평평한 사전 하나로 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_lang_select, runner.run_mode1.run_survey, runner.run_mode1_5.main, runner.run_mode2.main, runner.test_run_mode1.test_a_skipped_stage_does_not_break_the_total (+13)
-# ── 2. 토큰 세기 ────────────────────────────────────────────────────────
-def normalize_usage(result: AgentResult | None) -> Usage:
-    """`claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다.
-
-    **정수 여섯과 실수 하나(`cost_usd`)를 한 사전에 담고, `total` 은 입력·출력·캐시읽기·
-    캐시생성 넷을 더한 값이다.** 캐시 둘을 빼고 "토큰 합" 이라 부르면 일부만 센 것이다.
-    `sum_usage` 가 이 사전을 키별로 접는다.
-
-    기계 단계는 `None` 을 받아 전부 0 을 낸다 — `None` 을 그대로 두면 표를 더할 수 없다.
-    """
-    # `usage` 는 바깥 프로그램이 채우는 칸이라 값의 꼴을 못 박지 않는다.
-    u: dict[str, Any] = (result or {}).get("usage") or {}
-    got: Usage = {
-        "input": int(u.get("input_tokens") or 0),
-        "output": int(u.get("output_tokens") or 0),
-        "cache_read": int(u.get("cache_read_input_tokens") or 0),
-        "cache_write": int(u.get("cache_creation_input_tokens") or 0),
-        "cost_usd": float((result or {}).get("total_cost_usd") or 0.0),
-        "turns": int((result or {}).get("num_turns") or 0),
-        "api_ms": int((result or {}).get("duration_api_ms") or 0),
-    }
-    got["total"] = got["input"] + got["output"] + got["cache_read"] + got["cache_write"]
-    return got
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.sum_usage']"/>
-# 여러 단계의 Usage 사전들을 키별로 더해 하나로 합치는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.format_report, runner.run_mode1.main, runner.run_mode1.stage_totals, runner.run_mode1_5.main, runner.run_mode2.main (+2)
-def sum_usage(usages: Sequence[Usage]) -> Usage:
-    """`normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다."""
-    keys = ["input", "output", "cache_read", "cache_write", "total", "turns", "api_ms"]
-    # 정수 여섯은 정수로 접고 `cost_usd` 만 실수로 따로 접는다.
-    out: Usage = {k: sum(int(u.get(k) or 0) for u in usages) for k in keys}
-    out["cost_usd"] = sum(float(u.get("cost_usd") or 0.0) for u in usages)
-    return out
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.agent_verdict']"/>
-# 모형(에이전트) 호출이 종료 코드만으로는 알 수 없는 실제 성공 여부를 판정하는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_survey, runner.run_mode1.run_wiki, runner.run_mode1_5.main, runner.run_mode2.main, runner.test_run_mode1.test_agent_result_is_a_failure_when_is_error_is_set (+3)
-# ── 3. 실패 판정 ────────────────────────────────────────────────────────
-def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, str]:
-    """에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다.
-
-    **종료 코드만 믿으면 안 된다.** `claude` 는 최대 턴 수에 걸리거나 권한에 막혀도
-    0 을 내면서 `is_error: true` 만 올릴 수 있다.
-    """
-    if result is None:
-        return False, "결과 JSON 을 읽지 못했다 (종료 코드 %d)" % returncode
-    if returncode != 0:
-        return False, "종료 코드 %d — %s" % (returncode, result.get("subtype") or "사유 없음")
-    if result.get("is_error"):
-        return False, "에이전트가 오류로 끝났다: %s" % (result.get("subtype") or "사유 없음")
-    return True, ""
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.claude_argv']"/>
-# 헤드리스 claude 명령을 부를 명령줄 인자 리스트를 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.run_agent_with, runner.run_mode1.run_lang_select, runner.test_run_mode1.test_claude_argv_does_not_pass_the_prompt_on_the_command_line, runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model, runner.test_run_mode2.test_the_prompt_is_not_passed_on_the_command_line
-# ── 4. 에이전트 호출 ────────────────────────────────────────────────────
-def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
-    """헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다.
-
-    `--add-dir` 로 대상 저장소와 도구 저장소를 둘 다 열어 준다. 한쪽만 주면
-    에이전트가 재료(facts · codegraph.json)나 규약(스킬 · CLAUDE.md)을 못 본다.
-    """
-    argv = ["claude", "-p", "--output-format", "json", "--model", model,
-            "--permission-mode", "bypassPermissions"]
-    for d in [repo] + list(extra_dirs):
-        argv += ["--add-dir", d]
-    return argv
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.reading_path']"/>
 # 전수조사 원본 terms-reading.json 이 어느 자리에 있는지 고르는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.nonnode_prompt, runner.run_mode1.warmup_section
+# ── 2. 에이전트 호출 ────────────────────────────────────────────────────
 def reading_path(repo: str, root: str) -> str:
     """전수조사 원본 `terms-reading.json` 의 자리.
 
@@ -414,10 +320,14 @@ def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") ->
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.dep_excerpt']"/>
 # 한 배치가 의존하는 아래층 심볼들 중 이미 완성된 레코드만 골라 짧은 발췌 글로 만드는 함수다.
 # 쓰는 것: machine.survey_plan.PlanBatch · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_의존_발췌는_아래층에_있는_것만_낸다, runner.test_run_mode1.test_의존_발췌는_아무것도_없으면_빈_문자열
-def dep_excerpt(merged: Records, batch: survey_plan.PlanBatch) -> str:
+def dep_excerpt(merged: Mapping[str, Mapping[str, object]],
+                batch: survey_plan.PlanBatch) -> str:
     """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
 
     아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
+
+    읽기만 하므로 `Records` 가 아니라 `Mapping` 을 받는다 — `dict` 는 값 형이 고정이라
+    `dict[str, dict[str, str]]` 같은 더 좁은 사전을 그대로 넘길 수 없다.
     """
     want = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
     lines = ["  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
@@ -688,7 +598,7 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.wiki_argv']"/>
 # runner/wiki/ 아래의 파이썬 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists
-# ── 5. 기계 단계의 명령줄 ────────────────────────────────────────────────
+# ── 3. 기계 단계의 명령줄 ───────────────────────────────────────────────
 def wiki_argv(python: str, root: str, script: str, repo: str) -> list[str]:
     """`runner/wiki/*.py` 하나를 부른다."""
     return [python, os.path.join(root, "runner", "wiki", script), repo]
@@ -714,71 +624,10 @@ def terms_argv(python: str, root: str, repo: str,
     return argv
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.hms']"/>
-# 초 단위 숫자를 사람이 읽기 쉬운 시간 표기로 바꾸는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.Heartbeat, runner.run_mode1.Heartbeat._tick, runner.run_mode1.format_report, runner.run_mode1_5.main
-# ── 6. 보고 ─────────────────────────────────────────────────────────────
-def hms(seconds: float) -> str:
-    """초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다."""
-    s = float(seconds)
-    if s < 60:
-        return "%.1f초" % s
-    return "%d분 %04.1f초" % (int(s // 60), s % 60)
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.format_report']"/>
-# 단계별로 잰 시간과 토큰 사용량을 사람이 읽는 표 문자열로 만드는 함수다.
-# 쓰는 것: runner.run_mode1.sum_usage, runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.main, runner.run_mode1_5.format_run, runner.run_mode2.main, runner.test_run_mode1.test_a_skipped_stage_does_not_break_the_total, runner.test_run_mode1.test_report_has_a_row_per_stage_and_a_total (+5)
-def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -> str:
-    """단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다.
-
-    **`wall_seconds` 를 주면 합계 줄의 시간이 그 값이 되고, 안 주면 행의 초를 더한다.**
-    층 안에서 배치가 동시에 돌면 행의 합이 사람이 기다린 시간보다 훨씬 커지므로 병렬로
-    도는 쪽이 진짜 벽시계를 재서 넘긴다. Mode 1.5 와 Mode 2 는 병렬이 아니라 안 넘긴다.
-    """
-    head = ["단계", "상태", "시간", "입력", "출력", "캐시읽기", "캐시생성", "합계", "턴", "비용($)"]
-    body: list[list[str]] = []
-    for r in rows:
-        u = r["usage"]
-        body.append([
-            r["stage"],
-            "건너뜀" if r.get("skipped") else ("성공" if r.get("ok") else "실패"),
-            hms(r["seconds"]),
-            "{:,}".format(u["input"]), "{:,}".format(u["output"]),
-            "{:,}".format(u["cache_read"]), "{:,}".format(u["cache_write"]),
-            "{:,}".format(u["total"]), str(u["turns"]), "%.4f" % u["cost_usd"],
-        ])
-    tot = sum_usage([r["usage"] for r in rows])
-    total_seconds = (sum(float(r["seconds"]) for r in rows)
-                     if wall_seconds is None else float(wall_seconds))
-    body.append([
-        "합계", "", hms(total_seconds),
-        "{:,}".format(tot["input"]), "{:,}".format(tot["output"]),
-        "{:,}".format(tot["cache_read"]), "{:,}".format(tot["cache_write"]),
-        "{:,}".format(tot["total"]), str(tot["turns"]), "%.4f" % tot["cost_usd"],
-    ])
-
-    # 한글은 폭이 두 칸이라 len() 으로는 안 맞는다. 표시 폭을 따로 센다.
-    def w(s: object) -> int:
-        return sum(2 if ord(c) > 0x2E80 else 1 for c in str(s))
-    cols = [max(w(head[i]), max(w(row[i]) for row in body)) for i in range(len(head))]
-    def line(cells: Sequence[str]) -> str:
-        return "  ".join(str(c) + " " * (cols[i] - w(c)) for i, c in enumerate(cells)).rstrip()
-
-    out = [line(head), "  ".join("-" * c for c in cols)]
-    out += [line(r) for r in body[:-1]]
-    out += ["  ".join("-" * c for c in cols), line(body[-1])]
-    for r in rows:
-        if r.get("skipped"):
-            out.append("건너뜀 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
-        elif not r.get("ok"):
-            out.append("실패 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
-    return "\n".join(out)
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.plan_summary']"/>
 # 층 계획(survey-plan)을 사람이 읽을 수 있는 줄들의 목록으로 요약하는 함수다.
 # 쓰는 것: machine.survey_plan.SurveyPlan · 쓰이는 곳: runner.test_run_mode1.test_계획_요약은_층과_배치와_합계를_낸다
+# ── 4. 보고 ─────────────────────────────────────────────────────────────
 def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
     """층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다."""
     out: list[str] = []
@@ -799,50 +648,10 @@ def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.stage_totals']"/>
-# 배치 단위 행들을 상위 단계 이름으로 묶어 합친 사용량을 내는 함수다.
-# 쓰는 것: runner.run_mode1.sum_usage · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_단계별_소계를_낸다
-def stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]:
-    """`survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`."""
-    byname: collections.OrderedDict[str, list[Usage]] = collections.OrderedDict()
-    for r in rows:
-        name = r["stage"].split("/")[0]
-        byname.setdefault(name, []).append(r["usage"])
-    return collections.OrderedDict((k, sum_usage(v)) for k, v in byname.items())
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.Heartbeat']"/>
-# 오래 걸리는 단계가 도는 동안 얼마나 시간이 지났는지 주기적으로 화면에 알려주는 도구 클래스다.
-# 쓰는 것: runner.run_mode1.hms · 쓰이는 곳: runner.run_mode1.run_machine, runner.run_mode1.run_survey, runner.run_mode1_5.run_machine, runner.run_mode2.run_machine
-# ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
-class Heartbeat:
-    """오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다.
-
-    `--output-format json` 은 끝나야 한 덩이로 나오므로 그 사이 아무것도 찍히지 않는다.
-    """
-
-    def __init__(self, label: str, every: float = 30.0) -> None:
-        self.label, self.every = label, every
-        self._stop = threading.Event()
-        self._t0 = time.monotonic()
-        self._th = threading.Thread(target=self._tick, daemon=True)
-
-    def _tick(self) -> None:
-        while not self._stop.wait(self.every):
-            print("    … %s 진행 중 (%s)" % (self.label, hms(time.monotonic() - self._t0)),
-                  file=sys.stderr, flush=True)
-
-    def __enter__(self) -> "Heartbeat":
-        self._th.start()
-        return self
-
-    def __exit__(self, *_: object) -> None:
-        self._stop.set()
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_agent_with']"/>
-# claude 명령을 한 번 실행해서 모형의 응답을 받아오는 함수다.
+# claude 명령을 한 번 실행해서 Model의 응답을 받아오는 함수다.
 # 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: runner.run_mode1.run_layer
+# ── 5. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
 def run_agent_with(model: str, repo: str, root: str, prompt: str,
                    timeout: float | None = None,
                    label: str | None = None) -> tuple[float, int, AgentResult | None]:
@@ -947,7 +756,7 @@ def merge_shards(shard_dir: str, existing: Records | None) -> Records:
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.merge_shards
 def _qualified(key: str, rec: Record | None) -> str:
     """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
-    where = (rec or {}).get("where") or ""
+    where = measure.as_str((rec or {}).get("where"))
     stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
     return "%s.%s" % (stem, key) if stem else key
 
@@ -963,17 +772,17 @@ def run_machine(argv: Sequence[str], label: str) -> int:
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_lang_select']"/>
-# 저장소가 어느 언어인지 판별하기 위해 모형에게 문서를 읽혀 언어 하나를 제안받는 함수다.
+# 저장소가 어느 언어인지 판별하기 위해 Model에게 문서를 읽혀 언어 하나를 제안받는 함수다.
 # 쓰는 것: runner.run_mode1.claude_argv, runner.run_mode1.normalize_usage · 쓰이는 곳: runner.run_mode1.main
-# 어떤 정적 수집기를 돌릴지 정한다. 모형의 제안을 결정론 검사로 거른다.
+# 어떤 정적 수집기를 돌릴지 정한다. Model의 제안을 결정론 검사로 거른다.
 # 쓰는 것: claude_argv, lang_select · 쓰이는 곳: run_mode1.main
 def run_lang_select(repo: str, root: str, timeout: float | None) -> tuple[bool, str, Usage]:
-    """루트 문서를 모형에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다.
+    """루트 문서를 Model에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다.
 
-    **모형은 제안만 한다.** 채택 여부는 `machine/lang_select.py` 가 결정론으로 판정한다 —
+    **Model은 제안만 한다.** 채택 여부는 `machine/lang_select.py` 가 결정론으로 판정한다 —
     제안한 언어의 소스가 한 개도 없으면 버리고 파일 수가 가장 많은 언어로 간다.
 
-    모형을 못 부르거나 문서가 없으면 제안 없이 파일 수만으로 고른다. **막지 않는다** —
+    Model을 못 부르거나 문서가 없으면 제안 없이 파일 수만으로 고른다. **막지 않는다** —
     이 단계는 뒤 단계를 돕는 것이지 관문이 아니다.
     """
     raw = os.path.join(repo, "out", "codegraph-raw")
@@ -1212,15 +1021,16 @@ def run_wiki(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan,
 # Mode 1(코드베이스 위키) 파이프라인 전체를 순서대로 돌리는 진입점 함수. 명령줄 인자를 읽고 어떤 단계를 돌릴지 정한 뒤 하나씩 실행하며 시간과 토큰을 잰다.
 # 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.run_warmup, runner.run_mode1.save_warmup, runner.run_mode1.run_lang_select, runner.run_mode1.run_survey (+8) · 쓰이는 곳: 없음
 def main(argv: Sequence[str] | None = None) -> int:
+    # 
     ap = argparse.ArgumentParser(
         description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo", help="대상 저장소 경로")
     # 별명이 아니라 정확한 ID 를 적는다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
     # 이 값이 main -> run_survey/run_wiki -> run_layer -> run_agent_with -> claude_argv
-    # 사슬을 그대로 타고 내려간다. **중간에서 모형을 바꾸지 않는다.**
+    # 사슬을 그대로 타고 내려간다. **중간에서 Model을 바꾸지 않는다.**
     ap.add_argument("--model", default="claude-sonnet-5",
-                    help="배치·장 세션이 쓸 모형 (기본: claude-sonnet-5)")
+                    help="배치·장 세션이 쓸 Model (기본: claude-sonnet-5)")
     ap.add_argument("--concurrency", type=int, default=8,
                     help="한 층에서 동시에 띄울 세션 수 (기본 8 = K4)")
     ap.add_argument("--target", type=int, default=8,
@@ -1259,7 +1069,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     print("대상 %s" % repo)
-    print("모형 %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
+    print("Model %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
     print("이미 있는 것 — 코드지도 %s · 읽기레코드 %s · 산문 %s"
           % (os.path.exists(codegraph), os.path.exists(reading), has_prose))
     if a.dry_run:
@@ -1267,7 +1077,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if "survey-plan" in stages and os.path.exists(codegraph):
             with open(codegraph, encoding="utf-8") as f:
                 미리 = survey_plan.plan(json.load(f), a.target)
-            print("\n층 계획 (기계가 결정론으로 낸다 — 모형을 부르지 않는다)")
+            print("\n층 계획 (기계가 결정론으로 낸다 — Model을 부르지 않는다)")
             for lines in plan_summary(미리):
                 print(lines)
         return 0
@@ -1299,7 +1109,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             rows.append({"stage": stage, "seconds": time.monotonic() - t0,
                          "usage": usage, "ok": ok, "why": why})
         elif stage == "survey-plan":
-            # **기계 단계다. 모형을 부르지 않는다.** 층은 codegraph.json 하나로 결정론이고,
+            # **기계 단계다. Model을 부르지 않는다.** 층은 codegraph.json 하나로 결정론이고,
             # 의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**로 매긴다(K1).
             if not os.path.exists(codegraph):
                 ok, why = False, "코드 지도가 없다 — prep 이 먼저다: %s" % codegraph

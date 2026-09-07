@@ -87,20 +87,15 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `_bootstrap_venv` | `() -> None` | `.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. |
-| **`StageRow`** | *class* | 측정 표의 한 줄. **세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다.** |
 | **`WikiPage`** | *class* | `wiki-plan.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
 | `lang_of` | `(codegraph_path: str \| None) -> str \| None` | 코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다. |
 | `changed_seed` | `(판정: warmup.Verdicts) -> list[str]` | 다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.** |
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
-| `normalize_usage` | `(result: AgentResult \| None) -> Usage` | `claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다. |
-| `sum_usage` | `(usages: Sequence[Usage]) -> Usage` | `normalize_usage` 가 낸 사전들을 키별로 접는다. 표 맨 아래 '합계' 줄이 이것이다. |
-| `agent_verdict` | `(returncode: int, result: AgentResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
-| `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]` | 헤드리스 `claude` 명령줄. **프롬프트는 여기 싣지 않는다** — 표준 입력으로 준다. |
 | `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
 | `warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
-| `dep_excerpt` | `(merged: Records, batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
+| `dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
 | `survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
 | `nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
@@ -109,15 +104,7 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
 | `wiki_argv` | `(python: str, root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.py` 하나를 부른다. |
 | `terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
-| `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
-| `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 이 실행기의 **산출물 본체**다. |
 | `plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. |
-| `stage_totals` | `(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]` | `survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`. |
-| **`Heartbeat`** | *class* | 오래 도는 단계 옆에서 경과 시간을 stderr 로 알린다. |
-| `Heartbeat.__init__` | `(self, label: str, every: float = 30.0) -> None` |  |
-| `Heartbeat._tick` | `(self) -> None` |  |
-| `Heartbeat.__enter__` | `(self) -> 'Heartbeat'` |  |
-| `Heartbeat.__exit__` | `(self, *_) -> None` |  |
 | `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
 | `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[tuple[str, float, int, AgentResult \| None]]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2). |
 | `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
