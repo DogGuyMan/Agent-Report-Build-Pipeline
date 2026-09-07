@@ -34,14 +34,14 @@
 한국어가 정본) — 이건 유효하다. 다른 하나는 *옛 HTML 출력* — 이건 기준이 아니다. 뒤엣것은 아래에서
 **"옛 출력"** 으로 고쳐 부른다.
 
-## 이 저장소의 현재 상태 (🔵 2026-08-31 실측)
+## 이 저장소의 현재 상태 (🔵 2026-09-07 실측)
 
 파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
-| 커밋 / 태그 | 최신 `800dcec` / `v1` — API 는 추가만이라 태그 그대로 |
-| 테스트 | `pytest` **466 통과 · 19 건너뜀** · `npm test` **8개**(JS 경계 `viz/svg.mjs` 만) |
+| 커밋 / 태그 | 최신 `60dfac5` / `v1` — API 는 추가만이라 태그 그대로 |
+| 테스트 | `pytest` **483 통과 · 19 건너뜀** · `npm test` **8개**(JS 경계 `viz/svg.mjs` 만) |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
@@ -79,15 +79,15 @@ npm run typecheck        # tsc --noEmit (이 저장소의 viz/src/ 만)
 npm run typecheck:py     # pyright strict
 ```
 
-### 게이트 일곱 — 전부 초록이어야 한다 (🔵 2026-08-31 실측)
+### 게이트 일곱 — 전부 초록이어야 한다 (🔵 2026-09-07 실측)
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 466 통과 · 19 건너뜀 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 483 통과 · 19 건너뜀 |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
-| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | 레퍼런스 739건 · 문제 0건 |
+| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | 레퍼런스 751건 · 문제 0건 |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` | 4개 일치 |
 | 환경 | `npm run doctor` | 필수 전부 있다 |
 
