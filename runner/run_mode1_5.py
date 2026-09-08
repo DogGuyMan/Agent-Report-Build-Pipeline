@@ -110,9 +110,9 @@ from tools.python import pythonPath  # noqa: E402
 from runner.term.quiz import QUESTIONS_PER_TERM, CHOICES_PER_QUESTION, flatten_questions, choice_number  # noqa: E402
 
 # 재는 코드(`hms` · `Heartbeat` · `normalize_usage` · `format_report` …)의 원본은
-# `run_mode1.py` 하나뿐이다. 여기에는 사본이 없다.
+# `measure.py` 하나뿐이다. 여기에는 사본이 없다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import run_mode1 as M  # noqa: E402
+import measure as M  # noqa: E402
 
 # 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
 STAGES = ["collect", "grade", "emit"]

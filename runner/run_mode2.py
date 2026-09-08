@@ -60,10 +60,10 @@ from collections.abc import Iterable, Sequence
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import run_mode1 as M  # noqa: E402
+import measure as M  # noqa: E402
 
 # 재는 코드(`hms` · `Heartbeat` · `normalize_usage` · `format_report` …)의 원본은
-# `run_mode1.py` 하나뿐이다. 여기에는 사본이 없다.
+# `measure.py` 하나뿐이다. 여기에는 사본이 없다.
 normalize_usage = M.normalize_usage
 sum_usage = M.sum_usage
 agent_verdict = M.agent_verdict
