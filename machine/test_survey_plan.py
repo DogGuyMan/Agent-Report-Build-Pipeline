@@ -171,9 +171,9 @@ def test_이_저장소_실측():
     """이 저장소의 실제 지도로 층 분포를 못박는다 — 코드가 바뀌면 기대값을 함께 고친다."""
     p = plan(json.load(open(REAL, encoding="utf-8")))
     sizes = [L["symbol_count"] for L in p["layers"] if L.get("kind") != "non-node"]
-    assert sizes == [232, 217, 145, 87, 12, 4]
+    assert sizes == [287, 254, 146, 86, 9, 4]
     # ⚠ cast — `symbol_count` 가 None 인 것은 비노드 층뿐이고 그것은 바로 위 조건이 걸렀다.
-    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 697
+    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 786
     # lock 없는 설계의 전제 — 실제 지도에서도 층 안 파일이 배타적이어야 한다
     for L in p["layers"]:
         seen = collections.Counter(f for b in L.get("batches", []) for f in b["files"])
