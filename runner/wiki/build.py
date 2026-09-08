@@ -36,6 +36,10 @@ export default ({{
   description: "codegraph 정적 계층 + deep-wiki 산문",
   srcDir: ".",
   outDir: {json.dumps(outDir, ensure_ascii=False)},
+  // 위키 페이지는 하위 폴더 없는 평평한 이름이라 `../` 가 있는 링크는 위키 밖이다.
+  // 죽은 링크 검사는 그 바깥을 확인할 수 없어 전부 죽은 것으로 본다. 위키 안의 깨진
+  // 링크는 계속 잡아야 하므로 검사를 통째로 끄지 않고 이 꼴만 뺀다.
+  ignoreDeadLinks: [/\\.\\.\\//],
   themeConfig: {{
     sidebar: [
 {items_str}

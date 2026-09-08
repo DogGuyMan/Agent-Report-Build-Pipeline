@@ -60,4 +60,6 @@ if __name__ == "__main__":
     )
     
     r = subprocess.run([pythonPath(ROOT, sys.platform, cast(Any, os.environ)), os.path.join(ROOT, "machine", "verify_citations.py")] + args)
-    sys.exit(r.returncode if r.returncode else 1)
+    # verify_citations 는 경성 실패가 있을 때만 0 이 아닌 값을 낸다. 그 값을 그대로 넘긴다 —
+    # 0 을 1 로 바꾸면 통과가 실패로 보고되어 게이트가 늘 빨간불이 된다.
+    sys.exit(r.returncode)

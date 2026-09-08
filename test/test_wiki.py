@@ -1,5 +1,7 @@
 import os
 import sys
+
+import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
@@ -85,6 +87,36 @@ def test_build():
 
     cfg2 = vitepressConfig('Qt"Vision', [], "../wiki-site")
     assert 'title: "Qt\\"Vision 코드베이스 위키"' in cfg2
+
+def test_위키_밖으로_나가는_링크는_죽은_링크로_치지_않는다():
+    """산문이 저장소 파일(`../../machine/CLAUDE.md`)을 가리키면 빌드가 죽으면 안 된다.
+
+    위키 페이지는 하위 폴더 없는 평평한 이름이라, `../` 가 있는 링크는 정의상 위키 밖이다.
+    VitePress 의 죽은 링크 검사는 그 바깥을 확인할 수 없어 전부 죽은 것으로 본다.
+    위키 **안**의 깨진 링크는 계속 잡혀야 하므로 검사를 통째로 끄지 않는다.
+    """
+    cfg = vitepressConfig("Repo", [], "../wiki-site")
+    assert "ignoreDeadLinks" in cfg
+    assert r"\.\./" in cfg or "../" in cfg
+    assert "ignoreDeadLinks: true" not in cfg
+
+def test_check_는_통과를_통과로_보고한다():
+    """`report-wiki check` 는 인용이 전부 통과하면 종료 코드 0 을 내야 한다.
+
+    `verify_citations.py` 는 경성 실패가 있을 때만 1 을 낸다(`return 1 if fails else 0`).
+    그 0 을 감싸는 쪽이 `r.returncode if r.returncode else 1` 로 뒤집으면 통과가 실패가 된다 —
+    게이트가 늘 빨간불이라 아무것도 지키지 못한다.
+    """
+    import subprocess
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    wiki = os.path.join(root, "docs", "wiki")
+    if not os.path.isdir(wiki) or not [f for f in os.listdir(wiki) if f.endswith(".md")]:
+        pytest.skip("산문이 없다 — report-wiki 산문 단계를 먼저 돌린다")
+    got = subprocess.run([os.path.join(root, "bin", "report-wiki"), "check", root],
+                         capture_output=True, text=True, timeout=300)
+    assert "실패 0" in got.stdout, got.stdout
+    assert got.returncode == 0, f"경성 실패가 0인데 종료 코드가 {got.returncode} 다:\n{got.stdout}"
+
 
 def test_check_args():
     assert checkArgs("/tmp/r", "/tmp/r/cg.json", None, ["/tmp/r/docs/wiki/a.md", "/tmp/r/docs/wiki/b.md"]) == ["--repo", "/tmp/r", "--codegraph", "/tmp/r/cg.json", "/tmp/r/docs/wiki/a.md", "/tmp/r/docs/wiki/b.md"]
