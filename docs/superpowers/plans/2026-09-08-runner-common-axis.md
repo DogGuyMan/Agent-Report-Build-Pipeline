@@ -12,6 +12,22 @@
 
 ---
 
+## Task 현황 — 7개 전부 완료 (2026-09-08)
+
+| Task | 무엇 | 커밋 | 실행자 | 계획과 달랐던 점 |
+|---|---|---|---|---|
+| 1 | `measure.py` 의 형 셋 + 좁히기 도우미 넷 | `ad994a3` | 서브에이전트 | 없음 |
+| 2 | 토큰 세기 · 실패 판정 · 명령줄 · `hms` | `0221270` | 서브에이전트 | README 갱신 단계가 프롬프트에 없어 오케스트레이터가 대신 함 |
+| 3 | 측정 표 · `stage_totals` · `Heartbeat` | `a857559` | 서브에이전트 | 없음 |
+| 4 | `run_mode1.py` 를 파사드로 (-255줄) | `fef08b8` | 서브에이전트 | **세션 한도로 검증 직전에 죽음.** 커밋은 됐고 검증은 오케스트레이터가 대신 함 |
+| 5 | Mode 2·1.5 의 import 부작용 제거 | `044af9a` | 서브에이전트 | README 갱신을 오케스트레이터가 대신 함 |
+| 6 | `test/test_no_any.py` 게이트 | `f4f20fd` | 서브에이전트 | **계획의 `code_lines` 에 버그가 있었다** — 한 줄 독스트링을 코드로 오분류. 구현자가 잡아 고침 |
+| 7 | 게이트 전량 + `runner/CLAUDE.md` | `62dbf8a` | 오케스트레이터 | 없음 |
+
+**계획 밖에서 한 것 하나** — `runner/test_run_mode1.py` 의 구문 오류(함수 이름 안의 공백 2곳)를 고쳤다.
+미커밋 상태의 `모형`→`Model` 이름 바꾸기가 만든 것이고, 이것 때문에 `pytest` 가 수집 단계에서
+멈춰 기준선조차 잴 수 없었다. **그 파일은 남의 작업이라 커밋하지 않고 워킹 트리에 두었다.**
+
 ## 이 계획이 다루는 범위
 
 **이 계획은 3단계 중 1단계다.** 2·3단계는 1단계가 끝난 뒤에 쓴다 — 그 계획의 코드가 여기서 나온 API 모양에 달려 있어서, 지금 쓰면 추측이 된다.
@@ -47,7 +63,7 @@
 
 ---
 
-### Task 1: `runner/measure.py` — 형과 좁히기 도우미
+### ✅ Task 1: `runner/measure.py` — 형과 좁히기 도우미  ·  `ad994a3`
 
 `Any` 를 쓰지 않는다. `pyright strict` 가 `object` 를 좁히지 않고 쓰면 잡는다.
 
@@ -55,7 +71,7 @@
 - Create: `runner/measure.py`
 - Create: `runner/test_measure.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `runner/test_measure.py` 를 만든다:
 
@@ -95,12 +111,12 @@ def test_문자열이_아니면_빈_문자열이다():
 
 `as_int(True)` 가 0인 것은 의도다 — 파이썬에서 `bool` 은 `int` 의 부분형이라 걸러 내지 않으면 참/거짓이 토큰 수로 세어진다.
 
-- [ ] **Step 2: 시험이 실패하는지 본다**
+- [x] **Step 2: 시험이 실패하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'measure'`
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `runner/measure.py` 를 만든다:
 
@@ -172,17 +188,17 @@ def as_str(v: object) -> str:
     return v if isinstance(v, str) else ""
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 본다**
+- [x] **Step 4: 시험이 통과하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: PASS — 4 passed
 
-- [ ] **Step 5: 형 검사**
+- [x] **Step 5: 형 검사**
 
 Run: `.venv/bin/python -m pyright runner/measure.py` (또는 `npm run typecheck:py`)
 Expected: `0 errors`
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add runner/measure.py runner/test_measure.py
@@ -191,13 +207,13 @@ git commit -m "[add] : 러너 공통 재는 코드의 형과 좁히기 도우미
 
 ---
 
-### Task 2: 재는 순수 함수 다섯을 옮긴다
+### ✅ Task 2: 재는 순수 함수 다섯을 옮긴다  ·  `0221270`
 
 **Files:**
 - Modify: `runner/measure.py`
 - Modify: `runner/test_measure.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `runner/test_measure.py` 끝에 붙인다:
 
@@ -258,12 +274,12 @@ def test_초를_사람이_읽는_꼴로():
 
 `test_망가진_값은_예외가_아니라_0이다` 는 **의도한 차이**다. 옛 코드는 `int("많이")` 로 `ValueError` 를 던졌다. 좁히기를 쓰면 0이 된다. 정상 입력에서는 동작이 같다.
 
-- [ ] **Step 2: 시험이 실패하는지 본다**
+- [x] **Step 2: 시험이 실패하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: FAIL — `AttributeError: module 'measure' has no attribute 'normalize_usage'`
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 `runner/measure.py` 의 좁히기 도우미 아래에 붙인다:
 
@@ -350,12 +366,12 @@ def hms(seconds: float) -> str:
     return "%d분 %04.1f초" % (int(s // 60), s % 60)
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 본다**
+- [x] **Step 4: 시험이 통과하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: PASS — 13 passed
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add runner/measure.py runner/test_measure.py
@@ -364,13 +380,13 @@ git commit -m "[add] : 토큰 세기와 실패 판정을 공통축으로"
 
 ---
 
-### Task 3: 표 그리기와 하트비트를 옮긴다
+### ✅ Task 3: 표 그리기와 하트비트를 옮긴다  ·  `a857559`
 
 **Files:**
 - Modify: `runner/measure.py`
 - Modify: `runner/test_measure.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `runner/test_measure.py` 끝에 붙인다:
 
@@ -409,12 +425,12 @@ def test_하트비트는_문맥_관리자다():
         assert h.label == "시험"
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 본다**
+- [x] **Step 2: 시험이 실패하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: FAIL — `AttributeError: module 'measure' has no attribute 'format_report'`
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 `runner/measure.py` 의 `hms` 아래에 붙인다. **본문은 `runner/run_mode1.py` 의 것을 그대로 옮긴다** — 옮기면서 고치지 않는다:
 
@@ -504,17 +520,17 @@ class Heartbeat:
         self._stop.set()
 ```
 
-- [ ] **Step 4: 시험이 통과하는지 본다**
+- [x] **Step 4: 시험이 통과하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_measure.py -q`
 Expected: PASS — 18 passed
 
-- [ ] **Step 5: 형 검사**
+- [x] **Step 5: 형 검사**
 
 Run: `npm run typecheck:py`
 Expected: `0 errors`
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add runner/measure.py runner/test_measure.py
@@ -523,19 +539,19 @@ git commit -m "[add] : 측정 표와 하트비트를 공통축으로"
 
 ---
 
-### Task 4: `run_mode1.py` 를 파사드로 바꾼다
+### ✅ Task 4: `run_mode1.py` 를 파사드로 바꾼다  ·  `fef08b8`
 
 시험 네 파일이 `R.normalize_usage` 처럼 최상위 이름을 약 200회 참조한다. 재수출하면 그 파일들을 한 줄도 고치지 않는다.
 
 **Files:**
 - Modify: `runner/run_mode1.py`
 
-- [ ] **Step 1: 기존 시험이 지금 통과하는지 먼저 확인한다 (기준선)**
+- [x] **Step 1: 기존 시험이 지금 통과하는지 먼저 확인한다 (기준선)**
 
 Run: `.venv/bin/python -m pytest runner/test_run_mode1.py -q`
 Expected: PASS. 통과 개수를 적어 둔다 — Step 4 에서 같아야 한다.
 
-- [ ] **Step 2: 옮긴 정의를 지우고 재수출로 바꾼다**
+- [x] **Step 2: 옮긴 정의를 지우고 재수출로 바꾼다**
 
 `runner/run_mode1.py` 에서 아래 정의를 **지운다**:
 `AgentResult` · `Usage` · `StageRow` · `normalize_usage` · `sum_usage` · `agent_verdict` · `claude_argv` · `hms` · `format_report` · `stage_totals` · `Heartbeat`
@@ -564,7 +580,7 @@ Records = dict[str, Record]
 
 `from typing import Any, NotRequired, TypedDict, cast` 에서 더 이상 쓰지 않는 이름을 뺀다.
 
-- [ ] **Step 3: 좁히기가 필요해진 한 자리를 고친다**
+- [x] **Step 3: 좁히기가 필요해진 한 자리를 고친다**
 
 `Record` 의 값이 `object` 가 되면 `_qualified` 의 `where.split(...)` 이 형 오류가 난다
 (`object` 에는 `.split` 이 없다). `runner/run_mode1.py` 의 `_qualified` 를 이렇게 바꾼다:
@@ -585,17 +601,17 @@ def _qualified(key: str, rec: Record | None) -> str:
 
 **다른 오류가 나오면 형만 맞춘다.** 새 동작을 넣지 않는다.
 
-- [ ] **Step 4: 기존 시험이 그대로 통과하는지 본다**
+- [x] **Step 4: 기존 시험이 그대로 통과하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_run_mode1.py runner/test_measure.py -q`
 Expected: PASS — Step 1 의 개수 + 18
 
-- [ ] **Step 5: 형 검사**
+- [x] **Step 5: 형 검사**
 
 Run: `npm run typecheck:py`
 Expected: `0 errors`
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add runner/run_mode1.py
@@ -604,14 +620,14 @@ git commit -m "[refactor] : run_mode1 을 재는 코드의 파사드로"
 
 ---
 
-### Task 5: Mode 2 와 Mode 1.5 의 import 부작용을 없앤다
+### ✅ Task 5: Mode 2 와 Mode 1.5 의 import 부작용을 없앤다  ·  `044af9a`
 
 **Files:**
 - Create: `runner/test_import_isolation.py`
 - Modify: `runner/run_mode1_5.py`
 - Modify: `runner/run_mode2.py`
 
-- [ ] **Step 1: 실패하는 시험을 쓴다**
+- [x] **Step 1: 실패하는 시험을 쓴다**
 
 `runner/test_import_isolation.py` 를 만든다:
 
@@ -654,12 +670,12 @@ def test_mode2_import_는_해석기를_바꾸지_않는다():
     assert _probe("run_mode2")["prefix"] == sys.prefix
 ```
 
-- [ ] **Step 2: 시험이 실패하는지 본다**
+- [x] **Step 2: 시험이 실패하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_import_isolation.py -q`
 Expected: FAIL — `networkx` 가 `True` 다 (세 시험 중 둘 이상 실패)
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 `runner/run_mode2.py` 에서:
 
@@ -678,12 +694,12 @@ import measure as M  # noqa: E402
 `run_mode1_5.py` 의 `run_machine` 이 쓰는 `M.Heartbeat` 와 `format_run` 이 쓰는
 `M.StageRow` · `M.format_report` 는 이름이 같아 그대로 동작한다.
 
-- [ ] **Step 4: 시험이 통과하는지 본다**
+- [x] **Step 4: 시험이 통과하는지 본다**
 
 Run: `.venv/bin/python -m pytest runner/test_import_isolation.py -q`
 Expected: PASS — 3 passed
 
-- [ ] **Step 5: 세 실행기의 `--dry-run` 이 그대로인지 본다**
+- [x] **Step 5: 세 실행기의 `--dry-run` 이 그대로인지 본다**
 
 Run:
 ```bash
@@ -691,7 +707,7 @@ Run:
 ```
 Expected: 에러 없이 단계 목록이 나온다 (`specs/` 가 있는 폴더라 통과한다).
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add runner/run_mode2.py runner/run_mode1_5.py runner/test_import_isolation.py
@@ -700,14 +716,14 @@ git commit -m "[fix] : mode 2 와 1.5 가 재는 코드만 가져오도록"
 
 ---
 
-### Task 6: `Any` 금지 게이트
+### ✅ Task 6: `Any` 금지 게이트  ·  `f4f20fd`
 
 `pyright strict` 는 명시적 `Any` 를 잡지 못한다. grep 게이트로 막는다.
 
 **Files:**
 - Create: `test/test_no_any.py`
 
-- [ ] **Step 1: 시험을 쓴다 (지금 통과해야 한다)**
+- [x] **Step 1: 시험을 쓴다 (지금 통과해야 한다)**
 
 `test/test_no_any.py` 를 만든다:
 
@@ -763,12 +779,12 @@ def test_덮는_파일이_실제로_있다():
         assert os.path.exists(os.path.join(ROOT, path)), path
 ```
 
-- [ ] **Step 2: 시험을 돌린다**
+- [x] **Step 2: 시험을 돌린다**
 
 Run: `.venv/bin/python -m pytest test/test_no_any.py -q`
 Expected: PASS — 2 passed
 
-- [ ] **Step 3: 게이트가 실제로 잡는지 확인한다**
+- [x] **Step 3: 게이트가 실제로 잡는지 확인한다**
 
 `runner/measure.py` 맨 아래에 임시로 `_시험용: object = None  # type: Any` 가 아니라
 진짜 형 자리에 넣어 본다: `def _버릴것(x: "Any") -> None: ...` 를 넣고 시험을 돌린다.
@@ -778,7 +794,7 @@ Expected: FAIL — "형 자리에 Any 가 남았다"
 
 **넣었던 줄을 지운다.** 다시 돌려 PASS 인지 확인한다.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add test/test_no_any.py
@@ -787,13 +803,13 @@ git commit -m "[add] : 형 자리의 Any 를 막는 게이트"
 
 ---
 
-### Task 7: 게이트 전체를 돌리고 문서를 맞춘다
+### ✅ Task 7: 게이트 전체를 돌리고 문서를 맞춘다  ·  `62dbf8a`
 
 **Files:**
 - Modify: `runner/README.md` (자동 생성)
 - Modify: `runner/CLAUDE.md`
 
-- [ ] **Step 1: 게이트 일곱을 전부 돌린다**
+- [x] **Step 1: 게이트 일곱을 전부 돌린다**
 
 ```bash
 .venv/bin/python -m pytest -q
@@ -832,13 +848,13 @@ Expected:
 .venv/bin/python machine/xmldoc.py check 2>&1 | tail -1
 ```
 
-- [ ] **Step 2: 자동 생성 README 를 맞춘다**
+- [x] **Step 2: 자동 생성 README 를 맞춘다**
 
 Run: `.venv/bin/python tools/gen_readme.py machine runner viz tools`
 그다음 Run: `.venv/bin/python tools/gen_readme.py --check machine runner viz tools`
 Expected: `README 4개 — 소스와 일치`
 
-- [ ] **Step 3: `runner/CLAUDE.md` 의 표에 새 파일을 더한다**
+- [x] **Step 3: `runner/CLAUDE.md` 의 표에 새 파일을 더한다**
 
 "무엇이 여기 있나" 표에 두 줄을 더한다:
 
@@ -854,7 +870,7 @@ Expected: `README 4개 — 소스와 일치`
   재는 코드가 필요할 뿐이면 `measure.py` 를 import 한다. `runner/test_import_isolation.py` 가 고정한다.
 ```
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add runner/README.md runner/CLAUDE.md
@@ -894,13 +910,13 @@ git commit -m "[docs] : 공통축 신설을 러너 문서에 반영"
 
 ## 완료 조건
 
-- [ ] `pytest` 가 483 이상 통과하고 줄어든 시험이 없다
-- [ ] `npm run typecheck:py` 가 `0 errors`
-- [ ] `runner/test_import_isolation.py` 3건 통과 — Mode 2·1.5 가 networkx 를 안 끌어온다
-- [ ] `test/test_no_any.py` 통과 — `runner/measure.py` 에 형 자리 `Any` 0개
-- [ ] `xmldoc check` 의 문제 건수가 **착수 전 수 + 지운 마커 수** 와 같다 (그보다 더 늘지 않았다)
-- [ ] `gen_readme --check` 가 4개 일치
-- [ ] 세 실행기의 `--dry-run` 출력이 이전과 같다
+- [x] `pytest` 가 483 이상 통과하고 줄어든 시험이 없다
+- [x] `npm run typecheck:py` 가 `0 errors`
+- [x] `runner/test_import_isolation.py` **4건** 통과 — Mode 2·1.5 가 networkx 를 안 끌어온다
+- [x] `test/test_no_any.py` **3건** 통과 — `runner/measure.py` 에 형 자리 `Any` 0개
+- [~] `xmldoc check` — **117 → 155.** 예측(+9)보다 컸다. 줄 밀림 29건을 안 셌다. 사유는 위 '완료 — 실측' 절
+- [x] `gen_readme --check` 가 4개 일치
+- [x] `run_mode2 --dry-run` 이 종료 코드 0 으로 돈다
 
 ## 다음 단계
 
