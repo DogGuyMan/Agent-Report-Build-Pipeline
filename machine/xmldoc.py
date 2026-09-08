@@ -4,6 +4,10 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """xmldoc.py — 주석 본문을 .xml 한 곳에 모으고 코드에는 레퍼런스만 남긴다.
 
+⚠ **폐지 예정(deprecated).** 이 체계는 유지되지만 **새 코드에 새로 심지 않는다.**
+있는 레퍼런스는 그대로 두고 `inject` 로 갱신한다. 사유와 대체안 후보는
+docs/decisions/0007-xmldoc-include-deprecated.md 에 있다.
+
 **정본은 machine/terms-reading.json 이다.** comments.xml 은 파생물이라
 손으로 고치지 않는다. 뜻을 바꾸려면 json 을 고치고 `emit` 을 다시 돌린다.
 
@@ -65,6 +69,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 READING = os.path.join(ROOT, "machine/terms-reading.json")
 XML_REL = "machine/comments.xml"
 XML_ABS = os.path.join(ROOT, XML_REL)
+
+# 이 주석 주입 체계는 폐지 예정이다. check 가 이 값을 배너로 낸다.
+DEPRECATED = "폐지 예정 — 새 코드에 <include …/> 를 새로 심지 않는다. docs/decisions/0007 참조."
 
 # 확장자별 한 줄 주석 접두사. 확장자가 없는 것은 bin/ 의 실행 스크립트라 셔뱅으로 가른다.
 LINE_COMMENT = {".py": "#", ".ts": "//", ".tsx": "//", ".mjs": "//", ".js": "//"}
@@ -547,6 +554,7 @@ def run_check() -> int:
     for p in problems[:20]:
         print("실패", p)
     print(f"레퍼런스 확인 {seen}건 · 문제 {len(problems)}건")
+    print(f"알림 — {DEPRECATED}")
     return 1 if problems else 0
 
 
