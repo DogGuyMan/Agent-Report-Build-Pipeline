@@ -12,6 +12,7 @@
 | `run_mode1.py` | Mode 1 열 단계 — `lang-select→prep→warmup→survey-plan→survey→warmup-save→terms→wiki→build→check`. LLM 칸은 `lang-select`(1회) · `survey`(층별) · `wiki`(층별) 셋(`AGENT_STAGES`) |
 | `run_mode1_5.py` | Mode 1.5 — `collect→[사람]→grade→emit`. 사람 칸에서 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
+| `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — 형 · 좁히기 도우미 · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
@@ -67,6 +68,15 @@ if __name__ == "__main__":
 - **주의 — 대상 저장소의 전수조사 원본은 `<repo>/docs/codegraph/terms-reading.json` 이다.**
   이 저장소 자신의 것만 `../machine/terms-reading.json` 으로 옮겨져 있어 두 경로가 다르다.
   `run_mode1.py` 의 프롬프트 문자열은 **대상 저장소 쪽**을 말한다 — 고칠 때 헷갈리지 말 것.
+- **Gotcha — `run_mode1.py` 를 import 하면 해석기가 바뀐다.** 파일 머리의 `_bootstrap_venv()` 가
+  `.venv` 밖 해석기를 `os.execv` 로 갈아치우고, `import survey_plan` 이 networkx 를 문다.
+  **재는 코드가 필요할 뿐이면 `measure.py` 를 import 한다.** `run_mode1.py` 는 옛 이름을
+  그대로 재수출하는 파사드라 둘 중 어느 쪽으로 불러도 같은 것이 나온다.
+  `runner/test_import_isolation.py` 가 이 경계를 고정한다.
+- **Gotcha — 형 자리의 `Any` 는 `pyright` 가 안 잡는다.** strict 모드는 `Unknown` 의 전파만
+  잡고 손으로 적은 `Any` 는 통과시킨다(`reportExplicitAny` 는 basedpyright 전용이라 무시된다).
+  `test/test_no_any.py` 가 글자로 막으며, 그 `COVERED` 목록이 지금 `Any` 0인 파일을 적어 둔다.
+  아직 남은 곳 — `run_mode1_5.py` 20곳 · `term/quiz.py` 12곳 · `wiki/check.py` 4곳.
 - **Gotcha — Mode 2 의 원본 문서 자리 규칙이 두 곳에 중복돼 산다.** `run_mode2.py` 의
   `DOC_DIRS` 와 `../viz/init.py` 의 `DOC_DIRS` 가 같은 값이어야 한다(`specs/` 는
   `-design.md`, `plans/` 는 접미사 없음). 언어가 달라 한 곳에 못 모은다 — 한쪽만 고치면

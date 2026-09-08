@@ -18,6 +18,7 @@
 | [`collect.py`](collect.py) | — |
 | [`emit.py`](emit.py) | — |
 | [`quiz.py`](quiz.py) | — |
+| [`test_import_isolation.py`](test_import_isolation.py) | Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 networkx 가 실리면 안 된다. |
 | [`test_measure.py`](test_measure.py) | — |
 | [`test_run_grade.py`](test_run_grade.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
@@ -202,6 +203,20 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `tally_sheet` | `(sheet: dict[str, Any], doc: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]` |  |
 | `grade_one` | `(counts: dict[str, Any]) -> dict[str, Any]` |  |
 | `grade_all` | `(answers: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]` |  |
+
+---
+
+## `test_import_isolation.py`
+
+Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 networkx 가 실리면 안 된다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `_probe` | `(mod: str) -> dict[str, object]` |  |
+| `test_mode2_는_networkx_를_끌어오지_않는다` | `()` |  |
+| `test_mode1_5_는_networkx_를_끌어오지_않는다` | `()` |  |
+| `test_mode2_import_는_해석기를_바꾸지_않는다` | `()` |  |
+| `test_mode1_5_import_는_해석기를_바꾸지_않는다` | `()` |  |
 
 ---
 
