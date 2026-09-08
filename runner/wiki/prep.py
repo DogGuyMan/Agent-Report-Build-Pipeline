@@ -6,12 +6,17 @@ import os
 import sys
 import json
 import subprocess
-from runner.wiki.paths import wikiPaths, collectorFor, collectorFromSelect
-from runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig
-from runner.wiki.clang_doc import clangDocPath, clangDocArgs
-from tools.python import pythonPath
 
+# 이 파일은 <ROOT>/runner/wiki/ 에 있다. 스크립트로 띄우면 sys.path[0] 이 그 폴더라
+# `runner` 도 `tools` 도 보이지 않는다 — 패키지 import 보다 먼저 뿌리를 넣는다.
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from runner.wiki.paths import wikiPaths, collectorFor, collectorFromSelect  # noqa: E402
+from runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig  # noqa: E402
+from runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
+from tools.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional
 

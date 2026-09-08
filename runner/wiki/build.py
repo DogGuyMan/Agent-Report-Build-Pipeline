@@ -9,8 +9,14 @@ import json
 import subprocess
 from typing import Any, cast
 
-from runner.wiki.paths import wikiPaths as _wikiPaths
-from tools.python import pythonPath as _pythonPath
+# 이 파일은 <ROOT>/runner/wiki/ 에 있다. 스크립트로 띄우면 sys.path[0] 이 그 폴더라
+# `runner` 도 `tools` 도 보이지 않는다 — 패키지 import 보다 먼저 뿌리를 넣는다.
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from runner.wiki.paths import wikiPaths as _wikiPaths  # noqa: E402
+from tools.python import pythonPath as _pythonPath  # noqa: E402
 
 wikiPaths = cast(Any, _wikiPaths)
 pythonPath = cast(Any, _pythonPath)

@@ -921,6 +921,24 @@ def test_every_runner_script_path_actually_exists() -> None:
         assert os.path.isfile(p), f"Mode 2 가 없는 파일을 가리킨다: {p}"
 
 
+def test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다() -> None:
+    """`runner/wiki/*.py` 를 **스크립트로** 띄웠을 때 import 가 서는가.
+
+    시험이 `from runner.wiki.prep import …` 로 부르면 pytest 가 저장소 뿌리를
+    `sys.path` 에 넣어 주므로 패키지 import 가 선다. 그러나 실행기는 파일 경로로
+    띄우고, 그때 `sys.path[0]` 은 `runner/wiki/` 라 `runner` 패키지가 보이지 않는다.
+    **존재만 보는 시험은 이 갈림을 못 잡는다** — 파일은 있는데 import 가 죽는다.
+    """
+    import subprocess
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for script in ("prep.py", "build.py", "check.py"):
+        p = R.wiki_argv(sys.executable, root, script, "/없는저장소")
+        got = subprocess.run(p, capture_output=True, text=True, timeout=60)
+        assert "ModuleNotFoundError" not in got.stderr, (
+            f"{script} 를 스크립트로 띄우면 import 가 죽는다:\n{got.stderr}")
+
+
 # ── 10. 전수조사 원본의 자리 — 자기호스팅만 다르다
 def test_자기호스팅_읽기레코드_경로가_실재한다() -> None:
     """이 저장소 자신을 조사할 때 원본은 `machine/terms-reading.json` 이다.
