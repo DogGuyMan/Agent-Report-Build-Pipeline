@@ -50,11 +50,11 @@ def test_warmup_관문이_survey_를_감싼다():
     assert p.index("warmup-save") < p.index("wiki")
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_세_단계가_모형을_부른다']"/>
-# 열 단계 중 실제로 LLM 모형을 부르는 단계가 딱 셋(lang-select, survey, wiki)인지 확인하는 시험이다.
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_세_단계가_LLM Model을_부른다']"/>
+# 열 단계 중 실제로 LLM LLM Model을 부르는 단계가 딱 셋(lang-select, survey, wiki)인지 확인하는 시험이다.
 # 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.is_agent_stage · 쓰이는 곳: 없음
-def test_세_단계가_모형을_부른다():
-    """모형을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다."""
+def test_세_단계가_LLM_Model을_부른다():
+    """LLM Model을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다."""
     stages = R.plan_stages(False, False, False)
     assert [s for s in stages if R.is_agent_stage(s)] == ["lang-select", "survey", "wiki"]
 
@@ -342,7 +342,7 @@ def test_배치_프롬프트는_범위가_없으면_전량_조사다():
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model']"/>
-# claude CLI 를 헤드리스 JSON 모드로, 지정한 모형 이름으로, 대상 저장소와 도구 저장소 두 디렉토리를 모두 볼 수 있게 부르는 명령줄을 만드는지 보는 시험이다.
+# claude CLI 를 헤드리스 JSON 모드로, 지정한 LLM Model 이름으로, 대상 저장소와 도구 저장소 두 디렉토리를 모두 볼 수 있게 부르는 명령줄을 만드는지 보는 시험이다.
 # 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: 없음
 # ── 4. 에이전트 호출 — 하나만, 그리고 대상 저장소를 볼 수 있게
 def test_claude_argv_is_headless_json_and_names_the_model():
@@ -620,15 +620,15 @@ def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatc
     assert len(rows) == 3
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_빈_층은_모형을_부르지_않는다']"/>
-# 샤드가 이미 다 있어서 할 일이 없는 빈 층인데도 모형을 부르면 돈만 나가므로, 빈 작업 목록이면 아예 부르지 말아야 한다는 것을 보는 시험이다.
+# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_빈_층은_LLM Model을_부르지_않는다']"/>
+# 샤드가 이미 다 있어서 할 일이 없는 빈 층인데도 LLM Model을 부르면 돈만 나가므로, 빈 작업 목록이면 아예 부르지 말아야 한다는 것을 보는 시험이다.
 # 쓰는 것: runner.run_mode1.run_layer · 쓰이는 곳: 없음
-def test_빈_층은_모형을_부르지_않는다(monkeypatch: pytest.MonkeyPatch):
+def test_빈_층은_LLM_Model을_부르지_않는다(monkeypatch: pytest.MonkeyPatch):
     """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
     def fake(model: str, repo: str, root: str, prompt: str,
              timeout: float | None = None,
              label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
-        pytest.fail("빈 층에서 모형을 불렀다")
+        pytest.fail("빈 층에서 LLM Model을 불렀다")
 
     monkeypatch.setattr(R, "run_agent_with", fake)
     assert R.run_layer("claude-sonnet-5", "/r", "/root", []) == []
@@ -835,7 +835,7 @@ def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path: Pat
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_층_계획은_LLM_단계가_아니다']"/>
-# 층을 오름차순으로 매기는 survey-plan 단계는 codegraph.json 하나로 결정론으로 계산하는 기계 단계이지 모형을 부르는 LLM 단계가 아니라는 것을 보는 시험이다.
+# 층을 오름차순으로 매기는 survey-plan 단계는 codegraph.json 하나로 결정론으로 계산하는 기계 단계이지 LLM Model을 부르는 LLM 단계가 아니라는 것을 보는 시험이다.
 # 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.is_agent_stage · 쓰이는 곳: 없음
 # ── 16. 층 계획은 기계다 — LLM 이 하는 일처럼 보이면 안 된다
 def test_층_계획은_LLM_단계가_아니다():
@@ -843,7 +843,7 @@ def test_층_계획은_LLM_단계가_아니다():
 
     층 오름차순은 `survey_plan.py` 가 codegraph.json 하나로 **결정론**으로 낸다 —
     의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**다(K1). 이 사실이 표에서
-    안 보이면 읽는 사람이 층 매기기까지 모형이 하는 줄 안다. 그래서 자기 칸을 준다.
+    안 보이면 읽는 사람이 층 매기기까지 LLM Model이 하는 줄 안다. 그래서 자기 칸을 준다.
     """
     stages = R.plan_stages(False, False, False)
     assert "survey-plan" in stages
