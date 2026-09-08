@@ -1,5 +1,16 @@
 # HANDOFF — `# <include …/>` 주석 주입에 폐지 예정 표시를 단다
 
+> 🟢 **완료됨 (2026-09-08) — 다시 실행하지 마라.**
+> 커밋 `5afbbd0` `[chore] : xmldoc - 폐지 예정 배너와 모듈 설명 갱신` 이 이 작업이다.
+> `machine/xmldoc.py` 에 모듈 독스트링 표시 · `DEPRECATED` 상수 · `check` 의 배너 한 줄이 들어갔다.
+> 확인: `.venv/bin/python machine/xmldoc.py check` 마지막 줄에 `알림 — 폐지 예정 …` 이 나온다.
+>
+> **남은 것 둘** — 둘 다 이 문서의 범위 밖이고 사용자 결정 대기다:
+> - `emit_xml()` 에 `deprecated` 속성 넣기 → `machine/comments.xml` 재생성(약 5,700줄)을 부른다.
+>   러너 리팩터링 3단계 뒤 `emit`→`inject` 를 한 번 돌릴 때 함께 한다
+> - **대체 마크업이 무엇인가** → 미정. `docs/decisions/0007-xmldoc-include-deprecated.md` 의
+>   후보 셋(독스트링만 / 곁딸린 파일 / 데코레이터)만 적혀 있다
+
 > 작성 2026-09-08 · 기준 커밋 `6b45e3b` · 저장소 `$REPO_ROOT`
 > 대상: **Sonnet 서브에이전트 1회 작업.** 파일 하나만 고친다
 > 근거 결정: [`docs/decisions/0007-xmldoc-include-deprecated.md`](../decisions/0007-xmldoc-include-deprecated.md)
