@@ -55,12 +55,14 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import measure as M  # noqa: E402
+import pipeline as P  # noqa: E402
 
 # 재는 코드(`hms` · `Heartbeat` · `normalize_usage` · `format_report` …)의 원본은
 # `measure.py` 하나뿐이다. 여기에는 사본이 없다.
@@ -355,6 +357,103 @@ def _read(path: str) -> str | None:
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.main']"/>
 # Mode 2(설계 검토 보고서) 파이프라인의 진입점. 스펙 문서를 찾아서 보고서를 만드는 네 단계(init→agent→build→check)를 순서대로 돌린다.
 # 쓰는 것: runner.run_mode2.find_spec, runner.run_mode2.report_dir, runner.run_mode2.manuscript_is_written, runner.run_mode2.plan_stages, runner.run_mode2.stage_cwd (+7) · 쓰이는 곳: 없음
+
+# ── 5. 단계 기계 — 문맥 · 산출물 · 단계 넷 · 전이표 ─────────────────────
+@dataclass
+class Mode2Context(P.RunContext):
+    """Mode 2 의 단계 사이를 건너다니는 값. 칸마다 이름과 형이 있다."""
+    project: str = ""
+    slug: str = ""
+    folder: str = ""
+    spec_file: str = ""
+    doc_dir: str = "specs"
+    terms_json: str | None = None
+
+
+# Mode 2 의 산출물은 셋 다 JSON 이 아니다 — TypeScript 소스와 HTML 이다.
+# 그래서 `check` 가 없고 존재만 본다.
+DATA_TS = P.Artifact[Mode2Context](
+    "data.ts", lambda c: os.path.join(c.folder, "data.ts"))
+REPORT_TSX = P.Artifact[Mode2Context](
+    "report.tsx", lambda c: os.path.join(c.folder, "report.tsx"))
+REPORT_HTML = P.Artifact[Mode2Context](
+    "out/report.html", lambda c: os.path.join(c.folder, "out", "report.html"))
+
+ARTIFACTS = [DATA_TS, REPORT_TSX, REPORT_HTML]
+
+
+class Mode2Machine(P.MachineStage[Mode2Context]):
+    """`init` · `build` · `check` — 셋 다 `viz/` 의 스크립트를 자식 프로세스로 부른다."""
+
+    def argv(self, ctx: Mode2Context) -> list[str]:
+        return script_argv(ctx.root, self.name, ctx.slug)
+
+    def cwd(self, ctx: Mode2Context) -> str:
+        return stage_cwd(self.name, ctx.project, ctx.folder)
+
+
+class InitStage(Mode2Machine):
+    name = "init"
+
+    def writes(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]:
+        return [DATA_TS, REPORT_TSX]
+
+
+class BuildStage(Mode2Machine):
+    name = "build"
+
+    def reads(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]:
+        return [DATA_TS, REPORT_TSX]
+
+    def writes(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]:
+        return [REPORT_HTML]
+
+
+class CheckStage(Mode2Machine):
+    name = "check"
+
+    def reads(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]:
+        return [REPORT_HTML]
+
+
+class AgentStage(P.LlmStage[Mode2Context]):
+    """세션 하나. `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다."""
+    name = "agent"
+
+    def prompt(self, ctx: Mode2Context) -> str:
+        return agent_prompt(ctx.project, ctx.slug, ctx.spec_file, ctx.root,
+                            ctx.terms_json, ctx.doc_dir)
+
+    def repo(self, ctx: Mode2Context) -> str:
+        return ctx.project
+
+    def harvest(self, ctx: Mode2Context, got: Sequence[P.JobResult],
+                rnd: int) -> P.Outcome:
+        """LLM Model이 낸 글을 화면에 흘린 뒤 기본 거두기를 그대로 쓴다."""
+        for _, _, _, result in got:
+            text = M.as_str(result.get("result")) if result else ""
+            if text:
+                print(text)
+        return super().harvest(ctx, got, rnd)
+
+
+MODE2_STAGES: dict[str, P.Stage[Mode2Context]] = {
+    "init": InitStage(), "agent": AgentStage(),
+    "build": BuildStage(), "check": CheckStage()}
+
+# 갈래는 지금 동작과 1:1 이다 — 성공하면 다음, 실패하면 멈춤.
+MODE2_EDGES = P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT})
+
+
+def build_mode2_graph(ctx: Mode2Context, has_manuscript: bool,
+                      only: Iterable[str] | None,
+                      skip: Iterable[str] | None) -> P.StageDagGraph[Mode2Context]:
+    """진입점에서 부른다. 어긋나면 단계를 하나도 돌리지 않고 죽는다."""
+    names = plan_stages(has_manuscript=has_manuscript, only=only, skip=skip)
+    return P.build_graph("mode2", names, {n: MODE2_STAGES[n] for n in names},
+                         MODE2_EDGES, P.existing(ARTIFACTS, ctx), ctx)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 2 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
@@ -404,58 +503,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     terms_json: str | None = os.path.join(folder, "terms.json")
     terms_json = terms_json if os.path.exists(terms_json) else None
 
+    ctx = Mode2Context(root=ROOT, model=a.model, timeout=a.timeout,
+                       project=project, slug=a.slug, folder=folder,
+                       spec_file=spec_file, doc_dir=doc_dir, terms_json=terms_json)
     try:
-        stages = plan_stages(
-            has_manuscript=has_manuscript,
+        graph = build_mode2_graph(
+            ctx, has_manuscript=has_manuscript,
             only=a.only.split(",") if a.only else None,
             skip=a.skip.split(",") if a.skip else None)
-    except ValueError as e:
+    except (ValueError, P.GraphError) as e:
         print("에러 — %s" % e, file=sys.stderr)
         return 1
 
     print("프로젝트 %s" % project)
     print("보고서   %s" % folder)
     print("설계문서 %s" % spec_file)
-    print("LLM Model %s · 단계 %s" % (a.model, " -> ".join(stages) or "(없음)"))
+    print("LLM Model %s · 단계 %s" % (a.model, " -> ".join(graph.order) or "(없음)"))
     print("이미 있는 것 — 뼈대 %s · 채워진 원고 %s · 용어집 재료 %s"
           % (data_src is not None, has_manuscript, bool(terms_json)))
     if a.dry_run:
-        for s in stages:
-            print("  %-6s cwd=%s" % (s, stage_cwd(s, project, folder)))
+        for s_name in graph.order:
+            print("  %-6s cwd=%s" % (s_name, stage_cwd(s_name, project, folder)))
+        print(graph.render())
         return 0
 
-    rows: list[M.StageRow] = []
     t_all = time.monotonic()
-    for stage in stages:
-        print("\n── %s ──────────────────────────────" % stage, flush=True)
-        cwd = stage_cwd(stage, project, folder)
-        t0 = time.monotonic()
-        if stage == "agent":
-            rc, result = run_agent(a.model, project, a.slug, spec_file, ROOT,
-                                   terms_json=terms_json, timeout=a.timeout,
-                                   doc_dir=doc_dir)
-            ok, why = agent_verdict(rc, result)
-            usage = normalize_usage(result)
-            if result and result.get("result"):
-                print(result["result"])
-        else:
-            if not os.path.isdir(cwd):
-                rc, ok, why = 1, False, "작업 디렉토리가 없다: %s" % cwd
-            else:
-                rc = run_machine(script_argv(ROOT, stage, a.slug), stage, cwd)
-                ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
-            usage = normalize_usage(None)
-        seconds = time.monotonic() - t0
-        rows.append({"stage": stage, "seconds": seconds, "usage": usage,
-                     "ok": ok, "why": why})
-        print("%s — %s (%s)" % (stage, "성공" if ok else "실패", hms(seconds)), flush=True)
-        if stage == "build" and ok:
-            out_html = os.path.join(folder, "out", "report.html")
-            if os.path.exists(out_html):
-                print("out/report.html — {:,} 바이트".format(os.path.getsize(out_html)))
-        if not ok:
-            print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
-            break
+    rows = P.Pipeline[Mode2Context]().run(graph, ctx)
+
+    out_html = os.path.join(folder, "out", "report.html")
+    if any(r["stage"] == "build" and r["ok"] for r in rows) and os.path.exists(out_html):
+        print("out/report.html — {:,} 바이트".format(os.path.getsize(out_html)))
 
     print("\n" + "=" * 72)
     print("Mode 2 측정 — 전체 %s" % hms(time.monotonic() - t_all))

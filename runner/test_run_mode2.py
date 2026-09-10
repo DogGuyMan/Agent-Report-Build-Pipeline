@@ -12,11 +12,13 @@
 """
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_mode1 as M  # noqa: E402
+import pipeline as P  # noqa: E402
 import run_mode2 as R  # noqa: E402
 
 
@@ -384,3 +386,40 @@ def test_the_report_table_has_a_row_per_stage_and_a_total():
     text = R.format_report(rows)
     assert "init" in text and "agent" in text and "합계" in text
     assert "1분 08.4초" in text
+
+
+def _ctx(tmp_path: Path) -> R.Mode2Context:
+    return R.Mode2Context(root=str(tmp_path), model="opus", project=str(tmp_path),
+                          slug="s", folder=str(tmp_path), spec_file="spec.md")
+
+
+def test_그래프는_고른_단계만_담는다(tmp_path: Path):
+    g = R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False,
+                            only=None, skip=["check"])
+    assert g.order == ["init", "agent", "build"]
+
+
+def test_원고가_있으면_그래프에_agent_가_없다(tmp_path: Path):
+    g = R.build_mode2_graph(_ctx(tmp_path), has_manuscript=True, only=None, skip=None)
+    assert "agent" not in g.order
+
+
+def test_그래프의_실패는_전부_멈춤이다(tmp_path: Path):
+    g = R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False, only=None, skip=None)
+    assert g.next_of("build", P.FAIL) is None
+    assert g.next_of("build", P.OK) == "check"
+
+
+def test_build_만_고르면_이미_있는_파일이_given_이_된다(tmp_path: Path):
+    (tmp_path / "data.ts").write_text("x", encoding="utf-8")
+    (tmp_path / "report.tsx").write_text("x", encoding="utf-8")
+    g = R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False,
+                            only=["build"], skip=None)
+    assert g.order == ["build"]
+
+
+def test_build_만_고르는데_파일이_없으면_팩토리가_죽는다(tmp_path: Path):
+    with pytest.raises(P.GraphError) as e:
+        R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False,
+                            only=["build"], skip=None)
+    assert "산출물" in str(e.value)
