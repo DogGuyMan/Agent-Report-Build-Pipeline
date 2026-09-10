@@ -10,6 +10,7 @@
 | [`__init__.py`](__init__.py) | — |
 | [`dispatch.py`](dispatch.py) | — |
 | [`measure.py`](measure.py) | 세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트. |
+| [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
 | [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
@@ -20,6 +21,7 @@
 | [`quiz.py`](quiz.py) | — |
 | [`test_import_isolation.py`](test_import_isolation.py) | Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 networkx 가 실리면 안 된다. |
 | [`test_measure.py`](test_measure.py) | — |
+| [`test_pipeline.py`](test_pipeline.py) | 단계 기계의 시험. 갈래 · 전이표 · 그래프 · 시뮬레이터 · 드라이버. |
 | [`test_run_grade.py`](test_run_grade.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
@@ -52,6 +54,7 @@
 |---|---|---|
 | **`StageRow`** | *class* | 측정 표의 한 줄. 세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다. |
 | `as_map` | `(v: object) -> dict[str, object]` | 열쇠가 문자열인 사전이면 그것을, 아니면 빈 사전을 낸다. |
+| `as_list` | `(v: object) -> list[object]` | 목록이면 원소를 `object` 로 본 사본을, 아니면 빈 목록을 낸다. |
 | `as_int` | `(v: object) -> int` | 정수면 그것을, 아니면 0. `bool` 은 정수가 아니다 — 참/거짓이 수로 세어지면 안 된다. |
 | `as_float` | `(v: object) -> float` | 정수나 실수면 실수로, 아니면 0.0. `bool` 은 제외한다. |
 | `as_str` | `(v: object) -> str` | 문자열이면 그것을, 아니면 빈 문자열. |
@@ -67,6 +70,53 @@
 | `Heartbeat._tick` | `(self) -> None` |  |
 | `Heartbeat.__enter__` | `(self) -> 'Heartbeat'` |  |
 | `Heartbeat.__exit__` | `(self, *_) -> None` |  |
+
+---
+
+## `pipeline.py`
+
+세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `_no_rows` | `() -> list[StageRow]` | `field(default_factory=list)` 는 원소 형을 잃는다. 형이 붙은 빈 목록을 낸다. |
+| **`Outcome`** | *class* | `perform()` 이 낸 것. 갈래는 정확히 하나이고, 세션 N개면 행도 N개다. |
+| **`RunContext`** | *class* | 세 모드가 공유하는 칸만. 모드마다 이것을 상속해 자기 칸을 더한다. |
+| **`Artifact`** | *class* | 단계가 읽고 쓰는 파일 하나. 자리는 `ctx` 가 정하므로 경로를 박지 않는다. |
+| `read_json` | `(path: str) -> object` | `json.load` 의 `Any` 를 `object` 로 좁히는 유일한 자리. 못 읽으면 `None`. |
+| **`Stage`** | *class* | 단계 하나. `emits` 는 **선언**이고 실제로 난 갈래는 `perform` 이 반환한다. |
+| `Stage.reads` | `(self, ctx: C) -> list[Artifact[C]]` | 돌기 전에 있어야 하는 것. 없으면 단계를 돌리지 않는다. |
+| `Stage.writes` | `(self, ctx: C) -> list[Artifact[C]]` | **돌고 나면 있어야 하는 것.** 꼴이 어긋나면 `FAIL` 이 된다. |
+| `Stage.perform` | `(self, ctx: C) -> Outcome` |  |
+| `missing_reads` | `(stage: Stage[C], ctx: C) -> list[str]` | 읽을 산출물 중 없거나 꼴이 어긋난 것의 불평 목록. |
+| `bad_writes` | `(stage: Stage[C], ctx: C) -> list[str]` | 쓴 산출물 중 안 나왔거나 꼴이 어긋난 것의 불평 목록. |
+| **`Edges`** | *class* | `(단계 이름, 갈래) -> 목적지`. 목적지는 단계 이름이거나 `HALT` · `NEXT` 다. |
+| `Edges.__init__` | `(self, table: Mapping[tuple[str, int], str]) -> None` |  |
+| `Edges.dest` | `(self, stage: str, kind: int) -> str \| None` |  |
+| **`StageDagGraph`** | *class* | 실제로 돌 흐름. `order` 는 위상 순서이고 모든 간선이 앞으로만 간다. |
+| `StageDagGraph.first` | `(self) -> str \| None` |  |
+| `StageDagGraph.next_of` | `(self, cur: str, kind: int) -> str \| None` | 이 갈래로 갈 다음 단계. 흐름이 끝나면 `None`. |
+| `StageDagGraph.render` | `(self) -> str` | `--dry-run` 이 찍는 것. 폴백 간선까지 화면에 보인다. |
+| **`GraphError`** | *class* | 팩토리가 지은 그래프가 검사를 통과하지 못했다. 단계는 하나도 돌지 않았다. |
+| `simulate` | `(graph: StageDagGraph[C], ctx: C) -> list[str]` | 아무것도 실행하지 않고 그래프만 걷는다. 불평 목록을 낸다(없으면 빈 목록). |
+| `build_graph` | `(name: str, order: Sequence[str], stages: Mapping[str, Stage[C]], edges: Edges, given: Sequence[Artifact[C]], ctx: C) -> StageDagGraph[C]` | 흐름을 짓고 **그 자리에서 보장한다.** 어긋나면 단계를 하나도 돌리지 않고 죽는다. |
+| `existing` | `(artifacts: Sequence[Artifact[C]], ctx: C) -> list[Artifact[C]]` | 이미 디스크에 있는 산출물만 고른다. `build_graph` 의 `given` 에 넣는다. |
+| **`Pipeline`** | *class* | 그래프를 따라 도는 루프. 세 실행기가 이 한 벌을 쓴다. |
+| `Pipeline.run` | `(self, graph: StageDagGraph[C], ctx: C) -> list[StageRow]` |  |
+| **`MachineStage`** | *class* | 자식 프로세스 하나. LLM 을 부르지 않으므로 토큰은 늘 0이고 행도 하나다. |
+| `MachineStage.argv` | `(self, ctx: C) -> list[str]` |  |
+| `MachineStage.cwd` | `(self, ctx: C) -> str` |  |
+| `MachineStage.perform` | `(self, ctx: C) -> Outcome` |  |
+| `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
+| `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
+| **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다. |
+| `LlmStage.prompt` | `(self, ctx: C) -> str` |  |
+| `LlmStage.repo` | `(self, ctx: C) -> str` | `claude -p` 가 열 저장소이자 자식 프로세스의 작업 폴더. |
+| `LlmStage.model` | `(self, ctx: C) -> str` |  |
+| `LlmStage.rounds` | `(self, ctx: C) -> int` |  |
+| `LlmStage.jobs` | `(self, ctx: C, rnd: int) -> list[tuple[str, str]]` |  |
+| `LlmStage.harvest` | `(self, ctx: C, got: Sequence[JobResult], rnd: int) -> Outcome` | 세션마다 행 하나. 하나라도 실패하면 층이 실패다. |
+| `LlmStage.perform` | `(self, ctx: C) -> Outcome` |  |
 
 ---
 
@@ -106,8 +156,6 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `wiki_argv` | `(python: str, root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.py` 하나를 부른다. |
 | `terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
 | `plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. |
-| `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
-| `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[tuple[str, float, int, AgentResult \| None]]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2). |
 | `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
 | `_qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
@@ -129,11 +177,14 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다. |
 | `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `human_gate_open` | `(has_answers: bool) -> bool` | 사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다. |
-| `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: dict[str, Any] \| None) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
-| `validate_questions` | `(doc: dict[str, Any] \| None) -> list[str]` | `questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록). |
-| `unasked_known` | `(candidates: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다. |
-| `answer_sheet` | `(doc: dict[str, Any] \| None) -> dict[str, Any]` | `questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다. |
-| `validate_answers` | `(sheet: dict[str, Any] \| None, doc: dict[str, Any] \| None) -> list[str]` | 채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록). |
+| `_text` | `(v: object) -> str` | `str(v or "")` 와 같다. 숫자가 와도 글자로 본다. |
+| `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: object) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
+| `validate_questions` | `(doc: object) -> list[str]` | `questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록). |
+| `unasked_known` | `(candidates: object, doc: object) -> list[str]` | 후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다. |
+| **`SheetQuestion`** | *class* | `answer-sheet.json` 의 한 칸. 사람은 `UserAns` 에만 적는다. |
+| **`AnswerSheet`** | *class* | 정답을 뺀 기입란 전체. **`answer` 를 싣지 않는 것이 요점이다.** |
+| `answer_sheet` | `(doc: object) -> AnswerSheet` | `questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다. |
+| `validate_answers` | `(sheet: object, doc: object) -> list[str]` | 채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록). |
 | `plan_slug` | `(plan: str) -> str` | 계획서 경로에서 작업 폴더 이름으로 쓸 slug 를 뽑는다. |
 | `default_workdir` | `(root: str, plan: str) -> str` | `--workdir` 를 안 주면 여기로 떨어진다 — `<root>/out/mode1_5/<slug>/`. |
 | `_term_script` | `(root: str, name: str) -> str` | `runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다. |
@@ -142,8 +193,30 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
-| `_read_json` | `(path: str) -> Any` | 있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다. |
+| `_read_json` | `(path: str) -> object` | 있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다. |
+| **`Mode15Context`** | *class* | Mode 1.5 의 단계 사이를 건너다니는 값. 산출 파일 자리는 `workdir` 이 정한다. |
+| `Mode15Context.p_cand` | `(self) -> str` |  |
+| `Mode15Context.p_key` | `(self) -> str` |  |
+| `Mode15Context.p_ques` | `(self) -> str` |  |
+| `Mode15Context.p_sheet` | `(self) -> str` |  |
+| `Mode15Context.p_ans` | `(self) -> str` |  |
+| `Mode15Context.p_grades` | `(self) -> str` |  |
+| **`Mode15Machine`** | *class* | 세 단계 모두 `runner/term/` 의 스크립트를 자식 프로세스로 부른다. |
+| `Mode15Machine.cwd` | `(self, ctx: Mode15Context) -> str` |  |
+| **`CollectStage`** | *class* |  |
+| `CollectStage.argv` | `(self, ctx: Mode15Context) -> list[str]` |  |
+| `CollectStage.writes` | `(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]` |  |
+| **`GradeStage`** | *class* |  |
+| `GradeStage.argv` | `(self, ctx: Mode15Context) -> list[str]` |  |
+| `GradeStage.reads` | `(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]` | 채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다. |
+| `GradeStage.writes` | `(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]` |  |
+| **`EmitStage`** | *class* |  |
+| `EmitStage.argv` | `(self, ctx: Mode15Context) -> list[str]` |  |
+| `EmitStage.reads` | `(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]` |  |
+| **`GateStage`** | *class* | 사람 차례. 기입란을 깔아 두고 흐름을 멈춘다 — **실패가 아니다.** |
+| `GateStage.perform` | `(self, ctx: Mode15Context) -> P.Outcome` |  |
+| `build_mode1_5_graph` | `(ctx: Mode15Context, has_candidates: bool, has_answers: bool, only: Iterable[str] \| None, skip: Iterable[str] \| None) -> P.StageDagGraph[Mode15Context]` | 진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
@@ -165,6 +238,22 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None, doc_dir: str = 'specs') -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `_read` | `(path: str) -> str \| None` | 파일을 읽어 문자열로. 없으면 `None` — 순수 함수에 존재 여부를 떠넘기지 않는다. |
+| **`Mode2Context`** | *class* | Mode 2 의 단계 사이를 건너다니는 값. 칸마다 이름과 형이 있다. |
+| **`Mode2Machine`** | *class* | `init` · `build` · `check` — 셋 다 `viz/` 의 스크립트를 자식 프로세스로 부른다. |
+| `Mode2Machine.argv` | `(self, ctx: Mode2Context) -> list[str]` |  |
+| `Mode2Machine.cwd` | `(self, ctx: Mode2Context) -> str` |  |
+| **`InitStage`** | *class* |  |
+| `InitStage.writes` | `(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]` |  |
+| **`BuildStage`** | *class* |  |
+| `BuildStage.reads` | `(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]` |  |
+| `BuildStage.writes` | `(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]` |  |
+| **`CheckStage`** | *class* |  |
+| `CheckStage.reads` | `(self, ctx: Mode2Context) -> list[P.Artifact[Mode2Context]]` |  |
+| **`AgentStage`** | *class* | 세션 하나. `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다. |
+| `AgentStage.prompt` | `(self, ctx: Mode2Context) -> str` |  |
+| `AgentStage.repo` | `(self, ctx: Mode2Context) -> str` |  |
+| `AgentStage.harvest` | `(self, ctx: Mode2Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` | LLM Model이 낸 글을 화면에 흘린 뒤 기본 거두기를 그대로 쓴다. |
+| `build_mode2_graph` | `(ctx: Mode2Context, has_manuscript: bool, only: Iterable[str] \| None, skip: Iterable[str] \| None) -> P.StageDagGraph[Mode2Context]` | 진입점에서 부른다. 어긋나면 단계를 하나도 돌리지 않고 죽는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
@@ -245,6 +334,75 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_건너뛴_단계는_실패가_아니다` | `()` |  |
 | `test_배치_행을_단계_이름으로_접는다` | `()` |  |
 | `test_하트비트는_문맥_관리자다` | `()` |  |
+| `test_as_list_는_목록이_아니면_빈_목록이다` | `()` |  |
+| `test_as_list_는_원소를_그대로_낸다` | `()` |  |
+| `test_as_list_는_사본이라_원본을_건드리지_않는다` | `()` |  |
+
+---
+
+## `test_pipeline.py`
+
+단계 기계의 시험. 갈래 · 전이표 · 그래프 · 시뮬레이터 · 드라이버.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `test_갈래_넷은_서로_다른_비트다` | `()` |  |
+| `test_Outcome_은_행_없이도_만들어진다` | `()` |  |
+| `test_Outcome_둘이_행_목록을_공유하지_않는다` | `()` |  |
+| `test_RunContext_는_네_칸을_갖는다` | `()` |  |
+| `test_Artifact_는_ctx_로_자리를_정한다` | `()` |  |
+| **`가짜단계`** | *class* | 시험용. 정해진 갈래를 그대로 낸다. |
+| `가짜단계.__init__` | `(self, name: str, kind: int = P.OK, emits: int = P.OK \| P.FAIL, reads: list[P.Artifact[P.RunContext]] \| None = None, writes: list[P.Artifact[P.RunContext]] \| None = None) -> None` |  |
+| `가짜단계.reads` | `(self, ctx: P.RunContext) -> list[P.Artifact[P.RunContext]]` |  |
+| `가짜단계.writes` | `(self, ctx: P.RunContext) -> list[P.Artifact[P.RunContext]]` |  |
+| `가짜단계.perform` | `(self, ctx: P.RunContext) -> P.Outcome` |  |
+| `cast_가짜` | `(st: 'P.Stage[P.RunContext]') -> 가짜단계` |  |
+| `test_읽을_것이_없으면_이름으로_말해_준다` | `(tmp_path: Path)` |  |
+| `test_읽을_것이_있으면_불평이_없다` | `(tmp_path: Path)` |  |
+| `test_꼴이_어긋난_산출물은_불평이_된다` | `(tmp_path: Path)` |  |
+| `test_쓰지_못한_산출물은_없다고_말한다` | `(tmp_path: Path)` |  |
+| `test_전이표는_단계별_규칙을_먼저_본다` | `()` |  |
+| `test_전이표에_없는_갈래는_None_이다` | `()` |  |
+| `test_전이표는_넘겨받은_사전을_복사한다` | `()` |  |
+| `삼단_그래프` | `(kinds: dict[str, int] \| None = None) -> P.StageDagGraph[P.RunContext]` |  |
+| `test_첫_단계는_순서의_맨_앞이다` | `()` |  |
+| `test_빈_그래프의_첫_단계는_None_이다` | `()` |  |
+| `test_NEXT_는_순서상_다음_단계다` | `()` |  |
+| `test_HALT_는_흐름을_끝낸다` | `()` |  |
+| `test_이름을_적은_간선은_그리로_점프한다` | `()` |  |
+| `test_render_는_단계마다_갈래를_보인다` | `()` |  |
+| `test_어긋난_것이_없으면_불평이_없다` | `(tmp_path: Path)` |  |
+| `test_완결성_emits_비트에_간선이_없으면_잡는다` | `(tmp_path: Path)` |  |
+| `test_매달림_없는_단계를_가리키면_잡는다` | `(tmp_path: Path)` |  |
+| `test_순환_뒤로_가는_간선을_잡는다` | `(tmp_path: Path)` |  |
+| `test_도달성_아무도_가지_않는_단계를_잡는다` | `(tmp_path: Path)` |  |
+| `test_산출물_어떤_경로에서만_없는_것을_잡는다` | `(tmp_path: Path)` | `a` 가 FAIL 로 `c` 에 떨어지면 `b` 가 쓸 파일이 없다. 한 줄 흐름이면 안 보인다. |
+| `test_산출물_이미_있는_것은_given_으로_통과한다` | `(tmp_path: Path)` |  |
+| `test_팩토리는_어긋나면_단계를_하나도_돌리지_않고_죽는다` | `(tmp_path: Path)` |  |
+| `test_팩토리는_멀쩡하면_그래프를_낸다` | `(tmp_path: Path)` |  |
+| `test_드라이버는_전이표를_따라_끝까지_돈다` | `(tmp_path: Path)` |  |
+| `test_드라이버는_FAIL_에서_멈춘다` | `(tmp_path: Path)` |  |
+| `test_드라이버는_읽을_것이_없으면_단계를_돌리지_않는다` | `(tmp_path: Path)` |  |
+| `test_드라이버는_재정의할_수_있다` | `(tmp_path: Path)` | D6 — 사용자 판정. `run` 은 닫히지 않는다. |
+| **`참말단계`** | *class* |  |
+| `참말단계.argv` | `(self, ctx: P.RunContext) -> list[str]` |  |
+| `참말단계.cwd` | `(self, ctx: P.RunContext) -> str` |  |
+| **`거짓말단계`** | *class* |  |
+| `거짓말단계.argv` | `(self, ctx: P.RunContext) -> list[str]` |  |
+| `test_기계_단계는_성공하면_OK_한_행이다` | `(tmp_path: Path)` |  |
+| `test_기계_단계는_종료코드를_사유로_적는다` | `(tmp_path: Path)` |  |
+| `test_기계_단계는_작업_폴더가_없으면_돌지_않는다` | `(tmp_path: Path)` |  |
+| **`한번부르는단계`** | *class* |  |
+| `한번부르는단계.prompt` | `(self, ctx: P.RunContext) -> str` |  |
+| `한번부르는단계.repo` | `(self, ctx: P.RunContext) -> str` |  |
+| **`두층부르는단계`** | *class* |  |
+| `두층부르는단계.rounds` | `(self, ctx: P.RunContext) -> int` |  |
+| `두층부르는단계.jobs` | `(self, ctx: P.RunContext, rnd: int) -> list[tuple[str, str]]` |  |
+| `가짜층` | `(결과: P.AgentResult \| None, rc: int = 0)` |  |
+| `test_LLM_단계는_기본으로_자기_이름의_세션_하나다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_LLM_단계는_기본_LLM_Model이_ctx_의_것이다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_LLM_단계는_층마다_세션마다_행을_낸다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_LLM_단계는_층이_실패하면_다음_층을_돌지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 
 ---
 
@@ -388,7 +546,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_four_choices_are_no_longer_enough` | `()` | 보기가 넷이면 걸린다. |
 | `test_a_term_without_a_meaning_is_caught` | `()` | `means` 가 비면 `emit` 이 뜻 없는 용어집을 낸다. |
 | `test_a_sheet_with_no_terms_is_caught` | `()` |  |
-| `filled_sheet` | `(doc: dict[str, Any] \| None = None, picks: Sequence[int \| str] = (1, 2, 3)) -> dict[str, Any]` | 기입란을 만들고 `UserAns` 를 채운 것. `picks` 는 문항 차례대로 고른 보기 번호. |
+| `filled_sheet` | `(doc: dict[str, Any] \| None = None, picks: Sequence[int \| str] = (1, 2, 3)) -> R.AnswerSheet` | 기입란을 만들고 `UserAns` 를 채운 것. `picks` 는 문항 차례대로 고른 보기 번호. |
 | `test_the_answer_sheet_never_carries_the_answer` | `()` | **이 시험이 기입란의 존재 이유다.** 풀기 전에 정답이 보이면 이해도가 아니라 눈을 잰다. |
 | `test_the_answer_sheet_numbers_every_question_from_one` | `()` | `QNum` 은 용어를 건너뛰며 이어진다 — 용어마다 1로 되돌아가지 않는다. |
 | `test_the_answer_sheet_carries_the_term_on_every_question` | `()` | 채점 단위가 문항이 아니라 **용어**다. `Term` 이 없으면 되짚을 수가 없다. |
@@ -423,6 +581,12 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_plan_slug_strips_the_date_prefix` | `()` |  |
 | `test_plan_slug_falls_back_to_the_bare_filename` | `()` | 날짜 접두사가 없으면 확장자만 뗀 파일 이름을 그대로 쓴다 — 빈 문자열을 내지 않는다. |
 | `test_two_plans_get_two_different_workdirs` | `()` |  |
+| `_m15` | `(tmp_path: Path) -> R.Mode15Context` |  |
+| `test_답안이_없으면_그래프_끝에_관문이_붙는다` | `(tmp_path: Path)` |  |
+| `test_답안이_있으면_관문이_없다` | `(tmp_path: Path)` |  |
+| `test_관문은_GATE_로_흐름을_끝낸다` | `(tmp_path: Path)` |  |
+| `test_문항지가_없으면_관문은_아무것도_하지_않는다` | `(tmp_path: Path)` |  |
+| `test_문항지가_있으면_관문이_기입란을_깔고_안내를_남긴다` | `(tmp_path: Path)` |  |
 
 ---
 
@@ -470,6 +634,12 @@ Mode 2 실행기의 회귀 시험.
 | `test_the_measuring_code_is_reused_not_reimplemented` | `()` | 두 실행기가 각자 세면 같은 이름의 숫자가 서로 다른 뜻을 갖는다. |
 | `test_a_machine_stage_row_is_all_zero_tokens` | `()` |  |
 | `test_the_report_table_has_a_row_per_stage_and_a_total` | `()` |  |
+| `_ctx` | `(tmp_path: Path) -> R.Mode2Context` |  |
+| `test_그래프는_고른_단계만_담는다` | `(tmp_path: Path)` |  |
+| `test_원고가_있으면_그래프에_agent_가_없다` | `(tmp_path: Path)` |  |
+| `test_그래프의_실패는_전부_멈춤이다` | `(tmp_path: Path)` |  |
+| `test_build_만_고르면_이미_있는_파일이_given_이_된다` | `(tmp_path: Path)` |  |
+| `test_build_만_고르는데_파일이_없으면_팩토리가_죽는다` | `(tmp_path: Path)` |  |
 
 ---
 

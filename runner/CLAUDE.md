@@ -10,9 +10,10 @@
 | 자리 | 하는 일 |
 |---|---|
 | `run_mode1.py` | Mode 1 열 단계 — `lang-select→prep→warmup→survey-plan→survey→warmup-save→terms→wiki→build→check`. LLM 칸은 `lang-select`(1회) · `survey`(층별) · `wiki`(층별) 셋(`AGENT_STAGES`) |
-| `run_mode1_5.py` | Mode 1.5 — `collect→[사람]→grade→emit`. 사람 칸에서 멈춘다. `author` 단계는 없다 |
+| `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — 형 · 좁히기 도우미 · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
+| `pipeline.py` | 세 실행기가 함께 쓰는 **단계 기계** — 갈래 넷 · `Stage` · 전이표 · `StageDagGraph` · 시뮬레이터 · 드라이버 한 벌 · 팬아웃 호출. `measure.py` 와 같이 **`machine/` 을 import 하지 않는다** |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
@@ -37,6 +38,32 @@ run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는
 **Gotcha — `run_mode1.py` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` 셋이다.
 축이 갈린 뒤로 같은 폴더가 아니게 되어 파일 머리에서 `sys.path` 에 `machine/` 을 직접 넣는다.
 다른 러너는 러너끼리만 import 하므로 그 줄이 없다.
+
+## 흐름은 진입점에서 미리 짓고 보장한다
+
+`main()` 이 인자를 읽자마자 `build_*_graph()` 를 부른다. **어떤 자식 프로세스도 띄우기
+전이다.** 팩토리가 `simulate()` 로 다섯을 보고 하나라도 어긋나면 `GraphError` 로 죽는다 —
+완결성 · 매달림 · 비순환 · 도달성 · 산출물 사슬.
+
+`--dry-run` 은 그 그래프를 `render()` 로 찍는다. 단계 이름의 나열이 아니라 폴백 간선까지
+포함한 실제 흐름이다.
+
+**전이표는 파이프라인 밖에 하나다.** `Stage` 는 자기 다음이 어딘지 모른다 — 흐름을
+알려면 `MODE2_EDGES` · `MODE1_5_EDGES` 를 함께 본다. 대가로 흐름 전체가 한 화면에 있고
+통째로 교체된다.
+
+**`Pipeline.run` 은 재정의할 수 있다.** 다만 재정의는 루프를 다시 쓰는 자리가 아니라
+`super().run()` 앞뒤에 자기 일을 붙이는 자리다. 지금 재정의하는 모드는 없다.
+
+**Gotcha — `writes` 는 "이 단계의 파이썬 코드가 쓴다" 가 아니다.** "돌고 나면 있어야
+한다" 는 선언이다. Mode 2 의 `agent` 는 `data.ts` 를 LLM 을 통해 채우고, Mode 1 의
+`survey` 는 샤드를 LLM 자식 프로세스가 쓴다.
+
+**Gotcha — 산출물 사슬 검사는 `OK` 갈래에서만 앞 단계의 `writes` 를 보장으로 센다.**
+`FAIL` 이나 `SKIP` 으로 떨어진 단계는 자기 산출물을 내지 않았다.
+
+**선택 입력은 `reads` 에 넣지 않는다.** `reads` 는 없으면 죽는 것만 담는다. 없어도
+정상인 것(`terms-db.json` · `terms.json` · `term-answer-key.json`)은 단계 안에서 본다.
 
 ## `.py` 는 직접 실행 가드를 둔다 — 규약
 
