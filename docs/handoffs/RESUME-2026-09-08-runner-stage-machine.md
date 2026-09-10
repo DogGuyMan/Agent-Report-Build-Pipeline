@@ -7,17 +7,23 @@
 ## TL;DR + 바로 다음 한 걸음
 
 `runner/` 의 실행기 셋(`run_mode1.py` · `run_mode1_5.py` · `run_mode2.py`)을 **공통 단계 기계**로
-바꾸는 3단계 작업이다. **1단계(공통 재는 코드 추출)가 끝났고 게이트 여섯이 초록이다.**
+바꾸는 3단계 작업이다. **1단계(공통 재는 코드 추출)와 2단계(`pipeline.py` 신설 · Mode 2·1.5
+이주)가 끝났고 게이트 여섯이 초록이다.**
 
 **바로 다음 할 일 — 둘 중 하나를 사용자가 고른다:**
 
-1. **2단계 계획서를 쓴다** — `runner/pipeline.py` 신설(Outcome · Stage · Edges · StageDagGraph ·
-   시뮬레이터)과 Mode 2 · Mode 1.5 이주. `superpowers:writing-plans` 스킬을 쓴다.
-   계획서 자리는 `docs/superpowers/plans/2026-09-08-runner-pipeline.md`.
-2. **브랜치를 `main` 에 병합하고 멈춘다** — 1단계만으로도 독립적으로 값어치가 있다
-   (import 부작용이 사라졌고 시험이 늘었다).
+1. **3단계 계획서를 쓴다** — Mode 1 을 `mode1/` 패키지로 분해하고, 증분·전량 그래프를
+   나누고(D13), `lang-select` 와 `wiki` 를 쪼개고(D4·D16), 재개 JSON 을 넣는다(D12).
+   `superpowers:writing-plans` 스킬을 쓴다. 계획서 자리는
+   `docs/superpowers/plans/2026-09-08-runner-mode1.md`.
+2. **브랜치를 `main` 에 병합하고 멈춘다** — 1·2단계만으로도 독립적으로 값어치가 있다
+   (import 부작용이 사라졌고, 드라이버 루프가 3벌에서 1벌로 줄었고, `Any` 가 0이 됐고,
+   시작 전 그래프 검사가 생겼다).
 
-**아직 물어보지 않았다. 사용자에게 물어라.**
+**⚠ 3단계 착수 전에 사용자 판정을 받을 것 둘 — D14 · D16.**
+
+**⚠ 2단계의 산출물은 아직 커밋되지 않았다.** 사용자가 요청할 때만 커밋한다는 가드레일에
+따라 워킹 트리에 쌓여 있다.
 
 ## 지금 상태 — 다시 잰 것 (2026-09-08)
 
@@ -50,13 +56,13 @@ ad994a3  [add] : 러너 공통 재는 코드의 형과 좁히기 도우미
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | **511 통과 · 19 건너뜀 · 실패 0** ✅ |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | **562 통과 · 19 건너뜀 · 실패 0** ✅ |
 | JS 시험 | `npm test` | **8 통과 · 0 실패** ✅ |
 | TS 타입 | `npm run typecheck` | **통과** ✅ |
 | 파이썬 타입 | `npm run typecheck:py` | **0 errors** ✅ |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` | **4개 일치** ✅ |
 | 환경 | `npm run doctor` | **필수 전부 있다** ✅ |
-| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | **레퍼런스 690건 · 문제 155건** 🔴 |
+| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | **알려진 빨강** 🔴 (2단계로 더 밀렸다. 3단계 뒤 한 번) |
 
 **⚠ `xmldoc check` 의 빨강은 고치지 마라. 알려진 것이고 지금 고치면 안 된다.**
 사유는 아래 "xmldoc 은 3단계 뒤에 한 번" 절.
@@ -88,45 +94,107 @@ print('prefix=%s networkx=%s' % (os.path.basename(sys.prefix), 'networkx' in sys
 | 단계 | 무엇 | 계획서 | 상태 |
 |---|---|---|---|
 | **1** | `measure.py` 추출 · 파사드 · import 부작용 제거 · `Any` 게이트 | `docs/superpowers/plans/2026-09-08-runner-common-axis.md` | **✅ 완료.** Task 7개 체크박스 전부 `[x]`, 커밋 SHA 박아 둠 |
-| **2** | `pipeline.py` 신설(Outcome · Stage · Edges · StageDagGraph · 시뮬레이터), Mode 2·1.5 이주 | **미작성** | 다음 |
-| **3** | Mode 1 을 `mode1/` 패키지로 분해, 증분·전량 그래프 분리 | **미작성** | |
+| **2** | `pipeline.py` 신설(Outcome · Stage · Edges · StageDagGraph · 시뮬레이터), Mode 2·1.5 이주 | `docs/superpowers/plans/2026-09-08-runner-pipeline.md` | **✅ 완료.** Task 13개 |
+| **3** | Mode 1 을 `mode1/` 패키지로 분해, 증분·전량 그래프 분리 | **미작성** | 다음 |
 
 **계획서를 미리 쓰지 않은 것은 의도다.** 뒷 단계의 코드가 앞 단계에서 나올 실제 API 모양에
 달려 있어서, 미리 쓰면 추측이 된다. 2단계 계획은 아래 `measure.py` 의 실제 서명 위에서 쓴다.
 
-## 2단계가 딛고 설 것 — `runner/measure.py` 의 공개 API
+## 3단계가 딛고 설 것 — `runner/pipeline.py` 의 공개 API
 
-**이것이 1단계의 산출물이다.** 파일을 열지 않아도 되도록 서명을 그대로 옮긴다
-(드리프트 위험 — 착수 시점에 `runner/measure.py` 를 직접 확인하라).
+**이것이 2단계의 산출물이다.** 드리프트 위험이 있으니 착수 시점에 `runner/pipeline.py` 를
+직접 확인하라.
 
 ```python
-AgentResult = dict[str, object]   # claude -p 의 출력. 값은 object 라 읽는 자리에서 좁힌다
-Usage       = dict[str, float]    # 정수 여섯 + 실수 하나(cost_usd) 가 섞인 의도된 이종 사전
+OK, FAIL, SKIP, GATE = 1, 2, 4, 8        # 갈래 넷. 늘리지 않는다
+KINDS = (OK, FAIL, SKIP, GATE)
+HALT = "\x00halt"                        # 전이 목적지 특수값
+NEXT = "\x00next"
 
-class StageRow(TypedDict):
-    stage: str; seconds: float; usage: Usage; ok: bool; why: str
-    skipped: NotRequired[bool]
+@dataclass
+class Outcome:                            # perform() 의 반환. Stage 는 무상태다
+    kind: int; why: str = ""; rows: list[StageRow] = ...
 
-# 좁히기 도우미 — object 를 쓸 수 있는 형으로 바꾸는 자리는 여기뿐이다
-as_map(v: object)   -> dict[str, object]   # 열쇠가 문자열인 사전, 아니면 {}
-as_int(v: object)   -> int                 # bool 은 제외한다
-as_float(v: object) -> float               # bool 은 제외한다
-as_str(v: object)   -> str
+@dataclass
+class RunContext:                         # 세 모드가 공유하는 칸만
+    root: str; model: str
+    timeout: float | None = None; concurrency: int = 8
 
-normalize_usage(result: AgentResult | None) -> Usage
-sum_usage(usages: Sequence[Usage])          -> Usage
-agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, str]
-claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]
-hms(seconds: float) -> str
-format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -> str
-stage_totals(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]
+C = TypeVar("C", bound=RunContext)        # 형 인자는 이것 하나뿐이다
 
-class Heartbeat:                            # 문맥 관리자
-    def __init__(self, label: str, every: float = 30.0) -> None
+@dataclass(frozen=True)
+class Artifact(Generic[C]):               # 단계가 읽고 쓰는 파일 하나
+    name: str
+    locate: Callable[[C], str]
+    check: Callable[[object], list[str]] | None = None   # JSON 전용. None 이면 존재만
+
+read_json(path: str) -> object            # json.load 의 Any 를 막는 유일한 자리
+
+class Stage(ABC, Generic[C]):
+    name: str; emits: int                 # emits 는 선언이지 상태가 아니다
+    reads(ctx: C)  -> list[Artifact[C]]   # 없으면 죽는 것만. 선택 입력은 넣지 않는다
+    writes(ctx: C) -> list[Artifact[C]]   # 돌고 나면 있어야 하는 것 (누가 쓰는지가 아니다)
+    perform(ctx: C) -> Outcome            # 추상
+
+missing_reads(stage, ctx) -> list[str]
+bad_writes(stage, ctx)    -> list[str]
+
+class Edges:                              # 파이프라인 밖에 하나. "*" 는 기본 규칙
+    dest(stage: str, kind: int) -> str | None
+
+@dataclass(frozen=True)
+class StageDagGraph(Generic[C]):
+    name: str; order: list[str]; stages: dict[str, Stage[C]]
+    edges: Edges; given: list[Artifact[C]]
+    first -> str | None
+    next_of(cur: str, kind: int) -> str | None
+    render() -> str                       # --dry-run 이 찍는다
+
+class GraphError(Exception): ...
+simulate(graph, ctx)   -> list[str]       # 완결성·매달림·비순환·도달성·산출물 사슬
+build_graph(name, order, stages, edges, given, ctx) -> StageDagGraph[C]
+existing(artifacts, ctx) -> list[Artifact[C]]      # given 에 넣을 것
+
+class Pipeline(Generic[C]):
+    run(graph, ctx: C) -> list[StageRow]  # **재정의 가능하다** (D6). 지금 쓰는 모드는 없다
+
+class MachineStage(Stage[C]):             # 자식 프로세스 하나. 토큰 0 · 행 1
+    argv(ctx) -> list[str]                # 추상
+    cwd(ctx)  -> str                      # 추상
+    perform  : 재정의 금지
+
+JobResult = tuple[str, float, int, AgentResult | None]
+run_agent_with(model, repo, root, prompt, timeout=None, label=None)
+run_layer(model, repo, root, jobs, concurrency=8, timeout=None) -> list[JobResult]
+
+class LlmStage(Stage[C]):                 # 훅 여섯. 필수는 prompt · repo 둘
+    prompt(ctx) -> str                    # 추상
+    repo(ctx)   -> str                    # 추상 — claude 가 열 저장소이자 cwd
+    model(ctx)  -> str  = ctx.model
+    rounds(ctx) -> int  = 1
+    jobs(ctx, rnd)             = [(self.name, self.prompt(ctx))]
+    harvest(ctx, got, rnd)     = 세션마다 행 하나
+    perform  : 재정의 금지
 ```
 
-**`run_mode1.py` 는 위 이름을 전부 재수출하는 파사드다.** 시험 네 파일이 `R.normalize_usage`
-처럼 옛 이름을 약 200회 참조하므로 그 파일들을 고치지 않기 위해서다. **파사드를 지우지 마라.**
+**`run_mode1.py` 는 `run_agent_with` 와 `run_layer` 를 `pipeline` 에서 재수출한다.**
+시험 넷이 옛 이름을 참조하므로 **파사드를 지우지 마라.** `measure.py` 재수출도 그대로다.
+
+**`measure.py` 에 `as_list` 가 늘었다** — `as_map` 과 같은 모양이고, `isinstance` 하나로는
+`list[Unknown]` 이 되는 문제를 막는다.
+
+⚠ **`as_str` 은 `str(v or "")` 와 다르다.** 숫자가 오면 앞엣것은 `""`, 뒤엣것은 `"123"`.
+Mode 1.5 는 옛 동작을 지키려고 `_text` 라는 지역 도우미를 쓴다. **3단계에서 Mode 1 의
+`Any` 를 없앨 때 같은 함정을 밟지 마라.**
+
+## 2단계가 만든 이주 본보기 둘
+
+3단계의 Mode 1 이주가 그대로 따라 할 모양이다.
+
+| 모드 | 어디 | 무엇을 보나 |
+|---|---|---|
+| Mode 2 | `run_mode2.py` 의 `Mode2Context` · `Mode2Machine` · `AgentStage` · `build_mode2_graph` | `LlmStage` 를 세션 하나로 쓰는 법 · `harvest` 재정의로 출력 흘리기 · `plan_stages` 를 팩토리의 ①로 남기기 |
+| Mode 1.5 | `run_mode1_5.py` 의 `Mode15Context` · `GateStage` · `build_mode1_5_graph` | `GATE` 갈래를 내는 단계 · `ctx` 에 값을 남겨 `main` 이 꺼내 쓰기 · 닫힌 함수를 `Artifact.check` 로 걸기 |
 
 ## 확정된 결정 — 다시 논쟁하지 말 것
 
@@ -146,10 +214,22 @@ class Heartbeat:                            # 문맥 관리자
 | D12 | 그래프는 **비순환**, 재시도는 **재개 JSON** 으로. 모든 중단이 그것을 남긴다 | *"어디서 실패했는지를 Fall-Back 하면서 JSON 값을 리턴… 이전 실패했던 지점에서만 다시 시작"* |
 | D13 | Mode 1 을 **증분 그래프와 전량 그래프 둘**로. 팩토리가 고른다 | *"증분용 stage, 완전 처음부터 시작하는 파이프라인 두가지로 명시적으로 분리"* |
 | D15 | `prep` 의 건너뜀 판정을 파일 존재 → `targets` 로 | *"동의"* |
+| D2 | `Stage` 는 무상태. 갈래는 `Outcome` 반환값 | 사용자 선택 (2026-09-09) |
+| D5 | 단계 사이의 값은 형이 붙은 `Context` dataclass | 사용자 선택 (2026-09-09) |
+| D6 | **`pipeline.run` 은 재정의 가능하다** — 앞선 판(비가상)의 번복 | 사용자 선택 (2026-09-09). 다만 2단계에서 재정의하는 모드는 없다 |
+| R1 | 선택 입력은 `reads` 에 선언하지 않는다 | 사용자 선택 (2026-09-09) |
+| R2 | `Artifact.check` 는 JSON 전용 | 사용자 선택 (2026-09-09) |
+| D14 | **경고만.** 계획 파일에 범위를 싣지 않는다 | 사용자 선택 (2026-09-10). `machine/` 소유 경계를 열지 않는다 |
+| D16 | `wiki` 를 `wiki-catalogue` + `wiki-pages` 로 쪼갠다 | 사용자 선택 (2026-09-10) |
 | 순서 | **리팩터링이 먼저, warmup 결함 ③④는 후속** | *"일단 리팩토링 먼저… 리펙토링 끝난 후 후속 작업"* |
 
-**아직 판정 안 난 제안 5건** — D2(Stage 무상태) · D5(Context dataclass) · D6(`run` 비가상) ·
-D14(계획이 범위를 싣는다) · D16(`wiki` 쪼개기). 2·3단계 착수 전에 사용자 판정을 받아라.
+**미결정 0건.** 사양의 결정 17건이 전부 판정됐다. 3단계는 판정을 다시 받을 필요 없이 착수한다.
+
+⚠ **D14 는 절반만 막는다.** 경고로 안 막히는 것 셋이 사양의 `[개선 대상]` **M1-1** 에 적혀 있다 —
+⑴ `--only` 로 쪼개면 여전히 전량 계획이 쓰인다 ⑵ `--dry-run` 이 좁히기를 못 보인다
+⑶ **시뮬레이터가 D13 의 두 그래프를 대조할 수 없다.** ⑶ 은 D13 과 직접 얽히지만
+순서 제약(증분 그래프는 ③④ 뒤)이 눌러 둔다. **증분 그래프를 실제로 쓰기 시작할 때
+소유 경계를 여는 판정을 다시 받아라.**
 
 ### 정정된 주장 하나
 
