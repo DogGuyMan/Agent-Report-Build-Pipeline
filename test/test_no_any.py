@@ -15,6 +15,7 @@ COVERED = [
     "runner/measure.py",
     "runner/pipeline.py",
     "runner/run_mode1.py",
+    "runner/run_mode1_5.py",
     "runner/run_mode2.py",
     "runner/run_grade.py",
     "runner/dispatch.py",

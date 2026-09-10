@@ -10,8 +10,10 @@
 
   .venv/bin/python -m pytest runner/test_run_mode1_5.py -q
 """
+import json
 import os
 import sys
+from pathlib import Path
 from collections.abc import Sequence
 from typing import Any
 
@@ -19,6 +21,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_mode1 as M  # noqa: E402
+import pipeline as P  # noqa: E402
 import run_mode1_5 as R  # noqa: E402
 
 
@@ -295,7 +298,7 @@ def test_a_sheet_with_no_terms_is_caught():
 # 쓰는 것: runner.run_mode1_5.answer_sheet, runner.test_run_mode1_5.good_doc · 쓰이는 곳: runner.test_run_mode1_5.test_a_blank_user_answer_is_caught, runner.test_run_mode1_5.test_a_fully_filled_sheet_has_no_complaints, runner.test_run_mode1_5.test_a_missing_answer_is_caught, runner.test_run_mode1_5.test_a_number_written_as_text_is_accepted, runner.test_run_mode1_5.test_a_sheet_whose_question_text_drifted_is_caught (+5)
 # ── 5. questions.json 에서 기입란으로 바로 이어진다 ─────────────────────
 def filled_sheet(doc: dict[str, Any] | None = None,
-                 picks: Sequence[int | str] = (1, 2, 3)) -> dict[str, Any]:
+                 picks: Sequence[int | str] = (1, 2, 3)) -> R.AnswerSheet:
     """기입란을 만들고 `UserAns` 를 채운 것. `picks` 는 문항 차례대로 고른 보기 번호.
 
     `good_doc()` 의 정답은 문항 차례대로 1 · 2 · 3번 보기다(`answer` 가 0부터라 하나 크다).
@@ -443,7 +446,7 @@ def test_an_answer_to_a_question_that_was_never_asked_is_caught():
 # 쓰는 것: runner.run_mode1_5.validate_answers, runner.test_run_mode1_5.good_doc, runner.test_run_mode1_5.filled_sheet · 쓰이는 곳: 없음
 def test_the_same_question_answered_twice_is_caught():
     sheet = filled_sheet()
-    sheet["questions"].append(dict(sheet["questions"][0]))
+    sheet["questions"].append(sheet["questions"][0].copy())
     assert any("둘 이상" in c for c in R.validate_answers(sheet, good_doc()))
 
 
@@ -638,3 +641,45 @@ def test_two_plans_get_two_different_workdirs():
     assert a != b
     assert a == "/repo/out/mode1_5/symbol-resolution-survey"
     assert b == "/repo/out/mode1_5/llm-load-reduction"
+
+
+def _m15(tmp_path: Path) -> R.Mode15Context:
+    return R.Mode15Context(root=str(tmp_path), model="",
+                           plan=str(tmp_path / "p.md"), workdir=str(tmp_path))
+
+
+def test_답안이_없으면_그래프_끝에_관문이_붙는다(tmp_path: Path):
+    g = R.build_mode1_5_graph(_m15(tmp_path), has_candidates=False,
+                              has_answers=False, only=None, skip=None)
+    assert g.order == ["collect", "gate"]
+
+
+def test_답안이_있으면_관문이_없다(tmp_path: Path):
+    g = R.build_mode1_5_graph(_m15(tmp_path), has_candidates=True,
+                              has_answers=True, only=None, skip=None)
+    assert g.order == ["grade", "emit"]
+
+
+def test_관문은_GATE_로_흐름을_끝낸다(tmp_path: Path):
+    g = R.build_mode1_5_graph(_m15(tmp_path), has_candidates=False,
+                              has_answers=False, only=None, skip=None)
+    assert g.stages["gate"].emits & P.GATE
+    assert g.next_of("gate", P.GATE) is None
+
+
+def test_문항지가_없으면_관문은_아무것도_하지_않는다(tmp_path: Path):
+    ctx = _m15(tmp_path)
+    out = R.GateStage().perform(ctx)
+    assert out.kind == P.OK
+    assert out.rows == []
+    assert ctx.gate is None
+
+
+def test_문항지가_있으면_관문이_기입란을_깔고_안내를_남긴다(tmp_path: Path):
+    (tmp_path / R.QUESTIONS).write_text(
+        json.dumps(good_doc(), ensure_ascii=False), encoding="utf-8")
+    ctx = _m15(tmp_path)
+    out = R.GateStage().perform(ctx)
+    assert out.kind == P.GATE
+    assert os.path.exists(tmp_path / R.SHEET)
+    assert ctx.gate is not None and R.ANSWERS in ctx.gate

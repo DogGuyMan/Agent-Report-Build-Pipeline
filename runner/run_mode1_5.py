@@ -97,7 +97,8 @@ import subprocess
 import sys
 import time
 from collections.abc import Iterable, Sequence
-from typing import Any
+from dataclasses import dataclass
+from typing import TypedDict, cast
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -113,6 +114,7 @@ from runner.term.quiz import QUESTIONS_PER_TERM, CHOICES_PER_QUESTION, flatten_q
 # `measure.py` 하나뿐이다. 여기에는 사본이 없다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure as M  # noqa: E402
+import pipeline as P  # noqa: E402
 
 # 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
 STAGES = ["collect", "grade", "emit"]
@@ -179,8 +181,13 @@ def human_gate_open(has_answers: bool) -> bool:
 
 
 # ── 2. 정답 미정 가르기 — 기계 규칙은 하나뿐이다 ────────────────────────
+def _text(v: object) -> str:
+    """`str(v or "")` 와 같다. 숫자가 와도 글자로 본다."""
+    return str(v) if v else ""
+
+
 def split_new_concepts(new_concepts: Iterable[str],
-                       answer_key: dict[str, Any] | None) -> tuple[list[str], list[str]]:
+                       answer_key: object) -> tuple[list[str], list[str]]:
     """Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다.
 
     규칙은 하나다 — **뜻(정답 문구)이 있느냐.** 뜻이 없으면 채점이 불가능하므로 낼 수 없다.
@@ -193,7 +200,7 @@ def split_new_concepts(new_concepts: Iterable[str],
     ready: list[str] = []
     held: list[str] = []
     for t in new_concepts:
-        if str((answer_key or {}).get(t) or "").strip():
+        if _text(M.as_map(answer_key).get(t)).strip():
             ready.append(t)
         else:
             held.append(t)
@@ -201,7 +208,7 @@ def split_new_concepts(new_concepts: Iterable[str],
 
 
 # ── 3. 문항지 검사 — quiz.py 는 이것을 검사하지 않는다 ─────────────────
-def validate_questions(doc: dict[str, Any] | None) -> list[str]:
+def validate_questions(doc: object) -> list[str]:
     """`questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록).
 
     **`quiz.py` 는 이것을 검사하지 않는다.** 답안만 받아 세므로 문항이 둘뿐이거나
@@ -213,42 +220,41 @@ def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     spots: list[int] = []        # spots — 정답이 놓인 자리. 한곳에 몰렸는지 뒤에서 본다
     # 형 주석은 무엇이 올 것이라 보고 짰는지를 적은 것이고, 실제 검사는 `isinstance` 다 —
     # 문항지는 LLM Model이 쓰고 사람이 손댈 수 있는 JSON 이라 무엇이든 올 수 있다.
-    terms: list[dict[str, Any] | None] | None = (doc or {}).get("terms")
-    if not isinstance(terms, list) or not terms:
+    terms = M.as_list(M.as_map(doc).get("terms"))
+    if not terms:
         return ["문항지에 용어가 하나도 없다 — `terms` 배열이 비었거나 없다"]
 
     for i, entry in enumerate(terms):
-        name = str((entry or {}).get("term") or "").strip()
+        칸 = M.as_map(entry)
+        name = _text(칸.get("term")).strip()
         head = name or "(이름 없는 %d번째 용어)" % (i + 1)
         if not name:
             out.append("%s — `term` 이 비었다" % head)
-        if not str((entry or {}).get("means") or "").strip():
+        if not _text(칸.get("means")).strip():
             out.append("%s — `means`(뜻)가 비었다. 비면 용어집에 뜻 없는 항목이 실린다" % head)
 
-        qs: list[dict[str, Any] | None] | None = (entry or {}).get("questions")
-        if not isinstance(qs, list) or len(qs) != QUESTIONS_PER_TERM:
-            out.append("%s — %d문항이어야 하는데 %s개다"
-                       % (head, QUESTIONS_PER_TERM,
-                          len(qs) if isinstance(qs, list) else "0"))
-            qs = qs if isinstance(qs, list) else []
+        qs = M.as_list(칸.get("questions"))
+        if len(qs) != QUESTIONS_PER_TERM:
+            out.append("%s — %d문항이어야 하는데 %d개다"
+                       % (head, QUESTIONS_PER_TERM, len(qs)))
 
         for j, q in enumerate(qs):
+            물음 = M.as_map(q)
             tag = "%s 문항 %d" % (head, j + 1)
-            if not str((q or {}).get("ask") or "").strip():
+            if not _text(물음.get("ask")).strip():
                 out.append("%s — 물음(`ask`)이 비었다" % tag)
-            choices: list[Any] | None = (q or {}).get("choices")
-            if not isinstance(choices, list) or len(choices) != CHOICES_PER_QUESTION:
-                out.append("%s — 보기는 실제 뜻 %d개에 \"%s\" 를 더해 정확히 %d개여야 하는데 %s개다"
+            choices = M.as_list(물음.get("choices"))
+            if len(choices) != CHOICES_PER_QUESTION:
+                out.append("%s — 보기는 실제 뜻 %d개에 \"%s\" 를 더해 정확히 %d개여야 하는데 %d개다"
                            % (tag, CHOICES_PER_QUESTION - 1, DONT_KNOW,
-                              CHOICES_PER_QUESTION,
-                              len(choices) if isinstance(choices, list) else "0"))
+                              CHOICES_PER_QUESTION, len(choices)))
                 continue
             if choices[-1] != DONT_KNOW:
                 out.append("%s — \"%s\" 가 **마지막** 보기가 아니다 (지금 마지막은 %r)"
                            % (tag, DONT_KNOW, choices[-1]))
             if len(set(choices)) != len(choices):
                 out.append("%s — 보기가 서로 겹친다" % tag)
-            ans = (q or {}).get("answer")
+            ans = 물음.get("answer")
             if not isinstance(ans, int) or isinstance(ans, bool) \
                     or ans < 0 or ans >= len(choices):
                 out.append("%s — 정답 자리(`answer`)가 보기 밖이다: %r" % (tag, ans))
@@ -265,17 +271,16 @@ def validate_questions(doc: dict[str, Any] | None) -> list[str]:
     return out
 
 
-def unasked_known(candidates: dict[str, Any] | None,
-                  doc: dict[str, Any] | None) -> list[str]:
+def unasked_known(candidates: object, doc: object) -> list[str]:
     """후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다.
 
     판정하지 않고 **목록만** 낸다. 좁힐지 되살릴지는 사람이 정한다.
     """
-    known: dict[str, Any] = (candidates or {}).get("known") or {}
-    asked_src: list[dict[str, Any] | None] = (doc or {}).get("terms") or []
-    noted_src: list[dict[str, Any] | None] = (doc or {}).get("excluded") or []
-    asked = {str((e or {}).get("term") or "") for e in asked_src}
-    noted = {str((e or {}).get("term") or "") for e in noted_src}
+    known = M.as_map(M.as_map(candidates).get("known"))
+    asked = {_text(M.as_map(e).get("term"))
+             for e in M.as_list(M.as_map(doc).get("terms"))}
+    noted = {_text(M.as_map(e).get("term"))
+             for e in M.as_list(M.as_map(doc).get("excluded"))}
     return sorted(t for t in known if t not in asked and t not in noted)
 
 
@@ -283,34 +288,47 @@ def unasked_known(candidates: dict[str, Any] | None,
 # questions.json 에서 정답을 뺀, 사람이 풀 답안지를 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5.flatten_questions · 쓰이는 곳: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.main, runner.test_run_mode1_5.filled_sheet, runner.test_run_mode1_5.test_the_answer_sheet_carries_the_term_on_every_question, runner.test_run_mode1_5.test_the_answer_sheet_leaves_the_user_column_empty (+4)
 # ── 4. 문항지에서 기입란으로 곧장 잇기 ──────────────────────────────────
-def answer_sheet(doc: dict[str, Any] | None) -> dict[str, Any]:
+class SheetQuestion(TypedDict):
+    """`answer-sheet.json` 의 한 칸. 사람은 `UserAns` 에만 적는다."""
+    QNum: int
+    Term: str
+    Question: str
+    AnsChoices: dict[str, str]
+    # 실행기가 내는 값은 늘 `""` 이지만, 사람이 채우면 정수도 온다 —
+    # `choice_number` 가 둘 다 받는다.
+    UserAns: str | int
+
+
+class AnswerSheet(TypedDict):
+    """정답을 뺀 기입란 전체. **`answer` 를 싣지 않는 것이 요점이다.**"""
+    plan: str
+    questions: list[SheetQuestion]
+
+
+def answer_sheet(doc: object) -> AnswerSheet:
     """`questions.json` 에서 사람이 채울 `answer-sheet.json` 을 만든다.
 
     **정답(`answer`)을 싣지 않는 것이 이 함수의 요점이다.** 사람은 `UserAns` 에 고른
     보기 번호만 적고, 맞힌 수는 기계가 센다.
     """
-    questions: list[dict[str, Any]] = []
-    for q_dict in flatten_questions(doc or {}):
-        qnum = q_dict["QNum"]
-        term = q_dict["Term"]
-        q = q_dict["Raw"]
-        choices: list[Any] | None = q.get("choices")
-        choices = choices if isinstance(choices, list) else []
+    questions: list[SheetQuestion] = []
+    for q_dict in flatten_questions(M.as_map(doc)):
+        q = M.as_map(q_dict.get("Raw"))
+        choices = M.as_list(q.get("choices"))
         questions.append({
-            "QNum": qnum,
-            "Term": term,
-            "Question": str(q.get("ask") or ""),
-            "AnsChoices": {str(i + 1): c for i, c in enumerate(choices)},
+            "QNum": M.as_int(q_dict.get("QNum")),
+            "Term": _text(q_dict.get("Term")),
+            "Question": _text(q.get("ask")),
+            "AnsChoices": {str(i + 1): _text(c) for i, c in enumerate(choices)},
             "UserAns": "",
         })
-    return {"plan": str((doc or {}).get("plan") or ""), "questions": questions}
+    return {"plan": _text(M.as_map(doc).get("plan")), "questions": questions}
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.validate_answers']"/>
 # 사람이 채운 답안지 파일이 원래 문항지와 내용이 맞는지 검사하는 함수다.
 # 쓰는 것: runner.run_mode1_5.flatten_questions, runner.run_mode1_5.choice_number · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_a_blank_user_answer_is_caught, runner.test_run_mode1_5.test_a_fully_filled_sheet_has_no_complaints, runner.test_run_mode1_5.test_a_missing_answer_is_caught, runner.test_run_mode1_5.test_a_number_written_as_text_is_accepted (+7)
-def validate_answers(sheet: dict[str, Any] | None,
-                     doc: dict[str, Any] | None) -> list[str]:
+def validate_answers(sheet: object, doc: object) -> list[str]:
     """채운 기입란이 문항지와 아귀가 맞는지 본다. 불평 목록을 낸다(없으면 빈 목록).
 
     `quiz.py` 도 채점 직전에 같은 대조를 한다. 중복이 아니다 — 번호 규칙이 두 언어에
@@ -319,35 +337,36 @@ def validate_answers(sheet: dict[str, Any] | None,
     **빈 칸은 오류다.** 넘어가면 안 푼 문항이 틀린 문항으로 세어진다.
     """
     out: list[str] = []
-    want = flatten_questions(doc or {})
-    # 형 주석은 무엇이 올 것이라 보고 짰는지를 적은 것이고, 실제 검사는 `isinstance` 다.
-    got: list[dict[str, Any] | None] | None = (sheet or {}).get("questions")
-    if not isinstance(got, list):
+    want = flatten_questions(M.as_map(doc))
+    raw_got = M.as_map(sheet).get("questions")
+    got = M.as_list(raw_got)
+    # 목록이 아닌 것과 빈 목록은 다르다 — 앞엣것만 여기서 죽는다.
+    if not got and not isinstance(raw_got, list):
         return ["기입란 파일이 아니다 — `questions` 배열이 없다"]
 
-    seen: dict[int, dict[str, Any]] = {}
-    for i, rec in enumerate(got):
-        rec = rec or {}
-        num = rec.get("QNum")
+    seen: dict[int, dict[str, object]] = {}
+    for i, raw_rec in enumerate(got):
+        칸 = M.as_map(raw_rec)
+        num = 칸.get("QNum")
         if not isinstance(num, int) or isinstance(num, bool):
-            out.append("%d번째 칸 — `QNum` 이 정수가 아니다: %r" % (i + 1, rec.get("QNum")))
+            out.append("%d번째 칸 — `QNum` 이 정수가 아니다: %r" % (i + 1, 칸.get("QNum")))
             continue
         if num in seen:
             out.append("%d번 문항의 답안이 둘 이상이다" % num)
-        seen[num] = rec
+        seen[num] = 칸
 
     for q_dict in want:
-        num = q_dict["QNum"]
-        term = q_dict["Term"]
-        q = q_dict["Raw"]
+        num = M.as_int(q_dict.get("QNum"))
+        term = _text(q_dict.get("Term"))
+        q = M.as_map(q_dict.get("Raw"))
         rec = seen.pop(num, None)
         if rec is None:
             out.append("%d번(%s) — 문항은 냈는데 답안이 없다" % (num, term))
             continue
-        if str(rec.get("Term") or "") != term:
+        if _text(rec.get("Term")) != term:
             out.append("%d번 — 용어가 어긋난다. 문항지는 %r 인데 답안은 %r 이다"
                        % (num, term, rec.get("Term")))
-        if str(rec.get("Question") or "") != str(q.get("ask") or ""):
+        if _text(rec.get("Question")) != _text(q.get("ask")):
             out.append("%d번(%s) — 물음 문구가 문항지와 다르다" % (num, term))
         ans = choice_number(rec.get("UserAns"))
         if ans is None:
@@ -495,11 +514,11 @@ def format_run(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] | 
 
 
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
-def _read_json(path: str) -> Any:
+def _read_json(path: str) -> object:
     """있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다."""
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            return cast(object, json.load(f))
     except (OSError, ValueError):
         return None
 
@@ -521,6 +540,144 @@ def run_machine(argv: Sequence[str], label: str, cwd: str) -> int:
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.main']"/>
 # Mode 1.5(용어 이해도 점검) 파이프라인의 진입점. 문제를 만들고 사람이 풀 때까지 멈췄다가 채점하고 결과를 낸다.
 # 쓰는 것: runner.run_mode1_5.plan_stages, runner.run_mode1.agent_verdict, runner.run_mode1.normalize_usage, runner.run_mode1_5.validate_questions, runner.run_mode1_5.collect_argv (+12) · 쓰이는 곳: 없음
+
+# ── 8. 단계 기계 — 문맥 · 단계 셋 · 사람 관문 ───────────────────────────
+@dataclass
+class Mode15Context(P.RunContext):
+    """Mode 1.5 의 단계 사이를 건너다니는 값. 산출 파일 자리는 `workdir` 이 정한다."""
+    plan: str = ""
+    workdir: str = ""
+    terms_db: str | None = None
+    # 사람 관문이 남긴 안내. `format_run` 이 표 밖에 찍는다.
+    gate: str | None = None
+
+    @property
+    def p_cand(self) -> str:
+        return os.path.join(self.workdir, CANDIDATES)
+
+    @property
+    def p_key(self) -> str:
+        return os.path.join(self.workdir, ANSWER_KEY)
+
+    @property
+    def p_ques(self) -> str:
+        return os.path.join(self.workdir, QUESTIONS)
+
+    @property
+    def p_sheet(self) -> str:
+        return os.path.join(self.workdir, SHEET)
+
+    @property
+    def p_ans(self) -> str:
+        return os.path.join(self.workdir, ANSWERS)
+
+    @property
+    def p_grades(self) -> str:
+        return os.path.join(self.workdir, GRADES)
+
+
+CANDIDATES_ART = P.Artifact[Mode15Context](CANDIDATES, lambda c: c.p_cand)
+GRADES_ART = P.Artifact[Mode15Context](GRADES, lambda c: c.p_grades)
+
+
+class Mode15Machine(P.MachineStage[Mode15Context]):
+    """세 단계 모두 `runner/term/` 의 스크립트를 자식 프로세스로 부른다."""
+
+    def cwd(self, ctx: Mode15Context) -> str:
+        return ctx.workdir
+
+
+class CollectStage(Mode15Machine):
+    name = "collect"
+
+    def argv(self, ctx: Mode15Context) -> list[str]:
+        return collect_argv(ctx.root, ctx.plan, ctx.terms_db)
+
+    def writes(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
+        return [CANDIDATES_ART]
+
+
+class GradeStage(Mode15Machine):
+    name = "grade"
+
+    def argv(self, ctx: Mode15Context) -> list[str]:
+        return grade_argv(ctx.root, ctx.p_ans, ctx.p_ques)
+
+    def reads(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
+        """채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다."""
+        doc = P.read_json(ctx.p_ques)
+        return [P.Artifact[Mode15Context](QUESTIONS, lambda c: c.p_ques,
+                                          check=validate_questions),
+                P.Artifact[Mode15Context](ANSWERS, lambda c: c.p_ans,
+                                          check=lambda raw: validate_answers(raw, doc))]
+
+    def writes(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
+        return [GRADES_ART]
+
+
+class EmitStage(Mode15Machine):
+    name = "emit"
+
+    def argv(self, ctx: Mode15Context) -> list[str]:
+        return emit_argv(ctx.root, ctx.p_grades)
+
+    def reads(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
+        return [GRADES_ART]
+
+
+class GateStage(P.Stage[Mode15Context]):
+    """사람 차례. 기입란을 깔아 두고 흐름을 멈춘다 — **실패가 아니다.**
+
+    문항지가 아직 없으면 깔 것이 없으므로 `OK` 로 지나간다.
+    """
+    name = "gate"
+    emits = P.OK | P.GATE
+
+    def perform(self, ctx: Mode15Context) -> P.Outcome:
+        doc = P.read_json(ctx.p_ques)
+        if not M.as_map(doc):
+            return P.Outcome(P.OK, "문항지가 아직 없다")
+        with open(ctx.p_sheet, "w", encoding="utf-8") as f:
+            json.dump(answer_sheet(doc), f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        cand = P.read_json(ctx.p_cand)
+        concepts = [t for t in M.as_list(M.as_map(cand).get("newConcepts"))
+                    if isinstance(t, str)]
+        _, held = split_new_concepts(concepts, P.read_json(ctx.p_key))
+        ctx.gate = gate_notice(ctx.p_ques, ctx.p_sheet, ctx.p_ans, held, ctx.p_key,
+                               unasked=unasked_known(cand, doc))
+        return P.Outcome(P.GATE, "사람 차례")
+
+
+MODE1_5_STAGES: dict[str, P.Stage[Mode15Context]] = {
+    "collect": CollectStage(), "grade": GradeStage(), "emit": EmitStage(),
+    "gate": GateStage()}
+
+# 갈래는 지금 동작과 1:1 이다. `gate` 의 `GATE` 만 새 줄이고, 이것도 지금 루프 밖에서
+# 하던 일에 이름을 붙인 것이다.
+MODE1_5_EDGES = P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT,
+                         ("gate", P.GATE): P.HALT})
+
+
+def build_mode1_5_graph(ctx: Mode15Context, has_candidates: bool, has_answers: bool,
+                        only: Iterable[str] | None,
+                        skip: Iterable[str] | None) -> P.StageDagGraph[Mode15Context]:
+    """진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다.
+
+    `questions.json` 과 `answers.json` 은 사람과 스킬이 만드는 것이라 어떤 단계도
+    쓰지 않는다 — 늘 `given` 에 넣고 실제 존재는 드라이버가 본다.
+    """
+    names = plan_stages(has_candidates=has_candidates, has_answers=has_answers,
+                        only=only, skip=skip)
+    if human_gate_open(has_answers):
+        names = names + ["gate"]
+    given = P.existing([CANDIDATES_ART, GRADES_ART], ctx) + [
+        P.Artifact[Mode15Context](QUESTIONS, lambda c: c.p_ques),
+        P.Artifact[Mode15Context](ANSWERS, lambda c: c.p_ans)]
+    return P.build_graph("mode1_5", names, {n: MODE1_5_STAGES[n] for n in names},
+                         MODE1_5_EDGES, given, ctx)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Mode 1.5 파이프라인을 돌리고 단계별 시간·토큰을 잰다. 사람 차례에서 멈춘다.",
@@ -557,96 +714,54 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("에러 — 용어 사전이 없다: %s" % terms_db, file=sys.stderr)
         return 1
 
-    p_cand = os.path.join(workdir, CANDIDATES)
-    p_key = os.path.join(workdir, ANSWER_KEY)
-    p_ques = os.path.join(workdir, QUESTIONS)
-    p_sheet = os.path.join(workdir, SHEET)
-    p_ans = os.path.join(workdir, ANSWERS)
-    p_grades = os.path.join(workdir, GRADES)
-
+    ctx = Mode15Context(root=ROOT, model="", plan=plan, workdir=workdir,
+                        terms_db=terms_db)
     try:
-        stages = plan_stages(
-            has_candidates=os.path.exists(p_cand),
-            has_answers=os.path.exists(p_ans),
+        graph = build_mode1_5_graph(
+            ctx,
+            has_candidates=os.path.exists(ctx.p_cand),
+            has_answers=os.path.exists(ctx.p_ans),
             only=a.only.split(",") if a.only else None,
             skip=a.skip.split(",") if a.skip else None)
-    except ValueError as e:
+    except (ValueError, P.GraphError) as e:
         print("에러 — %s" % e, file=sys.stderr)
         return 1
 
     # 표 밖에 적을 것 — 건너뛴 단계. 재개가 정상 흐름이라 늘 있다.
     reasons = {"collect": "%s 이 이미 있다" % CANDIDATES,
                "grade": "답안이 아직 없다", "emit": "답안이 아직 없다"}
-    skipped = [(s, reasons[s]) for s in STAGES if s not in stages] if not a.only else []
+    skipped = [(s_name, reasons[s_name]) for s_name in STAGES
+               if s_name not in graph.order] if not a.only else []
 
     # 문항지가 있으면 **무엇을 돌리기 전에** 채점 가능한 꼴인지 본다.
     # 출제는 스킬이 하고 검사는 여기가 한다 — `quiz.py` 는 꼴을 보지 않는다.
-    if os.path.exists(p_ques):
-        doc = _read_json(p_ques)
+    if os.path.exists(ctx.p_ques):
+        doc = _read_json(ctx.p_ques)
         complaints = validate_questions(doc) if doc is not None \
-            else ["%s 을 읽지 못했다" % p_ques]
+            else ["%s 을 읽지 못했다" % ctx.p_ques]
         if complaints:
             for c in complaints:
                 print("  문항지 — %s" % c, file=sys.stderr)
-            print("에러 — 문항지가 채점 불가능한 꼴이다: %s" % p_ques, file=sys.stderr)
+            print("에러 — 문항지가 채점 불가능한 꼴이다: %s" % ctx.p_ques, file=sys.stderr)
             return 1
 
     print("계획서 %s" % plan)
     print("작업 폴더 %s" % workdir)
-    print("단계 %s" % (" -> ".join(stages) or "(없음)"))
+    print("단계 %s" % (" -> ".join(n for n in graph.order if n != "gate") or "(없음)"))
     print("이미 있는 것 — 후보 %s · 문항지 %s · 답안 %s"
-          % (os.path.exists(p_cand), os.path.exists(p_ques), os.path.exists(p_ans)))
+          % (os.path.exists(ctx.p_cand), os.path.exists(ctx.p_ques),
+             os.path.exists(ctx.p_ans)))
     if a.dry_run:
-        for s, why in skipped:
-            print("건너뜀 — %s (%s)" % (s, why))
-        if human_gate_open(os.path.exists(p_ans)):
-            print("사람 차례에서 멈출 예정이다 — 답안 %s 이 없다." % p_ans)
+        for s_name, why in skipped:
+            print("건너뜀 — %s (%s)" % (s_name, why))
+        if human_gate_open(os.path.exists(ctx.p_ans)):
+            print("사람 차례에서 멈출 예정이다 — 답안 %s 이 없다." % ctx.p_ans)
+        print(graph.render())
         return 0
 
-    rows: list[M.StageRow] = []
     t_all = time.monotonic()
-    for stage in stages:
-        print("\n── %s ──────────────────────────────" % stage, flush=True)
-        t0 = time.monotonic()
-        # 세 단계 모두 기계다. LLM Model을 부르는 자리가 없어 토큰은 늘 0이다.
-        usage = M.normalize_usage(None)
-        if stage == "collect":
-            cmd = collect_argv(ROOT, plan, terms_db)
-        elif stage == "grade":
-            # 채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다
-            doc, ans = _read_json(p_ques), _read_json(p_ans)
-            complaints = validate_answers(ans or {}, doc or {}) if doc else []
-            if complaints:
-                for c in complaints:
-                    print("  답안 — %s" % c, file=sys.stderr)
-                rows.append({"stage": stage, "seconds": time.monotonic() - t0,
-                             "usage": usage, "ok": False, "why": "답안이 문항지와 맞지 않는다"})
-                break
-            cmd = grade_argv(ROOT, p_ans, p_ques)
-        else:
-            cmd = emit_argv(ROOT, p_grades)
-        rc = run_machine(cmd, stage, cwd=workdir)
-        ok, why = (rc == 0), ("" if rc == 0 else "종료 코드 %d" % rc)
-        seconds = time.monotonic() - t0
-        rows.append({"stage": stage, "seconds": seconds, "usage": usage, "ok": ok, "why": why})
-        print("%s — %s (%s)" % (stage, "성공" if ok else "실패", M.hms(seconds)), flush=True)
-        if not ok:
-            print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
-            break
-
-    # 사람 차례 — 답안이 없고 문항지가 생겼으면 기입란을 깔아 두고 안내한다
-    gate: str | None = None
-    if human_gate_open(os.path.exists(p_ans)) and all(r["ok"] for r in rows):
-        doc = _read_json(p_ques)
-        if doc:
-            with open(p_sheet, "w", encoding="utf-8") as f:
-                json.dump(answer_sheet(doc), f, ensure_ascii=False, indent=2)
-                f.write("\n")
-            cand: dict[str, Any] = _read_json(p_cand) or {}
-            concepts: list[str] = cand.get("newConcepts") or []
-            _, held = split_new_concepts(concepts, _read_json(p_key) or {})
-            gate = gate_notice(p_ques, p_sheet, p_ans, held, p_key,
-                               unasked=unasked_known(cand, doc))
+    rows = P.Pipeline[Mode15Context]().run(graph, ctx)
+    gate = ctx.gate
 
     print("\n" + "=" * 72)
     print("Mode 1.5 측정 — 전체 %s" % M.hms(time.monotonic() - t_all))
