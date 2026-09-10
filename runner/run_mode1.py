@@ -112,7 +112,6 @@ import json
 import subprocess
 import time
 from collections.abc import Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from typing import NotRequired, TypedDict, cast
 
 # 러너는 `runner/`, 결정론 기계는 `machine/` 이다. 이 파일이 CLI 로 돌 때 sys.path[0] 은
@@ -131,8 +130,10 @@ import warmup  # noqa: E402
 # 재는 코드의 원본은 `runner/measure.py` 하나다. 여기에 사본이 없다.
 # 옛 이름으로 부르는 곳이 있어 그대로 다시 내보낸다.
 import measure  # noqa: E402
+import pipeline as P  # noqa: E402
 from measure import (  # noqa: E402,F401
-    AgentResult, Usage, StageRow, Heartbeat,
+    AgentResult as AgentResult, Usage as Usage, StageRow as StageRow,
+    Heartbeat as Heartbeat,
     normalize_usage, sum_usage, agent_verdict, claude_argv,
     hms, format_report, stage_totals,
 )
@@ -648,65 +649,10 @@ def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_agent_with']"/>
-# claude 명령을 한 번 실행해서 Model의 응답을 받아오는 함수다.
-# 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: runner.run_mode1.run_layer
-# ── 5. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
-def run_agent_with(model: str, repo: str, root: str, prompt: str,
-                   timeout: float | None = None,
-                   label: str | None = None) -> tuple[float, int, AgentResult | None]:
-    """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
-
-    **배치별 시간을 여기서 잰다** — 부르는 쪽은 병렬이라 층 전체만 잴 수 있다.
-
-    **하트비트를 여기 두지 않는다.** 동시에 도는 배치가 저마다 찍으면 화면을 못 읽는다 —
-    층 하나를 감싸는 하트비트 하나를 `run_layer` 를 부르는 쪽이 건다.
-    """
-    argv = claude_argv(model=model, repo=repo, extra_dirs=[root])
-    t0 = time.monotonic()
-    p = subprocess.run(argv, input=prompt, cwd=repo,
-                       capture_output=True, text=True, timeout=timeout)
-    seconds = time.monotonic() - t0
-    try:
-        return seconds, p.returncode, json.loads(p.stdout)
-    except (ValueError, TypeError):
-        tail = (p.stderr or p.stdout or "")[-800:]
-        if tail:
-            print("[%s] %s" % (label or "?", tail), file=sys.stderr)
-        return seconds, p.returncode, None
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_layer']"/>
-# 한 층에 속한 여러 배치(작업)를 동시에 병렬로 돌리고 각각의 결과를 모으는 함수다.
-# 쓰는 것: runner.run_mode1.run_agent_with, concurrent.futures.ThreadPoolExecutor · 쓰이는 곳: runner.run_mode1.run_survey, runner.run_mode1.run_wiki, runner.test_run_mode1.test_run_layer_는_동시_한도를_넘지_않는다, runner.test_run_mode1.test_run_layer_는_라벨_순서로_돌려준다, runner.test_run_mode1.test_run_layer_는_한_배치가_죽어도_나머지를_돌린다 (+1)
-def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-              concurrency: int = 8,
-              timeout: float | None = None) -> list[tuple[str, float, int, AgentResult | None]]:
-    """한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다(K2).
-
-    같은 층의 배치는 **같은 파일을 가리키지 않는다**(`survey_plan.pack` 이 보장한다).
-    그래서 파일 lock 이 필요 없다. 자식 프로세스를 기다리는 일이라 스레드로 충분하다.
-
-    `jobs` 는 `[(라벨, 프롬프트), …]`. 낸 것은 `[(라벨, 초, 종료코드, 결과 또는 None), …]` 이고
-    **라벨 순서로 정렬**해서 낸다 — 끝나는 순서는 실행마다 흔들린다.
-
-    **한 배치가 터져도 층을 버리지 않는다.** 터진 배치는 종료 코드 -1 · 결과 None 인
-    행으로 남고, 부르는 쪽이 실패로 센다.
-    """
-    if not jobs:
-        return []
-    rows: list[tuple[str, float, int, AgentResult | None]] = []
-    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as ex:
-        futs = {ex.submit(run_agent_with, model, repo, root, prompt, timeout, label): label
-                for label, prompt in jobs}
-        for f in futs:
-            label = futs[f]
-            try:
-                rows.append((label,) + f.result())
-            except Exception as ex_:                      # noqa: BLE001 — 층을 살린다
-                print("[%s] 배치가 터졌다: %s" % (label, ex_), file=sys.stderr)
-                rows.append((label, 0.0, -1, None))
-    return sorted(rows, key=lambda r: r[0])
+# 팬아웃 호출의 원본은 `pipeline.py` 하나뿐이다. 여기에는 사본이 없다 —
+# 시험 넷이 옛 이름을 참조하므로 이름 그대로 재수출한다.
+run_agent_with = P.run_agent_with
+run_layer = P.run_layer
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.merge_shards']"/>
