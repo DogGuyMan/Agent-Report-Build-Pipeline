@@ -117,3 +117,20 @@ def test_배치_행을_단계_이름으로_접는다():
 def test_하트비트는_문맥_관리자다():
     with M.Heartbeat("시험", every=3600.0) as h:
         assert h.label == "시험"
+
+
+def test_as_list_는_목록이_아니면_빈_목록이다():
+    assert M.as_list(None) == []
+    assert M.as_list({"a": 1}) == []
+    assert M.as_list("abc") == []
+
+
+def test_as_list_는_원소를_그대로_낸다():
+    assert M.as_list([1, "b", None]) == [1, "b", None]
+
+
+def test_as_list_는_사본이라_원본을_건드리지_않는다():
+    원본 = [1, 2]
+    사본 = M.as_list(원본)
+    사본.append(3)
+    assert 원본 == [1, 2]

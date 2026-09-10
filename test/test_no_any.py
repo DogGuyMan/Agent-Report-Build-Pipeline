@@ -13,6 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `Any` 를 0으로 지켜야 하는 파일.
 COVERED = [
     "runner/measure.py",
+    "runner/pipeline.py",
     "runner/run_mode1.py",
     "runner/run_mode2.py",
     "runner/run_grade.py",

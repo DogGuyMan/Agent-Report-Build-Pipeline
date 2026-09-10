@@ -48,6 +48,17 @@ def as_map(v: object) -> dict[str, object]:
     return {k: x for k, x in items if isinstance(k, str)}
 
 
+def as_list(v: object) -> list[object]:
+    """목록이면 원소를 `object` 로 본 사본을, 아니면 빈 목록을 낸다.
+
+    `isinstance(v, list)` 하나로 좁히면 `list[Unknown]` 이 되어 원소를 쓰는 자리마다
+    검사기가 걸린다. 원소 형까지 못 박아야 좁히기가 끝난다.
+    """
+    if not isinstance(v, list):
+        return []
+    return list(cast(list[object], v))
+
+
 def as_int(v: object) -> int:
     """정수면 그것을, 아니면 0. `bool` 은 정수가 아니다 — 참/거짓이 수로 세어지면 안 된다."""
     return v if isinstance(v, int) and not isinstance(v, bool) else 0
