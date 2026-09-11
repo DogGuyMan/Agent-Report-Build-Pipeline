@@ -18,6 +18,7 @@
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
 | [`scan.py`](scan.py) | `detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다. |
+| [`survey.py`](survey.py) | `annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다. |
 | [`terms.py`](terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
 | [`wiki.py`](wiki.py) | `outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다. |
 | [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
@@ -204,6 +205,34 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 ---
 
+## `survey.py`
+
+`annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`AnnotateSymbolsStage`** | *class* | 배치 하나 = 세션 하나. 층 사이에 이어지는 값(`baseline` · `merged`)은 **문맥 칸**에 둔다. |
+| `AnnotateSymbolsStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
+| `AnnotateSymbolsStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
+| `AnnotateSymbolsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `AnnotateSymbolsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `AnnotateSymbolsStage.shard_dir` | `(ctx: Mode1Context) -> str` |  |
+| `AnnotateSymbolsStage.warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
+| `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
+| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
+| `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
+| `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
+| `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
+| `AnnotateSymbolsStage.qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
+| `AnnotateSymbolsStage.plan_files` | `(plan: object) -> set[str]` | 계획에 든 배치들이 가리키는 파일 집합. |
+| `AnnotateSymbolsStage.compare_plan` | `(plan: object, d: D.WarmupDiff) -> list[str]` | 계획과 diff 가 같은 범위를 말하는지 양방향으로 본다. 불평 목록을 낸다. |
+| `AnnotateSymbolsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
+| `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
+| `AnnotateSymbolsStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
+
+---
+
 ## `terms.py`
 
 `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다.
@@ -300,16 +329,10 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
-| `warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
-| `dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
-| `survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
-| `nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
 | `page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
 | `wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
-| `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
-| `_qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `run_lang_select` | `(repo: str, root: str, timeout: float \| None) -> tuple[bool, str, Usage]` | 루트 문서를 Model에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다. |
 | `run_warmup` | `(repo: str, codegraph: str, hops: int) -> tuple[list[str] \| None, warmup.Manifest \| None, str \| None, int, bool, str]` | 관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.** |
@@ -532,6 +555,16 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_snapshot_sources_는_조사가_실패하면_쓰지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_snapshot_sources_는_전량이면_직접_훑어_찍는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_지문은_옛_이름도_읽고_새_이름으로_쓴다` | `(tmp_path: Path)` |  |
+| `_empty_plan` | `() -> dict[str, object]` | 층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다. |
+| `_diff` | `(targets: list[str] \| None) -> D.WarmupDiff` |  |
+| `test_계획이_diff_보다_넓으면_잡는다` | `()` |  |
+| `test_계획이_diff_보다_좁으면_잡는다` | `()` |  |
+| `test_계획과_diff_가_맞으면_통과한다` | `()` |  |
+| `test_annotate_symbols_는_어긋난_계획을_돌리지_않는다` | `(tmp_path: Path)` |  |
+| `test_annotate_symbols_는_바뀐_것이_없고_레코드가_있으면_SKIP` | `(tmp_path: Path)` |  |
+| `test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다` | `(tmp_path: Path)` |  |
+| `test_샤드를_합치고_충돌은_전원을_개명한다` | `(tmp_path: Path)` |  |
+| `test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다` | `()` |  |
 
 ---
 

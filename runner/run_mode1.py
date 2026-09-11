@@ -129,7 +129,6 @@ import warmup  # noqa: E402
 
 # 재는 코드의 원본은 `runner/measure.py` 하나다. 여기에 사본이 없다.
 # 옛 이름으로 부르는 곳이 있어 그대로 다시 내보낸다.
-import measure  # noqa: E402
 import pipeline as P  # noqa: E402
 from measure import (  # noqa: E402,F401
     AgentResult as AgentResult, Usage as Usage, StageRow as StageRow,
@@ -152,6 +151,13 @@ from mode1.scan import SnapshotScan, DetectChangesStage  # noqa: E402
 LANG_ALIAS = SnapshotScan.LANG_ALIAS
 lang_of = SnapshotScan.lang_of
 changed_seed = DetectChangesStage.changed_seed
+from mode1.survey import AnnotateSymbolsStage  # noqa: E402
+warmup_section = AnnotateSymbolsStage.warmup_section
+dep_excerpt = AnnotateSymbolsStage.dep_excerpt
+survey_batch_prompt = AnnotateSymbolsStage.survey_batch_prompt
+nonnode_prompt = AnnotateSymbolsStage.nonnode_prompt
+merge_shards = AnnotateSymbolsStage.merge_shards
+_qualified = AnnotateSymbolsStage.qualified
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -230,190 +236,6 @@ def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
             continue
         out.append(s)
     return out
-
-
-# ── 2. 에이전트 호출 ────────────────────────────────────────────────────
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.warmup_section']"/>
-# 전수조사 배치 프롬프트 뒤에 붙는, 증분 조사 범위를 알리는 지시문 글을 만드는 함수다.
-# 쓰는 것: runner.run_mode1.reading_path · 쓰이는 곳: runner.run_mode1.survey_batch_prompt, runner.test_run_mode1.test_warmup_section_is_empty_when_there_is_nothing_to_scope, runner.test_run_mode1.test_warmup_section_lists_every_target_and_the_ratio
-def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") -> str:
-    """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
-
-    ⚠ **이 글은 부르는 쪽이 `.format()` 을 돌린 뒤에 이어 붙는다.** 그래서 중괄호
-    자리표시자를 남기면 안 되고, 저장소 경로를 `repo` 로 받아 여기서 박아 넣는다.
-
-    붙는 곳은 **전수조사 배치 프롬프트뿐**이다. 위키 쪽 범위는 `wiki_page_prompt` 가
-    페이지 목록으로 따로 준다.
-    """
-    if not targets:
-        return ""
-    목록 = "\n".join("  " + t for t in targets)
-    return ("\n## 범위 — 증분 조사다. 저장소 전량을 읽지 마라\n"
-            "\n"
-            "지난 조사 결과가 %s 에 이미 있다. 그중\n"
-            "**아래 %d개 파일에 걸린 레코드만** 다시 만든다. 추적 파일 %d개 중 %d개다.\n"
-            "\n%s\n"
-            "\n"
-            "- **이 목록에 없는 파일은 읽지 마라.** 나머지 레코드는 그대로 살아 있고, 손대면 안 된다.\n"
-            "- 목록 밖의 이름이 필요하면 소스가 아니라 **기존 terms-reading.json 과 codegraph.json**\n"
-            "  을 근거로 쓴다.\n"
-            "- 목록의 파일이 사라졌거나 읽을 수 없으면 **지어내지 말고** 보고에 적는다.\n"
-            % (reading_path(repo, ROOT), len(targets), total, len(targets), 목록))
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.dep_excerpt']"/>
-# 한 배치가 의존하는 아래층 심볼들 중 이미 완성된 레코드만 골라 짧은 발췌 글로 만드는 함수다.
-# 쓰는 것: machine.survey_plan.PlanBatch · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_의존_발췌는_아래층에_있는_것만_낸다, runner.test_run_mode1.test_의존_발췌는_아무것도_없으면_빈_문자열
-def dep_excerpt(merged: Mapping[str, Mapping[str, object]],
-                batch: survey_plan.PlanBatch) -> str:
-    """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
-
-    아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
-
-    읽기만 하므로 `Records` 가 아니라 `Mapping` 을 받는다 — `dict` 는 값 형이 고정이라
-    `dict[str, dict[str, str]]` 같은 더 좁은 사전을 그대로 넘길 수 없다.
-    """
-    want = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
-    lines = ["  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
-             for k in want if k in merged]
-    return "\n".join(lines)
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.survey_batch_prompt']"/>
-# 전수조사 배치 하나를 맡을 세션에게 줄 지시문(프롬프트) 글을 만드는 함수다.
-# 쓰는 것: runner.run_mode1.warmup_section · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_배치_프롬프트는_범위가_없으면_전량_조사다, runner.test_run_mode1.test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다, runner.test_run_mode1.test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다, runner.test_run_mode1.test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다
-def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
-                        dep_records: str, targets: Sequence[str] | None = None,
-                        total: int = 0) -> str:
-    """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
-
-    `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다.
-
-    `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
-    `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
-    """
-    syms = "\n".join(
-        "  - %s (%s) %s:%s   의존 -> %s"
-        % (s["name"], s["kind"], s["file"], s["line"],
-           ", ".join(s.get("depends_on") or []) or "없음")
-        for s in batch["symbols"])
-    return """\
-너는 코드베이스 전수조사의 배치 {bid} 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
-사람에게 묻지 않는다 — 이 세션은 헤드리스라 되묻는 순간 막힌다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
-
-## 너보다 아래층은 이미 끝났다 — 다시 조사하지 마라
-
-{deps}
-
-## 네가 맡은 심볼 {n}개 — 이것만 한다
-
-{syms}
-
-## 읽는 법 — 순서를 지킨다
-
-1. 담당 파일마다 통독 캐시를 먼저 본다:
-     {root}/.venv/bin/python {root}/machine/file_cache.py get {repo} <파일경로>
-   - 있으면: 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다.
-   - 없으면: 파일을 통독하고, 끝나면 개요를 남긴다:
-     {root}/.venv/bin/python {root}/machine/file_cache.py put {repo} <파일경로> <개요json>
-     개요 꼴 — 심볼마다 {{name, kind, line, end_line, signature, one_line}} 에
-     파일의 imports 와 head_comment 를 더한 객체.
-2. **네 심볼은 캐시로 때우지 않는다.** 반드시 그 줄 범위를 실제로 읽는다.
-   캐시는 남의 심볼을 uses[].to 로 가리킬 때만 쓴다.
-
-## 레코드 계약
-
-{{kind, module, where, means, does, uses[], confidence, source:"reading"}}
-- where = `경로:줄` (필수. 기계가 L1 파일 / L2 줄 / L3 근처에 이름 으로 검사한다)
-- means = 무엇인가, 한 문장. **객체지향을 갓 배운 대학 1학년 눈높이.** 어려운 용어로 설명하지 않는다
-- does  = 무엇을 하는가, 한두 문장
-- uses[] = {{to, kind, label, where}}. kind 는 dependency inheritance aggregation composition
-  association realization 중 하나
-- confidence = HIGH(코드를 읽고 썼다) / MEDIUM(일부 읽고 나머지는 추론) / LOW(이름·구조에서 추론)
-  **전부 HIGH 로 적으면 그 칸이 장식이 된다.**
-
-## 금지 — 이 말이 떠오르면 멈추고 읽는다
-
-  "이건 아마 …할 것이다"  -> 그 함수를 열어 실제로 무엇을 하는지 적는다
-  "이름으로 보아 …"       -> 이름은 거짓말한다. 구현을 확인한다
-  "보통 이런 건 …"        -> 이 코드베이스를 읽는다. 관례에 대지 않는다
-  "…에 연결될 것 같다"    -> import 나 호출을 실제로 따라간다
-  "읽지 않았지만 …"       -> confidence LOW 로 적거나 아예 쓰지 않는다
-
-## 쓰는 곳 — 여기 말고 아무 데도 쓰지 않는다
-
-  {repo}/out/codegraph-raw/_shards/{bid}.json      꼴은 {{"키": 레코드}}
-
-**terms-reading.json 을 열지도 고치지도 않는다.** 지금 다른 배치들이 동시에 돌고 있다.
-키가 다른 파일과 겹칠 것 같아도 **네가 고치지 않는다** — 층이 끝날 때 일괄 해소된다. 보고에 적기만 한다.
-**커밋하지 않는다.**
-
-## 끝내기 전에
-
-- 심볼 {n}개에 레코드가 {n}개 있는가
-- where 의 줄 번호를 실제로 열어 확인했는가
-- confidence 가 전부 HIGH 는 아닌가
-- 샤드 파일 하나만 만들었는가
-
-보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
-""".format(repo=repo, root=root, bid=batch["id"], n=len(batch["symbols"]),
-           syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)") \
-        + warmup_section(targets, total, repo)
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.nonnode_prompt']"/>
-# 코드 지도의 노드가 아닌 용어들(파일·모듈·산출물·설정 키·개념)을 조사할 마지막 세션에게 줄 프롬프트 글을 만드는 함수다.
-# 쓰는 것: runner.run_mode1.reading_path · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_비노드_프롬프트는_심볼이_아닌_종류만_말한다
-def nonnode_prompt(repo: str, root: str) -> str:
-    """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
-
-    이것들은 코드 지도의 노드가 아니라 층 축이 없다. 대신 심볼 레코드가 재료다 —
-    **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.**
-    """
-    return """\
-너는 코드베이스 전수조사의 **마지막 층** 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
-사람에게 묻지 않는다 — 헤드리스 세션이다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
-
-## 심볼은 이미 전부 끝났다
-
-  {reading}   앞선 층들이 합쳐 놓은 심볼 레코드
-
-이 파일을 **읽기만** 한다. 고치지 않는다.
-
-## 네가 맡은 것 — 코드 지도의 노드가 아닌 용어 다섯 종류
-
-| kind | 무엇 | where 는 어디 |
-|---|---|---|
-| `file` | 소스 파일 하나 | `경로:1` |
-| `module` | 디렉토리 하나 | 없어도 된다 |
-| `artifact` | 이 저장소가 **만들어 내는** 파일 | 그 파일을 **쓰는** 줄 |
-| `key` | 설정·JSON 의 이름난 칸 | 그 키를 **채우는** 줄 |
-| `concept` | 코드에 글자로 있는 낱말 | 그 낱말이 있는 줄 |
-
-**`file` `module` `artifact` `key` `concept` 는 이름이 그 줄에 글자 그대로 있어야 한다** —
-기계가 L3(근처에 그 이름) 으로 검사한다.
-
-`file` 레코드는 **그 파일 안 심볼들의 완성된 means/does 를 재료로** 쓴다. 다시 통독하지 않는다.
-`concept` 은 **코드에 글자로 없는 것을 만들지 않는다** — 계획서에만 있는 개념은 여기 싣지 않는다.
-
-## 금지 — 이 말이 떠오르면 멈추고 읽는다
-
-  "이건 아마 …할 것이다"  -> 그 자리를 열어 실제로 무엇을 하는지 적는다
-  "이름으로 보아 …"       -> 이름은 거짓말한다. 구현을 확인한다
-  "보통 이런 건 …"        -> 이 코드베이스를 읽는다. 관례에 대지 않는다
-  "읽지 않았지만 …"       -> confidence LOW 로 적거나 아예 쓰지 않는다
-
-## 레코드 계약과 쓰는 곳
-
-{{kind, module, where, means, does, uses[], confidence, source:"reading"}} 이고
-쓰는 곳은 **여기 하나뿐**이다:
-
-  {repo}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {{"키": 레코드}}
-
-**terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
-
-보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
-""".format(repo=repo, root=root, reading=reading_path(repo, ROOT))
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.symbol_layers']"/>
@@ -543,58 +365,6 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
 # 시험 넷이 옛 이름을 참조하므로 이름 그대로 재수출한다.
 run_agent_with = P.run_agent_with
 run_layer = P.run_layer
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.merge_shards']"/>
-# 여러 배치 세션이 따로 쓴 결과 조각(샤드) 파일들을 하나의 레코드 사전으로 합치는 함수다.
-# 쓰는 것: runner.run_mode1._qualified · 쓰이는 곳: runner.run_mode1.run_survey, runner.test_run_mode1.test_같은_샤드를_두_번_합쳐도_개명하지_않는다, runner.test_run_mode1.test_망가진_샤드는_건너뛰고_나머지를_살린다, runner.test_run_mode1.test_샤드_폴더가_없으면_있던_것을_그대로, runner.test_run_mode1.test_샤드를_하나로_합친다 (+3)
-def merge_shards(shard_dir: str, existing: Records | None) -> Records:
-    """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
-
-    배치 세션은 자기 배치만 보므로 전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을
-    `<파일줄기>.<이름>` 으로 고친다. 한쪽만 한정하면 나중에 또 겹친다.
-
-    **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 결과를 버리지 않는다.
-    무엇을 건너뛰었는지는 stderr 에 적는다.
-
-    ⚠ **`existing` 에는 누적본이 아니라 조사 이전의 원본을 준다.** 이 함수는 층마다 불리고
-    그때마다 샤드 전부를 다시 읽는다. 누적본을 넘기면 이미 합쳐 둔 레코드를 **자기 자신과의
-    충돌**로 보고 개명해 레코드 수가 줄어든다. 샤드가 원본이고 이 함수는 그 순수 함수다.
-
-    충돌 판정에 `!=` 를 쓰는 것도 같은 이유다. `is not` 은 같은 샤드를 다시 읽은 새 객체를
-    남으로 본다.
-    """
-    got = dict(existing or {})
-    if not os.path.isdir(shard_dir):
-        return got
-    for fname in sorted(os.listdir(shard_dir)):
-        if not fname.endswith(".json"):
-            continue
-        try:
-            with open(os.path.join(shard_dir, fname), encoding="utf-8") as f:
-                shard: Records = json.load(f)
-        except (ValueError, OSError) as ex:
-            print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
-            continue
-        for key, rec in shard.items():
-            if key in got and got[key] != rec:
-                # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
-                old = got.pop(key)
-                got[_qualified(key, old)] = old
-                got[_qualified(key, rec)] = rec
-            else:
-                got[key] = rec
-    return got
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1._qualified']"/>
-# 이름이 겹친 레코드 키 앞에 그 레코드가 속한 파일 이름을 붙여 서로 구별되게 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.merge_shards
-def _qualified(key: str, rec: Record | None) -> str:
-    """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
-    where = measure.as_str((rec or {}).get("where"))
-    stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
-    return "%s.%s" % (stem, key) if stem else key
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.run_machine']"/>

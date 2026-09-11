@@ -1,4 +1,5 @@
 """`runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON."""
+import json
 import os
 import sys
 import time
@@ -17,6 +18,7 @@ from mode1 import lang as LG  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
 from mode1 import measured as MS  # noqa: E402
 from mode1 import scan as SC  # noqa: E402
+from mode1 import survey as SV  # noqa: E402
 from mode1 import terms as T  # noqa: E402
 from mode1 import wiki as W  # noqa: E402
 
@@ -319,3 +321,73 @@ def test_지문은_옛_이름도_읽고_새_이름으로_쓴다(tmp_path: Path):
     assert X.snapshot_path(c).endswith("warmup.json")
     (raw / "snapshot.json").write_text("{}")
     assert X.snapshot_path(c).endswith("snapshot.json")
+
+
+# ── 8. 전수조사 — 계획과 diff 의 대조 · 샤드 병합 · 층 돌기 ─────────────
+
+
+def _empty_plan() -> dict[str, object]:
+    """층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다."""
+    return {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
+
+
+def _diff(targets: list[str] | None) -> D.WarmupDiff:
+    return {"verdicts": {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": []},
+            "targets": targets, "hops": 1, "tracked": 2}
+
+
+def test_계획이_diff_보다_넓으면_잡는다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["a.py", "b.py"]), _diff(["b.py"])) != []
+
+
+def test_계획이_diff_보다_좁으면_잡는다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["b.py"]), _diff(None)) != []
+
+
+def test_계획과_diff_가_맞으면_통과한다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["b.py"]), _diff(["b.py"])) == []
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["a.py", "b.py"]), _diff(None)) == []
+
+
+def test_annotate_symbols_는_어긋난_계획을_돌리지_않는다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _diff(["b.py"])["verdicts"], ["b.py"], 1, 2)
+    (raw / "batches.json").write_text(json.dumps(_plan_with(["a.py", "b.py"])))
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.FAIL and "diff" in out.why
+
+
+def test_annotate_symbols_는_바뀐_것이_없고_레코드가_있으면_SKIP(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True)
+    reading.write_text("{}")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.SKIP and c.survey_ok is True
+
+
+def test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    out = SV.AnnotateSymbolsStage().perform(c)     # 층이 0개라 세션 없이 OK 로 끝난다
+    assert out.kind == P.OK and c.survey_ok is True
+
+
+def test_샤드를_합치고_충돌은_전원을_개명한다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"main": {"where": "app/gui.py:10"}}), encoding="utf-8")
+    (d / "L0-B01.json").write_text(json.dumps({"main": {"where": "app/cli.py:3"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {})
+    assert sorted(got) == ["cli.main", "gui.main"]
+
+
+def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
+    b = {"id": "L1-B00", "files": ["a.py"], "symbols": [{"name": "f", "kind": "function", "file": "a.py", "line": 1}]}
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)  # type: ignore[arg-type]
+    assert "## 범위" in p and "_shards/L1-B00.json" in p
+    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")  # type: ignore[arg-type]

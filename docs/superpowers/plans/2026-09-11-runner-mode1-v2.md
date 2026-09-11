@@ -1192,7 +1192,7 @@ changed_seed = DetectChangesStage.changed_seed
 ```
 
 - [x] **Step 5: 통과** — `test_mode1.py` `30 passed` (🔵 monkeypatch 의 lambda 는 pyright 가 매개변수 형을 모르므로 시험에서는 이름 있는 함수로 적었다) · `test_run_mode1.py` `74 passed` · **Step 6: 형 검사** `0 errors`
-- [x] **Step 7: 커밋** — `git add runner/mode1/scan.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : detect-changes 가 changes.json 을 쓰고 snapshot-sources 가 지문을 찍는다`
+- [x] **Step 7: 커밋** — `git add runner/mode1/scan.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : detect-changes 가 changes.json 을 쓰고 snapshot-sources 가 지문을 찍는다` → 🔵 `daa552f`
 
 ---
 
@@ -1203,7 +1203,7 @@ changed_seed = DetectChangesStage.changed_seed
 - Modify: `runner/run_mode1.py` (프롬프트 넷 · `merge_shards` · `_qualified` 원본 지우고 파사드)
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import survey as SV`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import survey as SV`, 끝에:
 
 ```python
 # ── 8. 전수조사 — 계획과 diff 의 대조 · 샤드 병합 · 층 돌기 ─────────────
@@ -1267,13 +1267,13 @@ def test_샤드를_합치고_충돌은_전원을_개명한다(tmp_path: Path):
 def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
     b = {"id": "L1-B00", "files": ["a.py"], "symbols": [{"name": "f", "kind": "function", "file": "a.py", "line": 1}]}
     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)  # type: ignore[arg-type]
-    assert "범위" in p and "_shards/L1-B00.json" in p
-    assert "범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")  # type: ignore[arg-type]
+    assert "## 범위" in p and "_shards/L1-B00.json" in p          # "범위" 만으로는 안 된다 — 기본 프롬프트에 "줄 범위" 가 있다
+    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")  # type: ignore[arg-type]
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.survey'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.survey'`
 
-- [ ] **Step 3: `survey.py` 신설** — 프롬프트 넷과 `merge_shards` · `qualified` 는 `run_mode1.py` 의 것을 본문 그대로. 아래 코드에서 `…(본문 그대로)…` 로 표시한 자리는 `run_mode1.py` 의 해당 함수 본문을 한 글자도 바꾸지 않고 넣되, **들여쓰기를 한 단 더** 하고 함수 안의 다른 함수 호출을 `AnnotateSymbolsStage.<이름>(…)` 으로, `reading_path(repo, ROOT)` 를 `X.reading_path(repo, ROOT)` 로, `measure.as_str` 을 `M.as_str` 로, `_qualified` 를 `AnnotateSymbolsStage.qualified` 로 바꾼다:
+- [x] **Step 3: `survey.py` 신설** — 프롬프트 넷과 `merge_shards` · `qualified` 는 `run_mode1.py` 의 것을 본문 그대로. 아래 코드에서 `…(본문 그대로)…` 로 표시한 자리는 `run_mode1.py` 의 해당 함수 본문을 한 글자도 바꾸지 않고 넣되, **들여쓰기를 한 단 더** 하되 **세 따옴표 문자열(프롬프트 본문) 안의 줄은 들여쓰지 않는다** — 글자가 바뀐다(🔵 한 번 들여썼다가 `'…이유.\n    '` 로 잡혔다). 닫는 `""".format(` 줄이 열 0 에 남는 것이 맞다. 옮긴 뒤 옛 함수와 새 `staticmethod` 의 반환 문자열을 `==` 로 대조한다. 함수 안의 다른 함수 호출을 `AnnotateSymbolsStage.<이름>(…)` 으로, `reading_path(repo, ROOT)` 를 `X.reading_path(repo, ROOT)` 로, `measure.as_str` 을 `M.as_str` 로, `_qualified` 를 `AnnotateSymbolsStage.qualified` 로 바꾼다:
 
 ```python
 """`annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다."""
@@ -1450,7 +1450,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 
 `import sys` 는 `merge_shards` 가 `sys.stderr` 를 쓴다. 층 하나가 실패하면 `LlmStage.perform` 이 다음 층으로 가지 않는다 — 옛 `run_survey` 의 `break` 와 같다.
 
-- [ ] **Step 4: `run_mode1.py` 원본 지우고 파사드** — `warmup_section` · `dep_excerpt` · `survey_batch_prompt` · `nonnode_prompt` · `merge_shards` · `_qualified` 정의와 include 블록을 지운다. 파사드 블록에:
+- [x] **Step 4: `run_mode1.py` 원본 지우고 파사드** — `warmup_section` · `dep_excerpt` · `survey_batch_prompt` · `nonnode_prompt` · `merge_shards` · `_qualified` 정의와 include 블록을 지운다. 파사드 블록에:
 
 ```python
 from mode1.survey import AnnotateSymbolsStage  # noqa: E402
@@ -1462,8 +1462,8 @@ merge_shards = AnnotateSymbolsStage.merge_shards
 _qualified = AnnotateSymbolsStage.qualified
 ```
 
-- [ ] **Step 5: 통과** — `test_mode1.py` `38 passed` · `test_run_mode1.py` `74 passed` · **Step 6: 형 검사** `0 errors`
-- [ ] **Step 7: 커밋** — `git add runner/mode1/survey.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : annotate-symbols 가 계획과 diff 를 대조하고 층을 돈다`
+- [x] **Step 5: 통과** — `test_mode1.py` `38 passed` · `test_run_mode1.py` `74 passed` — 🔵 `run_mode1.py` 의 `import measure` 가 이제 안 쓰여 pyright 가 짚는다. 지운다(`from measure import …` 재수출은 남는다) · **Step 6: 형 검사** `0 errors`
+- [x] **Step 7: 커밋** — `git add runner/mode1/survey.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : annotate-symbols 가 계획과 diff 를 대조하고 층을 돈다`
 
 ---
 
