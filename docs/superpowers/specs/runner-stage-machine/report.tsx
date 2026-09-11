@@ -298,6 +298,26 @@ export default function Report() {
         />
       </Section>
 
+      <Section title="D17 · 실행 둘이 겹칠 때 같은 배치를 두 번 돌리지 않는다">
+        <OptionTable
+          columns={["안", "무엇", "판정 · 출처"]}
+          rows={[
+            { cells: ["락 없음", "지금 그대로. 샤드 있음 = 끝났다 만 있다", "기각 — 실행 둘이 겹치면 같은 배치를 두 번 돈다"], recommended: false },
+            { cells: ["메모리 락", "파이썬 프로세스 안의 플래그", "기각 — 세션은 자식 프로세스, 실행 둘은 별개 프로세스. 어느 경계도 못 넘는다"], recommended: false },
+            { cells: ["claim 파일", "배정 직전 _shards/<배치>.claim 을 쓰고 끝나면 지운다", "채택 — 사용자 지시. push 모델은 그대로"], recommended: true },
+          ]}
+        />
+        <EvidenceNote
+          measured={[
+            "한 실행 안에서는 충돌이 없다. 오케스트레이터가 배치를 배정하고(run_layer → ThreadPoolExecutor), 같은 층의 배치는 survey_plan.pack 이 파일을 겹치지 않게 나눈다.",
+            "지금 있는 표식은 \"샤드 파일 있음 = 끝났다\" 하나다. \"진행 중\" 은 없다.",
+          ]}
+          judged={[
+            "💭 결함 ③ 이 먼저다. 배치 id 가 위치 기반이라 계획이 바뀌면 같은 id 가 다른 심볼을 가리킨다 — claim 파일도 샤드 파일과 똑같이 남의 배치를 막는다. 내용 해시 id 뒤에야 뜻을 갖는다.",
+          ]}
+        />
+      </Section>
+
       <Section title="D13 · Mode 1 을 증분 그래프와 전량 그래프 둘로 나눈다">
         <OptionTable
           columns={["안", "무엇", "판정 · 출처"]}
@@ -319,13 +339,47 @@ export default function Report() {
         />
       </Section>
 
-      <Section title="D14 · survey-plan.json 이 자기가 좁혀진 것인지 스스로 말한다">
+      <Section title="D14 · warmup 이 warmup-diff.json 을 쓰고, survey 가 계획과 대조한다">
+        <Reversal
+          rev="D14 (1차, 09-10)"
+          previous="survey-plan.json 스키마에 only_files 칸을 더한다"
+          now="디스크에서 계획을 읽을 때 경고만 낸다"
+          reason="소유 경계 — machine/survey_plan.py 의 TypedDict 를 러너가 고칠 수 없다. 다만 경고로는 세 가지가 남았다: --only 로 쪼개면 여전히 전량 계획이 쓰이고, --dry-run 이 좁히기를 못 보이고, 시뮬레이터가 두 그래프를 대조하지 못한다."
+        />
+        <Reversal
+          rev="D14 (2차, 09-11)"
+          previous="디스크에서 계획을 읽을 때 경고만 낸다"
+          now="warmup 이 러너 소유 파일 warmup-diff.json 을 쓴다. prep · survey-plan · survey 가 그것을 읽고, survey 는 로딩 시 계획과 양방향으로 대조해 어긋나면 멈춘다"
+          reason="사용자 지시 — diff 는 기계가 만들 수 있는 것이고 파일로 남아야 한다. 새 파일은 러너의 것이라 1차 번복의 소유 경계를 건드리지 않고, 담는 형은 machine/warmup.py 가 이미 선언한 Verdicts 다. 경고가 못 막던 셋을 다 닫는다."
+        />
         <OptionTable
-          columns={["안", "범위를 어디에 두는가", "판정 · 출처"]}
+          columns={["안", "diff 는 어디에 사나", "판정 · 출처"]}
           rows={[
-            { cells: ["프로세스 지역 변수", "지금 방식", "기각 — 단계를 쪼개면 조용히 사라진다. $50.73 의 직접 원인 (인계 문서 ②)"], recommended: false },
-            { cells: ["디스크에서 읽을 때 경고만", "사람이 화면을 보고 판단한다", "기각 — 인계 문서의 갈래 D. --dry-run 이 좁히기를 못 보이는 결함이 남는다"], recommended: false },
-            { cells: ["계획 파일에 범위를 싣는다", "only_files 칸을 스키마에 더한다", "권고 — 프로세스 경계를 넘고, 시뮬레이터가 사슬로 검사할 수 있게 된다"], recommended: true },
+            { cells: ["프로세스 지역 변수", "메모리. 단계를 쪼개면 사라진다", "기각 — $50.73 의 직접 원인 (인계 문서 ②)"], recommended: false },
+            { cells: ["계획 파일에 범위를 싣는다", "survey-plan.json 의 only_files 칸", "번복됨 (1차) — machine/ 의 TypedDict 를 러너가 못 고친다"], recommended: false },
+            { cells: ["디스크에서 읽을 때 경고만", "어디에도 안 산다. 읽는 자리에서 경고", "번복됨 (2차) — 경고는 읽은 뒤에 뜨고, 쓰는 자리는 막지 못한다"], recommended: false },
+            { cells: ["warmup 이 warmup-diff.json 을 쓴다", "러너 소유 파일. 넷 갈래 전부", "채택 — 사용자 지시. 소유 경계를 안 건드리고 셋을 다 닫는다"], recommended: true },
+          ]}
+        />
+        <OptionTable
+          columns={["비유", "코드", "성격"]}
+          rows={[
+            { cells: ["조수", "machine/warmup.py 의 status()", "기계 — 파일 해시와 선언 해시 비교. LLM 0"], recommended: true },
+            { cells: ["조수의 메모 (머릿속)", "run_mode1.main 의 targets 지역 변수", "메모리 — 이것이 파일이 된다"], recommended: false },
+            { cells: ["작업 지시서 (종이)", "survey-plan.json", "파일"], recommended: false },
+            { cells: ["겉장 쪽지", "warmup_section(targets) 프롬프트 절", "메모리에서 만듦"], recommended: false },
+          ]}
+        />
+        <EvidenceNote
+          measured={[
+            "warmup.status() 는 옛 매니페스트와 지금 소스의 파일 해시·선언 해시를 비교해 유효·재읽기·위치만·삭제됨 넷을 낸다. 파이썬이다.",
+            "그 판정을 파일로 쓰는 코드는 저장소에 0건이다. 메모리와 stdout 에만 산다.",
+            "D13 의 증분 그래프에서 warmup 과 survey-plan 사이에 prep 이 있다. 둘을 한 단계로 합칠 수 없다 — prep 이 diff 를 받아 바뀐 파일만 다시 수집하고, 그 새 코드 지도로 survey-plan 이 층을 매긴다.",
+            "지시서에는 diff 에 없는 정보가 있다 — 의존 위상 층과 배치 묶음. 코드 지도에서 나온다. diff 는 지시서의 입력이지 지시서가 아니다.",
+          ]}
+          judged={[
+            "💭 대조는 양방향이어야 한다. 계획이 diff 보다 넓으면 $50 사고(전량 지시서 + 부분 쪽지)이고, 좁으면 레코드 누락(부분 지시서 + 전량 쪽지)이다. 두 번째가 더 위험하다 — 조용히 빈다.",
+            "💭 삭제됨 은 기계가 지운다(사용자 판정). 레코드를 합치는 자리가 그 목록의 파일에 걸린 레코드를 결정론으로 지운다. 착수는 결함 ④ 와 같은 자리다.",
           ]}
         />
       </Section>
