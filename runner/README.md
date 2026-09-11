@@ -13,8 +13,11 @@
 | [`__init__.py`](__init__.py) | — |
 | [`context.py`](context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
 | [`diff.py`](diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
+| [`graph.py`](graph.py) | `collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다. |
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
+| [`terms.py`](terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
+| [`wiki.py`](wiki.py) | `outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다. |
 | [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
 | [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
@@ -117,6 +120,24 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 ---
 
+## `graph.py`
+
+`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`CollectGraphStage`** | *class* | 정적 수집 → 코드 지도. 전량이면 `--force`, 증분이면 `--diff changes.json`. |
+| `CollectGraphStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `CollectGraphStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `CollectGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| **`ScheduleBatchesStage`** | *class* | 코드 지도를 층과 배치로. 증분이면 diff 의 `targets` 로 좁힌다. LLM 을 부르지 않는다. |
+| `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
+| `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+
+---
+
 ## `machine_stage.py`
 
 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다.
@@ -137,6 +158,34 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 |---|---|---|
 | **`Measured`** | *class* | 측정 표의 행(`measure.StageRow`) 하나를 스스로 내는 단계 — 토큰 0, 자기 이름, 경과 초. |
 | `Measured.row` | `(self, t0: float, ok: bool, why: str = '') -> M.StageRow` |  |
+
+---
+
+## `terms.py`
+
+`verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`VerifyTermsStage`** | *class* |  |
+| `VerifyTermsStage.terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
+| `VerifyTermsStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `VerifyTermsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+
+---
+
+## `wiki.py`
+
+`outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`PublishWikiStage`** | *class* |  |
+| `PublishWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `PublishWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| **`VerifyWikiStage`** | *class* |  |
+| `VerifyWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `VerifyWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 
 ---
 
@@ -218,8 +267,6 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
 | `wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
-| `terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
-| `plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. |
 | `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
 | `_qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
@@ -424,6 +471,12 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_diff_검사는_넷_갈래가_다_있어야_통과한다` | `()` |  |
 | `test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다` | `()` |  |
 | `test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다` | `()` |  |
+| `_plan_with` | `(files: list[str]) -> dict[str, object]` | 배치 하나짜리 계획. ⚠ 이것으로 `annotate-symbols` 를 돌리면 세션이 실제로 뜬다 — 대조 시험에만 쓴다. |
+| `test_기계_단계_다섯은_저장소를_cwd_로_한다` | `(tmp_path: Path)` |  |
+| `test_prep_은_전량이면_force_증분이면_diff_를_넘긴다` | `(tmp_path: Path)` |  |
+| `test_terms_argv_는_정적_지도를_위치_인자로_준다` | `()` |  |
+| `test_schedule_batches_는_diff_의_targets_로_좁힌다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_계획_요약은_층과_합계를_낸다` | `()` |  |
 
 ---
 

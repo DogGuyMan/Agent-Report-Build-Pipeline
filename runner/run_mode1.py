@@ -143,7 +143,11 @@ from mode1.context import (  # noqa: E402,F401
     Record as Record, Records as Records, WikiPage as WikiPage, reading_path,
 )
 from mode1.machine_stage import Mode1Machine  # noqa: E402
+from mode1.graph import ScheduleBatchesStage  # noqa: E402
+from mode1.terms import VerifyTermsStage  # noqa: E402
 wiki_argv = Mode1Machine.wiki_argv
+plan_summary = ScheduleBatchesStage.plan_summary
+terms_argv = VerifyTermsStage.terms_argv
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -568,51 +572,6 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
 """.format(repo=repo, root=root, fname=page["file"], title=page.get("title") or page["file"],
            syms=", ".join(page.get("symbols") or []) or "(개괄 — 특정 심볼 없음)",
            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
-
-
-# ── 3. 기계 단계의 명령줄 ───────────────────────────────────────────────
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.terms_argv']"/>
-# 용어 사전을 만드는 machine/terms_db.py 단계를 부를 명령줄 인자 리스트를 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_terms_argv_passes_the_static_codegraph_positionally
-def terms_argv(python: str, root: str, repo: str,
-               codegraph: str | None, reading: str | None) -> list[str]:
-    """`terms_db.py` 명령줄.
-
-    **정적 `codegraph.json` 을 위치 인자로 반드시 준다.** `--reading` 만 주면 읽기
-    레코드의 투영이 그 파일을 **덮어써서** 정적 수집기가 찾은 노드가 조용히 사라진다.
-    둘 다 주면 구조는 codegraph 가 이긴다.
-    """
-    argv = [python, os.path.join(root, "machine", "terms_db.py")]
-    if codegraph:
-        argv.append(codegraph)
-    argv += ["--repo", repo]
-    if reading:
-        argv += ["--reading", reading]
-    return argv
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.plan_summary']"/>
-# 층 계획(survey-plan)을 사람이 읽을 수 있는 줄들의 목록으로 요약하는 함수다.
-# 쓰는 것: machine.survey_plan.SurveyPlan · 쓰이는 곳: runner.test_run_mode1.test_계획_요약은_층과_배치와_합계를_낸다
-# ── 4. 보고 ─────────────────────────────────────────────────────────────
-def plan_summary(plan: survey_plan.SurveyPlan) -> list[str]:
-    """층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다."""
-    out: list[str] = []
-    for L in plan.get("layers", []):
-        if L.get("kind") == "non-node":
-            out.append("  층%d — 비노드 용어 (한 세션)" % L["level"])
-        else:
-            n = len(L.get("batches", []))
-            # `file_count` 는 비노드 층만 갖지 않는 선택 항목이라 첨자하면 기계가 짚는다.
-            # 이 가지는 `kind != "non-node"` 라 늘 있다.
-            out.append("  층%d — 심볼 %d · 파일 %d · 배치 %d"
-                       % (L["level"], L["symbol_count"],
-                          L["file_count"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
-                          n))
-    총배치 = sum(len(L.get("batches", [])) for L in plan.get("layers", []))
-    out.append("  합계 — 심볼 %d · 층 %d · 배치 %d (LLM 세션이 그만큼 뜬다)"
-               % (plan["totals"]["symbols"], plan["totals"]["levels"], 총배치))
-    return out
 
 
 # 팬아웃 호출의 원본은 `pipeline.py` 하나뿐이다. 여기에는 사본이 없다 —

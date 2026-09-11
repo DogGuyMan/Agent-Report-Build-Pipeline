@@ -530,7 +530,7 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 `plan = prepPlan(...)` 호출에 `verdicts=verdicts, force=force` 를 넘긴다. `import argparse` 를 머리에, `cast` 를 `typing` import 에 더한다(`json` 은 이미 있다). `prep.py` 에는 `main()` 이 없다 — CLI 본체가 `if __name__ == "__main__":` 아래 그대로 있으므로 그 블록 안을 고친다.
 
 - [x] **Step 4: 통과 확인** — `12 passed` · `test/test_wiki.py` 의 순수 함수 시험은 그대로. **단 `test_check_는_통과를_통과로_보고한다` 는 Task 2 부터 빨강** — 아래 가드레일의 "위키 인용 게이트". 🔵 전체 `pytest` 572 통과 · 실패 2(위키 인용 · README 표류 → README 는 `gen_readme` 로 다시 구워 같이 커밋)
-- [x] **Step 5: 커밋** — `git add runner/wiki/prep.py runner/test_mode1.py runner/README.md` · `[feat] : prep 이 changes.json 을 받아 재수집 여부를 정한다`
+- [x] **Step 5: 커밋** — `git add runner/wiki/prep.py runner/test_mode1.py runner/README.md` · `[feat] : prep 이 changes.json 을 받아 재수집 여부를 정한다` → 🔵 `06f38fe`
 
 **판정 요청 (Task 4 끝):** `collect-graph` 의 뒤 절반(`facts` · `render-modules`)은 위키 재료라 diff 와 무관하다. `collect-graph` 를 `collect` + `facts` 로 쪼갤지. **이 계획은 쪼개지 않는다.**
 
@@ -543,7 +543,7 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 - Modify: `runner/run_mode1.py` (`plan_summary` · `terms_argv` 원본 지우고 파사드)
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import graph as G` · `from mode1 import terms as T` · `from mode1 import wiki as W`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import graph as G` · `from mode1 import terms as T` · `from mode1 import wiki as W`, 끝에:
 
 ```python
 # ── 5. 기계 단계와 층 계획 ──────────────────────────────────────────────
@@ -555,11 +555,6 @@ def _plan_with(files: list[str]) -> dict[str, object]:
     return {"target": 8, "layers": [{"level": 0, "symbol_count": len(syms), "file_count": len(files),
             "batches": [{"id": "L0-B00", "files": files, "symbols": syms}]}],
             "totals": {"symbols": len(syms), "edges": 0, "levels": 1, "cyclic_symbols": 0}}
-
-
-def _empty_plan() -> dict[str, object]:
-    """층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다."""
-    return {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
 
 
 def test_기계_단계_다섯은_저장소를_cwd_로_한다(tmp_path: Path):
@@ -601,9 +596,9 @@ def test_계획_요약은_층과_합계를_낸다():
     assert lines[0].startswith("  층0") and "합계" in lines[-1]
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.graph'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.graph'`
 
-- [ ] **Step 3: `graph.py` 신설** — `plan_summary` 는 `run_mode1.py` 의 것을 본문 그대로(`@staticmethod` 만 붙는다):
+- [x] **Step 3: `graph.py` 신설** — `plan_summary` 는 `run_mode1.py` 의 것을 본문 그대로(`@staticmethod` 만 붙는다):
 
 ```python
 """`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다."""
@@ -689,7 +684,7 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
         return P.Outcome(P.OK, "", [self.row(t0, True)])
 ```
 
-- [ ] **Step 4: `terms.py` 신설** — `terms_argv` 는 `run_mode1.py` 의 것을 본문 그대로:
+- [x] **Step 4: `terms.py` 신설** — `terms_argv` 는 `run_mode1.py` 의 것을 본문 그대로:
 
 ```python
 """`verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다."""
@@ -732,7 +727,7 @@ class VerifyTermsStage(Mode1Machine):
         return [X.CODEGRAPH]
 ```
 
-- [ ] **Step 5: `wiki.py` 신설 (절반)** — Task 9 가 `OutlineWikiStage` · `WriteWikiStage` 를 이 파일에 더한다:
+- [x] **Step 5: `wiki.py` 신설 (절반)** — Task 9 가 `OutlineWikiStage` · `WriteWikiStage` 를 이 파일에 더한다:
 
 ```python
 """`outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다."""
@@ -764,7 +759,7 @@ class VerifyWikiStage(Mode1Machine):
         return [X.WIKI_DIR]
 ```
 
-- [ ] **Step 6: `run_mode1.py` 원본 지우고 파사드** — `plan_summary` · `terms_argv` 정의와 include 블록, `# ── 4. 보고` 절 머리를 지운다. 파사드 블록에 더한다:
+- [x] **Step 6: `run_mode1.py` 원본 지우고 파사드** — `plan_summary` · `terms_argv` 정의와 include 블록, `# ── 4. 보고` 절 머리를 지운다. 파사드 블록에 더한다:
 
 ```python
 from mode1.graph import ScheduleBatchesStage  # noqa: E402
@@ -773,7 +768,7 @@ plan_summary = ScheduleBatchesStage.plan_summary
 terms_argv = VerifyTermsStage.terms_argv
 ```
 
-- [ ] **Step 7: 통과** — `test_mode1.py` `17 passed` · `test_run_mode1.py` `74 passed` · **Step 8: 형 검사** `0 errors`
+- [x] **Step 7: 통과** — `test_mode1.py` `17 passed` · `test_run_mode1.py` `74 passed` · **Step 8: 형 검사** `0 errors` — 🔵 `_empty_plan` 과 `import json` 은 여기서 안 쓰여 pyright 가 짚는다. **Task 8 에서 더한다.**
 - [ ] **Step 9: 커밋** — `git add runner/mode1/graph.py runner/mode1/terms.py runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : mode1 기계 단계 다섯과 층 계획 단계`
 
 ---
