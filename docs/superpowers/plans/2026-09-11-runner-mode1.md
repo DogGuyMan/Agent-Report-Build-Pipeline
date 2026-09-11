@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `runner/run_mode1.py`(1,147줄)의 `if/elif` 단계 루프를 없애고, Mode 1 을 2단계가 만든 `runner/pipeline.py` 의 단계 기계 위에 올린다. 그 과정에서 `warmup` 의 판정을 `warmup-diff.json` 파일로 내보내고(D14), 증분·전량 그래프를 팩토리가 고르게 하고(D13), 재개 JSON 을 넣는다(D12).
+**Goal:** `runner/run_mode1.py`(1,147줄)의 `if/elif` 단계 루프를 없애고, Mode 1 을 2단계가 만든 `runner/pipeline.py` 의 단계 기계 위에 올린다. 그 과정에서 `detect-changes` 의 판정을 `changes.json` 파일로 내보내고(D14), 증분·전량 그래프를 팩토리가 고르게 하고(D13), 재개 JSON 을 넣는다(D12).
 
 **Architecture:** `runner/mode1/` 패키지(D7 안 A) — `context.py`(문맥·산출물) · `prompts.py`(프롬프트, 그대로 이동) · `layers.py`(층·샤드 병합, 그대로 이동) · `stages.py`(단계 12개) · `edges.py`(전이표 둘 + 팩토리). `run_mode1.py` 는 `main` 과 옛 이름 재수출만 남는다. 단계는 전부 `pipeline.MachineStage` 또는 `pipeline.LlmStage` 의 서브클래스이고, 갈래는 `OK · FAIL · SKIP` 셋만 쓴다.
 
@@ -21,43 +21,43 @@
 | D7 `mode1/` 패키지 | **Task 1·2** | |
 | D12 재개 JSON | **Task 10** | 단계 수준만. 배치 수준은 결함 ③ 뒤 |
 | D13 증분·전량 그래프 | **Task 9** | 스펙 그림과 다른 점 하나 — 아래 "설계 메모 ①" |
-| D14 ×2 `warmup-diff.json` | **Task 3 · 7** | 쓰기는 3, 양방향 대조는 7 |
-| D15 `prep` 이 `targets` 를 본다 | **Task 4** | **첫 걸음만** — 아래 "설계 메모 ②" |
+| D14 ×2 `changes.json` | **Task 3 · 7** | 쓰기는 3, 양방향 대조는 7 |
+| D15 `collect-graph` 이 `targets` 를 본다 | **Task 4** | **첫 걸음만** — 아래 "설계 메모 ②" |
 | D16 `wiki` 쪼개기 | **Task 8** | |
 | D17 claim 파일 | ✗ | **결함 ③ 뒤.** 배치 id 가 위치 기반이라 지금 넣으면 남의 배치를 막는다 |
 | `삭제됨` 기계 삭제 (D14 부속) | ✗ | 레코드를 합치는 코드가 결함 ④ 의 수정 대상이라 **④ 와 같은 자리에서** 한다. 이 계획은 `삭제됨` 을 diff.json 에 **싣기만** 한다 |
-| `prep` 을 `collect` + `facts` 로 쪼개기 | ✗ | 관찰만 있고 판정이 없다. Task 4 끝에 판정 요청을 남긴다 |
+| `collect-graph` 을 `collect` + `facts` 로 쪼개기 | ✗ | 관찰만 있고 판정이 없다. Task 4 끝에 판정 요청을 남긴다 |
 | 결함 ③④ (배치 id · `merge_shards` 개명) | ✗ | 인계 문서 `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 소관. **이 계획 뒤** |
 
 **증분 그래프는 만들되 이 계획 안에서는 "된다" 고 말하지 않는다.** ③④ 가 남아 있다.
 
-### 설계 메모 ① — 🔴 확정 (2026-09-11): 전량 그래프에는 `warmup` 이 **없다.** `warmup-save` 가 직접 훑어 지문을 찍는다
+### 설계 메모 ① — 🔴 확정 (2026-09-11): 전량 그래프에는 `detect-changes` 이 **없다.** `snapshot-sources` 가 직접 훑어 지문을 찍는다
 
-`warmup.json` 은 **옛 판의 지문**(파일마다 바이트 해시 · 선언 해시)이고, `warmup-diff.json` 은 그 지문과 지금
+`snapshot.json` 은 **옛 판의 지문**(파일마다 바이트 해시 · 선언 해시)이고, `changes.json` 은 그 지문과 지금
 소스를 대조한 결과다. 전량(`--cold` · 첫 실행)에는 대조할 옛 지문이 없거나 안 쓰기로 한 것이므로
-**대조 단계(`warmup`)를 돌리지 않는다.** 대신 끝의 `warmup-save` 가 **스스로 훑어** 지금 판의 지문을 찍는다 —
+**대조 단계(`detect-changes`)를 돌리지 않는다.** 대신 끝의 `snapshot-sources` 가 **스스로 훑어** 지금 판의 지문을 찍는다 —
 다음 실행이 증분을 시작할 옛 판이 되도록.
 
 | | 전량 | 증분 |
 |---|---|---|
-| 단계 | `warmup` 없음 · 11개 | `warmup` 있음 · 12개 |
-| `warmup-diff.json` | **안 생긴다** | 생긴다 |
-| `prep` | `--force` | `--diff` |
-| `survey` | 대조 없음 | 양방향 대조 |
-| `warmup-save` | `ctx.entries is None` → **직접 훑어서** 찍는다 | `warmup` 이 넘긴 `entries` 를 찍는다 |
+| 단계 | `detect-changes` 없음 · 11개 | `detect-changes` 있음 · 12개 |
+| `changes.json` | **안 생긴다** | 생긴다 |
+| `collect-graph` | `--force` | `--diff` |
+| `annotate-symbols` | 대조 없음 | 양방향 대조 |
+| `snapshot-sources` | `ctx.entries is None` → **직접 훑어서** 찍는다 | `detect-changes` 이 넘긴 `entries` 를 찍는다 |
 
-**스펙 D13 의 그림이 그대로 맞다.** 앞선 판(전량에도 `warmup`)은 물렸다 — 번복 기록 0004 의 모양이었다(두 안만
-놓고 셋째를 안 찾음). **전이표는 여전히 하나**다 — `survey` 의 `SKIP` 은 선언에 있으므로 표에 간선이 있어야
+**스펙 D13 의 그림이 그대로 맞다.** 앞선 판(전량에도 `detect-changes`)은 물렸다 — 번복 기록 0004 의 모양이었다(두 안만
+놓고 셋째를 안 찾음). **전이표는 여전히 하나**다 — `annotate-symbols` 의 `SKIP` 은 선언에 있으므로 표에 간선이 있어야
 하고, 전량에서는 실제로 안 난다(Task 9 시험).
 
-**두 안 모두에 `prep --force` 가 필요했다.** 전량이 diff 없이 `prep` 을 부르면 지금의 파일-존재 판정으로
+**두 안 모두에 `prep --force` 가 필요했다.** 전량이 diff 없이 `collect-graph` 을 부르면 지금의 파일-존재 판정으로
 떨어져 낡은 지도를 건너뛴다. 앞선 계획에서 빠져 있던 결함이다 — Task 4 에 `--force` 가 들어간다.
 
 ### 설계 메모 ② — D15 의 첫 걸음은 "부분 수집" 이 아니라 "다시 수집할지의 판정" 이다
 
-D15 는 `prep` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 파일만 다시 수집하는 것이다. 그런데 **수집기(clang-uml · roslyn-dump · griffe)가 파일 목록을 받는지 아직 재지 않았다.** 그래서 이 계획은 D15 를 **두 걸음**으로 나누고 첫 걸음만 한다.
+D15 는 `collect-graph` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 파일만 다시 수집하는 것이다. 그런데 **수집기(clang-uml · roslyn-dump · griffe)가 파일 목록을 받는지 아직 재지 않았다.** 그래서 이 계획은 D15 를 **두 걸음**으로 나누고 첫 걸음만 한다.
 
-- **첫 걸음 (이 계획)** — `prep.py` 가 `--diff warmup-diff.json` 을 받아, diff 에 `재읽기 · 위치만 · 삭제됨` 이 하나라도 있으면 **전량 재수집**하고, 전부 `유효` 면 수집기를 건너뛴다. 지금의 `hasCodegraph`(파일 존재) 판정을 **diff 판정으로 갈아 끼우는 것**이다. 결함 ⑤(낡은 지도)가 여기서 사라진다.
+- **첫 걸음 (이 계획)** — `prep.py` 가 `--diff changes.json` 을 받아, diff 에 `재읽기 · 위치만 · 삭제됨` 이 하나라도 있으면 **전량 재수집**하고, 전부 `유효` 면 수집기를 건너뛴다. 지금의 `hasCodegraph`(파일 존재) 판정을 **diff 판정으로 갈아 끼우는 것**이다. 결함 ⑤(낡은 지도)가 여기서 사라진다.
 - **둘째 걸음 (범위 밖)** — 수집기별로 부분 수집 지원을 재고, 되는 것부터 `targets` 만 수집한다.
 
 ## 가드레일
@@ -69,7 +69,7 @@ D15 는 `prep` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 파일만
 - **`Any` 금지.** `test/test_no_any.py` 의 `COVERED` 에 새 파일을 전부 넣는다(Task 12).
 - **코드 주석에는 현 상황만.** 날짜 · 수치 · 확신도 · 설계 철학을 코드에 넣지 않는다.
 - **`runner/test_run_mode1.py`(963줄)는 고치지 않는다.** 옛 이름을 `run_mode1.py` 가 재수출하므로 그대로 통과해야 한다. 통과하지 않으면 파사드가 틀린 것이다.
-- **실제 `survey` 를 돌려 검증하지 마라.** 세션당 약 $0.5 다. `--dry-run` 과 순수 함수 시험까지만.
+- **실제 `annotate-symbols` 를 돌려 검증하지 마라.** 세션당 약 $0.5 다. `--dry-run` 과 순수 함수 시험까지만.
 - 기준선 (🔵 2026-09-11): `pytest` **562 통과 · 19 건너뜀**. `xmldoc check` 는 착수 직전에 다시 재서 적어 둔다.
 
 ## File Structure
@@ -77,7 +77,7 @@ D15 는 `prep` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 파일만
 | 파일 | 책임 | 어디서 오나 |
 |---|---|---|
 | `runner/mode1/__init__.py` | 빈 파일 | 신설 |
-| `runner/mode1/context.py` | `Mode1Context` · 산출물 `Artifact` 10개 · 산출물 `check` 함수들 | 신설 |
+| `runner/mode1/context.py` | `Mode1Context` · 산출물 `Artifact` 10개 · 산출물 `verify-wiki` 함수들 | 신설 |
 | `runner/mode1/diff.py` | `WarmupDiff` 형 · 쓰기 · 읽기 · 검사 · 계획과의 양방향 대조 | 신설 (D14) |
 | `runner/mode1/prompts.py` | `warmup_section` · `dep_excerpt` · `survey_batch_prompt` · `nonnode_prompt` · `wiki_catalogue_prompt` · `wiki_page_prompt` · `reading_path` | `run_mode1.py` 에서 **그대로 이동** |
 | `runner/mode1/layers.py` | `symbol_layers` · `page_layers` · `merge_shards` · `_qualified` · `plan_summary` · `WikiPage` · `Record` · `Records` | 그대로 이동 |
@@ -88,23 +88,26 @@ D15 는 `prep` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 파일만
 | `runner/wiki/prep.py` | `--diff` 인자 하나 추가 | 얼갈이 경계를 한 파일만큼 연다 (D15) |
 | `runner/test_mode1.py` | 위 신설 모듈의 시험 | 신설 |
 
+**이름은 2026-09-11 에 전부 새로 정했다.** 아래 표와 코드는 새 이름이다. 옛 이름은 `ALIASES` 로 `--only` 에서만 산다.
+`machine/warmup.py` 의 `DEFAULT_CACHE`(`warmup.json`)는 손대지 않는다 — 러너가 경로를 인자로 넘기므로 필요 없다.
+
 **단계 12개와 그 원본**
 
 | 단계 | 기반 | 원본 (`run_mode1.py`) |
 |---|---|---|
-| `lang-propose` | `LlmStage` | `run_lang_select` 의 앞 절반 (모형 호출 · 낱말 파싱) |
+| `lang-hint` | `LlmStage` | `run_lang_select` 의 앞 절반 (모형 호출 · 낱말 파싱) |
 | `lang-decide` | `MachineStage` | `run_lang_select` 의 뒤 절반 (`machine/lang_select.py` 호출) |
-| `prep` | `MachineStage` | `main` 의 `wiki_argv(..., "prep.py")` 가지 |
-| `warmup` | `Stage` (직접) | `run_warmup` + **diff 쓰기** |
-| `survey-plan` | `Stage` (직접) | `main` 의 `survey-plan` 가지 |
-| `survey` | `LlmStage` | `run_survey` + **diff 대조** |
-| `warmup-save` | `Stage` (직접) | `save_warmup` |
-| `terms` | `MachineStage` | `main` 의 `terms_argv` 가지 |
-| `wiki-catalogue` | `LlmStage` | `run_wiki` 의 앞 절반 |
-| `wiki-pages` | `LlmStage` | `run_wiki` 의 뒤 절반 |
-| `build` · `check` | `MachineStage` | `main` 의 `wiki_argv` 가지 |
+| `collect-graph` | `MachineStage` | `main` 의 `wiki_argv(..., "prep.py")` 가지 |
+| `detect-changes` | `Stage` (직접) | `run_warmup` + **diff 쓰기** |
+| `schedule-batches` | `Stage` (직접) | `main` 의 `schedule-batches` 가지 |
+| `annotate-symbols` | `LlmStage` | `run_survey` + **diff 대조** |
+| `snapshot-sources` | `Stage` (직접) | `save_warmup` |
+| `verify-terms` | `MachineStage` | `main` 의 `terms_argv` 가지 |
+| `outline-wiki` | `LlmStage` | `run_wiki` 의 앞 절반 |
+| `write-wiki` | `LlmStage` | `run_wiki` 의 뒤 절반 |
+| `publish-wiki` · `verify-wiki` | `MachineStage` | `main` 의 `wiki_argv` 가지 |
 
-`warmup` · `survey-plan` · `warmup-save` 는 자식 프로세스도 LLM 도 아닌 **같은 프로세스의 파이썬**이라 `Stage` 를 직접 상속한다. 셋 다 행 하나에 토큰 0이다.
+`detect-changes` · `schedule-batches` · `snapshot-sources` 는 자식 프로세스도 LLM 도 아닌 **같은 프로세스의 파이썬**이라 `Stage` 를 직접 상속한다. 셋 다 행 하나에 토큰 0이다.
 
 ---
 
@@ -139,8 +142,8 @@ def test_문맥의_기본값은_전량이_아니다(tmp_path):
 def test_산출물은_저장소_아래_자리를_가리킨다(tmp_path):
     c = _ctx(tmp_path)
     assert X.CODEGRAPH.locate(c).endswith(os.path.join("out", "codegraph-raw", "codegraph.json"))
-    assert X.WARMUP_DIFF.locate(c).endswith("warmup-diff.json")
-    assert X.SURVEY_PLAN.locate(c).endswith("survey-plan.json")
+    assert X.CHANGES.locate(c).endswith("changes.json")
+    assert X.BATCHES.locate(c).endswith("batches.json")
 
 
 def test_코드지도_검사는_최상위_열쇠만_본다():
@@ -150,8 +153,8 @@ def test_코드지도_검사는_최상위_열쇠만_본다():
 
 
 def test_층계획_검사는_층과_합계를_본다():
-    assert X.check_plan({"target": 8, "layers": [], "totals": {}}) == []
-    assert X.check_plan({"layers": {}}) != []
+    assert X.check_batches({"target": 8, "layers": [], "totals": {}}) == []
+    assert X.check_batches({"layers": {}}) != []
 ```
 
 - [ ] **Step 2: 실패 확인** — `.venv/bin/python -m pytest runner/test_mode1.py -q` → `ModuleNotFoundError: No module named 'mode1'`
@@ -212,7 +215,7 @@ def check_codegraph(obj: object) -> list[str]:
     return out
 
 
-def check_plan(obj: object) -> list[str]:
+def check_batches(obj: object) -> list[str]:
     top = M.as_map(obj)
     if not top:
         return ["층 계획이 객체가 아니다"]
@@ -229,7 +232,7 @@ def check_lang_select(obj: object) -> list[str]:
     return [] if "collector" in top else ["`collector` 가 없다"]
 
 
-def check_wiki_plan(obj: object) -> list[str]:
+def check_outline(obj: object) -> list[str]:
     top = M.as_map(obj)
     return [] if isinstance(top.get("pages"), list) else ["`pages` 가 배열이 아니다"]
 
@@ -244,29 +247,39 @@ LANG_SELECT = P.Artifact[Mode1Context](
     "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), check_lang_select)
 CODEGRAPH = P.Artifact[Mode1Context](
     "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), check_codegraph)
-WARMUP_MANIFEST = P.Artifact[Mode1Context](
-    "warmup.json", lambda c: os.path.join(c.repo, warmup.DEFAULT_CACHE))
-WARMUP_DIFF = P.Artifact[Mode1Context](
-    "warmup-diff.json", lambda c: os.path.join(raw_dir(c), "warmup-diff.json"))
-SURVEY_PLAN = P.Artifact[Mode1Context](
-    "survey-plan.json", lambda c: os.path.join(raw_dir(c), "survey-plan.json"), check_plan)
+SNAPSHOT = P.Artifact[Mode1Context](
+    "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
+
+
+def snapshot_path(c: Mode1Context) -> str:
+    """읽을 지문 파일. `snapshot.json` 이 없고 옛 이름 `warmup.json` 이 있으면 그것을 읽는다.
+
+    쓰는 것은 늘 `snapshot.json` 이다 — 한 번 돌면 이주가 끝난다.
+    """
+    new = SNAPSHOT.locate(c)
+    old = os.path.join(raw_dir(c), "warmup.json")
+    return old if not os.path.exists(new) and os.path.exists(old) else new
+CHANGES = P.Artifact[Mode1Context](
+    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"))
+BATCHES = P.Artifact[Mode1Context](
+    "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), check_batches)
 READING = P.Artifact[Mode1Context](
     "terms-reading.json",
     lambda c: os.path.join(c.repo, "docs", "codegraph", "terms-reading.json"), check_reading)
 TERMS_DB = P.Artifact[Mode1Context](
     "terms-db.json", lambda c: os.path.join(raw_dir(c), "terms-db.json"))
-WIKI_PLAN = P.Artifact[Mode1Context](
-    "wiki-plan.json", lambda c: os.path.join(raw_dir(c), "wiki-plan.json"), check_wiki_plan)
+OUTLINE = P.Artifact[Mode1Context](
+    "outline.json", lambda c: os.path.join(raw_dir(c), "outline.json"), check_outline)
 WIKI_DIR = P.Artifact[Mode1Context](
     "docs/wiki", lambda c: os.path.join(c.repo, "docs", "wiki"))
 RESUME = P.Artifact[Mode1Context](
     "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"))
 
-ARTIFACTS = [LANG_SELECT, CODEGRAPH, WARMUP_MANIFEST, WARMUP_DIFF, SURVEY_PLAN,
-             READING, TERMS_DB, WIKI_PLAN, WIKI_DIR, RESUME]
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES,
+             READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
 ```
 
-`WARMUP_DIFF` 의 `check` 는 Task 3 에서 `diff.py` 가 정의한 뒤 붙인다(순환 import 를 피하려고 여기서 안 붙인다).
+`CHANGES` 의 `verify-wiki` 는 Task 3 에서 `diff.py` 가 정의한 뒤 붙인다(순환 import 를 피하려고 여기서 안 붙인다).
 
 ⚠ `import survey_plan` · `import warmup` 은 `machine/` 이 `sys.path` 에 있어야 한다. `run_mode1.py` 가 파일 머리에서 넣는다. **시험은 `run_mode1` 을 거치지 않으므로** `test_mode1.py` 머리에 `sys.path.insert(0, os.path.join(ROOT, "machine"))` 을 더한다 — Step 1 의 시험 파일 첫 줄들을 이렇게 고친다:
 
@@ -342,11 +355,11 @@ from mode1.prompts import (  # noqa: E402,F401
 
 ---
 
-### Task 3: `warmup-diff.json` — 판정을 파일로 (D14)
+### Task 3: `changes.json` — 판정을 파일로 (D14)
 
 **Files:**
 - Create: `runner/mode1/diff.py`
-- Modify: `runner/mode1/context.py` (`WARMUP_DIFF` 에 `check` 붙이기)
+- Modify: `runner/mode1/context.py` (`CHANGES` 에 `verify-wiki` 붙이기)
 - Modify: `runner/test_mode1.py`
 
 - [ ] **Step 1: 실패하는 시험**
@@ -360,7 +373,7 @@ def _verdicts() -> dict[str, list[str]]:
 
 
 def test_diff_는_넷_갈래와_범위를_담는다(tmp_path):
-    p = str(tmp_path / "warmup-diff.json")
+    p = str(tmp_path / "changes.json")
     D.write_diff(p, _verdicts(), targets=["b.py"], hops=1, tracked=2)
     got = D.read_diff(p)
     assert got is not None
@@ -389,7 +402,7 @@ def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
 - [ ] **Step 3: 구현** — `runner/mode1/diff.py`:
 
 ```python
-"""`warmup` 의 판정을 파일로. 옛 판(매니페스트)과 새 판(지금 소스)의 차이가 여기 남는다."""
+"""`detect-changes` 의 판정을 파일로. 옛 판(매니페스트)과 새 판(지금 소스)의 차이가 여기 남는다."""
 import json
 import os
 from typing import TypedDict
@@ -402,7 +415,7 @@ BUCKETS = ("유효", "재읽기", "위치만", "삭제됨")
 
 
 class WarmupDiff(TypedDict):
-    """`warmup-diff.json` 의 꼴. `targets` 가 `None` 이면 판정 불가 = 전량이다."""
+    """`changes.json` 의 꼴. `targets` 가 `None` 이면 판정 불가 = 전량이다."""
     verdicts: warmup.Verdicts
     targets: list[str] | None
     hops: int
@@ -468,20 +481,20 @@ def as_list(v: object) -> list[object]:
     return list(cast(list[object], v)) if isinstance(v, list) else []
 ```
 
-`context.py` 의 `WARMUP_DIFF` 선언을 이렇게 바꾼다 — `diff.py` 가 `context` 를 import 하지 않으므로 순환이 없다:
+`context.py` 의 `CHANGES` 선언을 이렇게 바꾼다 — `diff.py` 가 `context` 를 import 하지 않으므로 순환이 없다:
 
 ```python
 from mode1.diff import check_diff
-WARMUP_DIFF = P.Artifact[Mode1Context](
-    "warmup-diff.json", lambda c: os.path.join(raw_dir(c), "warmup-diff.json"), check_diff)
+CHANGES = P.Artifact[Mode1Context](
+    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), check_diff)
 ```
 
 - [ ] **Step 4: 통과 확인** · **Step 5: 형 검사** `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/measure.py runner/test_mode1.py runner/test_measure.py` · `[add] : warmup 판정을 warmup-diff.json 으로 내보내는 형과 검사`
+- [ ] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/measure.py runner/test_mode1.py runner/test_measure.py` · `[add] : warmup 판정을 changes.json 으로 내보내는 형과 검사`
 
 ---
 
-### Task 4: `prep` 이 diff 를 읽는다 (D15 첫 걸음)
+### Task 4: `collect-graph` 이 diff 를 읽는다 (D15 첫 걸음)
 
 **Files:**
 - Modify: `runner/wiki/prep.py` (`--diff` 인자 · `prepPlan` 의 판정 교체)
@@ -531,7 +544,7 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 ```python
     ap = argparse.ArgumentParser(description="정적 수집 → 코드 지도 → 사실 파일 · 모듈 그림")
     ap.add_argument("repo")
-    ap.add_argument("--diff", default=None, help="warmup-diff.json. 있으면 그 판정으로 재수집 여부를 정한다")
+    ap.add_argument("--diff", default=None, help="changes.json. 있으면 그 판정으로 재수집 여부를 정한다")
     ap.add_argument("--force", action="store_true", help="지도가 있어도 무조건 다시 수집한다 (전량)")
     a = ap.parse_args()
     repoArg = a.repo
@@ -549,13 +562,13 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 그리고 `plan = prepPlan(...)` 호출에 `verdicts=verdicts, force=a.force` 를 넘긴다(`prepPlan` 서명에도 `force: bool = False` 를 더한다). `import argparse` · `import json` 을 머리에 더한다.
 
 - [ ] **Step 4: 통과 확인** · 기존 `test/test_wiki.py` 도 그대로 통과
-- [ ] **Step 5: 커밋** — `[feat] : prep 이 warmup-diff 를 받아 재수집 여부를 정한다`
+- [ ] **Step 5: 커밋** — `[feat] : prep 이 changes.json 을 받아 재수집 여부를 정한다`
 
-**판정 요청 (Task 4 끝에 사용자에게):** `prep` 의 뒤 절반(`facts` · `render-modules`)은 위키 재료라 diff 와 무관하다. `prep` 을 `collect` + `facts` 로 쪼갤지 판정을 받는다. **이 계획은 쪼개지 않는다** — 판정이 "쪼갠다" 면 Task 5 에 단계 하나가 는다.
+**판정 요청 (Task 4 끝에 사용자에게):** `collect-graph` 의 뒤 절반(`facts` · `render-modules`)은 위키 재료라 diff 와 무관하다. `collect-graph` 을 `collect` + `facts` 로 쪼갤지 판정을 받는다. **이 계획은 쪼개지 않는다** — 판정이 "쪼갠다" 면 Task 5 에 단계 하나가 는다.
 
 ---
 
-### Task 5: 기계 단계 다섯 — `prep` · `survey-plan` · `warmup-save` · `terms` · `build` · `check`
+### Task 5: 기계 단계 다섯 — `collect-graph` · `schedule-batches` · `snapshot-sources` · `verify-terms` · `publish-wiki` · `verify-wiki`
 
 **Files:**
 - Create: `runner/mode1/stages.py`
@@ -569,15 +582,15 @@ from mode1 import stages as S  # noqa: E402
 
 def test_기계_단계는_저장소를_cwd_로_한다(tmp_path):
     c = _ctx(tmp_path)
-    for st in (S.PrepStage(), S.TermsStage(), S.BuildStage(), S.CheckStage()):
+    for st in (S.CollectGraphStage(), S.VerifyTermsStage(), S.PublishWikiStage(), S.VerifyWikiStage()):
         assert st.cwd(c) == c.repo
 
 
 def test_prep_은_전량이면_force_증분이면_diff_를_넘긴다(tmp_path):
     c = _ctx(tmp_path); c.cold = True
-    assert "--force" in S.PrepStage().argv(c) and "--diff" not in S.PrepStage().argv(c)
+    assert "--force" in S.CollectGraphStage().argv(c) and "--diff" not in S.CollectGraphStage().argv(c)
     c.cold = False
-    assert "--diff" in S.PrepStage().argv(c) and "--force" not in S.PrepStage().argv(c)
+    assert "--diff" in S.CollectGraphStage().argv(c) and "--force" not in S.CollectGraphStage().argv(c)
 
 
 def test_survey_plan_은_diff_의_targets_로_좁힌다(tmp_path, monkeypatch):
@@ -590,7 +603,7 @@ def test_survey_plan_은_diff_의_targets_로_좁힌다(tmp_path, monkeypatch):
         return {"target": target, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
     monkeypatch.setattr(S.survey_plan, "plan", fake_plan)
     c.targets = ["x.py"]
-    out = S.SurveyPlanStage().perform(c)
+    out = S.ScheduleBatchesStage().perform(c)
     assert out.kind == S.P.OK and seen["only"] == ["x.py"] and c.plan is not None
 
 
@@ -600,24 +613,24 @@ def test_warmup_save_는_조사가_실패하면_쓰지_않는다(tmp_path, monke
     wrote: list[str] = []
     monkeypatch.setattr(S.warmup, "save", lambda p, e: wrote.append(p) or e)
     c.survey_ok = False
-    S.WarmupSaveStage().perform(c)
+    S.SnapshotSourcesStage().perform(c)
     assert wrote == []
     c.survey_ok = True
-    S.WarmupSaveStage().perform(c)
+    S.SnapshotSourcesStage().perform(c)
     assert wrote == [c.warmup_cache]
 
 
 def test_warmup_save_는_전량이면_직접_훑어_찍는다(tmp_path, monkeypatch):
     c = _ctx(tmp_path); c.cold = True; c.survey_ok = True
-    monkeypatch.setattr(S, "scan_fingerprints",
+    monkeypatch.setattr(S, "scan_snapshot",
                         lambda ctx: ({"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}, {"a.py": {}}, str(tmp_path / "w.json")))
     wrote: list[str] = []
     monkeypatch.setattr(S.warmup, "save", lambda p, e: wrote.append(p) or e)
-    S.WarmupSaveStage().perform(c)
+    S.SnapshotSourcesStage().perform(c)
     assert wrote == [str(tmp_path / "w.json")]
 ```
 
-`survey_ok` 는 Task 1 에서 선언한 문맥 칸이다 — `save_warmup` 이 `rows` 를 뒤져 `survey/` 행을 찾던 것을 칸 하나로 바꾼다. `SurveyStage.harvest` 가 끝에서 세팅한다(Task 7).
+`survey_ok` 는 Task 1 에서 선언한 문맥 칸이다 — `save_warmup` 이 `rows` 를 뒤져 `survey/` 행을 찾던 것을 칸 하나로 바꾼다. `AnnotateSymbolsStage.harvest` 가 끝에서 세팅한다(Task 7).
 
 - [ ] **Step 2: 실패 확인**
 
@@ -660,26 +673,26 @@ class Mode1Machine(P.MachineStage[Mode1Context]):
         return ctx.repo
 
 
-class PrepStage(Mode1Machine):
-    name = "prep"
+class CollectGraphStage(Mode1Machine):
+    name = "collect-graph"
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         argv = [sys.executable, os.path.join(ctx.root, "runner", "wiki", "prep.py"), ctx.repo]
         if ctx.cold:
             argv.append("--force")
         else:
-            argv += ["--diff", X.WARMUP_DIFF.locate(ctx)]
+            argv += ["--diff", X.CHANGES.locate(ctx)]
         return argv
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [] if ctx.cold else [X.WARMUP_DIFF]
+        return [] if ctx.cold else [X.CHANGES]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.CODEGRAPH]
 
 
-class TermsStage(Mode1Machine):
-    name = "terms"
+class VerifyTermsStage(Mode1Machine):
+    name = "verify-terms"
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         cg, rd = X.CODEGRAPH.locate(ctx), X.READING.locate(ctx)
@@ -695,8 +708,8 @@ class TermsStage(Mode1Machine):
         return [X.CODEGRAPH]
 
 
-class BuildStage(Mode1Machine):
-    name = "build"
+class PublishWikiStage(Mode1Machine):
+    name = "publish-wiki"
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         return [sys.executable, os.path.join(ctx.root, "runner", "wiki", "build.py"), ctx.repo]
@@ -705,8 +718,8 @@ class BuildStage(Mode1Machine):
         return [X.WIKI_DIR]
 
 
-class CheckStage(Mode1Machine):
-    name = "check"
+class VerifyWikiStage(Mode1Machine):
+    name = "verify-wiki"
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         return [sys.executable, os.path.join(ctx.root, "runner", "wiki", "check.py"), ctx.repo]
@@ -718,15 +731,15 @@ class CheckStage(Mode1Machine):
 # ── 같은 프로세스의 파이썬 셋 — 자식 프로세스도 LLM 도 아니다 ────────────
 
 
-class SurveyPlanStage(P.Stage[Mode1Context]):
+class ScheduleBatchesStage(P.Stage[Mode1Context]):
     """코드 지도를 층과 배치로. 증분이면 diff 의 `targets` 로 좁힌다."""
-    name = "survey-plan"
+    name = "schedule-batches"
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.CODEGRAPH] + ([] if ctx.cold else [X.WARMUP_DIFF])
+        return [X.CODEGRAPH] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.SURVEY_PLAN]
+        return [X.BATCHES]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
@@ -737,7 +750,7 @@ class SurveyPlanStage(P.Stage[Mode1Context]):
         cg = cast(survey_plan.CodeGraph, raw)   # check 뒤의 좁히기 cast — D11 이 허용하는 꼴
         only = None if ctx.cold else ctx.targets
         ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
-        out_path = X.SURVEY_PLAN.locate(ctx)
+        out_path = X.BATCHES.locate(ctx)
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(ctx.plan, f, ensure_ascii=False, indent=1)
         print("%s%s" % (out_path, " (증분: %d파일)" % len(only) if only else ""))
@@ -746,21 +759,21 @@ class SurveyPlanStage(P.Stage[Mode1Context]):
         return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
 
 
-class WarmupSaveStage(P.Stage[Mode1Context]):
+class SnapshotSourcesStage(P.Stage[Mode1Context]):
     """전수조사가 해낸 뒤에만 지문을 찍는다.
 
-    증분이면 `warmup` 이 넘긴 `entries` 를 찍고, 전량이면 **여기서 직접 훑어** 찍는다 —
-    전량 그래프에는 `warmup` 이 없기 때문이다. 다음 실행이 이것을 옛 판으로 쓴다.
+    증분이면 `detect-changes` 이 넘긴 `entries` 를 찍고, 전량이면 **여기서 직접 훑어** 찍는다 —
+    전량 그래프에는 `detect-changes` 이 없기 때문이다. 다음 실행이 이것을 옛 판으로 쓴다.
     """
-    name = "warmup-save"
+    name = "snapshot-sources"
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.WARMUP_MANIFEST]
+        return [X.SNAPSHOT]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
         if ctx.entries is None:
-            scanned = scan_fingerprints(ctx)
+            scanned = scan_snapshot(ctx)
             if scanned is None:
                 print("알림 — 언어를 몰라 지문을 찍지 않는다.", file=sys.stderr)
                 return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
@@ -781,7 +794,7 @@ class WarmupSaveStage(P.Stage[Mode1Context]):
 
 ---
 
-### Task 6: `lang-propose` + `lang-decide` (D4)
+### Task 6: `lang-hint` + `lang-decide` (D4)
 
 **Files:** Modify `runner/mode1/stages.py` · `runner/mode1/prompts.py` · `runner/test_mode1.py`
 
@@ -790,21 +803,21 @@ class WarmupSaveStage(P.Stage[Mode1Context]):
 ```python
 def test_lang_propose_는_싼_모형을_고정한다(tmp_path):
     c = _ctx(tmp_path)
-    assert S.LangProposeStage().model(c) == S.LANG_SELECT_MODEL
+    assert S.LangHintStage().model(c) == S.LANG_SELECT_MODEL
 
 
 def test_lang_propose_는_낱말_하나만_받아들인다(tmp_path):
     c = _ctx(tmp_path)
-    st = S.LangProposeStage()
-    st.harvest(c, [("lang-propose", 1.0, 0, {"result": " `Cpp`. "})], 0)
+    st = S.LangHintStage()
+    st.harvest(c, [("lang-hint", 1.0, 0, {"result": " `Cpp`. "})], 0)
     assert c.proposed == "cpp"
-    st.harvest(c, [("lang-propose", 1.0, 0, {"result": "rust"})], 0)
+    st.harvest(c, [("lang-hint", 1.0, 0, {"result": "rust"})], 0)
     assert c.proposed is None
 
 
 def test_lang_propose_는_실패해도_SKIP_이지_FAIL_이_아니다(tmp_path):
     c = _ctx(tmp_path)
-    out = S.LangProposeStage().harvest(c, [("lang-propose", 1.0, 1, None)], 0)
+    out = S.LangHintStage().harvest(c, [("lang-hint", 1.0, 1, None)], 0)
     assert out.kind == S.P.SKIP
 
 
@@ -815,7 +828,7 @@ def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path):
     assert S.LangDecideStage().argv(c)[-2:] == ["--propose", "py"]
 ```
 
-**`lang-propose` 실패는 `SKIP` 이다** — 스펙 D4 의 폴백 간선 `('lang-propose', FAIL) -> 'lang-decide'` 대신, 이 단계는 **관문이 아니므로** 실패를 `SKIP` 으로 내고 전이표는 `SKIP → NEXT` 로 잇는다. 같은 효과이고 갈래를 하나 더 안 만든다. 스펙에 이 선택을 적는다(Task 12).
+**`lang-hint` 실패는 `SKIP` 이다** — 스펙 D4 의 폴백 간선 `('lang-propose', FAIL) -> 'lang-decide'` 대신, 이 단계는 **관문이 아니므로** 실패를 `SKIP` 으로 내고 전이표는 `SKIP → NEXT` 로 잇는다. 같은 효과이고 갈래를 하나 더 안 만든다. 스펙에 이 선택을 적는다(Task 12).
 
 - [ ] **Step 2: 실패 확인**
 
@@ -826,9 +839,9 @@ LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
 LANG_WORDS = ("cpp", "cs", "py", "ts")
 
 
-class LangProposeStage(P.LlmStage[Mode1Context]):
+class LangHintStage(P.LlmStage[Mode1Context]):
     """루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다."""
-    name = "lang-propose"
+    name = "lang-hint"
     emits = P.OK | P.SKIP
 
     def model(self, ctx: Mode1Context) -> str:
@@ -878,7 +891,7 @@ class LangDecideStage(Mode1Machine):
 
 ---
 
-### Task 7: `warmup` · `survey` — diff 쓰기와 양방향 대조 (D14)
+### Task 7: `detect-changes` · `annotate-symbols` — diff 쓰기와 양방향 대조 (D14)
 
 **Files:** Modify `runner/mode1/stages.py` · `runner/mode1/diff.py` (`compare_plan`) · `runner/test_mode1.py`
 
@@ -919,19 +932,19 @@ def test_warmup_은_diff_파일을_쓴다(tmp_path, monkeypatch):
     monkeypatch.setattr(S.declmap, "scan", lambda repo, lang, x, n: ({}, None))
     monkeypatch.setattr(S.warmup, "status",
                         lambda cache, repo, files, decls: ({"유효": [], "재읽기": ["a.py"], "위치만": [], "삭제됨": []}, {}))
-    out = S.WarmupStage().perform(c)
+    out = S.DetectChangesStage().perform(c)
     assert out.kind == S.P.OK
-    got = D.read_diff(str(raw / "warmup-diff.json"))
+    got = D.read_diff(str(raw / "changes.json"))
     assert got is not None and got["targets"] == ["a.py"] and c.targets == ["a.py"]
 
 
 def test_survey_는_어긋난_계획을_돌리지_않는다(tmp_path):
     c = _ctx(tmp_path)
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
-    D.write_diff(str(raw / "warmup-diff.json"),
+    D.write_diff(str(raw / "changes.json"),
                  {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": []}, ["b.py"], 1, 2)
-    (raw / "survey-plan.json").write_text(json.dumps(_plan_with(["a.py", "b.py"])))
-    out = S.SurveyStage().perform(c)
+    (raw / "batches.json").write_text(json.dumps(_plan_with(["a.py", "b.py"])))
+    out = S.AnnotateSymbolsStage().perform(c)
     assert out.kind == S.P.FAIL and "diff" in out.why
 ```
 
@@ -985,35 +998,34 @@ def lang_for(ctx: Mode1Context) -> str | None:
     return L.lang_of(cg if os.path.exists(cg) else None)
 
 
-def scan_fingerprints(ctx: Mode1Context) -> tuple[warmup.Verdicts, warmup.Manifest, str] | None:
+def scan_snapshot(ctx: Mode1Context) -> tuple[warmup.Verdicts, warmup.Manifest, str] | None:
     """지금 소스를 훑어 옛 지문과 대조한다. `(판정, 새 지문, 지문 파일 경로)`. 언어를 모르면 `None`.
 
-    `warmup`(증분)과 `warmup-save`(전량) 둘이 부른다 — 훑는 코드는 한 벌이다.
+    `detect-changes`(증분)과 `snapshot-sources`(전량) 둘이 부른다 — 훑는 코드는 한 벌이다.
     """
     lang = lang_for(ctx)
     if lang is None:
         return None
     files = declmap.tracked_files(ctx.repo, lang, [])
     decls, _ = declmap.scan(ctx.repo, lang, [], 0) if files else ({}, None)
-    cache = os.path.join(ctx.repo, warmup.DEFAULT_CACHE)
-    판정, entries = warmup.status(cache, ctx.repo, files, decls)
-    return 판정, entries, cache
+    판정, entries = warmup.status(X.snapshot_path(ctx), ctx.repo, files, decls)
+    return 판정, entries, X.SNAPSHOT.locate(ctx)   # 읽기는 옛 이름도 되고, 쓰기는 새 이름
 
 
-class WarmupStage(P.Stage[Mode1Context]):
-    """옛 지문과 지금 소스를 대조해 `warmup-diff.json` 을 쓴다. **증분 그래프에만 있다.**"""
-    name = "warmup"
+class DetectChangesStage(P.Stage[Mode1Context]):
+    """옛 지문과 지금 소스를 대조해 `changes.json` 을 쓴다. **증분 그래프에만 있다.**"""
+    name = "detect-changes"
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.LANG_SELECT]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.WARMUP_DIFF]
+        return [X.CHANGES]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        diff_path = X.WARMUP_DIFF.locate(ctx)
-        scanned = scan_fingerprints(ctx)
+        diff_path = X.CHANGES.locate(ctx)
+        scanned = scan_snapshot(ctx)
         if scanned is None:
             empty: warmup.Verdicts = {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
             print("알림 — 언어를 몰라 증분 판정을 건너뛴다. 전량 조사로 돈다.", file=sys.stderr)
@@ -1037,13 +1049,13 @@ def _shard_dir(ctx: Mode1Context) -> str:
     return os.path.join(X.raw_dir(ctx), "_shards")
 
 
-class SurveyStage(P.LlmStage[Mode1Context]):
+class AnnotateSymbolsStage(P.LlmStage[Mode1Context]):
     """층 오름차순 · 층 안 병렬. 층마다 샤드를 합쳐 디스크에 쓴다.
 
     층 사이에 이어지는 값(`baseline` · `merged`)은 인스턴스가 아니라 **문맥 칸**에 둔다 —
     단계는 상태를 갖지 않는다.
     """
-    name = "survey"
+    name = "annotate-symbols"
     emits = P.OK | P.FAIL | P.SKIP
 
     def repo(self, ctx: Mode1Context) -> str:
@@ -1053,7 +1065,7 @@ class SurveyStage(P.LlmStage[Mode1Context]):
         return ""   # jobs 가 배치마다 만든다. 단일 프롬프트는 쓰이지 않는다
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.SURVEY_PLAN] + ([] if ctx.cold else [X.WARMUP_DIFF])
+        return [X.BATCHES] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.READING]
@@ -1061,16 +1073,16 @@ class SurveyStage(P.LlmStage[Mode1Context]):
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
         if ctx.plan is None:
-            raw = P.read_json(X.SURVEY_PLAN.locate(ctx))
-            bad = X.check_plan(raw)
+            raw = P.read_json(X.BATCHES.locate(ctx))
+            bad = X.check_batches(raw)
             if bad:
                 return P.Outcome(P.FAIL, "; ".join(bad), [_row(self.name, t0, False, "; ".join(bad))])
             ctx.plan = cast(survey_plan.SurveyPlan, raw)
-            print("층 계획을 디스크에서 읽었다 — %s" % X.SURVEY_PLAN.locate(ctx), flush=True)
+            print("층 계획을 디스크에서 읽었다 — %s" % X.BATCHES.locate(ctx), flush=True)
         if not ctx.cold:
-            d = D.read_diff(X.WARMUP_DIFF.locate(ctx))
+            d = D.read_diff(X.CHANGES.locate(ctx))
             if d is None:
-                why = "warmup-diff.json 을 읽지 못했다"
+                why = "changes.json 을 읽지 못했다"
                 return P.Outcome(P.FAIL, why, [_row(self.name, t0, False, why)])
             bad = D.compare_plan(ctx.plan, d)
             if bad:
@@ -1105,7 +1117,7 @@ class SurveyStage(P.LlmStage[Mode1Context]):
     def harvest(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome:
         out = super().harvest(ctx, got, rnd)
         for row in out.rows:
-            row["stage"] = "survey/" + row["stage"]
+            row["stage"] = "annotate-symbols/" + row["stage"]
         ctx.merged = L.merge_shards(_shard_dir(ctx), ctx.baseline)
         path = X.READING.locate(ctx)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -1121,7 +1133,7 @@ class SurveyStage(P.LlmStage[Mode1Context]):
 
 ---
 
-### Task 8: `wiki-catalogue` + `wiki-pages` (D16)
+### Task 8: `outline-wiki` + `write-wiki` (D16)
 
 **Files:** Modify `runner/mode1/stages.py` · `runner/test_mode1.py`
 
@@ -1130,18 +1142,18 @@ class SurveyStage(P.LlmStage[Mode1Context]):
 ```python
 def test_wiki_catalogue_는_목차_파일을_쓴다고_선언한다(tmp_path):
     c = _ctx(tmp_path)
-    assert S.WikiCatalogueStage().writes(c) == [S.X.WIKI_PLAN]
-    assert S.WikiPagesStage().reads(c) == [S.X.WIKI_PLAN, S.X.SURVEY_PLAN]
+    assert S.OutlineWikiStage().writes(c) == [S.X.OUTLINE]
+    assert S.WriteWikiStage().reads(c) == [S.X.OUTLINE, S.X.BATCHES]
 
 
 def test_wiki_pages_는_이미_쓴_장을_건너뛴다(tmp_path):
     c = _ctx(tmp_path)
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
-    (raw / "wiki-plan.json").write_text(json.dumps({"pages": [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}]}))
+    (raw / "outline.json").write_text(json.dumps({"pages": [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}]}))
     (tmp_path / "docs" / "wiki").mkdir(parents=True)
     (tmp_path / "docs" / "wiki" / "a.md").write_text("x")
     c.plan = {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
-    st = S.WikiPagesStage()
+    st = S.WriteWikiStage()
     st.prepare(c)
     assert [j[0] for j in st.jobs(c, 0)] == ["b.md"]
 ```
@@ -1151,9 +1163,9 @@ def test_wiki_pages_는_이미_쓴_장을_건너뛴다(tmp_path):
 - [ ] **Step 3: 구현** — `run_wiki` 를 둘로 가른다:
 
 ```python
-class WikiCatalogueStage(P.LlmStage[Mode1Context]):
+class OutlineWikiStage(P.LlmStage[Mode1Context]):
     """목차 한 세션. 이미 있으면 SKIP."""
-    name = "wiki-catalogue"
+    name = "outline-wiki"
     emits = P.OK | P.FAIL | P.SKIP
 
     def repo(self, ctx: Mode1Context) -> str:
@@ -1163,20 +1175,20 @@ class WikiCatalogueStage(P.LlmStage[Mode1Context]):
         return R.wiki_catalogue_prompt(ctx.repo, ctx.root)
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.WIKI_PLAN]
+        return [X.OUTLINE]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        if os.path.exists(X.WIKI_PLAN.locate(ctx)):
+        if os.path.exists(X.OUTLINE.locate(ctx)):
             row = _row(self.name, t0, True, "목차가 이미 있다")
             row["skipped"] = True
             return P.Outcome(P.SKIP, row["why"], [row])
         return super().perform(ctx)
 
 
-class WikiPagesStage(P.LlmStage[Mode1Context]):
+class WriteWikiStage(P.LlmStage[Mode1Context]):
     """장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛴다."""
-    name = "wiki-pages"
+    name = "write-wiki"
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -1185,10 +1197,10 @@ class WikiPagesStage(P.LlmStage[Mode1Context]):
         return ""
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.WIKI_PLAN, X.SURVEY_PLAN]
+        return [X.OUTLINE, X.BATCHES]
 
     def prepare(self, ctx: Mode1Context) -> None:
-        raw = P.read_json(X.WIKI_PLAN.locate(ctx))
+        raw = P.read_json(X.OUTLINE.locate(ctx))
         pages = [p for p in M.as_list(M.as_map(raw).get("pages")) if isinstance(M.as_map(p).get("file"), str)]
         ctx.wiki_pages = [cast(L.WikiPage, p) for p in pages]
         assert ctx.plan is not None
@@ -1199,8 +1211,8 @@ class WikiPagesStage(P.LlmStage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         if ctx.plan is None:
-            raw = P.read_json(X.SURVEY_PLAN.locate(ctx))
-            if X.check_plan(raw):
+            raw = P.read_json(X.BATCHES.locate(ctx))
+            if X.check_batches(raw):
                 return P.Outcome(P.FAIL, "층 계획을 읽지 못했다", [])
             ctx.plan = cast(survey_plan.SurveyPlan, raw)
         self.prepare(ctx)
@@ -1220,7 +1232,7 @@ class WikiPagesStage(P.LlmStage[Mode1Context]):
     def harvest(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome:
         out = super().harvest(ctx, got, rnd)
         for row in out.rows:
-            row["stage"] = "wiki/" + row["stage"]
+            row["stage"] = "write-wiki/" + row["stage"]
         return out
 ```
 
@@ -1242,15 +1254,15 @@ from mode1 import edges as E  # noqa: E402
 
 def test_증분은_열둘_전량은_열하나():
     assert len(E.ORDER) == 12
-    assert E.ORDER.index("warmup") < E.ORDER.index("prep") < E.ORDER.index("survey-plan")
-    assert "warmup" not in E.plan_stages(None, None, cold=True)
-    assert "warmup" in E.plan_stages(None, None, cold=False)
-    assert "warmup-save" in E.plan_stages(None, None, cold=True)
+    assert E.ORDER.index("detect-changes") < E.ORDER.index("collect-graph") < E.ORDER.index("schedule-batches")
+    assert "detect-changes" not in E.plan_stages(None, None, cold=True)
+    assert "detect-changes" in E.plan_stages(None, None, cold=False)
+    assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
 
 
 def test_별명은_쪼갠_단계로_펴진다():
-    assert E.expand(["lang-select", "build"]) == ["lang-propose", "lang-decide", "build"]
-    assert E.expand(["wiki"]) == ["wiki-catalogue", "wiki-pages"]
+    assert E.expand(["lang-select", "publish-wiki"]) == ["lang-hint", "lang-decide", "publish-wiki"]
+    assert E.expand(["wiki"]) == ["outline-wiki", "write-wiki"]
 
 
 def test_전량_그래프는_이름이_다르고_표는_같다(tmp_path):
@@ -1258,30 +1270,30 @@ def test_전량_그래프는_이름이_다르고_표는_같다(tmp_path):
     warm = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
     assert E.build_mode1_graph(cold, None, None).name == "mode1-cold"
     assert E.build_mode1_graph(warm, None, None).name == "mode1-warm"
-    assert E.EDGES.dest("survey", S.P.SKIP) == S.P.NEXT
+    assert E.EDGES.dest("annotate-symbols", S.P.SKIP) == S.P.NEXT
 
 
 def test_전량에서는_survey_가_SKIP_을_내지_않는다(tmp_path):
     c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
-    (raw / "survey-plan.json").write_text(json.dumps(_plan_with([])))
+    (raw / "batches.json").write_text(json.dumps(_plan_with([])))
     (tmp_path / "docs" / "codegraph").mkdir(parents=True)
     (tmp_path / "docs" / "codegraph" / "terms-reading.json").write_text("{}")
-    out = S.SurveyStage().perform(c)          # 층이 0개라 세션 없이 OK 로 끝난다
+    out = S.AnnotateSymbolsStage().perform(c)          # 층이 0개라 세션 없이 OK 로 끝난다
     assert out.kind == S.P.OK
 
 
 def test_증분_그래프는_diff_를_읽는_단계가_셋이다(tmp_path):
     c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
     g = E.build_mode1_graph(c, only=None, skip=None)
-    readers = [n for n in g.order if X.WARMUP_DIFF in g.stages[n].reads(c)]
-    assert set(readers) == {"survey-plan", "survey"}   # prep 은 argv 로 받는다
+    readers = [n for n in g.order if X.CHANGES in g.stages[n].reads(c)]
+    assert set(readers) == {"schedule-batches", "annotate-symbols"}   # prep 은 argv 로 받는다
 
 
 def test_팩토리는_어긋난_그래프를_거부한다(tmp_path):
     c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path))
     with pytest.raises(S.P.GraphError):
-        E.build_mode1_graph(c, only=["survey"], skip=None)   # 계획도 diff 도 없다
+        E.build_mode1_graph(c, only=["annotate-symbols"], skip=None)   # 계획도 diff 도 없다
 ```
 
 - [ ] **Step 2: 실패 확인**
@@ -1297,33 +1309,40 @@ from mode1 import context as X
 from mode1 import stages as S
 from mode1.context import Mode1Context
 
-ORDER = ["lang-propose", "lang-decide", "warmup", "prep", "survey-plan", "survey",
-         "warmup-save", "terms", "wiki-catalogue", "wiki-pages", "build", "check"]
+ORDER = ["lang-hint", "lang-decide", "detect-changes", "collect-graph", "schedule-batches",
+         "annotate-symbols", "snapshot-sources", "verify-terms", "outline-wiki", "write-wiki",
+         "publish-wiki", "verify-wiki"]
 
 # 전량 그래프에는 없는 단계. 대조할 옛 지문이 없는데 대조 단계를 돌리지 않는다.
-WARM_ONLY = {"warmup"}
+WARM_ONLY = {"detect-changes"}
 
-# 옛 명령줄 `--only lang-select` · `--only wiki` 가 그대로 돌게 한다.
-ALIASES = {"lang-select": ["lang-propose", "lang-decide"],
-           "wiki": ["wiki-catalogue", "wiki-pages"]}
+# 옛 이름. `--only lang-select` 처럼 옛 명령줄이 그대로 돌게 한다.
+ALIASES = {
+    "lang-select": ["lang-hint", "lang-decide"], "warmup": ["detect-changes"],
+    "prep": ["collect-graph"], "survey-plan": ["schedule-batches"],
+    "survey": ["annotate-symbols"], "warmup-save": ["snapshot-sources"],
+    "terms": ["verify-terms"], "wiki": ["outline-wiki", "write-wiki"],
+    "wiki-catalogue": ["outline-wiki"], "wiki-pages": ["write-wiki"],
+    "build": ["publish-wiki"], "check": ["verify-wiki"],
+}
 
 STAGES: dict[str, P.Stage[Mode1Context]] = {
-    "lang-propose": S.LangProposeStage(), "lang-decide": S.LangDecideStage(),
-    "warmup": S.WarmupStage(), "prep": S.PrepStage(),
-    "survey-plan": S.SurveyPlanStage(), "survey": S.SurveyStage(),
-    "warmup-save": S.WarmupSaveStage(), "terms": S.TermsStage(),
-    "wiki-catalogue": S.WikiCatalogueStage(), "wiki-pages": S.WikiPagesStage(),
-    "build": S.BuildStage(), "check": S.CheckStage(),
+    "lang-hint": S.LangHintStage(), "lang-decide": S.LangDecideStage(),
+    "detect-changes": S.DetectChangesStage(), "collect-graph": S.CollectGraphStage(),
+    "schedule-batches": S.ScheduleBatchesStage(), "annotate-symbols": S.AnnotateSymbolsStage(),
+    "snapshot-sources": S.SnapshotSourcesStage(), "verify-terms": S.VerifyTermsStage(),
+    "outline-wiki": S.OutlineWikiStage(), "write-wiki": S.WriteWikiStage(),
+    "publish-wiki": S.PublishWikiStage(), "verify-wiki": S.VerifyWikiStage(),
 }
 
 # 전이표는 **하나**다. 전량과 증분의 차이는 단계 목록(`WARM_ONLY`)과 `ctx.cold` 가 만든다 —
-# 전량에는 `warmup` 이 없고, `survey` 는 diff 를 읽지 않으며 `SKIP` 을 내지 않는다.
+# 전량에는 `detect-changes` 이 없고, `annotate-symbols` 는 diff 를 읽지 않으며 `SKIP` 을 내지 않는다.
 # 갈래 선언(`emits`)은 클래스에 있으므로 두 표가 같아야 시뮬레이터가 통과한다.
 EDGES = P.Edges({
     ("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT,
-    ("lang-propose", P.SKIP): P.NEXT,      # 제안 없이 파일 수로 고른다 (D4 의 폴백)
-    ("wiki-catalogue", P.SKIP): P.NEXT,    # 목차가 이미 있다
-    ("survey", P.SKIP): P.NEXT,            # 바뀐 파일 0개 — 증분에서만 실제로 난다
+    ("lang-hint", P.SKIP): P.NEXT,      # 제안 없이 파일 수로 고른다 (D4 의 폴백)
+    ("outline-wiki", P.SKIP): P.NEXT,    # 목차가 이미 있다
+    ("annotate-symbols", P.SKIP): P.NEXT,            # 바뀐 파일 0개 — 증분에서만 실제로 난다
 })
 
 
@@ -1359,11 +1378,11 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
                          EDGES, P.existing(X.ARTIFACTS, ctx), ctx)
 ```
 
-**두 그래프가 표 하나를 공유하는 이유.** `emits` 는 클래스 선언이라 전량에서도 `SurveyStage` 는 `SKIP` 을 *낼 수 있다고* 선언한다. 표가 둘이면 전량 표에서 완결성 검사가 실패한다. 그래서 표는 하나이고, **전량이 `SKIP` 을 실제로 안 낸다는 것은 단계 시험으로 고정한다**(아래 시험 교체).
+**두 그래프가 표 하나를 공유하는 이유.** `emits` 는 클래스 선언이라 전량에서도 `AnnotateSymbolsStage` 는 `SKIP` 을 *낼 수 있다고* 선언한다. 표가 둘이면 전량 표에서 완결성 검사가 실패한다. 그래서 표는 하나이고, **전량이 `SKIP` 을 실제로 안 낸다는 것은 단계 시험으로 고정한다**(아래 시험 교체).
 
 - [ ] **Step 4·5·6** — 커밋 `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프`
 
-설계 메모 ① 은 확정됐다(전량에는 `warmup` 없음). Task 9 끝에 판정 요청은 없다.
+설계 메모 ① 은 확정됐다(전량에는 `detect-changes` 없음). Task 9 끝에 판정 요청은 없다.
 
 ---
 
@@ -1379,19 +1398,19 @@ from mode1 import resume as Z  # noqa: E402
 
 def test_재개_문서는_어디서_왜_멈췄는지를_담는다(tmp_path):
     rows: list[M.StageRow] = [
-        {"stage": "prep", "seconds": 1.0, "usage": M.normalize_usage(None), "ok": True, "why": ""},
-        {"stage": "survey/L0-B00", "seconds": 2.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"},
+        {"stage": "collect-graph", "seconds": 1.0, "usage": M.normalize_usage(None), "ok": True, "why": ""},
+        {"stage": "annotate-symbols/L0-B00", "seconds": 2.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"},
     ]
     p = str(tmp_path / "resume.json")
-    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["prep", "survey", "terms"])
+    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["collect-graph", "annotate-symbols", "verify-terms"])
     got = Z.read_resume(p)
     assert got is not None
-    assert got["failed_at"] == "survey" and got["done"] == ["prep"] and got["graph"] == "mode1-warm"
+    assert got["failed_at"] == "annotate-symbols" and got["done"] == ["collect-graph"] and got["graph"] == "mode1-warm"
 
 
 def test_다른_그래프의_재개_문서는_거부한다(tmp_path):
     p = str(tmp_path / "r.json")
-    Z.write_resume(p, graph="mode1-cold", rows=[], order=["prep"])
+    Z.write_resume(p, graph="mode1-cold", rows=[], order=["collect-graph"])
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-warm") is None
 ```
 
@@ -1513,9 +1532,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("LLM Model %s · 흐름 %s · 단계 %s" % (a.model, graph.name, " -> ".join(graph.order)))
     if a.dry_run:
         print(graph.render())
-        d = diff.read_diff(X.WARMUP_DIFF.locate(ctx))
+        d = diff.read_diff(X.CHANGES.locate(ctx))
         cg = X.CODEGRAPH.locate(ctx)
-        if "survey-plan" in graph.order and os.path.exists(cg):
+        if "schedule-batches" in graph.order and os.path.exists(cg):
             raw = P.read_json(cg)
             if not X.check_codegraph(raw):
                 only = None if a.cold else (d["targets"] if d else None)
@@ -1550,7 +1569,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0 if all(r["ok"] or r.get("skipped") for r in rows) else 1
 ```
 
-**세션 수 표시(D13 안전장치)** — `SurveyStage.perform` 의 대조 통과 직후, 첫 세션이 뜨기 전에 한 줄을 찍는다: `"조사 세션 예상 %d개 (층 %d)"`. 확인을 **묻지는 않는다** — 문턱값(N)을 혼자 정하지 않기로 한 규약 때문이다. `--dry-run` 이 같은 수를 미리 보인다.
+**세션 수 표시(D13 안전장치)** — `AnnotateSymbolsStage.perform` 의 대조 통과 직후, 첫 세션이 뜨기 전에 한 줄을 찍는다: `"조사 세션 예상 %d개 (층 %d)"`. 확인을 **묻지는 않는다** — 문턱값(N)을 혼자 정하지 않기로 한 규약 때문이다. `--dry-run` 이 같은 수를 미리 보인다.
 
 `run_lang_select` · `run_warmup` · `save_warmup` · `run_survey` · `run_wiki` · `run_machine` · `is_agent_stage` · `should_call_agent` · `STAGES` · `AGENT_STAGES` 는 **지운다**(include 블록과 함께). `runner/test_run_mode1.py` 가 이 이름들을 참조하는 시험이 있으면 **그 시험만 지운다** — 옮긴 것이 아니라 없앤 것이라 파사드로 살릴 수 없다. 지운 시험 이름을 보고에 적는다. 나머지(`plan_stages` 등 옮긴 이름)는 파사드로 살린다: `from mode1.edges import plan_stages, expand, ORDER as STAGES`.
 
@@ -1577,9 +1596,9 @@ npm run typecheck && npm run typecheck:py
 npm run doctor
 ```
 
-- [ ] **Step 3: `runner/CLAUDE.md`** — "무엇이 여기 있나" 표의 `run_mode1.py` 행을 12단계 · `mode1/` 패키지로 고친다. `--cold` · `--resume` · `warmup-diff.json` 을 한 줄씩.
-- [ ] **Step 4: 스펙에 되돌려 적을 것 셋** — D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · 전량 그래프에 `warmup` 이 없고 `warmup-save` 가 직접 훑는다는 것(D13 그림은 그대로) · D2 가 `SurveyStage` 에서 문맥 칸으로 지켜졌다는 것.
-- [ ] **Step 5: 인계 문서 배너 갱신** — `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 의 🔴 배너를 "리팩터링 끝. ③④ 착수 가능. 고칠 자리: `runner/mode1/stages.py` 의 `SurveyStage.harvest` 와 `runner/mode1/layers.py` 의 `merge_shards`, `machine/survey_plan.py` 의 배치 id" 로 고친다.
+- [ ] **Step 3: `runner/CLAUDE.md`** — "무엇이 여기 있나" 표의 `run_mode1.py` 행을 12단계 · `mode1/` 패키지로 고친다. `--cold` · `--resume` · `changes.json` 을 한 줄씩.
+- [ ] **Step 4: 스펙에 되돌려 적을 것 셋** — D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · 전량 그래프에 `detect-changes` 이 없고 `snapshot-sources` 가 직접 훑는다는 것(D13 그림은 그대로) · D2 가 `AnnotateSymbolsStage` 에서 문맥 칸으로 지켜졌다는 것.
+- [ ] **Step 5: 인계 문서 배너 갱신** — `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 의 🔴 배너를 "리팩터링 끝. ③④ 착수 가능. 고칠 자리: `runner/mode1/stages.py` 의 `AnnotateSymbolsStage.harvest` 와 `runner/mode1/layers.py` 의 `merge_shards`, `machine/survey_plan.py` 의 배치 id" 로 고친다.
 - [ ] **Step 6: 커밋** — `[docs] : mode1 단계 기계 완료를 문서와 게이트에 반영`
 
 ---
@@ -1590,9 +1609,9 @@ npm run doctor
 - [ ] `pytest` 562 이상 통과 · 실패 0 (지운 시험은 보고에 이름이 적혀 있다)
 - [ ] `test/test_no_any.py` 가 `mode1/` 전체와 `run_mode1.py` 를 덮고 통과한다
 - [ ] `--dry-run` 이 `graph.render()` 로 폴백 간선을 보이고, diff 가 있으면 좁힌 층 계획을 찍는다
-- [ ] `warmup-diff.json` 이 실제로 생긴다 — 자기 저장소에 `--only warmup` 으로 확인 (LLM 0)
+- [ ] `changes.json` 이 실제로 생긴다 — 자기 저장소에 `--only warmup` 으로 확인 (LLM 0)
 - [ ] `--only survey` 를 diff 없이 부르면 **팩토리가 거부**한다 (`GraphError`)
-- [ ] 낡은 전량 계획 + 좁힌 diff 를 두고 `--only survey` 를 부르면 **`SurveyStage` 가 FAIL** 로 멈춘다 — 인계 문서 재현 ② 가 더는 재현되지 않는다
+- [ ] 낡은 전량 계획 + 좁힌 diff 를 두고 `--only survey` 를 부르면 **`AnnotateSymbolsStage` 가 FAIL** 로 멈춘다 — 인계 문서 재현 ② 가 더는 재현되지 않는다
 - [ ] 스펙과 인계 문서가 Task 12 대로 갱신됐다
 
 ## 이 계획 뒤

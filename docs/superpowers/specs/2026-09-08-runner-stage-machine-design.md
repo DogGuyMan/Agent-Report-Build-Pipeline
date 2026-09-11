@@ -163,6 +163,36 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 7. **증분과 전량의 의도 분리** — D13·D14·D15 (사용자 요구)
 8. **LLM 단계의 훅 모양** — D3·D16 에서 재결정 (사용자 재검토 요구)
 
+## 단계·산출물 이름 확정 (2026-09-11) — 이 절 아래의 옛 이름은 역사다
+
+사용자가 12개를 하나씩 골랐다. 결은 **동사-목적어**. 옛 이름은 `--only` 별명으로만 산다.
+
+| 옛 | 새 | 산출 파일 |
+|---|---|---|
+| `lang-select` | `lang-hint` + `lang-decide` | `lang-select.json` |
+| `warmup` | `detect-changes` | `changes.json` (D14 의 `warmup-diff.json` 이 이것이다) |
+| `prep` | `collect-graph` | `codegraph.json` |
+| `survey-plan` | `schedule-batches` | `batches.json` (← `survey-plan.json`) |
+| `survey` | `annotate-symbols` | `terms-reading.json` |
+| `warmup-save` | `snapshot-sources` | `snapshot.json` (← `warmup.json`, 읽기만 이주) |
+| `terms` | `verify-terms` | `terms-db.json` |
+| `wiki-catalogue` | `outline-wiki` | `outline.json` (← `wiki-plan.json`) |
+| `wiki-pages` | `write-wiki` | `docs/wiki/*.md` |
+| `build` | `publish-wiki` | — |
+| `check` | `verify-wiki` | — |
+
+**낱말 정리.** "매니페스트"라 부르던 `warmup.json` 은 **옛 판의 지문**(파일마다 해시)이고, `changes.json` 은
+그 지문과 지금 소스를 **대조한 결과**다. 둘은 다른 것이다 — 전자는 diff 의 재료, 후자가 diff 다.
+
+**D13 확정 (2026-09-11).** 전량 그래프에는 `detect-changes` 가 **없다**(11단계). 대조할 옛 지문이 없는데
+대조 단계를 돌리지 않는다. `snapshot-sources` 가 끝에 직접 훑어 지문을 찍는다. 스펙의 D13 그림이 그대로 맞고,
+계획서의 앞선 메모(전량에도 `warmup`)는 물렸다. 두 안 모두 `collect-graph` 에 `--force` 가 필요했다.
+
+**D4 표현.** `lang-hint` 의 실패는 `FAIL→lang-decide` 간선이 아니라 **`SKIP`** 으로 내고 `SKIP→다음`으로 잇는다.
+같은 효과이고, 관문이 아닌 단계의 실패를 "실패"라 부르지 않는다.
+
+이 절 **아래**의 결정 본문은 결정 당시의 옛 이름을 그대로 쓴다 — 번복 이력이 그 이름으로 적혀 있어서다.
+
 ## Decision Log
 
 | # | 결정 | 상태 | 신뢰도 | 구현 |
