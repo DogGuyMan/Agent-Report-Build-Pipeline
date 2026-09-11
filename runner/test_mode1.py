@@ -13,6 +13,7 @@ import pipeline as P  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
 from mode1 import graph as G  # noqa: E402
+from mode1 import lang as LG  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
 from mode1 import measured as MS  # noqa: E402
 from mode1 import terms as T  # noqa: E402
@@ -177,3 +178,48 @@ def test_계획_요약은_층과_합계를_낸다():
     plan = _plan_with(["a.py"])
     lines = G.ScheduleBatchesStage.plan_summary(plan)  # type: ignore[arg-type]
     assert lines[0].startswith("  층0") and "합계" in lines[-1]
+
+
+# ── 6. 언어 제안과 결정 ──────────────────────────────────────────────────
+
+
+def test_lang_hint_는_싼_모형을_고정한다(tmp_path: Path):
+    assert LG.LangHintStage().model(_ctx(tmp_path)) == LG.LANG_SELECT_MODEL
+
+
+def test_lang_hint_는_낱말_하나만_받아들인다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    st = LG.LangHintStage()
+    out = st.harvest(c, [("lang-hint", 1.0, 0, {"result": " `Cpp`. "})], 0)
+    assert c.proposed == "cpp" and out.kind == P.OK
+    out = st.harvest(c, [("lang-hint", 1.0, 0, {"result": "rust"})], 0)
+    assert c.proposed is None and out.kind == P.SKIP
+
+
+def test_lang_hint_는_실패해도_SKIP_이지_FAIL_이_아니다(tmp_path: Path):
+    out = LG.LangHintStage().harvest(_ctx(tmp_path), [("lang-hint", 1.0, 1, None)], 0)
+    assert out.kind == P.SKIP and all(r["ok"] for r in out.rows)
+
+
+def test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path)
+    st = LG.LangHintStage()
+    def no_docs(ctx: X.Mode1Context) -> str:
+        return "   "
+    monkeypatch.setattr(st, "docs", no_docs)
+    assert st.jobs(c, 0) == []
+    out = st.harvest(c, [], 0)
+    assert out.kind == P.SKIP and out.rows[0].get("skipped") is True
+
+
+def test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한다():
+    p = LG.LangHintStage.hint_prompt("# README\n이 저장소는 …")
+    assert "cpp" in p and "unknown" in p and p.endswith("이 저장소는 …")
+
+
+def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert "--propose" not in LG.LangDecideStage().argv(c)
+    c.proposed = "py"
+    assert LG.LangDecideStage().argv(c)[-2:] == ["--propose", "py"]
+    assert LG.LangDecideStage().writes(c) == [X.LANG_SELECT]

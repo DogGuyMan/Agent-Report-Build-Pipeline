@@ -769,7 +769,7 @@ terms_argv = VerifyTermsStage.terms_argv
 ```
 
 - [x] **Step 7: 통과** — `test_mode1.py` `17 passed` · `test_run_mode1.py` `74 passed` · **Step 8: 형 검사** `0 errors` — 🔵 `_empty_plan` 과 `import json` 은 여기서 안 쓰여 pyright 가 짚는다. **Task 8 에서 더한다.**
-- [ ] **Step 9: 커밋** — `git add runner/mode1/graph.py runner/mode1/terms.py runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : mode1 기계 단계 다섯과 층 계획 단계`
+- [ ] **Step 9: 커밋** — `git add runner/mode1/graph.py runner/mode1/terms.py runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : mode1 기계 단계 다섯과 층 계획 단계` → 🔵 `a677736`
 
 ---
 
@@ -781,7 +781,7 @@ terms_argv = VerifyTermsStage.terms_argv
 
 `run_lang_select` 는 이 Task 에서 지우지 않는다 — 옛 `main` 이 아직 부른다. Task 12 에서 통째로 지운다. 프롬프트 문자열만 여기로 **복사**해 오고, 원본은 그때 사라진다.
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import lang as LG`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import lang as LG`, 끝에:
 
 ```python
 # ── 6. 언어 제안과 결정 ──────────────────────────────────────────────────
@@ -808,7 +808,9 @@ def test_lang_hint_는_실패해도_SKIP_이지_FAIL_이_아니다(tmp_path: Pat
 def test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     c = _ctx(tmp_path)
     st = LG.LangHintStage()
-    monkeypatch.setattr(st, "docs", lambda ctx: "   ")
+    def no_docs(ctx: X.Mode1Context) -> str:   # lambda 는 pyright 가 매개변수 형을 모른다
+        return "   "
+    monkeypatch.setattr(st, "docs", no_docs)
     assert st.jobs(c, 0) == []
     out = st.harvest(c, [], 0)
     assert out.kind == P.SKIP and out.rows[0].get("skipped") is True
@@ -827,9 +829,9 @@ def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path: Path):
     assert LG.LangDecideStage().writes(c) == [X.LANG_SELECT]
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.lang'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.lang'`
 
-- [ ] **Step 3: `lang.py` 신설** — `hint_prompt` 의 문자열은 `run_lang_select` 안의 것을 글자 그대로(`docs` 만 인자로):
+- [x] **Step 3: `lang.py` 신설** — `hint_prompt` 의 문자열은 `run_lang_select` 안의 것을 글자 그대로(`docs` 만 인자로):
 
 ```python
 """`lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다."""
@@ -923,8 +925,8 @@ class LangDecideStage(Mode1Machine):
 
 **`lang-hint` 실패는 `SKIP` 이다** — 스펙 D4 의 폴백 간선 `('lang-propose', FAIL) -> 'lang-decide'` 대신, 관문이 아닌 단계의 실패를 `SKIP → NEXT` 로 잇는다. 같은 효과이고 갈래를 하나 더 안 만든다. Task 13 에서 스펙에 적는다.
 
-- [ ] **Step 4: 통과** `23 passed` · **Step 5: 형 검사** `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/lang.py runner/test_mode1.py` · `[feat] : lang-select 를 lang-hint 와 lang-decide 로 쪼갬`
+- [x] **Step 4: 통과** `23 passed` · **Step 5: 형 검사** `0 errors`
+- [x] **Step 6: 커밋** — `git add runner/mode1/lang.py runner/test_mode1.py` · `[feat] : lang-select 를 lang-hint 와 lang-decide 로 쪼갬`
 
 ---
 

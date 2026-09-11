@@ -14,6 +14,7 @@
 | [`context.py`](context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
 | [`diff.py`](diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
 | [`graph.py`](graph.py) | `collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다. |
+| [`lang.py`](lang.py) | `lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다. |
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
 | [`terms.py`](terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
@@ -135,6 +136,26 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
 | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+
+---
+
+## `lang.py`
+
+`lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`LangHintStage`** | *class* | 루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다 — 관문이 아니다. |
+| `LangHintStage.model` | `(self, ctx: Mode1Context) -> str` |  |
+| `LangHintStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
+| `LangHintStage.hint_prompt` | `(docs: str) -> str` |  |
+| `LangHintStage.docs` | `(self, ctx: Mode1Context) -> str` | 루트 문서 묶음. `lang_select.py --print-docs` 가 고른다. |
+| `LangHintStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
+| `LangHintStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
+| `LangHintStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
+| **`LangDecideStage`** | *class* | 제안을 결정론으로 기각하거나 채택해 `lang-select.json` 을 쓴다. |
+| `LangDecideStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `LangDecideStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 
 ---
 
@@ -477,6 +498,12 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_terms_argv_는_정적_지도를_위치_인자로_준다` | `()` |  |
 | `test_schedule_batches_는_diff_의_targets_로_좁힌다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_계획_요약은_층과_합계를_낸다` | `()` |  |
+| `test_lang_hint_는_싼_모형을_고정한다` | `(tmp_path: Path)` |  |
+| `test_lang_hint_는_낱말_하나만_받아들인다` | `(tmp_path: Path)` |  |
+| `test_lang_hint_는_실패해도_SKIP_이지_FAIL_이_아니다` | `(tmp_path: Path)` |  |
+| `test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한다` | `()` |  |
+| `test_lang_decide_는_제안이_있으면_넘긴다` | `(tmp_path: Path)` |  |
 
 ---
 
