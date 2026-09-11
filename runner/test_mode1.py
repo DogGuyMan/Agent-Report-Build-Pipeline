@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(ROOT, "machine"))
 import pipeline as P  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
+from mode1 import edges as E  # noqa: E402
 from mode1 import graph as G  # noqa: E402
 from mode1 import lang as LG  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
@@ -396,12 +397,13 @@ def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
 # ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
 
 
-def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_SKIP(tmp_path: Path):
+def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세션_없이_OK(tmp_path: Path):
     c = _ctx(tmp_path)
     assert W.OutlineWikiStage().writes(c) == [X.OUTLINE]
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "outline.json").write_text('{"pages": []}')
-    assert W.OutlineWikiStage().perform(c).kind == P.SKIP
+    out = W.OutlineWikiStage().perform(c)          # 이미 있으면 세션 없이 OK — SKIP 이 아니다
+    assert out.kind == P.OK and out.rows[0].get("skipped") is True
 
 
 def test_목차_프롬프트는_새_이름의_파일을_말한다():
@@ -427,3 +429,69 @@ def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
 def test_페이지_층은_인용한_심볼의_최대():
     pages: list[X.WikiPage] = [{"file": "i.md", "symbols": []}, {"file": "p.md", "symbols": ["a", "b", "없음"]}]
     assert W.WriteWikiStage.page_layers(pages, {"a": 0, "b": 2}) == {"i.md": 0, "p.md": 2}
+
+
+# ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
+
+
+def test_증분은_열둘_전량은_열하나():
+    assert len(E.ORDER) == 12
+    assert "detect-changes" not in E.plan_stages(None, None, cold=True)
+    assert "detect-changes" in E.plan_stages(None, None, cold=False)
+    assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
+
+
+def test_순서의_불변식_셋():
+    i = E.ORDER.index
+    assert i("detect-changes") < i("collect-graph") < i("schedule-batches") < i("annotate-symbols")
+    assert i("annotate-symbols") + 1 == i("snapshot-sources") < i("verify-terms")   # 지문은 조사 바로 뒤
+    assert i("verify-terms") < i("outline-wiki") < i("write-wiki") < i("publish-wiki") < i("verify-wiki")
+
+
+def test_별명은_쪼갠_단계로_펴진다():
+    assert E.expand(["lang-select", "publish-wiki"]) == ["lang-hint", "lang-decide", "publish-wiki"]
+    assert E.expand(["wiki"]) == ["outline-wiki", "write-wiki"]
+    assert E.expand(["warmup", "survey"]) == ["detect-changes", "annotate-symbols"]
+
+
+def test_모르는_단계는_거부한다():
+    with pytest.raises(ValueError):
+        E.plan_stages(["없는-단계"], None)
+
+
+def test_전량_그래프는_이름이_다르고_표는_같다(tmp_path: Path):
+    cold = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    warm = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
+    assert E.build_mode1_graph(cold, None, None).name == "mode1-cold"
+    assert E.build_mode1_graph(warm, None, None).name == "mode1-warm"
+    assert E.EDGES.dest("annotate-symbols", P.SKIP) == P.NEXT
+
+
+def test_전량에서는_annotate_symbols_가_SKIP_을_내지_않는다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True); reading.write_text("{}")
+    assert SV.AnnotateSymbolsStage().perform(c).kind == P.OK      # 층이 0개라 세션 없이 OK. 전량은 diff 를 안 본다
+
+
+def test_증분_그래프는_diff_를_읽는_단계가_셋이다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    readers = [n for n in g.order if X.CHANGES in g.stages[n].reads(c)]
+    assert set(readers) == {"collect-graph", "schedule-batches", "annotate-symbols"}
+
+
+def test_팩토리는_어긋난_그래프를_거부한다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path))
+    with pytest.raises(P.GraphError):
+        E.build_mode1_graph(c, only=["annotate-symbols"], skip=None)   # 계획도 diff 도 없다
+
+
+def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "x"}')
+    g = E.build_mode1_graph(c, None, None, start_at="schedule-batches")
+    assert g.order[0] == "schedule-batches"

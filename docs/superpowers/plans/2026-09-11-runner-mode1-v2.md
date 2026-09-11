@@ -1481,12 +1481,13 @@ _qualified = AnnotateSymbolsStage.qualified
 # ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
 
 
-def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_SKIP(tmp_path: Path):
+def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세션_없이_OK(tmp_path: Path):
     c = _ctx(tmp_path)
     assert W.OutlineWikiStage().writes(c) == [X.OUTLINE]
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "outline.json").write_text('{"pages": []}')
-    assert W.OutlineWikiStage().perform(c).kind == P.SKIP
+    out = W.OutlineWikiStage().perform(c)          # 이미 있으면 세션 없이 OK — SKIP 이 아니다
+    assert out.kind == P.OK and out.rows[0].get("skipped") is True
 
 
 def test_목차_프롬프트는_새_이름의_파일을_말한다():
@@ -1538,9 +1539,8 @@ from mode1.context import Mode1Context, WikiPage
 
 ```python
 class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
-    """목차 한 세션. 이미 있으면 SKIP."""
+    """목차 한 세션. 이미 있으면 세션 없이 OK — 산출물이 있으면 계약은 지켜진 것이다."""
     name = "outline-wiki"
-    emits = P.OK | P.FAIL | P.SKIP
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -1560,7 +1560,7 @@ class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
         if os.path.exists(X.OUTLINE.locate(ctx)):
             row = self.row(t0, True, "목차가 이미 있다")
             row["skipped"] = True
-            return P.Outcome(P.SKIP, row["why"], [row])
+            return P.Outcome(P.OK, "", [row])      # SKIP 이 아니다 — Task 10 의 시뮬레이터 발견
         return super().perform(ctx)
 
 
@@ -1647,7 +1647,7 @@ wiki_page_prompt = WriteWikiStage.wiki_page_prompt
 - [x] **Step 5: `runner/test_run_mode1.py:757`** — `assert "wiki-plan.json" in p` → `assert "outline.json" in p`. 그 위 include 블록의 설명 줄(`# 위키 카탈로그 단계의 프롬프트가 wiki-plan.json 을 …`)은 xmldoc 주입이라 손대지 않는다.
 
 - [x] **Step 6: 통과** — `test_mode1.py` `42 passed` · `test_run_mode1.py` `74 passed` — 🔵 `run_mode1.py` 의 `Mapping` import 가 안 쓰여 뺐다. 전체 pytest 603 통과 · 실패 1(위키 인용) · **Step 7: 형 검사** `0 errors`
-- [ ] **Step 8: 커밋** — `git add runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py runner/test_run_mode1.py` · `[feat] : wiki 를 outline-wiki 와 write-wiki 로 쪼갬`
+- [ ] **Step 8: 커밋** — `git add runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py runner/test_run_mode1.py` · `[feat] : wiki 를 outline-wiki 와 write-wiki 로 쪼갬` → 🔵 `79b2d03`
 
 ---
 
@@ -1657,7 +1657,7 @@ wiki_page_prompt = WriteWikiStage.wiki_page_prompt
 - Create: `runner/mode1/edges.py`
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import edges as E`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import edges as E`, 끝에:
 
 ```python
 # ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
@@ -1726,9 +1726,9 @@ def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
     assert g.order[0] == "schedule-batches"
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.edges'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.edges'`
 
-- [ ] **Step 3: `edges.py` 신설**
+- [x] **Step 3: `edges.py` 신설**
 
 ```python
 """Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 자기 다음을 모른다."""
@@ -1749,7 +1749,7 @@ ORDER = ["lang-hint", "lang-decide", "detect-changes", "collect-graph", "schedul
          "publish-wiki", "verify-wiki"]
 
 # 전량 그래프에는 없는 단계. 대조할 옛 지문이 없는데 대조 단계를 돌리지 않는다.
-WARM_ONLY = {"detect-changes"}
+WARM_ONLY: set[str] = {"detect-changes"}
 
 # 옛 이름. `--only lang-select` 처럼 옛 명령줄이 그대로 돌게 한다.
 ALIASES = {
@@ -1775,7 +1775,6 @@ STAGES: dict[str, P.Stage[Mode1Context]] = {
 EDGES = P.Edges({
     ("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT,
     ("lang-hint", P.SKIP): P.NEXT,          # 제안 없이 파일 수로 고른다 (D4 의 폴백)
-    ("outline-wiki", P.SKIP): P.NEXT,       # 목차가 이미 있다
     ("annotate-symbols", P.SKIP): P.NEXT,   # 바뀐 파일 0개 — 증분에서만 실제로 난다
 })
 
@@ -1791,7 +1790,9 @@ def plan_stages(only: Iterable[str] | None, skip: Iterable[str] | None,
                 cold: bool = False) -> list[str]:
     """`--only` · `--skip` · 전량 여부만 본다. 재개 건너뛰기는 갈래(SKIP)와 재개 JSON 이 한다."""
     o = set(expand(only)) if only else None
-    s = set(expand(skip or [])) | (WARM_ONLY if cold else set())
+    s: set[str] = set(expand(skip or []))     # `| (WARM_ONLY if cold else set())` 은 pyright 가 `set[Unknown]` 으로 본다
+    if cold:
+        s |= WARM_ONLY
     for n in (o or set()) | s:
         if n not in ORDER:
             raise ValueError("모르는 단계: %s (있는 것: %s)" % (n, ", ".join(ORDER)))
@@ -1812,8 +1813,10 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
                          EDGES, P.existing(X.ARTIFACTS, ctx), ctx)
 ```
 
-- [ ] **Step 4: 통과** `51 passed` · **Step 5: 형 검사** `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/edges.py runner/test_mode1.py` · `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프`
+- [x] **Step 4: 통과** `51 passed` · **Step 5: 형 검사** `0 errors`
+
+🔵 **시뮬레이터가 잡은 것 — `outline-wiki` 의 `SKIP` 은 틀렸다.** `SKIP` 갈래에서는 `writes` 가 보장되지 않는데(`OK` 간선에서만) `write-wiki` 가 `outline.json` 을 읽으므로 두 그래프 모두 `GraphError` 였다. **"이미 있어서 안 만든다" 는 `SKIP` 이 아니라 `OK` 다** — 단계의 계약(돌고 나면 산출물이 있다)이 지켜졌다. `OutlineWikiStage` 는 `emits = OK | FAIL` 로, 목차가 있으면 세션 없이 `OK` + `skipped` 행. 전이표에서 `("outline-wiki", SKIP)` 간선을 뺐다(위 코드 반영). `SKIP` 은 "산출물 없이 다음으로" 일 때만이다 — `lang-hint`(제안 없음) · `annotate-symbols`(바뀐 파일 0개). Task 13 에서 스펙에 적는다.
+- [x] **Step 6: 커밋** — `git add runner/mode1/edges.py runner/test_mode1.py` · `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프`
 
 ---
 

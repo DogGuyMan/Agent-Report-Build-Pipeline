@@ -13,6 +13,7 @@
 | [`__init__.py`](__init__.py) | — |
 | [`context.py`](context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
 | [`diff.py`](diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
+| [`edges.py`](edges.py) | Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 자기 다음을 모른다. |
 | [`graph.py`](graph.py) | `collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다. |
 | [`lang.py`](lang.py) | `lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다. |
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
@@ -120,6 +121,18 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `check_diff` | `(obj: object) -> list[str]` |  |
 | `read_diff` | `(path: str) -> WarmupDiff \| None` |  |
 | `all_files` | `(d: WarmupDiff) -> set[str]` | 지금 존재하는 추적 파일 전체. `삭제됨` 은 뺀다. |
+
+---
+
+## `edges.py`
+
+Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 자기 다음을 모른다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `expand` | `(names: Iterable[str]) -> list[str]` |  |
+| `plan_stages` | `(only: Iterable[str] \| None, skip: Iterable[str] \| None, cold: bool = False) -> list[str]` | `--only` · `--skip` · 전량 여부만 본다. 재개 건너뛰기는 갈래(SKIP)와 재개 JSON 이 한다. |
+| `build_mode1_graph` | `(ctx: Mode1Context, only: Iterable[str] \| None, skip: Iterable[str] \| None, start_at: str \| None = None) -> P.StageDagGraph[Mode1Context]` | 진입점에서 부른다. `start_at` 은 재개 JSON 이 준 단계다 — 그 앞을 잘라 낸다. |
 
 ---
 
@@ -252,7 +265,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`OutlineWikiStage`** | *class* | 목차 한 세션. 이미 있으면 SKIP. |
+| **`OutlineWikiStage`** | *class* | 목차 한 세션. 이미 있으면 세션 없이 OK — 산출물이 있으면 계약은 지켜진 것이다. |
 | `OutlineWikiStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
 | `OutlineWikiStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
 | `OutlineWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -580,10 +593,19 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다` | `(tmp_path: Path)` |  |
 | `test_샤드를_합치고_충돌은_전원을_개명한다` | `(tmp_path: Path)` |  |
 | `test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다` | `()` |  |
-| `test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_SKIP` | `(tmp_path: Path)` |  |
+| `test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세션_없이_OK` | `(tmp_path: Path)` |  |
 | `test_목차_프롬프트는_새_이름의_파일을_말한다` | `()` |  |
 | `test_write_wiki_는_이미_쓴_장을_건너뛴다` | `(tmp_path: Path)` |  |
 | `test_페이지_층은_인용한_심볼의_최대` | `()` |  |
+| `test_증분은_열둘_전량은_열하나` | `()` |  |
+| `test_순서의_불변식_셋` | `()` |  |
+| `test_별명은_쪼갠_단계로_펴진다` | `()` |  |
+| `test_모르는_단계는_거부한다` | `()` |  |
+| `test_전량_그래프는_이름이_다르고_표는_같다` | `(tmp_path: Path)` |  |
+| `test_전량에서는_annotate_symbols_가_SKIP_을_내지_않는다` | `(tmp_path: Path)` |  |
+| `test_증분_그래프는_diff_를_읽는_단계가_셋이다` | `(tmp_path: Path)` |  |
+| `test_팩토리는_어긋난_그래프를_거부한다` | `(tmp_path: Path)` |  |
+| `test_재개는_그_앞을_잘라_낸다` | `(tmp_path: Path)` |  |
 
 ---
 

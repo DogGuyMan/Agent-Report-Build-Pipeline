@@ -15,9 +15,12 @@ from mode1.measured import Measured
 
 
 class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
-    """목차 한 세션. 이미 있으면 SKIP."""
+    """목차 한 세션. 이미 있으면 세션 없이 OK — 산출물이 있으면 계약은 지켜진 것이다.
+
+    `SKIP` 은 "산출물 없이 다음으로" 라는 뜻이라 여기에 맞지 않는다. `SKIP` 으로 내면
+    시뮬레이터가 `write-wiki` 의 읽기(`outline.json`)를 보장하지 못해 그래프를 거부한다.
+    """
     name = "outline-wiki"
-    emits = P.OK | P.FAIL | P.SKIP
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -78,7 +81,7 @@ Getting Started / Deep Dive 계열, 최대 4단, 절당 자식 8장 이하.
         if os.path.exists(X.OUTLINE.locate(ctx)):
             row = self.row(t0, True, "목차가 이미 있다")
             row["skipped"] = True
-            return P.Outcome(P.SKIP, row["why"], [row])
+            return P.Outcome(P.OK, "", [row])
         return super().perform(ctx)
 
 
