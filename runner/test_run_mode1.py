@@ -20,106 +20,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_mode1 as R  # noqa: E402
-import warmup as W  # noqa: E402
 from survey_plan import PlanBatch, SurveyPlan  # noqa: E402
-from warmup import Manifest  # noqa: E402
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_빈_저장소면_열_단계를_순서대로_돈다']"/>
-# 코드 지도도 읽기 레코드도 산문도 없는 백지 상태에서 Mode 1 이 어떤 순서로 단계를 도는지 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-# ── 1. 단계 고르기 — 순수 함수라 파일 시스템을 보지 않는다
-def test_빈_저장소면_열_단계를_순서대로_돈다():
-    """`terms` 가 `survey` 와 `wiki` 사이인 것은 산문 세션이 **인용 검사를 통과한**
-    terms-db.json 을 재료로 받게 하려는 것이다.
-    """
-    assert R.plan_stages(has_codegraph=False, has_reading=False, has_prose=False) == [
-        "lang-select", "prep", "warmup", "survey-plan", "survey", "warmup-save",
-        "terms", "wiki", "build", "check"]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_warmup_관문이_survey_를_감싼다']"/>
-# warmup 이 survey 앞에, warmup-save 확정이 survey 뒤에 오는지 — 즉 조사가 판정과 확정 사이에 안전하게 감싸여 있는지 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_warmup_관문이_survey_를_감싼다():
-    """관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `wiki` 뒤에 확정을 두면
-    산문 실패가 다음 실행의 전량 재조사를 부른다 (J6).
-    """
-    p = R.plan_stages(False, False, False)
-    assert p.index("warmup") < p.index("survey") < p.index("warmup-save")
-    assert p.index("warmup-save") < p.index("wiki")
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_세_단계가_LLM Model을_부른다']"/>
-# 열 단계 중 실제로 LLM LLM Model을 부르는 단계가 딱 셋(lang-select, survey, wiki)인지 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.is_agent_stage · 쓰이는 곳: 없음
-def test_세_단계가_LLM_Model을_부른다():
-    """LLM Model을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다."""
-    stages = R.plan_stages(False, False, False)
-    assert [s for s in stages if R.is_agent_stage(s)] == ["lang-select", "survey", "wiki"]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_산출물이_있는_LLM_단계만_각자_빠진다']"/>
-# 조사(survey)와 산문(wiki)은 서로 다른 산출물로 각자 독립적으로 건너뛰어지는지, 즉 한쪽 산출물만 있어도 그 단계만 빠지는지 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_산출물이_있는_LLM_단계만_각자_빠진다():
-    """LLM 단계 둘은 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다."""
-    both = R.plan_stages(has_codegraph=True, has_reading=True, has_prose=True)
-    assert "survey" not in both and "wiki" not in both
-    # warmup 두 칸은 남는다 — 판정을 해 봐야 정말 건너뛰어도 되는지 알고,
-    # 매니페스트는 갱신해 둬야 다음 실행이 옳게 판정한다(warmup 배선의 규칙 그대로).
-    assert both == ["lang-select", "prep", "warmup", "survey-plan", "warmup-save",
-                    "terms", "build", "check"]
-
-    only_reading = R.plan_stages(True, True, False)
-    assert "survey" not in only_reading and "wiki" in only_reading
-
-    only_prose = R.plan_stages(True, False, True)
-    assert "survey" in only_prose and "wiki" not in only_prose
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_the_save_gate_comes_before_terms']"/>
-# 매니페스트를 확정하는 warmup-save 단계가 terms 단계보다 먼저 와야 terms 실패 시에도 판정이 남는다는 것을 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_the_save_gate_comes_before_terms():
-    """매니페스트 확정이 terms 뒤로 밀리면, terms 가 실패했을 때 판정이 사라진다."""
-    p = R.plan_stages(False, False, False)
-    assert p.index("warmup-save") < p.index("terms")
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_skip_은_열_단계_흐름_기준으로_걸러낸다']"/>
-# skip 인자로 특정 단계 이름을 주면 그 단계들이 전체 흐름에서 빠진 채 나머지 순서는 그대로 유지되는지 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_skip_은_열_단계_흐름_기준으로_걸러낸다():
-    """`skip` 이 열 단계 목록에서 걸러내는 필터로 옳게 도는지만 본다."""
-    p = R.plan_stages(False, False, False, skip=["warmup", "warmup-save"])
-    assert p == ["lang-select", "prep", "survey-plan", "survey", "terms",
-                 "wiki", "build", "check"]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_plan_keeps_prep_even_when_codegraph_exists']"/>
-# 코드 지도가 이미 있어도 prep 단계 자체는 항상 계획에 남아야 한다는 것을 보는 시험이다. 건너뛸지는 prep 내부(prepPlan)가 정한다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_plan_keeps_prep_even_when_codegraph_exists():
-    """prep 은 늘 부른다 — 건너뛸지는 prep 자신이 정한다(prepPlan 의 hasCodegraph)."""
-    stages = R.plan_stages(has_codegraph=True, has_reading=False, has_prose=False)
-    assert stages[0] == "lang-select" and stages[1] == "prep"
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_plan_only_and_skip_are_honoured']"/>
-# only 인자를 주면 그 단계들만 남고, skip 인자를 주면 지정한 단계가 빠지는지 각각 확인하는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_plan_only_and_skip_are_honoured():
-    assert R.plan_stages(False, False, False, only=["prep", "check"]) == ["prep", "check"]
-    assert "build" not in R.plan_stages(False, False, False, skip=["build"])
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_plan_rejects_an_unknown_stage']"/>
-# 존재하지 않는 단계 이름을 only 에 넣으면 조용히 무시하지 않고 오류를 내야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_plan_rejects_an_unknown_stage():
-    with pytest.raises(ValueError):
-        R.plan_stages(False, False, False, only=["없는단계"])
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_usage_totals_include_cache']"/>
@@ -257,37 +158,6 @@ def test_seed_is_sorted_and_deduplicated():
 # 쓰는 것: runner.run_mode1.changed_seed · 쓰이는 곳: 없음
 def test_seed_tolerates_missing_buckets():
     assert R.changed_seed({}) == []
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_agent_is_skipped_when_nothing_changed_and_records_exist']"/>
-# 국소 변경 최적화의 핵심 — 대상이 없고 이미 읽기 레코드가 있으면 조사 단계 전체를 통째로 건너뛰어야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.should_call_agent · 쓰이는 곳: 없음
-def test_agent_is_skipped_when_nothing_changed_and_records_exist():
-    """국소 변경의 이득이 여기서 나온다 — 조사 단계를 통째로 건너뛴다."""
-    assert R.should_call_agent(targets=[], has_reading=True) is False
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_agent_still_runs_when_there_are_no_records_yet']"/>
-# 대상이 없어도 조사 결과 자체가 아예 없는 백지 상태라면 warmup 판정과 무관하게 에이전트를 불러야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.should_call_agent · 쓰이는 곳: 없음
-def test_agent_still_runs_when_there_are_no_records_yet():
-    """조사 결과가 아예 없으면 warmup 이 뭐라 하든 부른다 — 백지에서 시작하는 실행이다."""
-    assert R.should_call_agent(targets=[], has_reading=False) is True
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_agent_runs_when_something_changed']"/>
-# 바뀐 파일이 하나라도 있으면 레코드가 이미 있더라도 에이전트를 불러야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.should_call_agent · 쓰이는 곳: 없음
-def test_agent_runs_when_something_changed():
-    assert R.should_call_agent(targets=["a.cpp"], has_reading=True) is True
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_agent_runs_when_warmup_could_not_judge']"/>
-# targets 가 None 이면 warmup 이 판정 자체를 못 했다는 뜻이므로, 그럴 때는 예전처럼 무조건 전량 조사로 돌아가야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.should_call_agent · 쓰이는 곳: 없음
-def test_agent_runs_when_warmup_could_not_judge():
-    """targets 가 None 이면 warmup 이 못 돌았다는 뜻이다. 그때는 옛 동작(전량)으로 돌아간다."""
-    assert R.should_call_agent(targets=None, has_reading=True) is True
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_warmup_section_lists_every_target_and_the_ratio']"/>
@@ -503,54 +373,6 @@ def test_a_skipped_stage_does_not_break_the_total():
                               {"stage": "build", "seconds": 2.0, "ok": True, "why": "",
                                "usage": R.normalize_usage(None)}]
     assert "합계" in R.format_report(rows)
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_survey_가_실패하면_매니페스트를_갱신하지_않는다']"/>
-# save_warmup 이 "survey/L0-B00"처럼 슬래시 뒤에 배치 이름이 붙은 행 라벨에서도 앞부분("survey")만 떼어 실패 여부를 올바르게 판단하는지 확인하는 테스트다. 문자열 전체를 통째로 비교하면 절대 실패로 안 잡혀 fail-open(위험하게 항상 통과) 이 되기 때문에 이를 막는 회귀 테스트다.
-# 쓰는 것: runner.run_mode1.save_warmup, machine.warmup.save, runner.run_mode1.normalize_usage · 쓰이는 곳: 없음
-# ── 11. warmup 확정 관문이 fail-open 이 되지 않는가
-def test_survey_가_실패하면_매니페스트를_갱신하지_않는다(monkeypatch: pytest.MonkeyPatch):
-    """행 라벨이 `survey/L0-B00` 꼴이므로 `r["stage"] == "survey"` 로 비교하면 영원히
-    거짓이 되어 fail-open 이 된다. `save_warmup` 은 `/` 앞의 단계 이름만 떼어 본다.
-    """
-    saved: list[str] = []
-
-    def 가짜_save(path: str, entries: Manifest) -> None:
-        saved.append(path)
-
-    monkeypatch.setattr(W, "save", 가짜_save)
-
-    rows: list[R.StageRow] = [
-        {"stage": "survey/L0-B00", "seconds": 0.0, "ok": True, "why": "",
-         "usage": R.normalize_usage(None)},
-        {"stage": "survey/L1-B00", "seconds": 0.0, "ok": False, "why": "터졌다",
-         "usage": R.normalize_usage(None)}]
-    # 일부러 모자란 매니페스트다 — `save_warmup` 은 `None` 인지와 개수만 보고
-    # 나머지는 갈아 끼운 `save` 로 넘길 뿐이다. 다섯 칸을 채우면 소음만 는다.
-    엔트리 = cast(Manifest, {"a.py": {}})
-    R.save_warmup("/캐시/경로.json", 엔트리, rows)
-    assert saved == [], "전수조사가 실패했는데 매니페스트를 갱신했다"
-
-    rows[1]["ok"] = True
-    R.save_warmup("/캐시/경로.json", 엔트리, rows)
-    assert saved == ["/캐시/경로.json"]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_판정을_못_했으면_아무것도_쓰지_않는다']"/>
-# warmup 이 언어를 몰라 판정 자체를 건너뛴 경우(entries 가 None)와 저장 경로가 없는 경우(path 가 None)에는 save_warmup 이 아무 것도 저장하지 않아야 한다는 것을 확인하는 테스트다.
-# 쓰는 것: runner.run_mode1.save_warmup, machine.warmup.save · 쓰이는 곳: 없음
-def test_판정을_못_했으면_아무것도_쓰지_않는다(monkeypatch: pytest.MonkeyPatch):
-    """`entries is None` 은 warmup 이 언어를 몰라 판정을 건너뛴 경우다.
-    그때 쓰면 근거 없는 매니페스트가 생긴다."""
-    saved: list[str] = []
-
-    def 가짜_save(path: str, entries: Manifest) -> None:
-        saved.append(path)
-
-    monkeypatch.setattr(W, "save", 가짜_save)
-    R.save_warmup("/캐시/경로.json", None, [])
-    R.save_warmup(None, cast(Manifest, {"a.py": {}}), [])      # 위와 같은 이유로 부분 매니페스트다
-    assert saved == []
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_run_layer_는_동시_한도를_넘지_않는다']"/>
@@ -832,33 +654,6 @@ def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path: Pat
     assert 한번 == 두번 == {"가": {"where": "a.py:1", "means": "뜻"}}
     # 앞선 결과를 다시 넘겨도(잘못된 사용) 최소한 개명은 일어나지 않아야 한다
     assert R.merge_shards(d, 한번) == 한번
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_층_계획은_LLM_단계가_아니다']"/>
-# 층을 오름차순으로 매기는 survey-plan 단계는 codegraph.json 하나로 결정론으로 계산하는 기계 단계이지 LLM Model을 부르는 LLM 단계가 아니라는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages, runner.run_mode1.is_agent_stage · 쓰이는 곳: 없음
-# ── 16. 층 계획은 기계다 — LLM 이 하는 일처럼 보이면 안 된다
-def test_층_계획은_LLM_단계가_아니다():
-    """`survey-plan` 은 `AGENT_STAGES` 에 없다.
-
-    층 오름차순은 `survey_plan.py` 가 codegraph.json 하나로 **결정론**으로 낸다 —
-    의존을 몇 개 갖는지(out_deg)가 아니라 **위상 깊이**다(K1). 이 사실이 표에서
-    안 보이면 읽는 사람이 층 매기기까지 LLM Model이 하는 줄 안다. 그래서 자기 칸을 준다.
-    """
-    stages = R.plan_stages(False, False, False)
-    assert "survey-plan" in stages
-    assert not R.is_agent_stage("survey-plan")
-    assert [s for s in stages if R.is_agent_stage(s)] == ["lang-select", "survey", "wiki"]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_층_계획은_조사와_산문보다_먼저다']"/>
-# 층 계획이 없으면 배치도 페이지 층도 만들 수 없으므로, survey-plan 이 survey 와 wiki 보다 먼저 오고 warmup 뒤에 와야 증분 목록을 받을 수 있다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.plan_stages · 쓰이는 곳: 없음
-def test_층_계획은_조사와_산문보다_먼저다():
-    """계획이 없으면 배치도 페이지 층도 만들 수 없다."""
-    p = R.plan_stages(False, False, False)
-    assert p.index("survey-plan") < p.index("survey") < p.index("wiki")
-    assert p.index("warmup") < p.index("survey-plan")      # 증분 목록을 받아야 한다
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_계획_요약은_층과_배치와_합계를_낸다']"/>

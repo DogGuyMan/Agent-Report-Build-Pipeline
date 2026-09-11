@@ -25,7 +25,7 @@
 | [`wiki.py`](wiki.py) | `outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다. |
 | [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
 | [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
-| [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
+| [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
 | [`run_mode2.py`](run_mode2.py) | Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`__init__.py`](__init__.py) | — |
@@ -367,20 +367,11 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 ## `run_mode1.py`
 
-Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기.
+Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `_bootstrap_venv` | `() -> None` | `.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. |
-| `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
-| `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
-| `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
-| `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
-| `run_lang_select` | `(repo: str, root: str, timeout: float \| None) -> tuple[bool, str, Usage]` | 루트 문서를 Model에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다. |
-| `run_warmup` | `(repo: str, codegraph: str, hops: int) -> tuple[list[str] \| None, warmup.Manifest \| None, str \| None, int, bool, str]` | 관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.** |
-| `save_warmup` | `(cache_path: str \| None, entries: warmup.Manifest \| None, rows: Sequence[StageRow]) -> tuple[bool, str]` | 관문 ② — **전수조사가 실제로 해낸 뒤에만** 매니페스트를 갱신한다. |
-| `run_survey` | `(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan, concurrency: int, timeout: float \| None, reading_path: str, targets: Sequence[str] \| None = None, total: int = 0) -> list[StageRow]` | 층 사이는 순차, 층 안은 병렬(K2). `[행, …]` 을 낸다. |
-| `run_wiki` | `(model: str, repo: str, root: str, plan: survey_plan.SurveyPlan, concurrency: int, timeout: float \| None) -> list[StageRow]` | 카탈로그 한 세션(J3) -> 장들을 층 오름차순 병렬(K6). |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
@@ -722,15 +713,6 @@ Mode 1 실행기의 회귀 테스트.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `test_빈_저장소면_열_단계를_순서대로_돈다` | `()` | `terms` 가 `survey` 와 `wiki` 사이인 것은 산문 세션이 **인용 검사를 통과한** |
-| `test_warmup_관문이_survey_를_감싼다` | `()` | 관문이 감싸야 하는 것은 **레코드를 만드는 단계**다. `wiki` 뒤에 확정을 두면 |
-| `test_세_단계가_LLM_Model을_부른다` | `()` | LLM Model을 부르는 칸은 `survey` 와 `wiki` 둘뿐이다. 토큰도 그 둘에서만 잡힌다. |
-| `test_산출물이_있는_LLM_단계만_각자_빠진다` | `()` | LLM 단계 둘은 각자 자기 산출물로 걸린다 — 한쪽만 있으면 그쪽만 건너뛴다. |
-| `test_the_save_gate_comes_before_terms` | `()` | 매니페스트 확정이 terms 뒤로 밀리면, terms 가 실패했을 때 판정이 사라진다. |
-| `test_skip_은_열_단계_흐름_기준으로_걸러낸다` | `()` | `skip` 이 열 단계 목록에서 걸러내는 필터로 옳게 도는지만 본다. |
-| `test_plan_keeps_prep_even_when_codegraph_exists` | `()` | prep 은 늘 부른다 — 건너뛸지는 prep 자신이 정한다(prepPlan 의 hasCodegraph). |
-| `test_plan_only_and_skip_are_honoured` | `()` |  |
-| `test_plan_rejects_an_unknown_stage` | `()` |  |
 | `test_usage_totals_include_cache` | `()` | 캐시 읽기와 캐시 생성까지 더해야 실제로 흘러간 토큰이다. |
 | `test_usage_of_a_machine_stage_is_all_zero` | `()` | 기계 단계는 토큰을 쓰지 않는다. None 이 아니라 0 이어야 표가 더해진다. |
 | `test_usage_tolerates_missing_fields` | `()` |  |
@@ -745,10 +727,6 @@ Mode 1 실행기의 회귀 테스트.
 | `test_seed_excludes_valid_and_deleted` | `()` | 유효는 읽을 것이 없고, 삭제됨은 읽을 파일 자체가 없다. |
 | `test_seed_is_sorted_and_deduplicated` | `()` | 같은 파일이 두 갈래에 들어와도 한 번만 센다 — 프롬프트에 두 번 실리면 안 된다. |
 | `test_seed_tolerates_missing_buckets` | `()` |  |
-| `test_agent_is_skipped_when_nothing_changed_and_records_exist` | `()` | 국소 변경의 이득이 여기서 나온다 — 조사 단계를 통째로 건너뛴다. |
-| `test_agent_still_runs_when_there_are_no_records_yet` | `()` | 조사 결과가 아예 없으면 warmup 이 뭐라 하든 부른다 — 백지에서 시작하는 실행이다. |
-| `test_agent_runs_when_something_changed` | `()` |  |
-| `test_agent_runs_when_warmup_could_not_judge` | `()` | targets 가 None 이면 warmup 이 못 돌았다는 뜻이다. 그때는 옛 동작(전량)으로 돌아간다. |
 | `test_warmup_section_lists_every_target_and_the_ratio` | `()` | 에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다. |
 | `test_warmup_section_is_empty_when_there_is_nothing_to_scope` | `()` | 범위가 없으면 빈 글이다 — 부르는 쪽이 이 절을 통째로 뺀다. |
 | `_배치` | `() -> PlanBatch` |  |
@@ -766,8 +744,6 @@ Mode 1 실행기의 회귀 테스트.
 | `test_report_marks_a_failed_stage` | `()` |  |
 | `test_report_marks_a_skipped_stage` | `()` | 건너뜀을 '성공' 으로 그리면 시간이 확 준 이유를 읽는 사람이 알 수 없다. |
 | `test_a_skipped_stage_does_not_break_the_total` | `()` |  |
-| `test_survey_가_실패하면_매니페스트를_갱신하지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | 행 라벨이 `survey/L0-B00` 꼴이므로 `r["stage"] == "survey"` 로 비교하면 영원히 |
-| `test_판정을_못_했으면_아무것도_쓰지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | `entries is None` 은 warmup 이 언어를 몰라 판정을 건너뛴 경우다. |
 | `test_run_layer_는_동시_한도를_넘지_않는다` | `(monkeypatch: pytest.MonkeyPatch)` | K4 — 한 층에서 동시에 8배치까지. 넘으면 rate limit 에 걸려 층 전체가 무너진다. |
 | `test_run_layer_는_라벨_순서로_돌려준다` | `(monkeypatch: pytest.MonkeyPatch)` | 배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다. |
 | `test_run_layer_는_한_배치가_죽어도_나머지를_돌린다` | `(monkeypatch: pytest.MonkeyPatch)` | 배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다. |
@@ -789,8 +765,6 @@ Mode 1 실행기의 회귀 테스트.
 | `test_보고표는_진짜_벽시계를_따로_받는다` | `()` | `wall_seconds` 를 주면 합계 줄이 그 값을 쓰고, 안 주면 행의 초를 더한다 — |
 | `test_단계별_소계를_낸다` | `()` | 어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다. |
 | `test_같은_샤드를_두_번_합쳐도_개명하지_않는다` | `(tmp_path: Path)` | 층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다. `is not` 으로 충돌을 |
-| `test_층_계획은_LLM_단계가_아니다` | `()` | `survey-plan` 은 `AGENT_STAGES` 에 없다. |
-| `test_층_계획은_조사와_산문보다_먼저다` | `()` | 계획이 없으면 배치도 페이지 층도 만들 수 없다. |
 | `test_계획_요약은_층과_배치와_합계를_낸다` | `()` | 돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다. |
 | `test_lang_of_maps_every_collector_language_to_declmap` | `(tmp_path: Path) -> None` | 코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다. |
 | `test_every_runner_script_path_actually_exists` | `() -> None` | 세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다. |

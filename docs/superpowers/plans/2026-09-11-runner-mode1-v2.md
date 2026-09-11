@@ -1915,7 +1915,7 @@ def start_stage(doc: ResumeDoc | None, for_graph: str) -> str | None:
 `rows` 는 읽을 때 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 이번 범위에서 뺀다.
 
 - [x] **Step 4: 통과** `54 passed` · **Step 5: 형 검사** `0 errors`
-- [x] **Step 6: 커밋** — `git add runner/mode1/resume.py runner/test_mode1.py` · `[feat] : 재개 json 쓰기와 읽기`
+- [x] **Step 6: 커밋** — `git add runner/mode1/resume.py runner/test_mode1.py` · `[feat] : 재개 json 쓰기와 읽기` → 🔵 `d482745`
 
 ---
 
@@ -1925,14 +1925,14 @@ def start_stage(doc: ResumeDoc | None, for_graph: str) -> str | None:
 - Modify: `runner/run_mode1.py`
 - Modify: `runner/test_run_mode1.py` (없앤 이름의 시험 **17개** 삭제 — 아래 목록)
 
-- [ ] **Step 1: 기준선** — 두 명령의 출력을 파일로 남겨 둔다:
+- [x] **Step 1: 기준선** — 두 명령의 출력을 파일로 남겨 둔다:
 
 ```bash
 .venv/bin/python runner/run_mode1.py . --dry-run > /tmp/m1-dry-before.txt 2>&1
 .venv/bin/python runner/run_mode1.py . --only prep --dry-run > /tmp/m1-prep-before.txt 2>&1
 ```
 
-- [ ] **Step 2: `main` 을 다시 쓴다** — 파사드 블록 아래에 이 import 를 두고:
+- [x] **Step 2: `main` 을 다시 쓴다** — 파사드 블록 아래에 이 import 를 두고:
 
 ```python
 from mode1 import context as X  # noqa: E402
@@ -2028,9 +2028,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 `ScheduleBatchesStage` 는 Task 5 의 파사드 import 로 이미 들어와 있다.
 
-- [ ] **Step 3: 옛 것을 지운다** — `run_machine` · `run_lang_select` · `run_warmup` · `save_warmup` · `run_survey` · `run_wiki` · `is_agent_stage` · `should_call_agent` · 옛 `plan_stages` · `STAGES` · `AGENT_STAGES` · `LANG_SELECT_MODEL` 의 정의와 include 블록, `# ── 1. 단계 고르기` 절 머리, 그리고 파일 머리 독스트링의 "열 단계" 표를 12단계 표로 바꾼다(단계 이름 · 기반 · 부르는 것 세 칸). `Heartbeat` · `Iterable` · `Mapping` · `declmap` · `warmup` · `subprocess` 등 안 쓰이게 된 import 를 pyright 가 짚는 대로 뺀다. `_bootstrap_venv` 와 `sys.path` 삽입은 그대로다. **`grep -c "for stage in" runner/run_mode1.py` 가 0 이어야 한다.**
+- [x] **Step 3: 옛 것을 지운다** — `run_machine` · `run_lang_select` · `run_warmup` · `save_warmup` · `run_survey` · `run_wiki` · `is_agent_stage` · `should_call_agent` · 옛 `plan_stages` · `STAGES` · `AGENT_STAGES` · `LANG_SELECT_MODEL` 의 정의와 include 블록, `# ── 1. 단계 고르기` 절 머리, 그리고 파일 머리 독스트링의 "열 단계" 표를 12단계 표로 바꾼다(단계 이름 · 기반 · 부르는 것 세 칸). `Heartbeat` · `Iterable` · `Mapping` · `declmap` · `warmup` · `subprocess` 등 안 쓰이게 된 import 를 pyright 가 짚는 대로 뺀다. `_bootstrap_venv` 와 `sys.path` 삽입은 그대로다. **`grep -c "for stage in" runner/run_mode1.py` 가 0 이어야 한다.**
 
-- [ ] **Step 4: `runner/test_run_mode1.py` 에서 없앤 이름의 시험 17개를 지운다** — 옮긴 것이 아니라 없앤 것이라 파사드로 살릴 수 없다. 각 시험 위의 include 블록 3줄도 함께.
+- [x] **Step 4: `runner/test_run_mode1.py` 에서 없앤 이름의 시험 17개를 지운다** — 옮긴 것이 아니라 없앤 것이라 파사드로 살릴 수 없다. 각 시험 위의 include 블록 3줄도 함께.
 
 옛 `plan_stages(has_codegraph, has_reading, has_prose, …)` (11개 — 새 `plan_stages(only, skip, cold)` 와 서명이 다르다):
 `test_빈_저장소면_열_단계를_순서대로_돈다` · `test_산출물이_있는_LLM_단계만_각자_빠진다` · `test_plan_keeps_prep_even_when_codegraph_exists` · `test_plan_only_and_skip_are_honoured` · `test_plan_rejects_an_unknown_stage` · `test_skip_은_열_단계_흐름_기준으로_걸러낸다` · `test_the_save_gate_comes_before_terms` · `test_warmup_관문이_survey_를_감싼다` · `test_층_계획은_조사와_산문보다_먼저다` · `test_세_단계가_LLM_Model을_부른다` · `test_층_계획은_LLM_단계가_아니다`
@@ -2039,9 +2039,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 이들이 지키던 불변식은 `test_mode1.py` 가 다시 지킨다 — 순서 셋(Task 10 `test_순서의_불변식_셋`) · `--only/--skip` · 모르는 단계 거부(Task 10) · 바뀐 것 없음 + 레코드 있음 → SKIP / 레코드 없음 → 돈다(Task 8) · 조사 실패 → 지문 안 찍음(Task 7). **`wiki_argv` · `terms_argv` 의 시험 3개는 남긴다** — 파사드가 살린다.
 
-- [ ] **Step 5: 시험** — `.venv/bin/python -m pytest -q` → **실패 0.** 기대 수: 566 − 17 + (Task 2~11 이 더한 50) = **599 통과 · 19 건너뜀** 근처. 지운 시험 이름 17개를 보고에 적는다.
-- [ ] **Step 6: `--dry-run` 대조** — Step 1 의 두 파일과 새 출력을 비교한다. 단계 이름이 새 이름 12개로 바뀐 것과 `graph.render()` 가 추가된 것 외에는 같아야 한다. `--only prep` 은 `ALIASES` 로 `collect-graph` 가 된다.
-- [ ] **Step 7: 형 검사** — `npm run typecheck:py` → `0 errors`
+- [x] **Step 5: 시험** — 🔵 **597 통과 · 실패 1(위키 인용, 기대됨) · 19 건너뜀.** 지운 시험 17개는 위 목록 그대로. 덧붙여 지운 시험만 쓰던 import 둘(`import warmup as W` · `from warmup import Manifest`)을 `test_run_mode1.py` 머리에서 뺐다 — 프로젝트 pyright 가 `reportUnusedImport` 로 짚어서다. `run_agent_with` · `run_layer` 재수출은 **남긴다** — `test_run_layer_*` 3개와 `test_빈_층은_…` 이 쓴다(처음 빠뜨려 4개가 더 빨갰다).
+- [x] **Step 6: `--dry-run` 대조** — 🔵 층 계획 수치 동일(786 심볼 · 층 6 · 배치 88). 다른 점 셋: 단계 이름 12개 · `graph.render()` 추가 · 옛 "이미 있는 것 — 코드지도 True…" 줄 삭제(산출물이 있어 건너뛰는 것은 이제 실행 시점의 `SKIP`/`skipped` 행이 한다). **`--only prep` 은 증분 그래프에서 거부된다** — `collect-graph` 가 `changes.json` 을 읽는다고 선언했고(D15) 그 파일이 없어서다. `--only warmup,prep` 또는 `--only prep --cold` 로 간다. `--only survey` 도 같은 이유로 거부(완료 조건 ✓). `--only warmup` 은 LLM 0 으로 실제로 돌아 `changes.json` 을 냈다(98파일 · 대상 40, 옛 `warmup.json` 을 지문으로 읽음 — 완료 조건 ✓).
+- [x] **Step 7: 형 검사** — `npm run typecheck:py` → `0 errors`
 - [ ] **Step 8: 커밋** — `git add runner/run_mode1.py runner/test_run_mode1.py` · `[refactor] : run_mode1 이 단계 기계 위에서 돈다`
 
 ---
