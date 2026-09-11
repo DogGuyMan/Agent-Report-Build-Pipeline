@@ -1,5 +1,8 @@
 # RESUME — 러너 단계 기계 리팩터링 (3단계 중 1단계 완료)
 
+> 🔴 **대체됨 (2026-09-11) → [`RESUME-2026-09-11-runner-stage-machine.md`](RESUME-2026-09-11-runner-stage-machine.md).**
+> 그쪽이 진입점이다. 이 문서는 `pipeline.py` API · Mode 2 이주 본보기 · 1·2단계 상세를 참조하러 올 때만 연다.
+
 > 작성 2026-09-08 · 브랜치 `refactor/runner-common-axis` · 최신 커밋 `2881370`
 > 저장소 `$REPO_ROOT` (= `report-builder`)
 > **이 문서가 이 작업의 단일 진입점이다.** 여기부터 읽는다.
