@@ -31,9 +31,27 @@
 
 **증분 그래프는 만들되 이 계획 안에서는 "된다" 고 말하지 않는다.** ③④ 가 남아 있다.
 
-### 설계 메모 ① — 전량 그래프에도 `warmup` · `warmup-save` 가 있다 (스펙 D13 그림과 다르다)
+### 설계 메모 ① — 🔴 확정 (2026-09-11): 전량 그래프에는 `warmup` 이 **없다.** `warmup-save` 가 직접 훑어 지문을 찍는다
 
-스펙 D13 의 그림은 전량 그래프에서 `warmup` 을 뺐다. **이 계획은 넣는다.** 이유 — 전량으로 돌고 나서 매니페스트를 안 남기면 **다음 실행이 증분을 시작할 기준이 없다.** `warmup-save` 가 쓸 `entries` 는 `warmup.status()` 가 내므로, 전량 그래프도 `warmup` 을 돌리되 **좁히지 않는다**(diff 의 `targets` 가 `null`). 두 그래프의 차이는 이름과 `ctx.cold` 뿐이고 전이표는 하나를 공유한다(Task 9). **이 메모는 스펙 정정 후보다** — Task 9 끝에 사용자 판정을 받고 스펙에 반영한다.
+`warmup.json` 은 **옛 판의 지문**(파일마다 바이트 해시 · 선언 해시)이고, `warmup-diff.json` 은 그 지문과 지금
+소스를 대조한 결과다. 전량(`--cold` · 첫 실행)에는 대조할 옛 지문이 없거나 안 쓰기로 한 것이므로
+**대조 단계(`warmup`)를 돌리지 않는다.** 대신 끝의 `warmup-save` 가 **스스로 훑어** 지금 판의 지문을 찍는다 —
+다음 실행이 증분을 시작할 옛 판이 되도록.
+
+| | 전량 | 증분 |
+|---|---|---|
+| 단계 | `warmup` 없음 · 11개 | `warmup` 있음 · 12개 |
+| `warmup-diff.json` | **안 생긴다** | 생긴다 |
+| `prep` | `--force` | `--diff` |
+| `survey` | 대조 없음 | 양방향 대조 |
+| `warmup-save` | `ctx.entries is None` → **직접 훑어서** 찍는다 | `warmup` 이 넘긴 `entries` 를 찍는다 |
+
+**스펙 D13 의 그림이 그대로 맞다.** 앞선 판(전량에도 `warmup`)은 물렸다 — 번복 기록 0004 의 모양이었다(두 안만
+놓고 셋째를 안 찾음). **전이표는 여전히 하나**다 — `survey` 의 `SKIP` 은 선언에 있으므로 표에 간선이 있어야
+하고, 전량에서는 실제로 안 난다(Task 9 시험).
+
+**두 안 모두에 `prep --force` 가 필요했다.** 전량이 diff 없이 `prep` 을 부르면 지금의 파일-존재 판정으로
+떨어져 낡은 지도를 건너뛴다. 앞선 계획에서 빠져 있던 결함이다 — Task 4 에 `--force` 가 들어간다.
 
 ### 설계 메모 ② — D15 의 첫 걸음은 "부분 수집" 이 아니라 "다시 수집할지의 판정" 이다
 
@@ -481,29 +499,32 @@ def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
     assert prep.needs_collect(has_codegraph=True, verdicts=stale) is True
     assert prep.needs_collect(has_codegraph=False, verdicts=fresh) is True
     assert prep.needs_collect(has_codegraph=True, verdicts=None) is False
+    assert prep.needs_collect(has_codegraph=True, verdicts=None, force=True) is True
 ```
 
-마지막 줄 — diff 가 없으면 지금 동작(파일 존재만 봄)을 유지한다. 전량 그래프가 그 경우다.
+`verdicts=None` 이고 `force` 가 없으면 지금 동작(파일 존재만 봄)을 유지한다 — 사람이 `prep.py` 를 직접
+부를 때다. 전량 그래프는 **`--force`** 를 넘긴다.
 
 - [ ] **Step 2: 실패 확인** — `AttributeError: module 'prep' has no attribute 'needs_collect'`
 
 - [ ] **Step 3: 구현** — `runner/wiki/prep.py` 에 `prepPlan` 위에 더한다:
 
 ```python
-def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None) -> bool:
+def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
+                  force: bool = False) -> bool:
     """수집기를 다시 돌릴 것인가.
 
-    diff 가 없으면 지금처럼 지도의 존재만 본다. diff 가 있으면 `재읽기 · 위치만 · 삭제됨`
-    중 하나라도 있을 때 다시 수집한다 — 지도가 낡은 채 남는 것을 막는다.
+    `force` 면 무조건. diff 가 없으면 지금처럼 지도의 존재만 본다. diff 가 있으면
+    `재읽기 · 위치만 · 삭제됨` 중 하나라도 있을 때 다시 수집한다 — 지도가 낡은 채 남는 것을 막는다.
     """
-    if not has_codegraph:
+    if force or not has_codegraph:
         return True
     if verdicts is None:
         return False
     return bool(verdicts.get("재읽기") or verdicts.get("위치만") or verdicts.get("삭제됨"))
 ```
 
-`prepPlan` 의 서명에 `verdicts: dict[str, list[str]] | None = None` 을 더하고, 첫 분기 `if hasCodegraph:` 를 `if not needs_collect(hasCodegraph, verdicts):` 로 바꾼다.
+`prepPlan` 의 서명에 `verdicts: dict[str, list[str]] | None = None, force: bool = False` 를 더하고, 첫 분기 `if hasCodegraph:` 를 `if not needs_collect(hasCodegraph, verdicts, force):` 로 바꾼다.
 
 `main` 의 `sys.argv` 처리를 이렇게 바꾼다 (`if len(sys.argv) < 2:` 부터 `repoArg = sys.argv[1]` 까지를 대체):
 
@@ -511,6 +532,7 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None) ->
     ap = argparse.ArgumentParser(description="정적 수집 → 코드 지도 → 사실 파일 · 모듈 그림")
     ap.add_argument("repo")
     ap.add_argument("--diff", default=None, help="warmup-diff.json. 있으면 그 판정으로 재수집 여부를 정한다")
+    ap.add_argument("--force", action="store_true", help="지도가 있어도 무조건 다시 수집한다 (전량)")
     a = ap.parse_args()
     repoArg = a.repo
     verdicts: dict[str, list[str]] | None = None
@@ -524,7 +546,7 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None) ->
                         for k, val in v.items() if isinstance(val, list)}
 ```
 
-그리고 `plan = prepPlan(...)` 호출에 `verdicts=verdicts` 를 넘긴다. `import argparse` · `import json` 을 머리에 더한다.
+그리고 `plan = prepPlan(...)` 호출에 `verdicts=verdicts, force=a.force` 를 넘긴다(`prepPlan` 서명에도 `force: bool = False` 를 더한다). `import argparse` · `import json` 을 머리에 더한다.
 
 - [ ] **Step 4: 통과 확인** · 기존 `test/test_wiki.py` 도 그대로 통과
 - [ ] **Step 5: 커밋** — `[feat] : prep 이 warmup-diff 를 받아 재수집 여부를 정한다`
@@ -551,13 +573,11 @@ def test_기계_단계는_저장소를_cwd_로_한다(tmp_path):
         assert st.cwd(c) == c.repo
 
 
-def test_prep_은_증분이면_diff_를_넘긴다(tmp_path):
-    c = _ctx(tmp_path)
-    assert "--diff" not in S.PrepStage().argv(c)
+def test_prep_은_전량이면_force_증분이면_diff_를_넘긴다(tmp_path):
+    c = _ctx(tmp_path); c.cold = True
+    assert "--force" in S.PrepStage().argv(c) and "--diff" not in S.PrepStage().argv(c)
     c.cold = False
-    (tmp_path / "out" / "codegraph-raw").mkdir(parents=True)
-    (tmp_path / "out" / "codegraph-raw" / "warmup-diff.json").write_text("{}")
-    assert "--diff" in S.PrepStage().argv(c)
+    assert "--diff" in S.PrepStage().argv(c) and "--force" not in S.PrepStage().argv(c)
 
 
 def test_survey_plan_은_diff_의_targets_로_좁힌다(tmp_path, monkeypatch):
@@ -576,6 +596,7 @@ def test_survey_plan_은_diff_의_targets_로_좁힌다(tmp_path, monkeypatch):
 
 def test_warmup_save_는_조사가_실패하면_쓰지_않는다(tmp_path, monkeypatch):
     c = _ctx(tmp_path); c.entries = {}; c.warmup_cache = str(tmp_path / "w.json")
+    c.cold = False
     wrote: list[str] = []
     monkeypatch.setattr(S.warmup, "save", lambda p, e: wrote.append(p) or e)
     c.survey_ok = False
@@ -584,6 +605,16 @@ def test_warmup_save_는_조사가_실패하면_쓰지_않는다(tmp_path, monke
     c.survey_ok = True
     S.WarmupSaveStage().perform(c)
     assert wrote == [c.warmup_cache]
+
+
+def test_warmup_save_는_전량이면_직접_훑어_찍는다(tmp_path, monkeypatch):
+    c = _ctx(tmp_path); c.cold = True; c.survey_ok = True
+    monkeypatch.setattr(S, "scan_fingerprints",
+                        lambda ctx: ({"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}, {"a.py": {}}, str(tmp_path / "w.json")))
+    wrote: list[str] = []
+    monkeypatch.setattr(S.warmup, "save", lambda p, e: wrote.append(p) or e)
+    S.WarmupSaveStage().perform(c)
+    assert wrote == [str(tmp_path / "w.json")]
 ```
 
 `survey_ok` 는 Task 1 에서 선언한 문맥 칸이다 — `save_warmup` 이 `rows` 를 뒤져 `survey/` 행을 찾던 것을 칸 하나로 바꾼다. `SurveyStage.harvest` 가 끝에서 세팅한다(Task 7).
@@ -634,10 +665,14 @@ class PrepStage(Mode1Machine):
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         argv = [sys.executable, os.path.join(ctx.root, "runner", "wiki", "prep.py"), ctx.repo]
-        diff_path = X.WARMUP_DIFF.locate(ctx)
-        if not ctx.cold and os.path.exists(diff_path):
-            argv += ["--diff", diff_path]
+        if ctx.cold:
+            argv.append("--force")
+        else:
+            argv += ["--diff", X.WARMUP_DIFF.locate(ctx)]
         return argv
+
+    def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [] if ctx.cold else [X.WARMUP_DIFF]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.CODEGRAPH]
@@ -712,12 +747,25 @@ class SurveyPlanStage(P.Stage[Mode1Context]):
 
 
 class WarmupSaveStage(P.Stage[Mode1Context]):
-    """전수조사가 해낸 뒤에만 매니페스트를 확정한다."""
+    """전수조사가 해낸 뒤에만 지문을 찍는다.
+
+    증분이면 `warmup` 이 넘긴 `entries` 를 찍고, 전량이면 **여기서 직접 훑어** 찍는다 —
+    전량 그래프에는 `warmup` 이 없기 때문이다. 다음 실행이 이것을 옛 판으로 쓴다.
+    """
     name = "warmup-save"
+
+    def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.WARMUP_MANIFEST]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        if ctx.entries is None or not ctx.warmup_cache:
+        if ctx.entries is None:
+            scanned = scan_fingerprints(ctx)
+            if scanned is None:
+                print("알림 — 언어를 몰라 지문을 찍지 않는다.", file=sys.stderr)
+                return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
+            _, ctx.entries, ctx.warmup_cache = scanned
+        if not ctx.warmup_cache:
             return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
         if not ctx.survey_ok:
             print("매니페스트를 갱신하지 않는다 — 전수조사가 실패했다. "
@@ -866,6 +914,7 @@ def test_warmup_은_diff_파일을_쓴다(tmp_path, monkeypatch):
     c = _ctx(tmp_path)
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "codegraph.json").write_text('{"language": "py", "nodes": [], "edges": []}')
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "griffe+pycalls"}')
     monkeypatch.setattr(S.declmap, "tracked_files", lambda repo, lang, x: ["a.py"])
     monkeypatch.setattr(S.declmap, "scan", lambda repo, lang, x, n: ({}, None))
     monkeypatch.setattr(S.warmup, "status",
@@ -926,43 +975,60 @@ def compare_plan(plan: object, d: WarmupDiff) -> list[str]:
 `stages.py` 에:
 
 ```python
+def lang_for(ctx: Mode1Context) -> str | None:
+    """언어. `lang-select.json` 을 먼저, 없으면 코드 지도를 본다."""
+    sel = M.as_map(P.read_json(X.LANG_SELECT.locate(ctx)))
+    word = M.as_str(sel.get("language"))
+    if word:
+        return L.LANG_ALIAS.get(word, word)
+    cg = X.CODEGRAPH.locate(ctx)
+    return L.lang_of(cg if os.path.exists(cg) else None)
+
+
+def scan_fingerprints(ctx: Mode1Context) -> tuple[warmup.Verdicts, warmup.Manifest, str] | None:
+    """지금 소스를 훑어 옛 지문과 대조한다. `(판정, 새 지문, 지문 파일 경로)`. 언어를 모르면 `None`.
+
+    `warmup`(증분)과 `warmup-save`(전량) 둘이 부른다 — 훑는 코드는 한 벌이다.
+    """
+    lang = lang_for(ctx)
+    if lang is None:
+        return None
+    files = declmap.tracked_files(ctx.repo, lang, [])
+    decls, _ = declmap.scan(ctx.repo, lang, [], 0) if files else ({}, None)
+    cache = os.path.join(ctx.repo, warmup.DEFAULT_CACHE)
+    판정, entries = warmup.status(cache, ctx.repo, files, decls)
+    return 판정, entries, cache
+
+
 class WarmupStage(P.Stage[Mode1Context]):
-    """무엇을 다시 읽어야 하는지 판정하고 `warmup-diff.json` 을 쓴다. 매니페스트는 안 쓴다."""
+    """옛 지문과 지금 소스를 대조해 `warmup-diff.json` 을 쓴다. **증분 그래프에만 있다.**"""
     name = "warmup"
+
+    def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.LANG_SELECT]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.WARMUP_DIFF]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        cg_path = X.CODEGRAPH.locate(ctx)
-        lang = L.lang_of(cg_path if os.path.exists(cg_path) else None)
         diff_path = X.WARMUP_DIFF.locate(ctx)
-        empty: warmup.Verdicts = {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
-        if lang is None:
+        scanned = scan_fingerprints(ctx)
+        if scanned is None:
+            empty: warmup.Verdicts = {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
             print("알림 — 언어를 몰라 증분 판정을 건너뛴다. 전량 조사로 돈다.", file=sys.stderr)
             D.write_diff(diff_path, empty, None, ctx.hops, 0)
             ctx.targets = None
             return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
-        files = declmap.tracked_files(ctx.repo, lang, [])
-        if not files:
-            D.write_diff(diff_path, empty, None, ctx.hops, 0)
-            ctx.targets = None
-            return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
-        decls, _ = declmap.scan(ctx.repo, lang, [], 0)
-        cache = os.path.join(ctx.repo, warmup.DEFAULT_CACHE)
-        판정, entries = warmup.status(cache, ctx.repo, files, decls)
+        판정, entries, cache = scanned
+        files_n = sum(len(v) for k, v in 판정.items() if k != "삭제됨")
         seed = L.changed_seed(판정)
-        targets = warmup.blast_radius(cg_path, seed, ctx.hops) if seed and os.path.exists(cg_path) else seed
-        if ctx.cold:
-            targets_out: list[str] | None = None
-        else:
-            targets_out = targets
-        D.write_diff(diff_path, 판정, targets_out, ctx.hops, len(files))
-        ctx.targets, ctx.entries, ctx.warmup_cache, ctx.tracked_n = targets_out, entries, cache, len(files)
-        print("%s 파일 %d개 — 유효 %d · 재읽기 %d · 위치만 %d · 삭제됨 %d"
-              % (lang, len(files), len(판정["유효"]), len(판정["재읽기"]),
-                 len(판정["위치만"]), len(판정["삭제됨"])))
+        cg = X.CODEGRAPH.locate(ctx)
+        targets = warmup.blast_radius(cg, seed, ctx.hops) if seed and os.path.exists(cg) else seed
+        D.write_diff(diff_path, 판정, targets, ctx.hops, files_n)
+        ctx.targets, ctx.entries, ctx.warmup_cache, ctx.tracked_n = targets, entries, cache, files_n
+        print("파일 %d개 — 유효 %d · 재읽기 %d · 위치만 %d · 삭제됨 %d"
+              % (files_n, len(판정["유효"]), len(판정["재읽기"]), len(판정["위치만"]), len(판정["삭제됨"])))
         return P.Outcome(P.OK, "", [_row(self.name, t0, True)])
 ```
 
@@ -1174,10 +1240,12 @@ class WikiPagesStage(P.LlmStage[Mode1Context]):
 from mode1 import edges as E  # noqa: E402
 
 
-def test_두_그래프는_같은_열두_단계를_쓴다():
+def test_증분은_열둘_전량은_열하나():
     assert len(E.ORDER) == 12
-    assert E.ORDER[:2] == ["lang-propose", "lang-decide"]
     assert E.ORDER.index("warmup") < E.ORDER.index("prep") < E.ORDER.index("survey-plan")
+    assert "warmup" not in E.plan_stages(None, None, cold=True)
+    assert "warmup" in E.plan_stages(None, None, cold=False)
+    assert "warmup-save" in E.plan_stages(None, None, cold=True)
 
 
 def test_별명은_쪼갠_단계로_펴진다():
@@ -1232,6 +1300,9 @@ from mode1.context import Mode1Context
 ORDER = ["lang-propose", "lang-decide", "warmup", "prep", "survey-plan", "survey",
          "warmup-save", "terms", "wiki-catalogue", "wiki-pages", "build", "check"]
 
+# 전량 그래프에는 없는 단계. 대조할 옛 지문이 없는데 대조 단계를 돌리지 않는다.
+WARM_ONLY = {"warmup"}
+
 # 옛 명령줄 `--only lang-select` · `--only wiki` 가 그대로 돌게 한다.
 ALIASES = {"lang-select": ["lang-propose", "lang-decide"],
            "wiki": ["wiki-catalogue", "wiki-pages"]}
@@ -1245,8 +1316,8 @@ STAGES: dict[str, P.Stage[Mode1Context]] = {
     "build": S.BuildStage(), "check": S.CheckStage(),
 }
 
-# 전이표는 **하나**다. 전량과 증분의 차이는 `ctx.cold` 가 단계 안에서 만든다 —
-# 전량에서는 `warmup` 이 `targets=None` 을 쓰고 `survey` 가 `SKIP` 을 내지 않는다.
+# 전이표는 **하나**다. 전량과 증분의 차이는 단계 목록(`WARM_ONLY`)과 `ctx.cold` 가 만든다 —
+# 전량에는 `warmup` 이 없고, `survey` 는 diff 를 읽지 않으며 `SKIP` 을 내지 않는다.
 # 갈래 선언(`emits`)은 클래스에 있으므로 두 표가 같아야 시뮬레이터가 통과한다.
 EDGES = P.Edges({
     ("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT,
@@ -1263,10 +1334,11 @@ def expand(names: Iterable[str]) -> list[str]:
     return out
 
 
-def plan_stages(only: Iterable[str] | None, skip: Iterable[str] | None) -> list[str]:
-    """`--only` · `--skip` 만 본다. 재개 건너뛰기는 그래프의 갈래(SKIP)와 재개 JSON 이 한다."""
+def plan_stages(only: Iterable[str] | None, skip: Iterable[str] | None,
+                cold: bool = False) -> list[str]:
+    """`--only` · `--skip` · 전량 여부만 본다. 재개 건너뛰기는 갈래(SKIP)와 재개 JSON 이 한다."""
     o = set(expand(only)) if only else None
-    s = set(expand(skip or []))
+    s = set(expand(skip or [])) | (WARM_ONLY if cold else set())
     for n in (o or set()) | s:
         if n not in ORDER:
             raise ValueError("모르는 단계: %s (있는 것: %s)" % (n, ", ".join(ORDER)))
@@ -1277,7 +1349,7 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
                       skip: Iterable[str] | None,
                       start_at: str | None = None) -> P.StageDagGraph[Mode1Context]:
     """진입점에서 부른다. `start_at` 은 재개 JSON 이 준 단계다 — 그 앞을 잘라 낸다."""
-    names = plan_stages(only, skip)
+    names = plan_stages(only, skip, cold=ctx.cold)
     if start_at is not None:
         if start_at not in names:
             raise ValueError("재개할 단계가 흐름에 없다: %s" % start_at)
@@ -1291,7 +1363,7 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
 
 - [ ] **Step 4·5·6** — 커밋 `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프`
 
-**판정 요청 (Task 9 끝):** 설계 메모 ① — 전량 그래프에도 `warmup` · `warmup-save` 를 둔 것. 스펙 D13 그림을 이에 맞게 고칠지 판정받는다.
+설계 메모 ① 은 확정됐다(전량에는 `warmup` 없음). Task 9 끝에 판정 요청은 없다.
 
 ---
 
@@ -1506,7 +1578,7 @@ npm run doctor
 ```
 
 - [ ] **Step 3: `runner/CLAUDE.md`** — "무엇이 여기 있나" 표의 `run_mode1.py` 행을 12단계 · `mode1/` 패키지로 고친다. `--cold` · `--resume` · `warmup-diff.json` 을 한 줄씩.
-- [ ] **Step 4: 스펙에 되돌려 적을 것 셋** — D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · 설계 메모 ① 의 판정 결과 · D2 가 `SurveyStage` 에서 문맥 칸으로 지켜졌다는 것.
+- [ ] **Step 4: 스펙에 되돌려 적을 것 셋** — D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · 전량 그래프에 `warmup` 이 없고 `warmup-save` 가 직접 훑는다는 것(D13 그림은 그대로) · D2 가 `SurveyStage` 에서 문맥 칸으로 지켜졌다는 것.
 - [ ] **Step 5: 인계 문서 배너 갱신** — `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 의 🔴 배너를 "리팩터링 끝. ③④ 착수 가능. 고칠 자리: `runner/mode1/stages.py` 의 `SurveyStage.harvest` 와 `runner/mode1/layers.py` 의 `merge_shards`, `machine/survey_plan.py` 의 배치 id" 로 고친다.
 - [ ] **Step 6: 커밋** — `[docs] : mode1 단계 기계 완료를 문서와 게이트에 반영`
 

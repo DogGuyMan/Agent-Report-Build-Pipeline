@@ -28,10 +28,11 @@ runner/run_mode1.py  1,147줄      runner/run_mode1.py    main + 옛 이름 재�
 단계는 열에서 **열둘**이 된다 — `lang-select` 와 `wiki` 가 각각 둘로 갈린다.
 
 ```
-lang-propose ▶ lang-decide ▶ warmup ▶ prep ▶ survey-plan ▶ survey ▶ warmup-save
-   LLM(싼 모형)   기계        판정     수집    층 매김       LLM 층별   매니페스트 확정
-▶ terms ▶ wiki-catalogue ▶ wiki-pages ▶ build ▶ check
-   기계     LLM 1회          LLM 층별    기계     기계
+증분:  lang-hint ▶ lang-decide ▶ warmup ▶ prep ▶ survey-plan ▶ survey ▶ warmup-save ▶ terms ▶ wiki-catalogue ▶ wiki-pages ▶ build ▶ check
+전량:  lang-hint ▶ lang-decide ▶          prep ▶ survey-plan ▶ survey ▶ warmup-save ▶ terms ▶ wiki-catalogue ▶ wiki-pages ▶ build ▶ check
+          LLM(싼)     기계     대조→diff  수집    층 매김      LLM 층별   지문 찍기       기계     LLM 1회         LLM 층별     기계     기계
+
+(단계 이름은 개명 중 — 1·2 번은 확정, 나머지는 진행 중)
 ```
 
 ## 3. 오늘(09-11) 결정이 어디에 들어갔나
@@ -40,7 +41,7 @@ lang-propose ▶ lang-decide ▶ warmup ▶ prep ▶ survey-plan ▶ survey ▶ 
 |---|---|---|
 | **diff 는 파일이다** (D14) | `warmup` 이 `out/codegraph-raw/warmup-diff.json` 을 쓴다. 유효·재읽기·위치만·삭제됨 넷 전부 | Task 3 |
 | **지시서와 대조한다** (D14) | `survey` 가 시작 전에 계획과 diff 를 **양방향**으로 맞춰 본다. 어긋나면 세션 하나도 안 띄우고 멈춘다 | Task 7 |
-| **prep 이 diff 를 본다** (D15) | 바뀐 게 하나라도 있으면 다시 수집, 없으면 건너뜀. "파일이 있으면 건너뜀" 판정을 이것으로 갈아 낀다 | Task 4 |
+| **prep 이 diff 를 본다** (D15) | 증분: 바뀐 게 하나라도 있으면 다시 수집. 전량: `--force` 로 무조건. "파일이 있으면 건너뜀" 판정이 사라진다 | Task 4 |
 | **락은 뒤로** (D17) | 배치 id 가 위치 기반이라 지금 넣으면 남의 배치를 막는다. 결함 ③ 뒤 | 범위 밖 |
 | **삭제된 파일의 레코드** | diff 에 **싣기만**. 지우는 건 결함 ④ 고칠 때 같은 자리에서 | 범위 밖 |
 
@@ -49,11 +50,23 @@ lang-propose ▶ lang-decide ▶ warmup ▶ prep ▶ survey-plan ▶ survey ▶ 
 
 ## 4. 판정이 필요한 것 둘 — 착수 전에
 
-**① 전량 그래프에도 `warmup` 을 둔다.** 스펙 D13 의 그림은 전량에서 `warmup` 을 뺐다. 그런데 전량으로
-돌고 매니페스트를 안 남기면 **다음 실행이 증분을 시작할 기준이 없다.** 그래서 전량에서도 `warmup` 은
-판정하되 **좁히지 않는다**(diff 의 `targets` 가 `null`). 결과적으로 두 그래프는 **전이표 하나를 공유**하고,
-차이는 이름(`mode1-cold` / `mode1-warm`)과 플래그 하나다.
-→ **스펙 그림을 이에 맞게 고칠지** 판정.
+**① 🔴 확정 (2026-09-11) — 전량 그래프에는 `warmup` 이 없다. `warmup-save` 가 끝에 직접 훑어 지문을 찍는다.**
+
+먼저 낱말부터. `warmup.json` 은 **옛 판의 지문**이다 — 지난 조사 때 파일마다 찍어 둔 해시(바이트 · 선언).
+`warmup-diff.json` 은 그 지문과 지금 소스를 **대조한 결과**다. 지문이 없으면 대조할 것이 없어 diff 를 못 낸다.
+
+| | 전량 (`--cold` · 첫 실행) | 증분 |
+|---|---|---|
+| 옛 지문 | 없거나 안 쓴다 | 있다 |
+| `warmup` (대조 → diff) | **없다.** 대조할 것이 없는데 대조 단계를 돌리고 버리지 않는다 | 있다 |
+| `warmup-diff.json` | **안 생긴다** — 전량에는 diff 가 없다는 것이 불변식 | 생긴다 |
+| `prep` | `--force` 로 무조건 재수집 | diff 를 보고 재수집 여부 판정 |
+| `survey` | diff 대조 없음 | diff 와 양방향 대조 |
+| `warmup-save` (지문 찍기) | **있다.** 끝에 직접 훑어 찍는다 — 다음 실행이 증분을 시작할 옛 판이 된다 | 있다. `warmup` 이 넘긴 것을 찍는다 |
+
+스펙 D13 의 그림이 **그대로** 맞다. 이전 판(메모 ①)은 전량에도 `warmup` 을 두려 했는데, 그것은 대조할 옛
+지문이 없는 자리에서 대조 단계를 돌리는 것이라 물렸다. graphify 의 매니페스트 운용(늘 갱신되는 색인, 조건부
+단계 아님)이 결정에 참고가 됐다. **두 안 모두 `prep` 에 `--force` 가 필요했다** — 앞선 계획에서 빠져 있던 것.
 
 **② D15 는 두 걸음으로 나눈다.** 수집기(clang-uml · roslyn-dump · griffe)가 파일 목록을 받는지 아직
 재지 않았다. 그래서 이 계획은 "바뀐 파일만 수집"(둘째 걸음)이 아니라 "**다시 수집할지의 판정**"(첫 걸음)만
