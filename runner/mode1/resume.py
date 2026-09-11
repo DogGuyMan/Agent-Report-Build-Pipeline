@@ -1,0 +1,48 @@
+"""재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다."""
+import json
+import os
+from typing import TypedDict
+
+import measure as M
+import pipeline as P
+
+
+class ResumeDoc(TypedDict):
+    graph: str
+    failed_at: str
+    why: str
+    done: list[str]
+    rows: list[M.StageRow]
+
+
+def write_resume(path: str, graph: str, rows: list[M.StageRow], order: list[str]) -> ResumeDoc | None:
+    """실패한 행이 없으면 아무것도 쓰지 않고 `None`. 있으면 쓴다."""
+    failed = [r for r in rows if not r.get("ok") and not r.get("skipped")]
+    if not failed:
+        return None
+    failed_at = failed[0]["stage"].split("/")[0]
+    done = [n for n in order if n != failed_at and order.index(n) < order.index(failed_at)]
+    doc: ResumeDoc = {"graph": graph, "failed_at": failed_at,
+                      "why": failed[0].get("why") or "", "done": done, "rows": rows}
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, indent=1)
+    return doc
+
+
+def read_resume(path: str) -> ResumeDoc | None:
+    """`rows` 는 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 범위 밖이다."""
+    top = M.as_map(P.read_json(path))
+    graph, at = M.as_str(top.get("graph")), M.as_str(top.get("failed_at"))
+    if not graph or not at:
+        return None
+    done = [x for x in M.as_list(top.get("done")) if isinstance(x, str)]
+    return {"graph": graph, "failed_at": at, "why": M.as_str(top.get("why")),
+            "done": done, "rows": []}
+
+
+def start_stage(doc: ResumeDoc | None, for_graph: str) -> str | None:
+    """이 그래프용 재개 문서면 시작할 단계를, 아니면 `None`."""
+    if doc is None or doc["graph"] != for_graph:
+        return None
+    return doc["failed_at"]

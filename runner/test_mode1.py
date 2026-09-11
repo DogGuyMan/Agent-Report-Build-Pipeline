@@ -10,6 +10,7 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
+import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
@@ -18,6 +19,7 @@ from mode1 import graph as G  # noqa: E402
 from mode1 import lang as LG  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
 from mode1 import measured as MS  # noqa: E402
+from mode1 import resume as Z  # noqa: E402
 from mode1 import scan as SC  # noqa: E402
 from mode1 import survey as SV  # noqa: E402
 from mode1 import terms as T  # noqa: E402
@@ -495,3 +497,32 @@ def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
     (raw / "lang-select.json").write_text('{"language": "py", "collector": "x"}')
     g = E.build_mode1_graph(c, None, None, start_at="schedule-batches")
     assert g.order[0] == "schedule-batches"
+
+
+# ── 11. 재개 JSON ───────────────────────────────────────────────────────
+
+
+def test_재개_문서는_어디서_왜_멈췄는지를_담는다(tmp_path: Path):
+    rows: list[M.StageRow] = [
+        {"stage": "collect-graph", "seconds": 1.0, "usage": M.normalize_usage(None), "ok": True, "why": ""},
+        {"stage": "annotate-symbols/L0-B00", "seconds": 2.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"},
+    ]
+    p = str(tmp_path / "resume.json")
+    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["collect-graph", "annotate-symbols", "verify-terms"])
+    got = Z.read_resume(p)
+    assert got is not None
+    assert got["failed_at"] == "annotate-symbols" and got["done"] == ["collect-graph"] and got["graph"] == "mode1-warm"
+
+
+def test_실패가_없으면_재개_문서를_쓰지_않는다(tmp_path: Path):
+    p = str(tmp_path / "r.json")
+    assert Z.write_resume(p, graph="mode1-warm", rows=[], order=["collect-graph"]) is None
+    assert not os.path.exists(p)
+
+
+def test_다른_그래프의_재개_문서는_거부한다(tmp_path: Path):
+    p = str(tmp_path / "r.json")
+    rows: list[M.StageRow] = [{"stage": "collect-graph", "seconds": 0.0, "usage": M.normalize_usage(None), "ok": False, "why": "x"}]
+    Z.write_resume(p, graph="mode1-cold", rows=rows, order=["collect-graph"])
+    assert Z.start_stage(Z.read_resume(p), for_graph="mode1-warm") is None
+    assert Z.start_stage(Z.read_resume(p), for_graph="mode1-cold") == "collect-graph"

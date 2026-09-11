@@ -1816,7 +1816,7 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
 - [x] **Step 4: 통과** `51 passed` · **Step 5: 형 검사** `0 errors`
 
 🔵 **시뮬레이터가 잡은 것 — `outline-wiki` 의 `SKIP` 은 틀렸다.** `SKIP` 갈래에서는 `writes` 가 보장되지 않는데(`OK` 간선에서만) `write-wiki` 가 `outline.json` 을 읽으므로 두 그래프 모두 `GraphError` 였다. **"이미 있어서 안 만든다" 는 `SKIP` 이 아니라 `OK` 다** — 단계의 계약(돌고 나면 산출물이 있다)이 지켜졌다. `OutlineWikiStage` 는 `emits = OK | FAIL` 로, 목차가 있으면 세션 없이 `OK` + `skipped` 행. 전이표에서 `("outline-wiki", SKIP)` 간선을 뺐다(위 코드 반영). `SKIP` 은 "산출물 없이 다음으로" 일 때만이다 — `lang-hint`(제안 없음) · `annotate-symbols`(바뀐 파일 0개). Task 13 에서 스펙에 적는다.
-- [x] **Step 6: 커밋** — `git add runner/mode1/edges.py runner/test_mode1.py` · `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프`
+- [x] **Step 6: 커밋** — `git add runner/mode1/edges.py runner/test_mode1.py` · `[feat] : mode1 전이표와 팩토리, 증분과 전량 그래프` → 🔵 `59b8593`
 
 ---
 
@@ -1826,7 +1826,7 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
 - Create: `runner/mode1/resume.py`
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import resume as Z`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import resume as Z`, 끝에:
 
 ```python
 # ── 11. 재개 JSON ───────────────────────────────────────────────────────
@@ -1858,9 +1858,9 @@ def test_다른_그래프의_재개_문서는_거부한다(tmp_path: Path):
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-cold") == "collect-graph"
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.resume'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.resume'`
 
-- [ ] **Step 3: `resume.py` 신설**
+- [x] **Step 3: `resume.py` 신설**
 
 ```python
 """재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다."""
@@ -1914,8 +1914,8 @@ def start_stage(doc: ResumeDoc | None, for_graph: str) -> str | None:
 
 `rows` 는 읽을 때 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 이번 범위에서 뺀다.
 
-- [ ] **Step 4: 통과** `54 passed` · **Step 5: 형 검사** `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/resume.py runner/test_mode1.py` · `[feat] : 재개 json 쓰기와 읽기`
+- [x] **Step 4: 통과** `54 passed` · **Step 5: 형 검사** `0 errors`
+- [x] **Step 6: 커밋** — `git add runner/mode1/resume.py runner/test_mode1.py` · `[feat] : 재개 json 쓰기와 읽기`
 
 ---
 

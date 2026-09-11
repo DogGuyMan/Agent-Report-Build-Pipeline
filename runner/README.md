@@ -18,6 +18,7 @@
 | [`lang.py`](lang.py) | `lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다. |
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
+| [`resume.py`](resume.py) | 재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다. |
 | [`scan.py`](scan.py) | `detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다. |
 | [`survey.py`](survey.py) | `annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다. |
 | [`terms.py`](terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
@@ -194,6 +195,19 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 |---|---|---|
 | **`Measured`** | *class* | 측정 표의 행(`measure.StageRow`) 하나를 스스로 내는 단계 — 토큰 0, 자기 이름, 경과 초. |
 | `Measured.row` | `(self, t0: float, ok: bool, why: str = '') -> M.StageRow` |  |
+
+---
+
+## `resume.py`
+
+재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`ResumeDoc`** | *class* |  |
+| `write_resume` | `(path: str, graph: str, rows: list[M.StageRow], order: list[str]) -> ResumeDoc \| None` | 실패한 행이 없으면 아무것도 쓰지 않고 `None`. 있으면 쓴다. |
+| `read_resume` | `(path: str) -> ResumeDoc \| None` | `rows` 는 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 범위 밖이다. |
+| `start_stage` | `(doc: ResumeDoc \| None, for_graph: str) -> str \| None` | 이 그래프용 재개 문서면 시작할 단계를, 아니면 `None`. |
 
 ---
 
@@ -606,6 +620,9 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_증분_그래프는_diff_를_읽는_단계가_셋이다` | `(tmp_path: Path)` |  |
 | `test_팩토리는_어긋난_그래프를_거부한다` | `(tmp_path: Path)` |  |
 | `test_재개는_그_앞을_잘라_낸다` | `(tmp_path: Path)` |  |
+| `test_재개_문서는_어디서_왜_멈췄는지를_담는다` | `(tmp_path: Path)` |  |
+| `test_실패가_없으면_재개_문서를_쓰지_않는다` | `(tmp_path: Path)` |  |
+| `test_다른_그래프의_재개_문서는_거부한다` | `(tmp_path: Path)` |  |
 
 ---
 
