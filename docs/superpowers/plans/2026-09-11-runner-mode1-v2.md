@@ -313,7 +313,7 @@ wiki_argv = Mode1Machine.wiki_argv
 
 - [x] **Step 6: 통과 확인** — `.venv/bin/python -m pytest runner/test_mode1.py runner/test_run_mode1.py -q` → `7 passed` + `74 passed`
 - [x] **Step 7: 형 검사** — `npx --yes pyright@1.1.413 runner/mode1/ runner/run_mode1.py runner/test_mode1.py` → `0 errors`
-- [ ] **Step 8: 커밋** — `git add runner/mode1/context.py runner/mode1/measured.py runner/mode1/machine_stage.py runner/run_mode1.py runner/test_mode1.py` · `[refactor] : mode1 형과 읽기 레코드 자리, 단계 바닥`
+- [x] **Step 8: 커밋** — `git add runner/mode1/context.py runner/mode1/measured.py runner/mode1/machine_stage.py runner/run_mode1.py runner/test_mode1.py` · `[refactor] : mode1 형과 읽기 레코드 자리, 단계 바닥` → 🔵 `2261634`
 
 ---
 
@@ -324,7 +324,7 @@ wiki_argv = Mode1Machine.wiki_argv
 - Modify: `runner/mode1/context.py` (`CHANGES` 에 `check_diff`)
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import diff as D`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import diff as D`, 끝에:
 
 ```python
 # ── 3. changes.json 의 꼴 ────────────────────────────────────────────────
@@ -360,9 +360,9 @@ def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
     assert D.all_files(d) == {"a.py", "b.py"}
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.diff'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.diff'`
 
-- [ ] **Step 3: `diff.py` 신설**
+- [x] **Step 3: `diff.py` 신설**
 
 ```python
 """`changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다."""
@@ -395,10 +395,12 @@ def write_diff(path: str, verdicts: warmup.Verdicts, targets: list[str] | None,
 
 
 def _str_list(v: object) -> list[str] | None:
+    """문자열만 든 목록이면 그것을, 아니면 `None`. `as_list` 를 좁히기 전에 부른다 — 뒤에 부르면 원소 형을 잃는다."""
+    raw = M.as_list(v)
     if not isinstance(v, list):
         return None
-    items = [x for x in M.as_list(v) if isinstance(x, str)]
-    return items if len(items) == len(M.as_list(v)) else None
+    items = [x for x in raw if isinstance(x, str)]
+    return items if len(items) == len(raw) else None
 
 
 def check_diff(obj: object) -> list[str]:
@@ -447,8 +449,8 @@ CHANGES = P.Artifact[Mode1Context](
     "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), check_diff)
 ```
 
-- [ ] **Step 4: 통과** `11 passed` · **Step 5: 형 검사** `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/test_mode1.py` · `[add] : warmup 판정을 changes.json 으로 내보내는 꼴과 검사`
+- [x] **Step 4: 통과** `11 passed` · **Step 5: 형 검사** `0 errors`
+- [x] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/test_mode1.py` · `[add] : warmup 판정을 changes.json 으로 내보내는 꼴과 검사`
 
 ---
 

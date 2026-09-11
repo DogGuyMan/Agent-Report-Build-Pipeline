@@ -8,6 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
 from mode1 import context as X  # noqa: E402
+from mode1 import diff as D  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
 from mode1 import measured as MS  # noqa: E402
 
@@ -68,3 +69,36 @@ def test_기계_단계는_저장소를_cwd_로_한다(tmp_path: Path):
     assert T().cwd(_ctx(tmp_path)) == str(tmp_path)
     assert MC.Mode1Machine.wiki_argv("py", "/root", "prep.py", "/repo") == ["py", "/root/runner/wiki/prep.py", "/repo"]
     assert os.path.isdir(os.path.join(X.ROOT, "runner", "mode1"))   # 도구 뿌리는 셋 위다
+
+
+# ── 3. changes.json 의 꼴 ────────────────────────────────────────────────
+
+
+def _verdicts() -> dict[str, list[str]]:
+    return {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": ["gone.py"]}
+
+
+def test_diff_는_넷_갈래와_범위를_담는다(tmp_path: Path):
+    p = str(tmp_path / "changes.json")
+    D.write_diff(p, _verdicts(), targets=["b.py"], hops=1, tracked=2)
+    got = D.read_diff(p)
+    assert got is not None
+    assert got["targets"] == ["b.py"] and got["verdicts"]["삭제됨"] == ["gone.py"]
+
+
+def test_전량이면_targets_가_None_이다(tmp_path: Path):
+    p = str(tmp_path / "d.json")
+    D.write_diff(p, _verdicts(), targets=None, hops=1, tracked=2)
+    got = D.read_diff(p)
+    assert got is not None and got["targets"] is None
+
+
+def test_diff_검사는_넷_갈래가_다_있어야_통과한다():
+    assert D.check_diff({"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}) == []
+    assert D.check_diff({"verdicts": {"유효": []}, "targets": None, "hops": 1, "tracked": 0}) != []
+    assert X.CHANGES.check is D.check_diff
+
+
+def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
+    d: D.WarmupDiff = {"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}
+    assert D.all_files(d) == {"a.py", "b.py"}

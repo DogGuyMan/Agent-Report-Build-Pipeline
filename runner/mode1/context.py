@@ -7,6 +7,7 @@ import measure as M
 import pipeline as P
 import survey_plan
 import warmup
+from mode1.diff import check_diff
 
 # 이 파일은 <ROOT>/runner/mode1/ 에 있다. 저장소 뿌리는 그 셋 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -131,7 +132,7 @@ CODEGRAPH = P.Artifact[Mode1Context](
 SNAPSHOT = P.Artifact[Mode1Context](
     "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
 CHANGES = P.Artifact[Mode1Context](
-    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"))
+    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), check_diff)
 BATCHES = P.Artifact[Mode1Context](
     "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), check_batches)
 READING = P.Artifact[Mode1Context](
