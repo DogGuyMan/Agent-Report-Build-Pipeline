@@ -12,7 +12,7 @@
 
 **바로 다음 할 일 — 둘 중 하나를 사용자가 고른다:**
 
-1. **3단계 계획서를 실행한다** — `docs/superpowers/plans/2026-09-11-runner-mode1.md` (Task 12개).
+1. **3단계 계획서를 실행한다** — `docs/superpowers/plans/2026-09-11-runner-mode1.md` (Task 12개). **사람은 `-요약.md` 를 읽는다.**
    `superpowers:subagent-driven-development` 로. **착수 전에 계획서의 "설계 메모 ①②" 를 사용자가
    읽었는지 확인한다** — 스펙 D13 그림과 다른 점(전량에도 `warmup`)과 D15 를 두 걸음으로 나눈 것.
 2. **브랜치를 `main` 에 병합하고 멈춘다** — 1·2단계만으로도 독립적으로 값어치가 있다

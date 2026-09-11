@@ -9,6 +9,7 @@
 **Tech Stack:** Python 3.14 · pytest · pyright strict · `runner/pipeline.py`(2단계 산출물)
 
 **사양:** `docs/superpowers/specs/2026-09-08-runner-stage-machine-design.md` 의 D4 · D7 · D12 · D13 · D14(×2) · D15 · D16
+**사람용 요약:** [`2026-09-11-runner-mode1-요약.md`](2026-09-11-runner-mode1-요약.md) — 판정은 그쪽에서 받는다
 
 ---
 
