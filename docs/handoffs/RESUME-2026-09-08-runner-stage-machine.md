@@ -12,10 +12,9 @@
 
 **바로 다음 할 일 — 둘 중 하나를 사용자가 고른다:**
 
-1. **3단계 계획서를 쓴다** — Mode 1 을 `mode1/` 패키지로 분해하고, 증분·전량 그래프를
-   나누고(D13), `lang-select` 와 `wiki` 를 쪼개고(D4·D16), 재개 JSON 을 넣는다(D12).
-   `superpowers:writing-plans` 스킬을 쓴다. 계획서 자리는
-   `docs/superpowers/plans/2026-09-08-runner-mode1.md`.
+1. **3단계 계획서를 실행한다** — `docs/superpowers/plans/2026-09-11-runner-mode1.md` (Task 12개).
+   `superpowers:subagent-driven-development` 로. **착수 전에 계획서의 "설계 메모 ①②" 를 사용자가
+   읽었는지 확인한다** — 스펙 D13 그림과 다른 점(전량에도 `warmup`)과 D15 를 두 걸음으로 나눈 것.
 2. **브랜치를 `main` 에 병합하고 멈춘다** — 1·2단계만으로도 독립적으로 값어치가 있다
    (import 부작용이 사라졌고, 드라이버 루프가 3벌에서 1벌로 줄었고, `Any` 가 0이 됐고,
    시작 전 그래프 검사가 생겼다).
@@ -95,7 +94,7 @@ print('prefix=%s networkx=%s' % (os.path.basename(sys.prefix), 'networkx' in sys
 |---|---|---|---|
 | **1** | `measure.py` 추출 · 파사드 · import 부작용 제거 · `Any` 게이트 | `docs/superpowers/plans/2026-09-08-runner-common-axis.md` | **✅ 완료.** Task 7개 체크박스 전부 `[x]`, 커밋 SHA 박아 둠 |
 | **2** | `pipeline.py` 신설(Outcome · Stage · Edges · StageDagGraph · 시뮬레이터), Mode 2·1.5 이주 | `docs/superpowers/plans/2026-09-08-runner-pipeline.md` | **✅ 완료.** Task 13개 |
-| **3** | Mode 1 을 `mode1/` 패키지로 분해, 증분·전량 그래프 분리 | **미작성** | 다음 |
+| **3** | Mode 1 을 `mode1/` 패키지로 분해, 증분·전량 그래프 분리, `warmup-diff.json`, 재개 JSON | `docs/superpowers/plans/2026-09-11-runner-mode1.md` | **계획서 작성됨 (Task 12개).** 착수 대기 |
 
 **계획서를 미리 쓰지 않은 것은 의도다.** 뒷 단계의 코드가 앞 단계에서 나올 실제 API 모양에
 달려 있어서, 미리 쓰면 추측이 된다. 2단계 계획은 아래 `measure.py` 의 실제 서명 위에서 쓴다.
@@ -303,6 +302,8 @@ Mode 1.5 는 옛 동작을 지키려고 `_text` 라는 지역 도우미를 쓴�
 
 ## 변경 이력
 
+- 2026-09-11 — 3단계 계획서 작성(`2026-09-11-runner-mode1.md`). D14 ×2(`warmup-diff.json`)·D17 반영.
+  D17·`삭제됨` 삭제·prep 쪼개기·결함 ③④는 계획 밖으로 명시.
 - 2026-09-11 — D14 를 두 번째로 뒤집었다(경고만 → `warmup-diff.json`). D17(claim 파일) 신설.
   둘 다 3단계 계획서에 들어가야 한다. 번복 기록 0004 추가.
 
