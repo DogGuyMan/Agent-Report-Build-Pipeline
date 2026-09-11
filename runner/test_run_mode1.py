@@ -754,7 +754,7 @@ def test_모르는_심볼은_층을_올리지_않는다():
 def test_카탈로그_프롬프트는_계획_파일을_내라고_말한다():
     p = R.wiki_catalogue_prompt(repo="/어느/저장소", root="/도구/뿌리")
     assert "/어느/저장소" in p and "/도구/뿌리" in p
-    assert "wiki-plan.json" in p
+    assert "outline.json" in p
     assert "terms-db.json" in p          # 인용 검사를 통과한 재료를 본다
     assert "index.md" in p
     assert "symbols" in p                # 페이지마다 인용할 심볼 키를 적게 한다

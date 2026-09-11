@@ -391,3 +391,39 @@ def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)  # type: ignore[arg-type]
     assert "## 범위" in p and "_shards/L1-B00.json" in p
     assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")  # type: ignore[arg-type]
+
+
+# ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
+
+
+def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_SKIP(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert W.OutlineWikiStage().writes(c) == [X.OUTLINE]
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "outline.json").write_text('{"pages": []}')
+    assert W.OutlineWikiStage().perform(c).kind == P.SKIP
+
+
+def test_목차_프롬프트는_새_이름의_파일을_말한다():
+    p = W.OutlineWikiStage.wiki_catalogue_prompt("/repo", "/root")
+    assert "outline.json" in p and "batches.json" in p
+    assert "wiki-plan.json" not in p and "survey-plan.json" not in p
+
+
+def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "outline.json").write_text(json.dumps({"pages": [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}]}))
+    (tmp_path / "docs" / "wiki").mkdir(parents=True)
+    (tmp_path / "docs" / "wiki" / "a.md").write_text("x")
+    c.plan = {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
+    st = W.WriteWikiStage()
+    st.prepare(c)
+    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES]
+    assert W.WriteWikiStage().writes(c) == [X.WIKI_DIR]
+    assert [j[0] for j in st.jobs(c, 0)] == ["b.md"]
+
+
+def test_페이지_층은_인용한_심볼의_최대():
+    pages: list[X.WikiPage] = [{"file": "i.md", "symbols": []}, {"file": "p.md", "symbols": ["a", "b", "없음"]}]
+    assert W.WriteWikiStage.page_layers(pages, {"a": 0, "b": 2}) == {"i.md": 0, "p.md": 2}

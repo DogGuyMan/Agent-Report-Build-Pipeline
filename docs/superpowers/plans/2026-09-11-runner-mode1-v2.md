@@ -1463,7 +1463,7 @@ _qualified = AnnotateSymbolsStage.qualified
 ```
 
 - [x] **Step 5: 통과** — `test_mode1.py` `38 passed` · `test_run_mode1.py` `74 passed` — 🔵 `run_mode1.py` 의 `import measure` 가 이제 안 쓰여 pyright 가 짚는다. 지운다(`from measure import …` 재수출은 남는다) · **Step 6: 형 검사** `0 errors`
-- [x] **Step 7: 커밋** — `git add runner/mode1/survey.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : annotate-symbols 가 계획과 diff 를 대조하고 층을 돈다`
+- [x] **Step 7: 커밋** — `git add runner/mode1/survey.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : annotate-symbols 가 계획과 diff 를 대조하고 층을 돈다` → 🔵 `2f1de67`
 
 ---
 
@@ -1475,7 +1475,7 @@ _qualified = AnnotateSymbolsStage.qualified
 - Modify: `runner/test_run_mode1.py:757` — **[제안됨] ② 한 줄** (`"wiki-plan.json"` → `"outline.json"`)
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```python
 # ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
@@ -1513,9 +1513,9 @@ def test_페이지_층은_인용한_심볼의_최대():
     assert W.WriteWikiStage.page_layers(pages, {"a": 0, "b": 2}) == {"i.md": 0, "p.md": 2}
 ```
 
-- [ ] **Step 2: 실패 확인** — `AttributeError: module 'mode1.wiki' has no attribute 'OutlineWikiStage'`
+- [x] **Step 2: 실패 확인** — `AttributeError: module 'mode1.wiki' has no attribute 'OutlineWikiStage'`
 
-- [ ] **Step 3: `wiki.py` 에 더한다** — 머리 import 를 이렇게 바꾸고:
+- [x] **Step 3: `wiki.py` 에 더한다** — 머리 import 를 이렇게 바꾸고:
 
 ```python
 import json
@@ -1634,7 +1634,7 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
 
 ⚠ `LlmStage.perform` 은 빈 `jobs` 를 그대로 `run_layer` 에 넘기고 `run_layer` 는 빈 목록에 빈 결과를 낸다 — 층에 쓸 장이 없어도 죽지 않는다. `runner/test_run_mode1.py` 의 `test_빈_층은_LLM_Model을_부르지_않는다` 가 그것을 고정한다.
 
-- [ ] **Step 4: `run_mode1.py` 원본 지우고 파사드** — 네 정의와 include 블록을 지운다. 파사드 블록에:
+- [x] **Step 4: `run_mode1.py` 원본 지우고 파사드** — 네 정의와 include 블록을 지운다. 파사드 블록에:
 
 ```python
 from mode1.wiki import OutlineWikiStage, WriteWikiStage  # noqa: E402
@@ -1644,9 +1644,9 @@ page_layers = WriteWikiStage.page_layers
 wiki_page_prompt = WriteWikiStage.wiki_page_prompt
 ```
 
-- [ ] **Step 5: `runner/test_run_mode1.py:757`** — `assert "wiki-plan.json" in p` → `assert "outline.json" in p`. 그 위 include 블록의 설명 줄(`# 위키 카탈로그 단계의 프롬프트가 wiki-plan.json 을 …`)은 xmldoc 주입이라 손대지 않는다.
+- [x] **Step 5: `runner/test_run_mode1.py:757`** — `assert "wiki-plan.json" in p` → `assert "outline.json" in p`. 그 위 include 블록의 설명 줄(`# 위키 카탈로그 단계의 프롬프트가 wiki-plan.json 을 …`)은 xmldoc 주입이라 손대지 않는다.
 
-- [ ] **Step 6: 통과** — `test_mode1.py` `42 passed` · `test_run_mode1.py` `74 passed` · **Step 7: 형 검사** `0 errors`
+- [x] **Step 6: 통과** — `test_mode1.py` `42 passed` · `test_run_mode1.py` `74 passed` — 🔵 `run_mode1.py` 의 `Mapping` import 가 안 쓰여 뺐다. 전체 pytest 603 통과 · 실패 1(위키 인용) · **Step 7: 형 검사** `0 errors`
 - [ ] **Step 8: 커밋** — `git add runner/mode1/wiki.py runner/run_mode1.py runner/test_mode1.py runner/test_run_mode1.py` · `[feat] : wiki 를 outline-wiki 와 write-wiki 로 쪼갬`
 
 ---

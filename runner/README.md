@@ -252,6 +252,25 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`OutlineWikiStage`** | *class* | 목차 한 세션. 이미 있으면 SKIP. |
+| `OutlineWikiStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
+| `OutlineWikiStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
+| `OutlineWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `OutlineWikiStage.wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
+| `OutlineWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| **`WriteWikiStage`** | *class* | 장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛴다. |
+| `WriteWikiStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
+| `WriteWikiStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
+| `WriteWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `WriteWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `WriteWikiStage.symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `batches.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
+| `WriteWikiStage.page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
+| `WriteWikiStage.wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
+| `WriteWikiStage.prepare` | `(self, ctx: Mode1Context) -> None` |  |
+| `WriteWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| `WriteWikiStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
+| `WriteWikiStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
+| `WriteWikiStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
 | **`PublishWikiStage`** | *class* |  |
 | `PublishWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `PublishWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -329,10 +348,6 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
-| `symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `survey-plan.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
-| `page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
-| `wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
-| `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
 | `run_machine` | `(argv: Sequence[str], label: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `run_lang_select` | `(repo: str, root: str, timeout: float \| None) -> tuple[bool, str, Usage]` | 루트 문서를 Model에게 읽히고 언어 하나를 받아 `lang-select.json` 을 쓴다. |
 | `run_warmup` | `(repo: str, codegraph: str, hops: int) -> tuple[list[str] \| None, warmup.Manifest \| None, str \| None, int, bool, str]` | 관문 ① — 무엇을 다시 읽어야 하는지 판정한다. **매니페스트를 쓰지는 않는다.** |
@@ -565,6 +580,10 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다` | `(tmp_path: Path)` |  |
 | `test_샤드를_합치고_충돌은_전원을_개명한다` | `(tmp_path: Path)` |  |
 | `test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다` | `()` |  |
+| `test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_SKIP` | `(tmp_path: Path)` |  |
+| `test_목차_프롬프트는_새_이름의_파일을_말한다` | `()` |  |
+| `test_write_wiki_는_이미_쓴_장을_건너뛴다` | `(tmp_path: Path)` |  |
+| `test_페이지_층은_인용한_심볼의_최대` | `()` |  |
 
 ---
 
