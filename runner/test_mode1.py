@@ -102,3 +102,21 @@ def test_diff_검사는_넷_갈래가_다_있어야_통과한다():
 def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
     d: D.WarmupDiff = {"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}
     assert D.all_files(d) == {"a.py", "b.py"}
+
+
+# ── 4. prep 이 diff 로 재수집 여부를 정한다 ─────────────────────────────
+
+
+def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
+    sys.path.insert(0, ROOT)
+    from runner.wiki import prep
+    fresh = {"유효": ["a.py"], "재읽기": [], "위치만": [], "삭제됨": []}
+    stale = {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": []}
+    assert prep.needs_collect(has_codegraph=True, verdicts=fresh) is False
+    assert prep.needs_collect(has_codegraph=True, verdicts=stale) is True
+    assert prep.needs_collect(has_codegraph=False, verdicts=fresh) is True
+    assert prep.needs_collect(has_codegraph=True, verdicts=None) is False
+    assert prep.needs_collect(has_codegraph=True, verdicts=None, force=True) is True
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, verdicts=stale)["steps"][0] == "griffe"
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, force=True)["steps"][0] == "griffe"
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False)["steps"] == ["facts", "render-modules"]

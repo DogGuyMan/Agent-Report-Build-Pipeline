@@ -10,6 +10,11 @@
 | [`__init__.py`](__init__.py) | — |
 | [`dispatch.py`](dispatch.py) | — |
 | [`measure.py`](measure.py) | 세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트. |
+| [`__init__.py`](__init__.py) | — |
+| [`context.py`](context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
+| [`diff.py`](diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
+| [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
+| [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
 | [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
 | [`run_grade.py`](run_grade.py) | 채운 기입란 하나를 문항지와 대조해 채점만 하는 실행기. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
@@ -21,6 +26,7 @@
 | [`quiz.py`](quiz.py) | — |
 | [`test_import_isolation.py`](test_import_isolation.py) | Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 networkx 가 실리면 안 된다. |
 | [`test_measure.py`](test_measure.py) | — |
+| [`test_mode1.py`](test_mode1.py) | `runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON. |
 | [`test_pipeline.py`](test_pipeline.py) | 단계 기계의 시험. 갈래 · 전이표 · 그래프 · 시뮬레이터 · 드라이버. |
 | [`test_run_grade.py`](test_run_grade.py) | — |
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
@@ -70,6 +76,67 @@
 | `Heartbeat._tick` | `(self) -> None` |  |
 | `Heartbeat.__enter__` | `(self) -> 'Heartbeat'` |  |
 | `Heartbeat.__exit__` | `(self, *_) -> None` |  |
+
+---
+
+## `context.py`
+
+Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
+| `_no_records` | `() -> Records` | `field(default_factory=dict)` 는 원소 형을 잃는다. 형이 붙은 빈 사전을 낸다. |
+| `_no_pages` | `() -> Pages` |  |
+| `_no_ints` | `() -> list[int]` |  |
+| `_no_levels` | `() -> dict[str, int]` |  |
+| **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
+| `raw_dir` | `(c: Mode1Context) -> str` |  |
+| `check_codegraph` | `(obj: object) -> list[str]` |  |
+| `check_batches` | `(obj: object) -> list[str]` |  |
+| `check_lang_select` | `(obj: object) -> list[str]` |  |
+| `check_outline` | `(obj: object) -> list[str]` |  |
+| `check_reading` | `(obj: object) -> list[str]` |  |
+| `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
+| `snapshot_path` | `(c: Mode1Context) -> str` | 읽을 지문 파일. `snapshot.json` 이 없고 옛 이름 `warmup.json` 이 있으면 그것을 읽는다. |
+
+---
+
+## `diff.py`
+
+`changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`WarmupDiff`** | *class* | `targets` 가 `None` 이면 판정 불가 = 전량이다. |
+| `write_diff` | `(path: str, verdicts: warmup.Verdicts, targets: list[str] \| None, hops: int, tracked: int) -> WarmupDiff` |  |
+| `_str_list` | `(v: object) -> list[str] \| None` | 문자열만 든 목록이면 그것을, 아니면 `None`. `as_list` 를 좁히기 전에 부른다 — 뒤에 부르면 원소 형을 잃는다. |
+| `check_diff` | `(obj: object) -> list[str]` |  |
+| `read_diff` | `(path: str) -> WarmupDiff \| None` |  |
+| `all_files` | `(d: WarmupDiff) -> set[str]` | 지금 존재하는 추적 파일 전체. `삭제됨` 은 뺀다. |
+
+---
+
+## `machine_stage.py`
+
+자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`Mode1Machine`** | *class* | 자식 프로세스 하나. 대상 저장소가 작업 폴더다. |
+| `Mode1Machine.cwd` | `(self, ctx: Mode1Context) -> str` |  |
+| `Mode1Machine.wiki_argv` | `(python: str, root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.py` 하나를 부른다. |
+
+---
+
+## `measured.py`
+
+측정 표의 행을 스스로 내는 단계의 믹스인.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`Measured`** | *class* | 측정 표의 행(`measure.StageRow`) 하나를 스스로 내는 단계 — 토큰 0, 자기 이름, 경과 초. |
+| `Measured.row` | `(self, t0: float, ok: bool, why: str = '') -> M.StageRow` |  |
 
 ---
 
@@ -138,13 +205,11 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `_bootstrap_venv` | `() -> None` | `.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. |
-| **`WikiPage`** | *class* | `wiki-plan.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
 | `lang_of` | `(codegraph_path: str \| None) -> str \| None` | 코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다. |
 | `changed_seed` | `(판정: warmup.Verdicts) -> list[str]` | 다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.** |
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
-| `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
 | `warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
 | `dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
 | `survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
@@ -153,7 +218,6 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | `page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
 | `wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
-| `wiki_argv` | `(python: str, root: str, script: str, repo: str) -> list[str]` | `runner/wiki/*.py` 하나를 부른다. |
 | `terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
 | `plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `survey-plan` 단계가 같은 글을 쓴다. |
 | `merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
@@ -337,6 +401,29 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_as_list_는_목록이_아니면_빈_목록이다` | `()` |  |
 | `test_as_list_는_원소를_그대로_낸다` | `()` |  |
 | `test_as_list_는_사본이라_원본을_건드리지_않는다` | `()` |  |
+
+---
+
+## `test_mode1.py`
+
+`runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `_ctx` | `(tmp_path: Path) -> X.Mode1Context` |  |
+| `test_문맥의_기본값은_전량이_아니다` | `(tmp_path: Path)` |  |
+| `test_산출물은_저장소_아래_자리를_가리킨다` | `(tmp_path: Path)` |  |
+| `test_코드지도_검사는_최상위_열쇠만_본다` | `()` |  |
+| `test_층계획_검사는_층과_합계를_본다` | `()` |  |
+| `test_읽기_레코드_자리는_자기호스팅만_다르다` | `(tmp_path: Path)` |  |
+| `test_측정_행은_단계_이름과_토큰_0_을_담는다` | `()` |  |
+| `test_기계_단계는_저장소를_cwd_로_한다` | `(tmp_path: Path)` |  |
+| `_verdicts` | `() -> dict[str, list[str]]` |  |
+| `test_diff_는_넷_갈래와_범위를_담는다` | `(tmp_path: Path)` |  |
+| `test_전량이면_targets_가_None_이다` | `(tmp_path: Path)` |  |
+| `test_diff_검사는_넷_갈래가_다_있어야_통과한다` | `()` |  |
+| `test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다` | `()` |  |
+| `test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다` | `()` |  |
 
 ---
 
@@ -710,7 +797,8 @@ Mode 2 실행기의 회귀 시험.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool) -> dict[str, Any]` |  |
+| `needs_collect` | `(has_codegraph: bool, verdicts: dict[str, list[str]] \| None, force: bool = False) -> bool` | 수집기를 다시 돌릴 것인가. |
+| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False) -> dict[str, Any]` |  |
 | `pyRoots` | `(repo: str) -> list[str]` |  |
 | `run` | `(cmd: str, args: list[str], cwd: Optional[str] = None) -> None` |  |
 

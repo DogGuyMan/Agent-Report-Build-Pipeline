@@ -77,6 +77,8 @@
 - **옮기는 Task(5~9)마다 `run_mode1.py` 의 원본을 지우고 파사드 한 줄을 넣는다.** 옛 `run_*` 함수는 파사드 이름으로 계속 돌다가 Task 12 에서 통째로 지운다.
 - **실제 `annotate-symbols` 를 돌려 검증하지 마라.** 세션당 약 $0.5. `--dry-run` 과 순수 함수 시험까지만.
 - 기준선 🔵 2026-09-11: `pytest` **566 통과 · 19 건너뜀**(562 + Task 1 의 4) · `test_run_mode1.py` **74 통과** · `xmldoc check` 문제 **266**.
+- **위키 인용 게이트는 3단계 동안 빨갛다.** `test/test_wiki.py::test_check_는_통과를_통과로_보고한다` 가 자기 위키(`docs/wiki/`)의 `파일:줄` 인용을 실물과 대조하는데, `docs/wiki/runner-mode1-wiki.md:110` 이 `run_mode1.py:1114` 를 가리키고 Task 2 부터 그 파일이 짧아졌다(🔵 1147 → 1113줄). Task 12 뒤에는 300줄 근처가 되어 더 어긋난다. **위키는 스냅샷이고 코드가 맞다**(루트 CLAUDE.md) — 줄 번호를 손으로 고치지 않고, `xmldoc check` 와 같이 **3단계 뒤 Mode 1 재굽기 때 한 번에** 해소한다. 매 Task 의 "전체 pytest" 에서 이 하나는 기대된 실패다.
+- **`runner/README.md` 는 Task 마다 다시 굽는다** — `tools/gen_readme.py machine runner viz tools`. 생성기가 `mode1/` 을 훑어 새 모듈을 표에 넣으므로 안 구우면 README 표류 게이트가 빨개진다.
 
 ## File Structure
 
@@ -450,7 +452,7 @@ CHANGES = P.Artifact[Mode1Context](
 ```
 
 - [x] **Step 4: 통과** `11 passed` · **Step 5: 형 검사** `0 errors`
-- [x] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/test_mode1.py` · `[add] : warmup 판정을 changes.json 으로 내보내는 꼴과 검사`
+- [x] **Step 6: 커밋** — `git add runner/mode1/diff.py runner/mode1/context.py runner/test_mode1.py` · `[add] : warmup 판정을 changes.json 으로 내보내는 꼴과 검사` → 🔵 `f001b78`
 
 ---
 
@@ -462,7 +464,7 @@ CHANGES = P.Artifact[Mode1Context](
 
 앞선 판의 Task 4 와 같다. 사용자 확인(요약 §4-②)이 아직 없으므로 **착수 전에 한 번 더 묻는다.**
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 ```python
 # ── 4. prep 이 diff 로 재수집 여부를 정한다 ─────────────────────────────
@@ -480,9 +482,9 @@ def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
     assert prep.needs_collect(has_codegraph=True, verdicts=None, force=True) is True
 ```
 
-- [ ] **Step 2: 실패 확인** — `AttributeError: module 'prep' has no attribute 'needs_collect'`
+- [x] **Step 2: 실패 확인** — `AttributeError: module 'prep' has no attribute 'needs_collect'`
 
-- [ ] **Step 3: 구현** — `runner/wiki/prep.py` 의 `prepPlan` 위에:
+- [x] **Step 3: 구현** — `runner/wiki/prep.py` 의 `prepPlan` 위에:
 
 ```python
 def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
@@ -507,22 +509,28 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
     ap.add_argument("--diff", default=None, help="changes.json. 있으면 그 판정으로 재수집 여부를 정한다")
     ap.add_argument("--force", action="store_true", help="지도가 있어도 무조건 다시 수집한다 (전량)")
     a = ap.parse_args()
-    repoArg = a.repo
+    repoArg = cast(str, a.repo)
+    diffPath = cast(Optional[str], a.diff)
+    force = bool(a.force)
     verdicts: dict[str, list[str]] | None = None
-    if a.diff:
-        with open(a.diff, encoding="utf-8") as f:
-            raw: object = json.load(f)
-        top = raw if isinstance(raw, dict) else {}
-        v = top.get("verdicts") if isinstance(top, dict) else None
+    if diffPath:
+        with open(diffPath, encoding="utf-8") as f:
+            raw = cast(object, json.load(f))
+        top = cast(dict[str, object], raw) if isinstance(raw, dict) else {}
+        v = top.get("verdicts")
         if isinstance(v, dict):
-            verdicts = {str(k): [x for x in val if isinstance(x, str)]
-                        for k, val in v.items() if isinstance(val, list)}
+            verdicts = {}
+            for k, val in cast(dict[str, object], v).items():
+                if isinstance(val, list):
+                    verdicts[k] = [x for x in cast(list[object], val) if isinstance(x, str)]
 ```
 
-`plan = prepPlan(...)` 호출에 `verdicts=verdicts, force=a.force` 를 넘긴다. `import argparse` · `import json` 을 머리에 더한다.
+🔵 계획의 첫 코드는 pyright strict 에서 9개가 났다 — `argparse` 속성이 `Unknown` 이고 `isinstance(dict)` 좁히기가 `dict[Unknown, Unknown]` 을 남긴다. `cast` 로 하나씩 좁힌 위 코드가 0 errors 다.
 
-- [ ] **Step 4: 통과 확인** — `12 passed` · `test/test_wiki.py` 도 그대로
-- [ ] **Step 5: 커밋** — `git add runner/wiki/prep.py runner/test_mode1.py` · `[feat] : prep 이 changes.json 을 받아 재수집 여부를 정한다`
+`plan = prepPlan(...)` 호출에 `verdicts=verdicts, force=force` 를 넘긴다. `import argparse` 를 머리에, `cast` 를 `typing` import 에 더한다(`json` 은 이미 있다). `prep.py` 에는 `main()` 이 없다 — CLI 본체가 `if __name__ == "__main__":` 아래 그대로 있으므로 그 블록 안을 고친다.
+
+- [x] **Step 4: 통과 확인** — `12 passed` · `test/test_wiki.py` 의 순수 함수 시험은 그대로. **단 `test_check_는_통과를_통과로_보고한다` 는 Task 2 부터 빨강** — 아래 가드레일의 "위키 인용 게이트". 🔵 전체 `pytest` 572 통과 · 실패 2(위키 인용 · README 표류 → README 는 `gen_readme` 로 다시 구워 같이 커밋)
+- [x] **Step 5: 커밋** — `git add runner/wiki/prep.py runner/test_mode1.py runner/README.md` · `[feat] : prep 이 changes.json 을 받아 재수집 여부를 정한다`
 
 **판정 요청 (Task 4 끝):** `collect-graph` 의 뒤 절반(`facts` · `render-modules`)은 위키 재료라 diff 와 무관하다. `collect-graph` 를 `collect` + `facts` 로 쪼갤지. **이 계획은 쪼개지 않는다.**
 

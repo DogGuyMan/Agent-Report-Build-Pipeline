@@ -2,6 +2,7 @@
 # <include file="machine/comments.xml" path="//term[@id='prep.py']"/>
 # 정적 계층을 돌려 위키가 읽을 재료를 만드는 파일.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
+import argparse
 import os
 import sys
 import json
@@ -18,11 +19,25 @@ from runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUm
 from runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
 from tools.python import pythonPath  # noqa: E402
 
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
-def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool) -> dict[str, Any]:
+def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
+                  force: bool = False) -> bool:
+    """수집기를 다시 돌릴 것인가.
+
+    `force` 면 무조건. diff 가 없으면 지금처럼 지도의 존재만 본다. diff 가 있으면
+    `재읽기 · 위치만 · 삭제됨` 중 하나라도 있을 때 다시 수집한다 — 지도가 낡은 채 남는 것을 막는다.
+    """
+    if force or not has_codegraph:
+        return True
+    if verdicts is None:
+        return False
+    return bool(verdicts.get("재읽기") or verdicts.get("위치만") or verdicts.get("삭제됨"))
+
+def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool,
+             verdicts: dict[str, list[str]] | None = None, force: bool = False) -> dict[str, Any]:
     tail = ["facts", "render-modules"]
-    if hasCodegraph:
+    if not needs_collect(hasCodegraph, verdicts, force):
         return {"steps": tail, "blocked": None}
     if collector == "clang-uml":
         if not hasClangUmlConfig:
@@ -67,11 +82,25 @@ def run(cmd: str, args: list[str], cwd: Optional[str] = None) -> None:
         sys.exit(r.returncode if r.returncode else 1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("사용법 — report-wiki prep <저장소 경로>", file=sys.stderr)
-        sys.exit(1)
-    
-    repoArg = sys.argv[1]
+    ap = argparse.ArgumentParser(description="정적 수집 → 코드 지도 → 사실 파일 · 모듈 그림")
+    ap.add_argument("repo", help="저장소 경로")
+    ap.add_argument("--diff", default=None, help="changes.json. 있으면 그 판정으로 재수집 여부를 정한다")
+    ap.add_argument("--force", action="store_true", help="지도가 있어도 무조건 다시 수집한다 (전량)")
+    a = ap.parse_args()
+    repoArg = cast(str, a.repo)
+    diffPath = cast(Optional[str], a.diff)
+    force = bool(a.force)
+    verdicts: dict[str, list[str]] | None = None
+    if diffPath:
+        with open(diffPath, encoding="utf-8") as f:
+            raw = cast(object, json.load(f))
+        top = cast(dict[str, object], raw) if isinstance(raw, dict) else {}
+        v = top.get("verdicts")
+        if isinstance(v, dict):
+            verdicts = {}
+            for k, val in cast(dict[str, object], v).items():
+                if isinstance(val, list):
+                    verdicts[k] = [x for x in cast(list[object], val) if isinstance(x, str)]
     repo = os.path.abspath(os.path.expanduser(repoArg))
     if not os.path.exists(repo):
         print(f"에러 — 저장소가 없다: {repo}", file=sys.stderr)
@@ -95,6 +124,8 @@ if __name__ == "__main__":
         hasClangUmlConfig=os.path.exists(os.path.join(repo, ".clang-uml")),
         hasRoslynDump=os.path.exists(os.path.join(P["raw"], "roslyn-dump.json")),
         hasClangDoc=bool(CLANG_DOC),
+        verdicts=verdicts,
+        force=force,
     )
     
     print(f"대상 {repo}")
