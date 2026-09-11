@@ -17,6 +17,7 @@
 | [`lang.py`](lang.py) | `lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다. |
 | [`machine_stage.py`](machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`measured.py`](measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
+| [`scan.py`](scan.py) | `detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다. |
 | [`terms.py`](terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
 | [`wiki.py`](wiki.py) | `outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다. |
 | [`pipeline.py`](pipeline.py) | 세 실행기가 함께 쓰는 단계 기계. 갈래 · 단계 · 전이표 · 그래프 · 드라이버. |
@@ -182,6 +183,27 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 ---
 
+## `scan.py`
+
+`detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`SnapshotScan`** | *class* | 옛 지문과 지금 소스를 대조하는 한 벌. `detect-changes` 와 `snapshot-sources` 가 상속한다. |
+| `SnapshotScan.lang_of` | `(codegraph_path: str \| None) -> str \| None` | 코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다. |
+| `SnapshotScan.lang_for` | `(ctx: Mode1Context) -> str \| None` | 언어. `lang-select.json` 을 먼저, 없으면 코드 지도를 본다. |
+| `SnapshotScan.scan_snapshot` | `(ctx: Mode1Context) -> tuple[warmup.Verdicts, warmup.Manifest, str] \| None` | 지금 소스를 훑어 옛 지문과 대조한다. `(판정, 새 지문, 지문 파일 경로)`. |
+| **`DetectChangesStage`** | *class* | 옛 지문과 지금 소스를 대조해 `changes.json` 을 쓴다. **증분 그래프에만 있다.** |
+| `DetectChangesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `DetectChangesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `DetectChangesStage.changed_seed` | `(판정: warmup.Verdicts) -> list[str]` | 다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.** |
+| `DetectChangesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| **`SnapshotSourcesStage`** | *class* | 전수조사가 해낸 뒤에만 지문을 찍는다. |
+| `SnapshotSourcesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `SnapshotSourcesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+
+---
+
 ## `terms.py`
 
 `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다.
@@ -275,8 +297,6 @@ Mode 1(코드베이스 위키) 파이프라인을 한 번에 돌리고 단계마
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `_bootstrap_venv` | `() -> None` | `.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. |
-| `lang_of` | `(codegraph_path: str \| None) -> str \| None` | 코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다. |
-| `changed_seed` | `(판정: warmup.Verdicts) -> list[str]` | 다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.** |
 | `should_call_agent` | `(targets: Sequence[str] \| None, has_reading: bool) -> bool` | 에이전트를 부를 것인가. |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 Model을 부르는가. 토큰이 잡히는 자리는 여기뿐이다. |
 | `plan_stages` | `(has_codegraph: bool, has_reading: bool, has_prose: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
@@ -504,6 +524,14 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한다` | `()` |  |
 | `test_lang_decide_는_제안이_있으면_넘긴다` | `(tmp_path: Path)` |  |
+| `_no_change` | `() -> dict[str, list[str]]` |  |
+| `test_lang_for_는_lang_select_을_먼저_보고_코드_지도로_폴백한다` | `(tmp_path: Path)` |  |
+| `test_씨앗은_재읽기와_위치만의_합집합이다` | `()` |  |
+| `test_detect_changes_는_diff_파일을_쓴다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_detect_changes_는_언어를_모르면_전량_diff_를_쓴다` | `(tmp_path: Path)` |  |
+| `test_snapshot_sources_는_조사가_실패하면_쓰지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_snapshot_sources_는_전량이면_직접_훑어_찍는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_지문은_옛_이름도_읽고_새_이름으로_쓴다` | `(tmp_path: Path)` |  |
 
 ---
 

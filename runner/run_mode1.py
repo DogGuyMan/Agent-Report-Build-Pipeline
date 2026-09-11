@@ -148,6 +148,10 @@ from mode1.terms import VerifyTermsStage  # noqa: E402
 wiki_argv = Mode1Machine.wiki_argv
 plan_summary = ScheduleBatchesStage.plan_summary
 terms_argv = VerifyTermsStage.terms_argv
+from mode1.scan import SnapshotScan, DetectChangesStage  # noqa: E402
+LANG_ALIAS = SnapshotScan.LANG_ALIAS
+lang_of = SnapshotScan.lang_of
+changed_seed = DetectChangesStage.changed_seed
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -167,45 +171,6 @@ AGENT_STAGES = {"lang-select", "survey", "wiki"}
 # 언어 판별에 쓸 Model. 문서를 읽고 `cpp|cs|py|ts` 중 하나를 내는 것이 전부라 가장 싼 것을 쓴다.
 # `--model` 은 survey·wiki 몫이라 여기에 쓰지 않는다.
 LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
-
-# 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 수집기 판별을 여기서
-# 다시 하지 않는다 — 판별 규칙이 두 곳에 생기면 조용히 어긋난다.
-LANG_ALIAS = {"csharp": "cs", "python": "py"}
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.lang_of']"/>
-# 코드 지도 파일(codegraph.json)에 적힌 언어 이름을 declmap 모듈이 아는 언어 이름으로 바꿔주는 함수다.
-# 쓰는 것: runner.run_mode1.LANG_ALIAS, declmap.LANGS · 쓰이는 곳: runner.run_mode1.run_warmup, runner.test_run_mode1.test_lang_of_bridges_the_two_naming_schemes, runner.test_run_mode1.test_lang_of_is_none_when_it_cannot_tell, runner.test_run_mode1.test_lang_of_maps_every_collector_language_to_declmap, runner.test_run_mode1.test_lang_of_passes_through_a_name_declmap_already_knows
-def lang_of(codegraph_path: str | None) -> str | None:
-    """코드 지도가 적어 둔 언어를 declmap 이 아는 이름으로 바꾼다.
-
-    모르면 `None` 이다 — 예외가 아니다. 부르는 쪽이 warmup 단계만 건너뛰고 나머지는 그대로 돈다.
-    """
-    if not codegraph_path:
-        return None
-    try:
-        with open(codegraph_path, encoding="utf-8") as f:
-            name = json.load(f).get("language")
-    except (OSError, ValueError):
-        return None
-    name = LANG_ALIAS.get(name, name)
-    return name if name in declmap.LANGS else None
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.changed_seed']"/>
-# warmup 판정 결과에서 다시 읽어야 할 파일 목록의 씨앗을 골라내는 함수다.
-# 쓰는 것: warmup.Verdicts · 쓰이는 곳: runner.run_mode1.run_warmup, runner.test_run_mode1.test_seed_excludes_valid_and_deleted, runner.test_run_mode1.test_seed_includes_position_only_files, runner.test_run_mode1.test_seed_is_sorted_and_deduplicated, runner.test_run_mode1.test_seed_tolerates_missing_buckets
-def changed_seed(판정: warmup.Verdicts) -> list[str]:
-    """다시 읽어야 할 파일의 씨앗. **`재읽기` 와 `위치만` 의 합집합이다.**
-
-    `위치만` 을 반드시 포함한다 — `warmup.decl_hash` 는 선언의 이름만 해싱하므로 본문만
-    바뀐 변경도 `위치만` 으로 판정된다. 레코드의 `does` 와 위키 산문의 행동 서술은 본문에
-    달려 있어서, 이 갈래를 빼면 그 서술이 조용히 낡는다. `warmup.py` 의 CLI 도 같은 합집합을 쓴다.
-
-    `유효` 는 읽을 것이 없고, `삭제됨` 은 읽을 파일 자체가 없다.
-    """
-    return sorted(set(판정.get("재읽기") or []) | set(판정.get("위치만") or []))
-
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.should_call_agent']"/>
 # 전수조사 단계에서 큰 언어 Model(에이전트)을 실제로 부를지 말지를 정하는 함수다.

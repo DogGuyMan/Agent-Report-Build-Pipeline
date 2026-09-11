@@ -926,7 +926,7 @@ class LangDecideStage(Mode1Machine):
 **`lang-hint` 실패는 `SKIP` 이다** — 스펙 D4 의 폴백 간선 `('lang-propose', FAIL) -> 'lang-decide'` 대신, 관문이 아닌 단계의 실패를 `SKIP → NEXT` 로 잇는다. 같은 효과이고 갈래를 하나 더 안 만든다. Task 13 에서 스펙에 적는다.
 
 - [x] **Step 4: 통과** `23 passed` · **Step 5: 형 검사** `0 errors`
-- [x] **Step 6: 커밋** — `git add runner/mode1/lang.py runner/test_mode1.py` · `[feat] : lang-select 를 lang-hint 와 lang-decide 로 쪼갬`
+- [x] **Step 6: 커밋** — `git add runner/mode1/lang.py runner/test_mode1.py` · `[feat] : lang-select 를 lang-hint 와 lang-decide 로 쪼갬` → 🔵 `d282ad0`
 
 ---
 
@@ -937,7 +937,7 @@ class LangDecideStage(Mode1Machine):
 - Modify: `runner/run_mode1.py` (`LANG_ALIAS` · `lang_of` · `changed_seed` 원본 지우고 파사드)
 - Test: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험** — 머리에 `from mode1 import scan as SC`, 끝에:
+- [x] **Step 1: 실패하는 시험** — 머리에 `from mode1 import scan as SC`, 끝에:
 
 ```python
 # ── 7. 옛 지문과 지금 소스의 대조 ────────────────────────────────────────
@@ -1017,9 +1017,9 @@ def test_지문은_옛_이름도_읽고_새_이름으로_쓴다(tmp_path: Path):
     assert X.snapshot_path(c).endswith("snapshot.json")
 ```
 
-- [ ] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.scan'`
+- [x] **Step 2: 실패 확인** — `ModuleNotFoundError: No module named 'mode1.scan'`
 
-- [ ] **Step 3: `scan.py` 신설** — `LANG_ALIAS` · `lang_of` · `changed_seed` 는 `run_mode1.py` 의 것을 본문 그대로(`LANG_ALIAS` 참조만 `SnapshotScan.LANG_ALIAS` 로):
+- [x] **Step 3: `scan.py` 신설** — `LANG_ALIAS` · `lang_of` · `changed_seed` 는 `run_mode1.py` 의 것을 본문 그대로(`LANG_ALIAS` 참조만 `SnapshotScan.LANG_ALIAS` 로):
 
 ```python
 """`detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다."""
@@ -1182,7 +1182,7 @@ class SnapshotSourcesStage(SnapshotScan, Measured, P.Stage[Mode1Context]):
 
 **[제안됨] ① 의 대안 — 사용자가 "복제" 로 판정하면:** `SnapshotScan` 을 `abc.ABC` 로 바꾸고 `lang_for` · `scan_snapshot` 을 `@staticmethod @abstractmethod` 로 선언만 남긴 뒤, 위 본문을 `DetectChangesStage` 와 `SnapshotSourcesStage` 에 각각 그대로 적는다. `LANG_ALIAS` · `lang_of` 는 `lang_for` 가 쓰므로 함께 두 벌이 된다. 파사드는 `DetectChangesStage.lang_of` 를 내보낸다.
 
-- [ ] **Step 4: `run_mode1.py` 원본 지우고 파사드** — `LANG_ALIAS` · `lang_of` · `changed_seed` 정의와 include 블록, 그 위 주석을 지운다. 파사드 블록에:
+- [x] **Step 4: `run_mode1.py` 원본 지우고 파사드** — `LANG_ALIAS` · `lang_of` · `changed_seed` 정의와 include 블록, 그 위 주석을 지운다. 파사드 블록에:
 
 ```python
 from mode1.scan import SnapshotScan, DetectChangesStage  # noqa: E402
@@ -1191,8 +1191,8 @@ lang_of = SnapshotScan.lang_of
 changed_seed = DetectChangesStage.changed_seed
 ```
 
-- [ ] **Step 5: 통과** — `test_mode1.py` `30 passed` · `test_run_mode1.py` `74 passed` · **Step 6: 형 검사** `0 errors`
-- [ ] **Step 7: 커밋** — `git add runner/mode1/scan.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : detect-changes 가 changes.json 을 쓰고 snapshot-sources 가 지문을 찍는다`
+- [x] **Step 5: 통과** — `test_mode1.py` `30 passed` (🔵 monkeypatch 의 lambda 는 pyright 가 매개변수 형을 모르므로 시험에서는 이름 있는 함수로 적었다) · `test_run_mode1.py` `74 passed` · **Step 6: 형 검사** `0 errors`
+- [x] **Step 7: 커밋** — `git add runner/mode1/scan.py runner/run_mode1.py runner/test_mode1.py` · `[feat] : detect-changes 가 changes.json 을 쓰고 snapshot-sources 가 지문을 찍는다`
 
 ---
 

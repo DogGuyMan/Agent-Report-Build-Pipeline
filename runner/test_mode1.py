@@ -16,6 +16,7 @@ from mode1 import graph as G  # noqa: E402
 from mode1 import lang as LG  # noqa: E402
 from mode1 import machine_stage as MC  # noqa: E402
 from mode1 import measured as MS  # noqa: E402
+from mode1 import scan as SC  # noqa: E402
 from mode1 import terms as T  # noqa: E402
 from mode1 import wiki as W  # noqa: E402
 
@@ -223,3 +224,98 @@ def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path: Path):
     c.proposed = "py"
     assert LG.LangDecideStage().argv(c)[-2:] == ["--propose", "py"]
     assert LG.LangDecideStage().writes(c) == [X.LANG_SELECT]
+
+
+# ── 7. 옛 지문과 지금 소스의 대조 ────────────────────────────────────────
+
+
+def _no_change() -> dict[str, list[str]]:
+    return {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
+
+
+def test_lang_for_는_lang_select_을_먼저_보고_코드_지도로_폴백한다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    assert SC.SnapshotScan.lang_for(c) is None
+    (raw / "codegraph.json").write_text('{"language": "csharp", "nodes": [], "edges": []}')
+    assert SC.SnapshotScan.lang_for(c) == "cs"
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "griffe+pycalls"}')
+    assert SC.SnapshotScan.lang_for(c) == "py"
+
+
+def test_씨앗은_재읽기와_위치만의_합집합이다():
+    v = {"유효": ["a.py"], "재읽기": ["c.py"], "위치만": ["b.py"], "삭제됨": ["z.py"]}
+    assert SC.DetectChangesStage.changed_seed(v) == ["b.py", "c.py"]
+
+
+def test_detect_changes_는_diff_파일을_쓴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"language": "py", "nodes": [], "edges": []}')
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "griffe+pycalls"}')
+
+    def tracked(repo: str, lang: str, includes: list[str]) -> list[str]:
+        return ["a.py"]
+
+    def scan(repo: str, lang: str, includes: list[str], n: int) -> tuple[dict[str, object], None]:
+        return {}, None
+
+    def status(cache: str, repo: str, files: list[str], decls: object) -> tuple[dict[str, list[str]], dict[str, object]]:
+        return {"유효": [], "재읽기": ["a.py"], "위치만": [], "삭제됨": []}, {}
+    monkeypatch.setattr(SC.declmap, "tracked_files", tracked)
+    monkeypatch.setattr(SC.declmap, "scan", scan)
+    monkeypatch.setattr(SC.warmup, "status", status)
+    out = SC.DetectChangesStage().perform(c)
+    assert out.kind == P.OK
+    got = D.read_diff(str(raw / "changes.json"))
+    assert got is not None and got["targets"] == ["a.py"] and c.targets == ["a.py"]
+    assert c.warmup_cache == str(raw / "snapshot.json")
+
+
+def test_detect_changes_는_언어를_모르면_전량_diff_를_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    out = SC.DetectChangesStage().perform(c)
+    got = D.read_diff(X.CHANGES.locate(c))
+    assert out.kind == P.OK and got is not None and got["targets"] is None and c.targets is None
+
+
+def test_snapshot_sources_는_조사가_실패하면_쓰지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.entries = {}; c.warmup_cache = str(tmp_path / "w.json"); c.cold = False
+    wrote: list[str] = []
+
+    def save(p: str, e: dict[str, object]) -> dict[str, object]:
+        wrote.append(p)
+        return e
+    monkeypatch.setattr(SC.warmup, "save", save)
+    c.survey_ok = False
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == []
+    c.survey_ok = True
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == [c.warmup_cache]
+
+
+def test_snapshot_sources_는_전량이면_직접_훑어_찍는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.cold = True; c.survey_ok = True
+
+    def scanned(ctx: X.Mode1Context) -> tuple[dict[str, list[str]], dict[str, object], str]:
+        return _no_change(), {"a.py": {}}, str(tmp_path / "w.json")
+    monkeypatch.setattr(SC.SnapshotSourcesStage, "scan_snapshot", staticmethod(scanned))
+    wrote: list[str] = []
+
+    def save(p: str, e: dict[str, object]) -> dict[str, object]:
+        wrote.append(p)
+        return e
+    monkeypatch.setattr(SC.warmup, "save", save)
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == [str(tmp_path / "w.json")]
+
+
+def test_지문은_옛_이름도_읽고_새_이름으로_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    assert X.snapshot_path(c).endswith("snapshot.json")
+    (raw / "warmup.json").write_text("{}")
+    assert X.snapshot_path(c).endswith("warmup.json")
+    (raw / "snapshot.json").write_text("{}")
+    assert X.snapshot_path(c).endswith("snapshot.json")
