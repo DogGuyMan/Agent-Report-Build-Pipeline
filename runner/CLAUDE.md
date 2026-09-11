@@ -9,7 +9,8 @@
 
 | 자리 | 하는 일 |
 |---|---|
-| `run_mode1.py` | Mode 1 열 단계 — `lang-select→prep→warmup→survey-plan→survey→warmup-save→terms→wiki→build→check`. LLM 칸은 `lang-select`(1회) · `survey`(층별) · `wiki`(층별) 셋(`AGENT_STAGES`) |
+| `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열두 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
+| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 10개) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 여섯 `lang` · `scan` · `graph` · `survey` · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산과 프롬프트는 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — 형 · 좁히기 도우미 · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
@@ -35,7 +36,7 @@ run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로
 갈려 있어, 어느 쪽도 상대의 메모리를 보지 않는다.
 
-**Gotcha — `run_mode1.py` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` 셋이다.
+**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` 셋이다.
 축이 갈린 뒤로 같은 폴더가 아니게 되어 파일 머리에서 `sys.path` 에 `machine/` 을 직접 넣는다.
 다른 러너는 러너끼리만 import 하므로 그 줄이 없다.
 
@@ -49,7 +50,7 @@ run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는
 포함한 실제 흐름이다.
 
 **전이표는 파이프라인 밖에 하나다.** `Stage` 는 자기 다음이 어딘지 모른다 — 흐름을
-알려면 `MODE2_EDGES` · `MODE1_5_EDGES` 를 함께 본다. 대가로 흐름 전체가 한 화면에 있고
+알려면 `MODE2_EDGES` · `MODE1_5_EDGES` · `mode1.edges.EDGES` 를 함께 본다. 대가로 흐름 전체가 한 화면에 있고
 통째로 교체된다.
 
 **`Pipeline.run` 은 재정의할 수 있다.** 다만 재정의는 루프를 다시 쓰는 자리가 아니라
@@ -61,6 +62,12 @@ run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는
 
 **Gotcha — 산출물 사슬 검사는 `OK` 갈래에서만 앞 단계의 `writes` 를 보장으로 센다.**
 `FAIL` 이나 `SKIP` 으로 떨어진 단계는 자기 산출물을 내지 않았다.
+
+**`SKIP` 은 "산출물 없이 다음으로" 다.** 산출물이 이미 있어 안 만드는 것은 `OK` 다(`outline-wiki`) —
+`SKIP` 갈래에서는 `writes` 가 보장되지 않아 뒤 단계의 `reads` 가 성립하지 않는다. 시뮬레이터가 잡는다.
+
+**Gotcha — 증분 그래프의 `--only prep` 은 거부된다.** `collect-graph` 가 `changes.json` 을 읽는다고 선언해서다.
+`--only warmup,prep` 이나 `--only prep --cold` 로 간다. 옛 단계 이름은 `mode1.edges.ALIASES` 로 `--only` · `--skip` 에서 산다.
 
 **선택 입력은 `reads` 에 넣지 않는다.** `reads` 는 없으면 죽는 것만 담는다. 없어도
 정상인 것(`terms-db.json` · `terms.json` · `term-answer-key.json`)은 단계 안에서 본다.
@@ -84,7 +91,7 @@ if __name__ == "__main__":
 | 방향 | 무엇 |
 |---|---|
 | `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `runDispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
-| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `run_mode1.py`(terms_db) |
+| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
 
@@ -94,7 +101,8 @@ if __name__ == "__main__":
   `node_modules` 가 없어 `Cannot find package 'vitepress'` 로 죽는다. 산출물만 되돌아간다.
 - **주의 — 대상 저장소의 전수조사 원본은 `<repo>/docs/codegraph/terms-reading.json` 이다.**
   이 저장소 자신의 것만 `../machine/terms-reading.json` 으로 옮겨져 있어 두 경로가 다르다.
-  `run_mode1.py` 의 프롬프트 문자열은 **대상 저장소 쪽**을 말한다 — 고칠 때 헷갈리지 말 것.
+  `mode1/survey.py` 의 프롬프트 문자열은 **대상 저장소 쪽**을 말하고, 산출물 `READING` 의 자리는
+  `context.reading_path` 가 둘을 가른다 — 고칠 때 헷갈리지 말 것.
 - **Gotcha — `run_mode1.py` 를 import 하면 해석기가 바뀐다.** 파일 머리의 `_bootstrap_venv()` 가
   `.venv` 밖 해석기를 `os.execv` 로 갈아치우고, `import survey_plan` 이 networkx 를 문다.
   **재는 코드가 필요할 뿐이면 `measure.py` 를 import 한다.** `run_mode1.py` 는 옛 이름을

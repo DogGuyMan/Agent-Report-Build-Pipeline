@@ -193,6 +193,30 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 
 이 절 **아래**의 결정 본문은 결정 당시의 옛 이름을 그대로 쓴다 — 번복 이력이 그 이름으로 적혀 있어서다.
 
+### 3단계 구현이 되돌려 적는 것 (🔵 2026-09-11 · 계획 v2 Task 13)
+
+- **D7 의 모양이 바뀌었다 — 자유 함수 모음이 아니라 단계에 종속된 메서드다.** 사용자 판정(2026-09-11 오후):
+  한 단계만 쓰는 계산·프롬프트는 그 단계 클래스의 `@staticmethod`, 둘 이상이 쓰면 믹스인(`SnapshotScan` ·
+  `Measured`), 파일 꼴과 형만 산출물 옆(`context.py` · `diff.py` · `resume.py`). `runner/mode1/` 은
+  `context · measured · machine_stage · diff · lang · scan · graph · survey · terms · wiki · edges · resume` 열둘이고,
+  단계 모듈 여섯에는 최상위 `def` 가 없다. 파사드 `run_mode1.py` 는 `merge_shards = AnnotateSymbolsStage.merge_shards`
+  꼴로 옛 이름을 살린다. 계획 v2 의 "규칙 R4" 와 "함수 → 소속 대조표" 가 본문이다.
+- **D4 는 `SKIP→NEXT` 로 구현됐다.** `LangHintStage.emits = OK | SKIP`. 문서가 없거나 세션이 실패하거나 낱말이
+  넷 밖이면 `SKIP` + `skipped` 행. `FAIL` 갈래가 없다.
+- **D13 — 전량 그래프에 `detect-changes` 가 없고 `snapshot-sources` 가 직접 훑는다.** 전이표는 하나(`EDGES`),
+  단계 목록만 `WARM_ONLY` 로 갈린다. 시뮬레이터가 두 그래프 모두 통과한다.
+- **D2 는 `AnnotateSymbolsStage` 에서 문맥 칸으로 지켜졌다.** 층 사이의 `baseline` · `merged` · `survey_ok` 는
+  인스턴스가 아니라 `Mode1Context` 칸이다.
+- **`SKIP` 의 뜻이 좁혀졌다 — "산출물 없이 다음으로".** 산출물이 이미 있어 안 만드는 것은 `OK` 다(`outline-wiki`).
+  시뮬레이터가 잡았다: `SKIP` 갈래에서는 `writes` 가 보장되지 않으므로, `outline-wiki` 가 `SKIP` 을 내면 `write-wiki`
+  의 `outline.json` 읽기가 성립하지 않아 그래프가 거부된다. `SKIP` 을 내는 단계는 `lang-hint` 와 `annotate-symbols` 둘뿐.
+- **`snapshot-sources` 의 `writes = [snapshot.json]` 은 첫 전량 + 언어 모름에서 `FAIL` 이 된다.** 세 갈래(언어 모름 ·
+  지문 경로 없음 · 조사 실패)에서 파일을 안 쓰고 `OK` 를 내는데 `bad_writes` 가 파일 없음을 `FAIL` 로 바꾼다.
+  조사 실패는 `annotate-symbols` 가 먼저 멈추고, 언어를 모르면 `collect-graph` 가 먼저 죽으므로 실제로 닿는 경우는
+  첫 전량 + 언어 모름 하나이고 그것은 옳은 신호다. 옛 `save_warmup` 은 조용히 `True` 였다.
+- **`--only prep` 은 증분 그래프에서 거부된다.** `collect-graph` 가 `changes.json` 을 읽는다고 선언했다(D15 첫 걸음).
+  `--only warmup,prep` 또는 `--only prep --cold`.
+
 ## Decision Log
 
 | # | 결정 | 상태 | 신뢰도 | 구현 |
@@ -201,16 +225,16 @@ Mode 2 · Mode 1.5 는 `networkx` 도 `.venv` 재실행도 필요 없다. 재는
 | D1 | 전이표는 파이프라인 밖에 하나 둔다 | `[승인됨]` | 🔵 90 | **2단계 완료** ✅ |
 | D2 | `Stage` 는 상태를 갖지 않는다. 갈래는 `Outcome` 반환값이다 | `[승인됨]` | 🔵 90 | **2단계 완료** ✅ |
 | D3 | `llmstage` 의 훅은 **다섯이고 넷은 기본값이 있다.** 단일 호출은 하나만 구현한다 | `[번복됨]` | 🔵 88 | **2단계 완료** ✅ **여섯이 됐다**(`repo`) |
-| D4 | `lang-select` 를 `lang-propose` + `lang-decide` 로 쪼갠다 | `[승인됨]` | 🔵 88 | 3단계 |
+| D4 | `lang-select` 를 `lang-propose` + `lang-decide` 로 쪼갠다 | `[승인됨]` | 🔵 88 | **3단계 완료** ✅ `SKIP→NEXT` |
 | D5 | 단계 사이의 값은 `Context` 로 명시적으로 넘긴다 | `[승인됨]` | 🔵 90 | **2단계 완료** ✅ Mode 2·1.5 |
 | D6 | `pipeline.run` 은 가상 함수가 아니다 | `[번복됨]` | 🔵 85 | **2단계 완료** ✅ 재정의 허용 |
-| D7 | 모듈 경계 — 공통 2파일 + `mode1/` 패키지 (안 A) | `[승인됨]` | 🔵 85 | **1단계 일부** ✅ `measure.py` |
+| D7 | 모듈 경계 — 공통 2파일 + `mode1/` 패키지 (안 A) | `[승인됨]` | 🔵 85 | **3단계 완료** ✅ 모양은 바뀜(단계 종속 · 위 절) |
 | D8 | `run_mode1.py` 는 옛 이름을 재수출하는 파사드로 남는다 | `[제안됨]` | 🔵 85 | **1단계 완료** ✅ |
 | D9 | 흐름 전체를 `StageDagGraph` 로 **미리 짓는다.** 팩토리가 진입점에서 만들고 보장한다 | `[번복됨]` | 🔵 88 | **2단계 완료** ✅ |
 | D10 | 단계의 입력·출력은 `machine/` 의 기존 TypedDict 로 못 박고 경계에서 검증한다 | `[승인됨]` | 🔵 88 | **2단계 일부** ✅ Mode 2·1.5 |
 | D11 | `Any` 를 러너에서 **완전히 없애고** `object` + 좁히기로 바꾼다. 게이트로 강제한다 | `[승인됨]` | 🔵 92 | **2단계 완료** ✅ 7파일 0곳 |
 | D12 | 그래프는 **비순환**이고, 재시도는 **재개 JSON** 으로 한다. 모든 중단이 그것을 남긴다 | `[번복됨]` | 🔵 88 | 비순환만 2단계 ✅ · 재개 JSON 은 3단계 |
-| D13 | Mode 1 을 **증분 그래프와 전량 그래프 둘**로 나눈다. 팩토리가 고른다 | `[승인됨]` | 🔵 88 | 3단계 |
+| D13 | Mode 1 을 **증분 그래프와 전량 그래프 둘**로 나눈다. 팩토리가 고른다 | `[승인됨]` | 🔵 88 | **3단계 완료** ✅ 전이표 하나 · `WARM_ONLY` |
 | D14 | ~~계획에 범위 싣기~~ → ~~경고만~~ → **`warmup` 이 `warmup-diff.json` 을 쓰고, `survey` 가 계획과 대조한다** | `[번복됨 ×2]` | 🔵 90 | 3단계 |
 | D15 | `prep` 의 건너뜀 판정을 **파일 존재에서 `targets` 로** 바꾼다 | `[승인됨]` | 🟡 72 | 3단계 |
 | D16 | `wiki` 를 `wiki-catalogue` + `wiki-pages` 로 쪼갠다 | `[승인됨]` | 🔵 85 | 3단계 |

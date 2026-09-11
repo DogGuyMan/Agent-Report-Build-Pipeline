@@ -1,5 +1,10 @@
 # HANDOFF — warmup 이 증분을 계산하고 나서 버린다
 
+> 🔴 **상태 갱신 2026-09-11 — 리팩터링 끝. ③④ 착수 가능.** 고칠 자리: `runner/mode1/survey.py` 의
+> `AnnotateSymbolsStage.harvest` 와 `AnnotateSymbolsStage.merge_shards`, `machine/survey_plan.py` 의 배치 id.
+> ①② 는 3단계가 흡수했다 — `detect-changes` 가 `changes.json` 을 쓰고 `annotate-symbols` 가 계획과 양방향 대조한다.
+> 아래 2026-09-08 배너는 이력이다.
+>
 > 🔴 **상태 갱신 2026-09-08 — 이 문서는 아직 유효하다. 다만 착수 시점이 정해졌다.**
 >
 > **지금 착수하지 마라. 단계 기계 리팩터링이 끝난 뒤의 후속 작업이다.**

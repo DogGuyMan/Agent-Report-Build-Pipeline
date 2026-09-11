@@ -2042,7 +2042,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 - [x] **Step 5: 시험** — 🔵 **597 통과 · 실패 1(위키 인용, 기대됨) · 19 건너뜀.** 지운 시험 17개는 위 목록 그대로. 덧붙여 지운 시험만 쓰던 import 둘(`import warmup as W` · `from warmup import Manifest`)을 `test_run_mode1.py` 머리에서 뺐다 — 프로젝트 pyright 가 `reportUnusedImport` 로 짚어서다. `run_agent_with` · `run_layer` 재수출은 **남긴다** — `test_run_layer_*` 3개와 `test_빈_층은_…` 이 쓴다(처음 빠뜨려 4개가 더 빨갰다).
 - [x] **Step 6: `--dry-run` 대조** — 🔵 층 계획 수치 동일(786 심볼 · 층 6 · 배치 88). 다른 점 셋: 단계 이름 12개 · `graph.render()` 추가 · 옛 "이미 있는 것 — 코드지도 True…" 줄 삭제(산출물이 있어 건너뛰는 것은 이제 실행 시점의 `SKIP`/`skipped` 행이 한다). **`--only prep` 은 증분 그래프에서 거부된다** — `collect-graph` 가 `changes.json` 을 읽는다고 선언했고(D15) 그 파일이 없어서다. `--only warmup,prep` 또는 `--only prep --cold` 로 간다. `--only survey` 도 같은 이유로 거부(완료 조건 ✓). `--only warmup` 은 LLM 0 으로 실제로 돌아 `changes.json` 을 냈다(98파일 · 대상 40, 옛 `warmup.json` 을 지문으로 읽음 — 완료 조건 ✓).
 - [x] **Step 7: 형 검사** — `npm run typecheck:py` → `0 errors`
-- [ ] **Step 8: 커밋** — `git add runner/run_mode1.py runner/test_run_mode1.py` · `[refactor] : run_mode1 이 단계 기계 위에서 돈다`
+- [ ] **Step 8: 커밋** — `git add runner/run_mode1.py runner/test_run_mode1.py` · `[refactor] : run_mode1 이 단계 기계 위에서 돈다` → 🔵 `c59e40e`
 
 ---
 
@@ -2050,8 +2050,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 **Files:** Modify `test/test_no_any.py` · `runner/README.md`(도구가 낸다) · `runner/CLAUDE.md` · `docs/superpowers/specs/2026-09-08-runner-stage-machine-design.md` · `docs/handoffs/HANDOFF-2026-09-07-warmup-increment-unreachable.md` · `docs/handoffs/RESUME-2026-09-11-runner-stage-machine.md`
 
-- [ ] **Step 1: `Any` 게이트** — `COVERED` 에 `runner/mode1/context.py` · `measured.py` · `machine_stage.py` · `diff.py` · `lang.py` · `scan.py` · `graph.py` · `survey.py` · `terms.py` · `wiki.py` · `edges.py` · `resume.py` 를 더한다(`runner/run_mode1.py` 는 이미 있다). 통과해야 한다.
-- [ ] **Step 2: 게이트 일곱**
+- [x] **Step 1: `Any` 게이트** — `COVERED` 에 `runner/mode1/context.py` · `measured.py` · `machine_stage.py` · `diff.py` · `lang.py` · `scan.py` · `graph.py` · `survey.py` · `terms.py` · `wiki.py` · `edges.py` · `resume.py` 를 더한다(`runner/run_mode1.py` 는 이미 있다). 통과해야 한다.
+- [x] **Step 2: 게이트 일곱** — 🔵 pytest 598 통과 · 실패 1(위키 인용) · 19 건너뜀 / `npm test` 8 / tsc 통과 / pyright 0 / `xmldoc check` 문제 **339** (266 → 지운 include 블록 73개) / README 4개 일치 / doctor OK
 
 ```bash
 .venv/bin/python -m pytest -q          # 실패 0
@@ -2062,24 +2062,24 @@ npm run typecheck && npm run typecheck:py
 npm run doctor
 ```
 
-- [ ] **Step 3: `runner/CLAUDE.md`** — "무엇이 여기 있나" 표의 `run_mode1.py` 행을 12단계 · `mode1/` 패키지(모듈 여섯 + `context` · `measured` · `machine_stage` · `diff` · `edges` · `resume`)로 고친다. `--cold` · `--resume` · `changes.json` 을 한 줄씩. "Gotcha — `run_mode1.py` 만 `machine/` 을 import 한다" 를 "`mode1/` 패키지가" 로.
-- [ ] **Step 4: 스펙에 되돌려 적을 것 넷** — ① D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · ② 전량 그래프에 `detect-changes` 가 없고 `snapshot-sources` 가 직접 훑는다는 것(D13 그림은 그대로) · ③ D2 가 `AnnotateSymbolsStage` 에서 문맥 칸으로 지켜졌다는 것 · ④ **D7 의 모양이 바뀐 것** — 자유 함수 모음(`layers` · `prompts`)이 아니라 단계에 종속된 메서드와 믹스인(규칙 R4). `snapshot-sources` 의 `writes` 가 첫 전량 + 언어 모름에서 `FAIL` 이 되는 것도 한 줄.
-- [ ] **Step 5: 인계 문서 배너 갱신** — `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 의 🔴 배너를 "리팩터링 끝. ③④ 착수 가능. 고칠 자리: `runner/mode1/survey.py` 의 `AnnotateSymbolsStage.harvest` 와 `merge_shards`, `machine/survey_plan.py` 의 배치 id" 로. `RESUME-2026-09-11-runner-stage-machine.md` 의 TL;DR 을 "3단계 완료" 로.
+- [x] **Step 3: `runner/CLAUDE.md`** — "무엇이 여기 있나" 표의 `run_mode1.py` 행을 12단계 · `mode1/` 패키지(모듈 여섯 + `context` · `measured` · `machine_stage` · `diff` · `edges` · `resume`)로 고친다. `--cold` · `--resume` · `changes.json` 을 한 줄씩. "Gotcha — `run_mode1.py` 만 `machine/` 을 import 한다" 를 "`mode1/` 패키지가" 로.
+- [x] **Step 4: 스펙에 되돌려 적을 것 넷** — ① D4 의 폴백이 `FAIL→lang-decide` 가 아니라 `SKIP→NEXT` 로 구현된 것 · ② 전량 그래프에 `detect-changes` 가 없고 `snapshot-sources` 가 직접 훑는다는 것(D13 그림은 그대로) · ③ D2 가 `AnnotateSymbolsStage` 에서 문맥 칸으로 지켜졌다는 것 · ④ **D7 의 모양이 바뀐 것** — 자유 함수 모음(`layers` · `prompts`)이 아니라 단계에 종속된 메서드와 믹스인(규칙 R4). `snapshot-sources` 의 `writes` 가 첫 전량 + 언어 모름에서 `FAIL` 이 되는 것도 한 줄.
+- [x] **Step 5: 인계 문서 배너 갱신** — `HANDOFF-2026-09-07-warmup-increment-unreachable.md` 의 🔴 배너를 "리팩터링 끝. ③④ 착수 가능. 고칠 자리: `runner/mode1/survey.py` 의 `AnnotateSymbolsStage.harvest` 와 `merge_shards`, `machine/survey_plan.py` 의 배치 id" 로. `RESUME-2026-09-11-runner-stage-machine.md` 의 TL;DR 을 "3단계 완료" 로.
 - [ ] **Step 6: 커밋** — `[docs] : mode1 단계 기계 완료를 문서와 게이트에 반영`
 
 ---
 
 ## 완료 조건
 
-- [ ] `runner/run_mode1.py` 에 `for stage in` 루프가 없다 — `grep -c "for stage in" runner/run_mode1.py` = 0
-- [ ] `runner/mode1/` 에 `def ` 로 시작하는 최상위 자유 함수는 `context.py`(`raw_dir` · `check_*` · `reading_path` · `snapshot_path` · `_no_*`) · `diff.py`(파일 꼴) · `edges.py`(`expand` · `plan_stages` · `build_mode1_graph`) · `resume.py`(파일 꼴) 에만 있다 — `grep -n "^def " runner/mode1/lang.py runner/mode1/scan.py runner/mode1/graph.py runner/mode1/survey.py runner/mode1/terms.py runner/mode1/wiki.py` 가 비어 있다
-- [ ] `pytest` 실패 0 (지운 시험 17개는 보고에 이름이 적혀 있다)
-- [ ] `test/test_no_any.py` 가 `mode1/` 전체와 `run_mode1.py` 를 덮고 통과한다
-- [ ] `--dry-run` 이 `graph.render()` 로 폴백 간선을 보이고, diff 가 있으면 좁힌 층 계획을 찍는다
-- [ ] `changes.json` 이 실제로 생긴다 — 자기 저장소에 `--only warmup` 으로 확인 (LLM 0)
-- [ ] `--only survey` 를 diff 없이 부르면 **팩토리가 거부**한다 (`GraphError`)
-- [ ] 낡은 전량 계획 + 좁힌 diff 를 두고 `--only survey` 를 부르면 **`AnnotateSymbolsStage` 가 FAIL** 로 멈춘다 — 인계 문서 재현 ② 가 더는 재현되지 않는다
-- [ ] 스펙과 인계 문서가 Task 13 대로 갱신됐다
+- [x] `runner/run_mode1.py` 에 `for stage in` 루프가 없다 — `grep -c "for stage in" runner/run_mode1.py` = 0
+- [x] `runner/mode1/` 에 `def ` 로 시작하는 최상위 자유 함수는 `context.py`(`raw_dir` · `check_*` · `reading_path` · `snapshot_path` · `_no_*`) · `diff.py`(파일 꼴) · `edges.py`(`expand` · `plan_stages` · `build_mode1_graph`) · `resume.py`(파일 꼴) 에만 있다 — `grep -n "^def " runner/mode1/lang.py runner/mode1/scan.py runner/mode1/graph.py runner/mode1/survey.py runner/mode1/terms.py runner/mode1/wiki.py` 가 비어 있다
+- [x] `pytest` 실패 0 — 🔵 위키 인용 게이트 하나만 기대된 빨강 (지운 시험 17개는 Task 12 목록)
+- [x] `test/test_no_any.py` 가 `mode1/` 전체와 `run_mode1.py` 를 덮고 통과한다
+- [x] `--dry-run` 이 `graph.render()` 로 폴백 간선을 보이고, diff 가 있으면 좁힌 층 계획을 찍는다
+- [x] `changes.json` 이 실제로 생긴다 — 자기 저장소에 `--only warmup` 으로 확인 (LLM 0)
+- [x] `--only survey` 를 diff 없이 부르면 **팩토리가 거부**한다 (`GraphError`)
+- [x] 낡은 전량 계획 + 좁힌 diff 를 두고 `--only survey` 를 부르면 **`AnnotateSymbolsStage` 가 FAIL** 로 멈춘다 — 🔵 `test_annotate_symbols_는_어긋난_계획을_돌리지_않는다` 가 고정. 인계 문서 재현 ② 가 더는 재현되지 않는다
+- [x] 스펙과 인계 문서가 Task 13 대로 갱신됐다
 
 ## 착수 전 사용자 판정 셋
 
