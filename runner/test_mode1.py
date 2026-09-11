@@ -1,12 +1,15 @@
 """`runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON."""
 import os
 import sys
+import time
 from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
 from mode1 import context as X  # noqa: E402
+from mode1 import machine_stage as MC  # noqa: E402
+from mode1 import measured as MS  # noqa: E402
 
 
 def _ctx(tmp_path: Path) -> X.Mode1Context:
@@ -37,3 +40,31 @@ def test_코드지도_검사는_최상위_열쇠만_본다():
 def test_층계획_검사는_층과_합계를_본다():
     assert X.check_batches({"target": 8, "layers": [], "totals": {}}) == []
     assert X.check_batches({"layers": {}}) != []
+
+
+# ── 2. 형 · 읽기 레코드 자리 · 바닥 ──────────────────────────────────────
+
+
+def test_읽기_레코드_자리는_자기호스팅만_다르다(tmp_path: Path):
+    self_hosted = X.Mode1Context(root=str(tmp_path), model="m", repo=str(tmp_path))
+    assert X.READING.locate(self_hosted) == os.path.join(str(tmp_path), "machine", "terms-reading.json")
+    other = _ctx(tmp_path)   # root="/r" 는 저장소가 아니다
+    assert X.READING.locate(other) == os.path.join(str(tmp_path), "docs", "codegraph", "terms-reading.json")
+
+
+def test_측정_행은_단계_이름과_토큰_0_을_담는다():
+    class T(MS.Measured):
+        name = "t"
+    r = T().row(time.monotonic(), True, "x")
+    assert r["stage"] == "t" and r["ok"] is True and r["why"] == "x" and r["usage"]["total"] == 0
+
+
+def test_기계_단계는_저장소를_cwd_로_한다(tmp_path: Path):
+    class T(MC.Mode1Machine):
+        name = "t"
+
+        def argv(self, ctx: X.Mode1Context) -> list[str]:
+            return ["true"]
+    assert T().cwd(_ctx(tmp_path)) == str(tmp_path)
+    assert MC.Mode1Machine.wiki_argv("py", "/root", "prep.py", "/repo") == ["py", "/root/runner/wiki/prep.py", "/repo"]
+    assert os.path.isdir(os.path.join(X.ROOT, "runner", "mode1"))   # 도구 뿌리는 셋 위다

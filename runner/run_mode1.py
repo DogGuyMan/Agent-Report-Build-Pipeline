@@ -112,7 +112,7 @@ import json
 import subprocess
 import time
 from collections.abc import Iterable, Mapping, Sequence
-from typing import NotRequired, TypedDict, cast
+from typing import cast
 
 # 러너는 `runner/`, 결정론 기계는 `machine/` 이다. 이 파일이 CLI 로 돌 때 sys.path[0] 은
 # `runner/` 라 machine 을 못 찾는다 — 그래서 여기서 넣는다.
@@ -138,6 +138,13 @@ from measure import (  # noqa: E402,F401
     hms, format_report, stage_totals,
 )
 
+# 형 · 자리 · 단계 바닥의 원본은 `mode1/` 패키지다. 옛 이름으로 부르는 시험이 있어 그대로 다시 내보낸다.
+from mode1.context import (  # noqa: E402,F401
+    Record as Record, Records as Records, WikiPage as WikiPage, reading_path,
+)
+from mode1.machine_stage import Mode1Machine  # noqa: E402
+wiki_argv = Mode1Machine.wiki_argv
+
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -160,25 +167,6 @@ LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
 # 코드 지도가 적는 언어 이름과 declmap 이 아는 이름이 한 칸 다르다. 수집기 판별을 여기서
 # 다시 하지 않는다 — 판별 규칙이 두 곳에 생기면 조용히 어긋난다.
 LANG_ALIAS = {"csharp": "cs", "python": "py"}
-
-# ── 이 파일이 정하는 형 이름은 아래 셋뿐이다. 코드 지도 · 층 계획 · 매니페스트 · 선언
-#    훑기의 꼴은 `machine/` 의 `codegraph_types` · `survey_plan` · `warmup` · `declmap` 이
-#    이미 적어 두었고, 재는 값의 꼴은 `measure` 가 가지므로 여기서 다시 적지 않는다.
-
-# 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
-Record = dict[str, object]
-Records = dict[str, Record]
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.WikiPage']"/>
-# 위키 목차 파일(wiki-plan.json) 안의 장(페이지) 하나를 나타내는 타입(TypedDict)이다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.page_layers
-class WikiPage(TypedDict):
-    """`wiki-plan.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
-
-    file: str
-    title: NotRequired[str]
-    symbols: NotRequired[list[str]]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.lang_of']"/>
@@ -275,21 +263,7 @@ def plan_stages(has_codegraph: bool, has_reading: bool, has_prose: bool,
     return out
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.reading_path']"/>
-# 전수조사 원본 terms-reading.json 이 어느 자리에 있는지 고르는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.nonnode_prompt, runner.run_mode1.warmup_section
 # ── 2. 에이전트 호출 ────────────────────────────────────────────────────
-def reading_path(repo: str, root: str) -> str:
-    """전수조사 원본 `terms-reading.json` 의 자리.
-
-    대상 저장소는 `<repo>/docs/codegraph/` 아래에 둔다. **이 저장소 자신만 다르다** —
-    자기 것은 `machine/` 으로 옮겨져 있어 자기호스팅일 때 자리가 갈린다.
-    """
-    if os.path.abspath(repo) == os.path.abspath(root):
-        return os.path.join(root, "machine", "terms-reading.json")
-    return os.path.join(repo, "docs", "codegraph", "terms-reading.json")
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.warmup_section']"/>
 # 전수조사 배치 프롬프트 뒤에 붙는, 증분 조사 범위를 알리는 지시문 글을 만드는 함수다.
 # 쓰는 것: runner.run_mode1.reading_path · 쓰이는 곳: runner.run_mode1.survey_batch_prompt, runner.test_run_mode1.test_warmup_section_is_empty_when_there_is_nothing_to_scope, runner.test_run_mode1.test_warmup_section_lists_every_target_and_the_ratio
@@ -596,15 +570,7 @@ def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> 
            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.wiki_argv']"/>
-# runner/wiki/ 아래의 파이썬 기계 단계 하나를 부를 명령줄 인자 리스트를 만드는 함수다.
-# 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_every_runner_script_path_actually_exists
 # ── 3. 기계 단계의 명령줄 ───────────────────────────────────────────────
-def wiki_argv(python: str, root: str, script: str, repo: str) -> list[str]:
-    """`runner/wiki/*.py` 하나를 부른다."""
-    return [python, os.path.join(root, "runner", "wiki", script), repo]
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.terms_argv']"/>
 # 용어 사전을 만드는 machine/terms_db.py 단계를 부를 명령줄 인자 리스트를 만드는 함수다.
 # 쓰는 것: 없음 · 쓰이는 곳: runner.run_mode1.main, runner.test_run_mode1.test_terms_argv_passes_the_static_codegraph_positionally

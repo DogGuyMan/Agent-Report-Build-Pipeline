@@ -1,14 +1,30 @@
 """Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다."""
 import os
 from dataclasses import dataclass, field
+from typing import NotRequired, TypedDict
 
 import measure as M
 import pipeline as P
 import survey_plan
 import warmup
 
-Records = dict[str, dict[str, object]]
-Pages = list[dict[str, object]]
+# 이 파일은 <ROOT>/runner/mode1/ 에 있다. 저장소 뿌리는 그 셋 위다 — 박지 않고 계산한다.
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
+Record = dict[str, object]
+Records = dict[str, Record]
+
+
+class WikiPage(TypedDict):
+    """`outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
+
+    file: str
+    title: NotRequired[str]
+    symbols: NotRequired[list[str]]
+
+
+Pages = list[WikiPage]
 
 
 def _no_records() -> Records:
@@ -95,6 +111,17 @@ def check_reading(obj: object) -> list[str]:
     return [] if isinstance(obj, dict) else ["읽기 레코드가 객체가 아니다"]
 
 
+def reading_path(repo: str, root: str) -> str:
+    """전수조사 원본 `terms-reading.json` 의 자리.
+
+    대상 저장소는 `<repo>/docs/codegraph/` 아래에 둔다. **이 저장소 자신만 다르다** —
+    자기 것은 `machine/` 으로 옮겨져 있어 자기호스팅일 때 자리가 갈린다.
+    """
+    if os.path.abspath(repo) == os.path.abspath(root):
+        return os.path.join(root, "machine", "terms-reading.json")
+    return os.path.join(repo, "docs", "codegraph", "terms-reading.json")
+
+
 # ── 산출물 선언. 자리는 ctx 가 정한다 ────────────────────────────────────
 
 LANG_SELECT = P.Artifact[Mode1Context](
@@ -108,8 +135,7 @@ CHANGES = P.Artifact[Mode1Context](
 BATCHES = P.Artifact[Mode1Context](
     "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), check_batches)
 READING = P.Artifact[Mode1Context](
-    "terms-reading.json",
-    lambda c: os.path.join(c.repo, "docs", "codegraph", "terms-reading.json"), check_reading)
+    "terms-reading.json", lambda c: reading_path(c.repo, c.root), check_reading)
 TERMS_DB = P.Artifact[Mode1Context](
     "terms-db.json", lambda c: os.path.join(raw_dir(c), "terms-db.json"))
 OUTLINE = P.Artifact[Mode1Context](

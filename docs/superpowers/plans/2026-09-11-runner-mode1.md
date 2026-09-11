@@ -118,7 +118,7 @@ D15 는 `collect-graph` 이 `targets` 를 받는 것이고, 궁극에는 바뀐 
 - Create: `runner/mode1/context.py`
 - Create: `runner/test_mode1.py`
 
-- [ ] **Step 1: 실패하는 시험**
+- [x] **Step 1: 실패하는 시험**
 
 `runner/test_mode1.py`:
 
@@ -157,9 +157,9 @@ def test_층계획_검사는_층과_합계를_본다():
     assert X.check_batches({"layers": {}}) != []
 ```
 
-- [ ] **Step 2: 실패 확인** — `.venv/bin/python -m pytest runner/test_mode1.py -q` → `ModuleNotFoundError: No module named 'mode1'`
+- [x] **Step 2: 실패 확인** — `.venv/bin/python -m pytest runner/test_mode1.py -q` → `ModuleNotFoundError: No module named 'mode1'`
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현** — 🔵 2026-09-11 적용. 계획 코드와 다른 점 하나: `field(default_factory=list/dict)` 는 pyright strict 에서 원소 형을 잃어(6 errors) `_no_records()` · `_no_pages()` · `_no_ints()` · `_no_levels()` 형 붙은 팩토리로 바꿨다. `snapshot_path` 는 `ARTIFACTS` 뒤로 내렸다(동작 동일).
 
 `runner/mode1/__init__.py` 는 빈 파일. `runner/mode1/context.py`:
 
@@ -289,9 +289,9 @@ sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
 ```
 
-- [ ] **Step 4: 통과 확인** — `4 passed`
-- [ ] **Step 5: 형 검사** — `npx pyright@1.1.413 runner/mode1/context.py runner/test_mode1.py` → `0 errors`
-- [ ] **Step 6: 커밋** — `git add runner/mode1/__init__.py runner/mode1/context.py runner/test_mode1.py` · `[add] : mode1 패키지 뼈대와 문맥, 산출물 선언`
+- [x] **Step 4: 통과 확인** — `4 passed`
+- [x] **Step 5: 형 검사** — `npx pyright@1.1.413 runner/mode1/context.py runner/test_mode1.py` → `0 errors`
+- [x] **Step 6: 커밋** — `git add runner/mode1/__init__.py runner/mode1/context.py runner/test_mode1.py` · `[add] : mode1 패키지 뼈대와 문맥, 산출물 선언` → 🔵 `f88265a`
 
 ---
 
@@ -301,7 +301,9 @@ sys.path.insert(0, os.path.join(ROOT, "machine"))
 - Create: `runner/mode1/prompts.py` · `runner/mode1/layers.py`
 - Modify: `runner/run_mode1.py`
 
-- [ ] **Step 1: 기준선** — `.venv/bin/python -m pytest runner/test_run_mode1.py -q` 통과 수를 적어 둔다.
+- [x] **Step 1: 기준선** — `.venv/bin/python -m pytest runner/test_run_mode1.py -q` 통과 수를 적어 둔다. → 🔵 2026-09-11 **74 passed**
+
+> ⚠ **2026-09-11 — Step 2 착수 전에 사용자가 이 Task 의 모양을 물렸다.** "자유 함수를 각 단계에 종속시킨다 — 한 단계만 쓰면 그 단계의 메서드로, 둘이 쓰면 인터페이스로." 아래 Step 2~7 은 그 판정 전의 판이다. 개정판은 `2026-09-11-runner-mode1-v2.md` 로 따로 쓴다. **여기서 더 진행하지 않는다.**
 
 - [ ] **Step 2: `layers.py` 로 옮긴다**
 

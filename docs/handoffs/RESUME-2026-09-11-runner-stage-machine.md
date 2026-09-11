@@ -10,11 +10,17 @@
 **1·2단계는 끝났고 게이트가 초록이다.** 3단계(Mode 1)는 **계획서가 확정됐고 착수 전이다.**
 2026-09-11 에 사용자가 3단계의 미결 셋을 판정했고, 단계·산출물 이름 12개를 전부 새로 정했다.
 
-**바로 다음 할 일 — 3단계 계획서 Task 1 부터 실행한다.**
+**바로 다음 할 일 — 개정 계획서(v2) Task 2 부터 실행한다.** Task 1 은 끝났다(🔵 `f88265a`).
 
-    계획서(에이전트용)  docs/superpowers/plans/2026-09-11-runner-mode1.md          Task 12개, 전부 코드 포함
-    요약(사람용)        docs/superpowers/plans/2026-09-11-runner-mode1-요약.md      판정은 여기서 받는다
-    실행 방식           superpowers:subagent-driven-development — Task 마다 새 서브에이전트
+    계획서(에이전트용)  docs/superpowers/plans/2026-09-11-runner-mode1-v2.md       Task 2~13, 전부 코드 포함
+    앞선 판             docs/superpowers/plans/2026-09-11-runner-mode1.md          Task 1 만 유효. Task 2 앞에서 물렸다
+    요약(사람용)        docs/superpowers/plans/2026-09-11-runner-mode1-요약.md      §1~§3 유효. 달라진 것은 v2 의 "개정 이유" 절
+    실행 방식           이 세션에서는 executing-plans (파이썬 편집마다 사용자가 diff 를 보고 판단)
+
+**2026-09-11 오후 판정 — 자유 함수를 단계에 종속시킨다.** `layers.py` · `prompts.py` 같은 자유 함수 모음을 두지 않는다.
+한 단계만 쓰는 계산·프롬프트는 그 단계 클래스의 `@staticmethod`, 둘 이상이 쓰면 믹스인. 파일 꼴(읽기·쓰기·검사)만
+산출물 옆(`context.py` · `diff.py`). v2 계획서의 "규칙 R4" 와 "함수 → 소속 대조표" 가 전부다.
+**착수 전 사용자 판정 셋** — v2 끝의 표: ① 믹스인 vs 복제 · ② `test_run_mode1.py:757` 한 줄 · ③ D15 두 걸음.
 
 **⚠ 착수 전 확인 둘**
 1. 요약 §4-② (D15 를 두 걸음으로 나눔 — 이번엔 "다시 수집할지 판정"까지만) 에 사용자 이견이 없는지.
