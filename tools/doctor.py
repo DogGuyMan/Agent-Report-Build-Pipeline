@@ -42,7 +42,7 @@ def main() -> int:
     py_mods = probe(py, [
         "-c",
         "import importlib.util as u;"
-        "m=[n for n in ('networkx','numpy','scipy','pytest') if u.find_spec(n) is None];"
+        "m=[n for n in ('networkx','numpy','scipy','pytest','msgspec') if u.find_spec(n) is None];"
         "print('전부 있다' if not m else '빠짐: '+', '.join(m))",
     ])
 
