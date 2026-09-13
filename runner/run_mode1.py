@@ -241,13 +241,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         d = diff.read_diff(X.CHANGES.locate(ctx))
         cg = X.CODEGRAPH.locate(ctx)
         if "schedule-batches" in graph.order and os.path.exists(cg):
-            raw = P.read_json(cg)
-            if not X.check_codegraph(raw):
-                narrowed = None if cold else (d["targets"] if d else None)
-                미리 = survey_plan.plan(cast(survey_plan.CodeGraph, raw), ctx.target, only_files=narrowed)
-                print("\n층 계획 (기계가 결정론으로 낸다)%s" % (" — diff 로 좁힘" if narrowed else ""))
-                for line in ScheduleBatchesStage.plan_summary(미리):
-                    print(line)
+            narrowed = None if cold else (d["targets"] if d else None)
+            미리 = survey_plan.plan(cast(survey_plan.CodeGraph, P.load(cg, X.CodeGraphDoc)),
+                                  ctx.target, only_files=narrowed)
+            print("\n층 계획 (기계가 결정론으로 낸다)%s" % (" — diff 로 좁힘" if narrowed else ""))
+            for line in ScheduleBatchesStage.plan_summary(미리):
+                print(line)
         return 0
 
     t_all = time.monotonic()

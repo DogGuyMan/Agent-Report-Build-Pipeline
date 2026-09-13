@@ -4,9 +4,6 @@ import os
 import sys
 import time
 from collections.abc import Mapping, Sequence
-from typing import cast
-
-import measure as M
 import pipeline as P
 import survey_plan
 from mode1 import context as X
@@ -216,8 +213,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     @staticmethod
     def load_records(path: str) -> Records:
         """있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`."""
-        raw = P.read_json(path)
-        return {k: M.as_map(v) for k, v in M.as_map(raw).items()}
+        return P.load(path, Records) if os.path.exists(path) else {}
 
     @staticmethod
     def merge_shards(shard_dir: str, existing: Records | None) -> Records:
@@ -261,23 +257,17 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     @staticmethod
     def qualified(key: str, rec: Record | None) -> str:
         """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
-        where = M.as_str((rec or {}).get("where"))
+        where = str((rec or {}).get("where") or "")
         stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
         return "%s.%s" % (stem, key) if stem else key
 
     @staticmethod
-    def plan_files(plan: object) -> set[str]:
+    def plan_files(plan: survey_plan.SurveyPlan) -> set[str]:
         """계획에 든 배치들이 가리키는 파일 집합."""
-        out: set[str] = set()
-        for layer in M.as_list(M.as_map(plan).get("layers")):
-            for batch in M.as_list(M.as_map(layer).get("batches")):
-                for f in M.as_list(M.as_map(batch).get("files")):
-                    if isinstance(f, str):
-                        out.add(f)
-        return out
+        return {f for layer in plan["layers"] for batch in layer["batches"] for f in batch["files"]}
 
     @staticmethod
-    def compare_plan(plan: object, d: D.WarmupDiff) -> list[str]:
+    def compare_plan(plan: survey_plan.SurveyPlan, d: D.WarmupDiff) -> list[str]:
         """계획과 diff 가 같은 범위를 말하는지 양방향으로 본다. 불평 목록을 낸다.
 
         넓으면 전량 지시서에 부분 쪽지가 붙은 것이고, 좁으면 부분 지시서에 전량 쪽지가
@@ -299,11 +289,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
         if ctx.plan is None:
-            raw = P.read_json(X.BATCHES.locate(ctx))
-            bad = X.check_batches(raw)
-            if bad:
-                return P.Outcome(P.FAIL, "; ".join(bad), [self.row(t0, False, "; ".join(bad))])
-            ctx.plan = cast(survey_plan.SurveyPlan, raw)
+            ctx.plan = P.load(X.BATCHES.locate(ctx), survey_plan.SurveyPlan)
             print("층 계획을 디스크에서 읽었다 — %s" % X.BATCHES.locate(ctx), flush=True)
         if not ctx.cold:
             d = D.read_diff(X.CHANGES.locate(ctx))

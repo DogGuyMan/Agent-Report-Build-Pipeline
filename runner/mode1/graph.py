@@ -64,11 +64,8 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        raw = P.read_json(X.CODEGRAPH.locate(ctx))
-        bad = X.check_codegraph(raw)
-        if bad:
-            return P.Outcome(P.FAIL, "; ".join(bad), [self.row(t0, False, "; ".join(bad))])
-        cg = cast(survey_plan.CodeGraph, raw)   # check 뒤의 좁히기 cast
+        # 기계축 선언(`CodeGraph`)이 실물과 어긋나 최상위만 검증하고 넘길 때 `cast` 한다.
+        cg = cast(survey_plan.CodeGraph, P.load(X.CODEGRAPH.locate(ctx), X.CodeGraphDoc))
         only = None if ctx.cold else ctx.targets
         ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
         out_path = X.BATCHES.locate(ctx)

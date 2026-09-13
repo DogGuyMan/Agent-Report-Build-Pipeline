@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
+import survey_plan  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
 from mode1 import edges as E  # noqa: E402
@@ -45,15 +46,22 @@ def test_산출물은_저장소_아래_자리를_가리킨다(tmp_path: Path):
     assert X.BATCHES.locate(c).endswith("batches.json")
 
 
-def test_코드지도_검사는_최상위_열쇠만_본다():
-    assert X.check_codegraph({"nodes": [], "edges": []}) == []
-    assert X.check_codegraph({"nodes": "x"}) != []
-    assert X.check_codegraph([]) != []
+def test_코드지도_검사는_최상위_열쇠만_본다(tmp_path: Path):
+    p = tmp_path / "cg.json"
+    p.write_text('{"nodes": [{"file": null}], "edges": [], "language": "py"}')   # 기계축 실물처럼 null 이 있어도 통과
+    assert P.check_file(str(p), X.CodeGraphDoc) == []
+    p.write_text('{"nodes": "x"}')
+    assert P.check_file(str(p), X.CodeGraphDoc) != []
+    p.write_text('[]')
+    assert P.check_file(str(p), X.CodeGraphDoc) != []
 
 
-def test_층계획_검사는_층과_합계를_본다():
-    assert X.check_batches({"target": 8, "layers": [], "totals": {}}) == []
-    assert X.check_batches({"layers": {}}) != []
+def test_층계획_검사는_실제_형으로_본다(tmp_path: Path):
+    p = tmp_path / "b.json"
+    p.write_text(json.dumps(_empty_plan()))
+    assert X.BATCHES.schema is not None and P.check_file(str(p), X.BATCHES.schema) == []
+    p.write_text('{"layers": {}}')
+    assert P.check_file(str(p), X.BATCHES.schema) != []
 
 
 # ── 2. 형 · 읽기 레코드 자리 · 바닥 ──────────────────────────────────────
@@ -106,10 +114,18 @@ def test_전량이면_targets_가_None_이다(tmp_path: Path):
     assert got is not None and got["targets"] is None
 
 
-def test_diff_검사는_넷_갈래가_다_있어야_통과한다():
-    assert D.check_diff({"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}) == []
-    assert D.check_diff({"verdicts": {"유효": []}, "targets": None, "hops": 1, "tracked": 0}) != []
-    assert X.CHANGES.check is D.check_diff
+def test_diff_검사는_형으로_보고_갈래_넷은_쓰는_쪽이_채운다(tmp_path: Path):
+    assert X.CHANGES.schema is D.WarmupDiff
+    p = tmp_path / "d.json"
+    p.write_text(json.dumps({"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}))
+    assert P.check_file(str(p), D.WarmupDiff) == []
+    p.write_text(json.dumps({"verdicts": {"유효": "x"}, "targets": None, "hops": 1, "tracked": 0}))
+    assert P.check_file(str(p), D.WarmupDiff) != []          # 값이 배열이 아니다
+    p.write_text(json.dumps({"verdicts": {}, "targets": "x", "hops": 1, "tracked": 0}))
+    assert P.check_file(str(p), D.WarmupDiff) != []          # targets 가 null 도 배열도 아니다
+    assert D.read_diff(str(tmp_path / "없음.json")) is None
+    got = D.write_diff(str(p), {"재읽기": ["b.py"]}, None, 1, 1)   # 갈래를 덜 줘도 넷이 채워진다
+    assert set(got["verdicts"]) == set(D.BUCKETS)
 
 
 def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
@@ -138,9 +154,12 @@ def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
 # ── 5. 기계 단계와 층 계획 ──────────────────────────────────────────────
 
 
-def _plan_with(files: list[str]) -> dict[str, object]:
-    """배치 하나짜리 계획. ⚠ 이것으로 `annotate-symbols` 를 돌리면 세션이 실제로 뜬다 — 대조 시험에만 쓴다."""
-    syms = [{"name": f + ".S", "file": f} for f in files]
+def _plan_with(files: list[str]) -> survey_plan.SurveyPlan:
+    """배치 하나짜리 계획 — 실제 `SurveyPlan` 꼴이라 msgspec 검증을 통과한다.
+    ⚠ 이것으로 `annotate-symbols` 를 돌리면 세션이 실제로 뜬다 — 대조 시험에만 쓴다."""
+    syms: list[survey_plan.PlanSymbol] = [
+        {"id": f + ".S", "name": f + ".S", "file": f, "line": 1, "kind": "function", "in_cycle": False, "depends_on": []}
+        for f in files]
     return {"target": 8, "layers": [{"level": 0, "symbol_count": len(syms), "file_count": len(files),
             "batches": [{"id": "L0-B00", "files": files, "symbols": syms}]}],
             "totals": {"symbols": len(syms), "edges": 0, "levels": 1, "cyclic_symbols": 0}}
@@ -170,7 +189,7 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
     seen: dict[str, object] = {}
 
-    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> dict[str, object]:
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
         seen["only"] = only_files
         return _plan_with([])
     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
@@ -182,7 +201,7 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
 
 def test_계획_요약은_층과_합계를_낸다():
     plan = _plan_with(["a.py"])
-    lines = G.ScheduleBatchesStage.plan_summary(plan)  # type: ignore[arg-type]
+    lines = G.ScheduleBatchesStage.plan_summary(plan)
     assert lines[0].startswith("  층0") and "합계" in lines[-1]
 
 
@@ -329,7 +348,7 @@ def test_지문은_옛_이름도_읽고_새_이름으로_쓴다(tmp_path: Path):
 # ── 8. 전수조사 — 계획과 diff 의 대조 · 샤드 병합 · 층 돌기 ─────────────
 
 
-def _empty_plan() -> dict[str, object]:
+def _empty_plan() -> survey_plan.SurveyPlan:
     """층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다."""
     return {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
 
@@ -390,10 +409,11 @@ def test_샤드를_합치고_충돌은_전원을_개명한다(tmp_path: Path):
 
 
 def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
-    b = {"id": "L1-B00", "files": ["a.py"], "symbols": [{"name": "f", "kind": "function", "file": "a.py", "line": 1}]}
-    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)  # type: ignore[arg-type]
+    b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
+        {"id": "f", "name": "f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)
     assert "## 범위" in p and "_shards/L1-B00.json" in p
-    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")  # type: ignore[arg-type]
+    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
 
 
 # ── 9. 위키 목차와 장 ───────────────────────────────────────────────────

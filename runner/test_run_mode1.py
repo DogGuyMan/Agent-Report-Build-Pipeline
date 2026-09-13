@@ -32,7 +32,7 @@ def test_usage_totals_include_cache():
     got = R.normalize_usage({
         "usage": {"input_tokens": 9, "output_tokens": 52,
                   "cache_read_input_tokens": 13595, "cache_creation_input_tokens": 17213},
-        "total_cost_usd": 0.036, "num_turns": 1, "duration_ms": 1977, "duration_api_ms": 1657,
+        "total_cost_usd": 0.036, "num_turns": 1, "duration_api_ms": 1657,
     })
     assert got["input"] == 9
     assert got["output"] == 52
@@ -74,9 +74,9 @@ def test_usage_sums_across_stages():
 # 쓰는 것: runner.run_mode1.agent_verdict · 쓰이는 곳: 없음
 # ── 3. 실패 판정 — 종료 코드만 믿지 않는다
 def test_agent_result_is_a_failure_when_is_error_is_set():
-    ok, why = R.agent_verdict(0, {"type": "result", "subtype": "success", "is_error": False})
+    ok, why = R.agent_verdict(0, {"subtype": "success", "is_error": False})
     assert ok and why == ""
-    bad, why = R.agent_verdict(0, {"type": "result", "subtype": "error_max_turns", "is_error": True})
+    bad, why = R.agent_verdict(0, {"subtype": "error_max_turns", "is_error": True})
     assert not bad and "error_max_turns" in why
 
 
@@ -84,7 +84,7 @@ def test_agent_result_is_a_failure_when_is_error_is_set():
 # 결과 JSON 자체는 성공을 말해도 프로세스 종료 코드가 0 이 아니면 전체 판정은 실패여야 한다는 것을 보는 시험이다.
 # 쓰는 것: runner.run_mode1.agent_verdict · 쓰이는 곳: 없음
 def test_agent_result_is_a_failure_when_the_process_died():
-    ok, why = R.agent_verdict(1, {"type": "result", "subtype": "success", "is_error": False})
+    ok, why = R.agent_verdict(1, {"subtype": "success", "is_error": False})
     assert not ok and "종료 코드 1" in why
 
 

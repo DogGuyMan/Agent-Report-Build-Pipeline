@@ -113,6 +113,8 @@ from runner.term.quiz import QUESTIONS_PER_TERM, CHOICES_PER_QUESTION, flatten_q
 # 재는 코드(`hms` · `Heartbeat` · `normalize_usage` · `format_report` …)의 원본은
 # `measure.py` 하나뿐이다. 여기에는 사본이 없다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import msgspec  # noqa: E402
+
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 
@@ -186,6 +188,38 @@ def _text(v: object) -> str:
     return str(v) if v else ""
 
 
+class Question(TypedDict, total=False):
+    """`questions.json` 의 문항 하나. LLM 이 쓰고 사람이 손댈 수 있어 칸은 전부 선택이다 —
+    있는 칸의 형만 msgspec 이 보고, 개수 · 자리 · 빈 문구는 `validate_questions` 가 본다."""
+    ask: str
+    choices: list[str]
+    answer: int
+
+
+class TermEntry(TypedDict, total=False):
+    term: str
+    means: str
+    questions: list[Question]
+
+
+class QuestionsDoc(TypedDict, total=False):
+    plan: str
+    terms: list[TermEntry]
+    excluded: list[TermEntry]
+
+
+class Candidates(TypedDict, total=False):
+    """`term-candidates.json`."""
+    known: dict[str, object]
+    newConcepts: list[str]
+
+
+class SheetDoc(TypedDict, total=False):
+    """사람이 채운 `answers.json`. 칸 안은 무엇이든 올 수 있어 `validate_answers` 가 하나씩 본다."""
+    plan: str
+    questions: list[dict[str, object]]
+
+
 def split_new_concepts(new_concepts: Iterable[str],
                        answer_key: object) -> tuple[list[str], list[str]]:
     """Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다.
@@ -197,10 +231,11 @@ def split_new_concepts(new_concepts: Iterable[str],
 
     `(출제할 것, 미룰 것)` 두 목록을 원래 순서 그대로 낸다.
     """
+    key = msgspec.convert(answer_key, dict[str, object]) if answer_key is not None else {}
     ready: list[str] = []
     held: list[str] = []
     for t in new_concepts:
-        if _text(M.as_map(answer_key).get(t)).strip():
+        if _text(key.get(t)).strip():
             ready.append(t)
         else:
             held.append(t)
@@ -218,32 +253,34 @@ def validate_questions(doc: object) -> list[str]:
     """
     out: list[str] = []
     spots: list[int] = []        # spots — 정답이 놓인 자리. 한곳에 몰렸는지 뒤에서 본다
-    # 형 주석은 무엇이 올 것이라 보고 짰는지를 적은 것이고, 실제 검사는 `isinstance` 다 —
-    # 문항지는 LLM Model이 쓰고 사람이 손댈 수 있는 JSON 이라 무엇이든 올 수 있다.
-    terms = M.as_list(M.as_map(doc).get("terms"))
+    # 꼴은 msgspec 이 본다(있는 칸의 형). 개수 · 자리 · 빈 문구는 아래가 본다 —
+    # 문항지는 LLM Model이 쓰고 사람이 손댈 수 있는 JSON 이라 그 둘을 갈라 잡는다.
+    try:
+        d = msgspec.convert(doc, QuestionsDoc)
+    except msgspec.ValidationError as e:
+        return ["문항지의 꼴이 틀리다 — %s" % e]
+    terms = d.get("terms", [])
     if not terms:
         return ["문항지에 용어가 하나도 없다 — `terms` 배열이 비었거나 없다"]
 
-    for i, entry in enumerate(terms):
-        칸 = M.as_map(entry)
-        name = _text(칸.get("term")).strip()
+    for i, 칸 in enumerate(terms):
+        name = 칸.get("term", "").strip()
         head = name or "(이름 없는 %d번째 용어)" % (i + 1)
         if not name:
             out.append("%s — `term` 이 비었다" % head)
-        if not _text(칸.get("means")).strip():
+        if not 칸.get("means", "").strip():
             out.append("%s — `means`(뜻)가 비었다. 비면 용어집에 뜻 없는 항목이 실린다" % head)
 
-        qs = M.as_list(칸.get("questions"))
+        qs = 칸.get("questions", [])
         if len(qs) != QUESTIONS_PER_TERM:
             out.append("%s — %d문항이어야 하는데 %d개다"
                        % (head, QUESTIONS_PER_TERM, len(qs)))
 
-        for j, q in enumerate(qs):
-            물음 = M.as_map(q)
+        for j, 물음 in enumerate(qs):
             tag = "%s 문항 %d" % (head, j + 1)
-            if not _text(물음.get("ask")).strip():
+            if not 물음.get("ask", "").strip():
                 out.append("%s — 물음(`ask`)이 비었다" % tag)
-            choices = M.as_list(물음.get("choices"))
+            choices = 물음.get("choices", [])
             if len(choices) != CHOICES_PER_QUESTION:
                 out.append("%s — 보기는 실제 뜻 %d개에 \"%s\" 를 더해 정확히 %d개여야 하는데 %d개다"
                            % (tag, CHOICES_PER_QUESTION - 1, DONT_KNOW,
@@ -255,8 +292,7 @@ def validate_questions(doc: object) -> list[str]:
             if len(set(choices)) != len(choices):
                 out.append("%s — 보기가 서로 겹친다" % tag)
             ans = 물음.get("answer")
-            if not isinstance(ans, int) or isinstance(ans, bool) \
-                    or ans < 0 or ans >= len(choices):
+            if ans is None or ans < 0 or ans >= len(choices):   # bool · 문자열은 msgspec 이 위에서 거부했다
                 out.append("%s — 정답 자리(`answer`)가 보기 밖이다: %r" % (tag, ans))
             elif ans == len(choices) - 1:
                 out.append("%s — 정답이 \"%s\" 를 가리킨다" % (tag, DONT_KNOW))
@@ -276,11 +312,10 @@ def unasked_known(candidates: object, doc: object) -> list[str]:
 
     판정하지 않고 **목록만** 낸다. 좁힐지 되살릴지는 사람이 정한다.
     """
-    known = M.as_map(M.as_map(candidates).get("known"))
-    asked = {_text(M.as_map(e).get("term"))
-             for e in M.as_list(M.as_map(doc).get("terms"))}
-    noted = {_text(M.as_map(e).get("term"))
-             for e in M.as_list(M.as_map(doc).get("excluded"))}
+    known = msgspec.convert(candidates, Candidates).get("known", {})
+    d = msgspec.convert(doc, QuestionsDoc)
+    asked = {e.get("term", "") for e in d.get("terms", [])}
+    noted = {e.get("term", "") for e in d.get("excluded", [])}
     return sorted(t for t in known if t not in asked and t not in noted)
 
 
@@ -311,18 +346,19 @@ def answer_sheet(doc: object) -> AnswerSheet:
     **정답(`answer`)을 싣지 않는 것이 이 함수의 요점이다.** 사람은 `UserAns` 에 고른
     보기 번호만 적고, 맞힌 수는 기계가 센다.
     """
+    d = msgspec.convert(doc, QuestionsDoc)
     questions: list[SheetQuestion] = []
-    for q_dict in flatten_questions(M.as_map(doc)):
-        q = M.as_map(q_dict.get("Raw"))
-        choices = M.as_list(q.get("choices"))
+    for q_dict in flatten_questions(cast(dict[str, object], d)):
+        q = msgspec.convert(q_dict.get("Raw"), Question)
+        choices = q.get("choices", [])
         questions.append({
-            "QNum": M.as_int(q_dict.get("QNum")),
+            "QNum": msgspec.convert(q_dict.get("QNum"), int),
             "Term": _text(q_dict.get("Term")),
-            "Question": _text(q.get("ask")),
-            "AnsChoices": {str(i + 1): _text(c) for i, c in enumerate(choices)},
+            "Question": q.get("ask", ""),
+            "AnsChoices": {str(i + 1): c for i, c in enumerate(choices)},
             "UserAns": "",
         })
-    return {"plan": _text(M.as_map(doc).get("plan")), "questions": questions}
+    return {"plan": d.get("plan", ""), "questions": questions}
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.validate_answers']"/>
@@ -337,16 +373,17 @@ def validate_answers(sheet: object, doc: object) -> list[str]:
     **빈 칸은 오류다.** 넘어가면 안 푼 문항이 틀린 문항으로 세어진다.
     """
     out: list[str] = []
-    want = flatten_questions(M.as_map(doc))
-    raw_got = M.as_map(sheet).get("questions")
-    got = M.as_list(raw_got)
-    # 목록이 아닌 것과 빈 목록은 다르다 — 앞엣것만 여기서 죽는다.
-    if not got and not isinstance(raw_got, list):
+    try:
+        d = msgspec.convert(doc, QuestionsDoc)
+        s = msgspec.convert(sheet, SheetDoc)
+    except msgspec.ValidationError as e:
+        return ["기입란 파일이 아니다 — %s" % e]
+    want = flatten_questions(cast(dict[str, object], d))
+    if "questions" not in s:
         return ["기입란 파일이 아니다 — `questions` 배열이 없다"]
 
     seen: dict[int, dict[str, object]] = {}
-    for i, raw_rec in enumerate(got):
-        칸 = M.as_map(raw_rec)
+    for i, 칸 in enumerate(s["questions"]):
         num = 칸.get("QNum")
         if not isinstance(num, int) or isinstance(num, bool):
             out.append("%d번째 칸 — `QNum` 이 정수가 아니다: %r" % (i + 1, 칸.get("QNum")))
@@ -356,9 +393,9 @@ def validate_answers(sheet: object, doc: object) -> list[str]:
         seen[num] = 칸
 
     for q_dict in want:
-        num = M.as_int(q_dict.get("QNum"))
+        num = msgspec.convert(q_dict.get("QNum"), int)
         term = _text(q_dict.get("Term"))
-        q = M.as_map(q_dict.get("Raw"))
+        q = msgspec.convert(q_dict.get("Raw"), Question)
         rec = seen.pop(num, None)
         if rec is None:
             out.append("%d번(%s) — 문항은 냈는데 답안이 없다" % (num, term))
@@ -366,7 +403,7 @@ def validate_answers(sheet: object, doc: object) -> list[str]:
         if _text(rec.get("Term")) != term:
             out.append("%d번 — 용어가 어긋난다. 문항지는 %r 인데 답안은 %r 이다"
                        % (num, term, rec.get("Term")))
-        if _text(rec.get("Question")) != _text(q.get("ask")):
+        if _text(rec.get("Question")) != q.get("ask", ""):
             out.append("%d번(%s) — 물음 문구가 문항지와 다르다" % (num, term))
         ans = choice_number(rec.get("UserAns"))
         if ans is None:
@@ -514,15 +551,6 @@ def format_run(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] | 
 
 
 # ── 7. 실제로 돌리기 (부수효과는 이 아래에만 있다) ──────────────────────
-def _read_json(path: str) -> object:
-    """있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다."""
-    try:
-        with open(path, encoding="utf-8") as f:
-            return cast(object, json.load(f))
-    except (OSError, ValueError):
-        return None
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.run_machine']"/>
 # 기계 단계 하나(collect/grade/emit 등)를 실제로 실행시키는 함수다.
 # 쓰는 것: runner.run_mode1.Heartbeat · 쓰이는 곳: runner.run_grade.main
@@ -605,11 +633,11 @@ class GradeStage(Mode15Machine):
 
     def reads(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
         """채운 기입란이 문항지와 아귀가 맞는지 채점 **전에** 본다."""
-        doc = P.read_json(ctx.p_ques)
+        doc = P.load(ctx.p_ques, QuestionsDoc) if os.path.exists(ctx.p_ques) else None
         return [P.Artifact[Mode15Context](QUESTIONS, lambda c: c.p_ques,
-                                          check=validate_questions),
+                                          QuestionsDoc, validate_questions),
                 P.Artifact[Mode15Context](ANSWERS, lambda c: c.p_ans,
-                                          check=lambda raw: validate_answers(raw, doc))]
+                                          SheetDoc, lambda raw: validate_answers(raw, doc))]
 
     def writes(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]:
         return [GRADES_ART]
@@ -634,16 +662,16 @@ class GateStage(P.Stage[Mode15Context]):
     emits = P.OK | P.GATE
 
     def perform(self, ctx: Mode15Context) -> P.Outcome:
-        doc = P.read_json(ctx.p_ques)
-        if not M.as_map(doc):
+        if not os.path.exists(ctx.p_ques):
             return P.Outcome(P.OK, "문항지가 아직 없다")
+        doc = P.load(ctx.p_ques, QuestionsDoc)
         with open(ctx.p_sheet, "w", encoding="utf-8") as f:
             json.dump(answer_sheet(doc), f, ensure_ascii=False, indent=2)
             f.write("\n")
-        cand = P.read_json(ctx.p_cand)
-        concepts = [t for t in M.as_list(M.as_map(cand).get("newConcepts"))
-                    if isinstance(t, str)]
-        _, held = split_new_concepts(concepts, P.read_json(ctx.p_key))
+        cand = P.load(ctx.p_cand, Candidates) if os.path.exists(ctx.p_cand) else Candidates()
+        concepts = cand.get("newConcepts", [])
+        key = P.load(ctx.p_key, dict[str, object]) if os.path.exists(ctx.p_key) else None
+        _, held = split_new_concepts(concepts, key)
         ctx.gate = gate_notice(ctx.p_ques, ctx.p_sheet, ctx.p_ans, held, ctx.p_key,
                                unasked=unasked_known(cand, doc))
         return P.Outcome(P.GATE, "사람 차례")
@@ -736,9 +764,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # 문항지가 있으면 **무엇을 돌리기 전에** 채점 가능한 꼴인지 본다.
     # 출제는 스킬이 하고 검사는 여기가 한다 — `quiz.py` 는 꼴을 보지 않는다.
     if os.path.exists(ctx.p_ques):
-        doc = _read_json(ctx.p_ques)
-        complaints = validate_questions(doc) if doc is not None \
-            else ["%s 을 읽지 못했다" % ctx.p_ques]
+        try:
+            complaints = validate_questions(P.load(ctx.p_ques, object))
+        except msgspec.DecodeError as e:
+            complaints = ["%s 을 읽지 못했다 — %s" % (ctx.p_ques, e)]
         if complaints:
             for c in complaints:
                 print("  문항지 — %s" % c, file=sys.stderr)

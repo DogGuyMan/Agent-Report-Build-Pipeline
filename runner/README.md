@@ -66,15 +66,13 @@
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`ClaudeUsage`** | *class* | `claude -p --output-format json` 의 `usage`. 칸은 빠질 수 있고, 있으면 정수여야 한다. |
+| **`ClaudeResult`** | *class* | `claude -p --output-format json` 이 stdout 으로 내는 객체 하나. |
+| `parse_result` | `(text: str \| bytes) -> ClaudeResult` | `claude` 의 stdout 을 형으로 읽는다. 깨졌으면 `DecodeError`, 꼴이 틀리면 `ValidationError`. |
 | **`StageRow`** | *class* | 측정 표의 한 줄. 세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다. |
-| `as_map` | `(v: object) -> dict[str, object]` | 열쇠가 문자열인 사전이면 그것을, 아니면 빈 사전을 낸다. |
-| `as_list` | `(v: object) -> list[object]` | 목록이면 원소를 `object` 로 본 사본을, 아니면 빈 목록을 낸다. |
-| `as_int` | `(v: object) -> int` | 정수면 그것을, 아니면 0. `bool` 은 정수가 아니다 — 참/거짓이 수로 세어지면 안 된다. |
-| `as_float` | `(v: object) -> float` | 정수나 실수면 실수로, 아니면 0.0. `bool` 은 제외한다. |
-| `as_str` | `(v: object) -> str` | 문자열이면 그것을, 아니면 빈 문자열. |
-| `normalize_usage` | `(result: AgentResult \| None) -> Usage` | `claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다. |
+| `normalize_usage` | `(result: ClaudeResult \| None) -> Usage` | `claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다. |
 | `sum_usage` | `(usages: Sequence[Usage]) -> Usage` | `normalize_usage` 가 낸 사전들을 열쇠별로 접는다. 표 맨 아래 '합계' 줄이 이것이다. |
-| `agent_verdict` | `(returncode: int, result: AgentResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
+| `agent_verdict` | `(returncode: int, result: ClaudeResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
 | `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
 | `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
 | `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 실행기의 산출물 본체다. |
@@ -100,11 +98,9 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `_no_levels` | `() -> dict[str, int]` |  |
 | **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
-| `check_codegraph` | `(obj: object) -> list[str]` |  |
-| `check_batches` | `(obj: object) -> list[str]` |  |
-| `check_lang_select` | `(obj: object) -> list[str]` |  |
-| `check_outline` | `(obj: object) -> list[str]` |  |
-| `check_reading` | `(obj: object) -> list[str]` |  |
+| **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과 |
+| **`LangSelect`** | *class* | `lang-select.json`. `language` 는 못 골랐으면 `null` 이다. |
+| **`Outline`** | *class* | `outline.json`. |
 | `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
 | `snapshot_path` | `(c: Mode1Context) -> str` | 읽을 지문 파일. `snapshot.json` 이 없고 옛 이름 `warmup.json` 이 있으면 그것을 읽는다. |
 
@@ -118,9 +114,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 |---|---|---|
 | **`WarmupDiff`** | *class* | `targets` 가 `None` 이면 판정 불가 = 전량이다. |
 | `write_diff` | `(path: str, verdicts: warmup.Verdicts, targets: list[str] \| None, hops: int, tracked: int) -> WarmupDiff` |  |
-| `_str_list` | `(v: object) -> list[str] \| None` | 문자열만 든 목록이면 그것을, 아니면 `None`. `as_list` 를 좁히기 전에 부른다 — 뒤에 부르면 원소 형을 잃는다. |
-| `check_diff` | `(obj: object) -> list[str]` |  |
-| `read_diff` | `(path: str) -> WarmupDiff \| None` |  |
+| `read_diff` | `(path: str) -> WarmupDiff \| None` | 없으면 `None`. 있는데 꼴이 틀리면 예외다 — 드라이버가 받는다. |
 | `all_files` | `(d: WarmupDiff) -> set[str]` | 지금 존재하는 추적 파일 전체. `삭제됨` 은 뺀다. |
 
 ---
@@ -206,7 +200,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 |---|---|---|
 | **`ResumeDoc`** | *class* |  |
 | `write_resume` | `(path: str, graph: str, rows: list[M.StageRow], order: list[str]) -> ResumeDoc \| None` | 실패한 행이 없으면 아무것도 쓰지 않고 `None`. 있으면 쓴다. |
-| `read_resume` | `(path: str) -> ResumeDoc \| None` | `rows` 는 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 범위 밖이다. |
+| `read_resume` | `(path: str) -> ResumeDoc \| None` | 없으면 `None`. 있는데 꼴이 틀리면 예외다. |
 | `start_stage` | `(doc: ResumeDoc \| None, for_graph: str) -> str \| None` | 이 그래프용 재개 문서면 시작할 단계를, 아니면 `None`. |
 
 ---
@@ -251,8 +245,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
 | `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
 | `AnnotateSymbolsStage.qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
-| `AnnotateSymbolsStage.plan_files` | `(plan: object) -> set[str]` | 계획에 든 배치들이 가리키는 파일 집합. |
-| `AnnotateSymbolsStage.compare_plan` | `(plan: object, d: D.WarmupDiff) -> list[str]` | 계획과 diff 가 같은 범위를 말하는지 양방향으로 본다. 불평 목록을 낸다. |
+| `AnnotateSymbolsStage.plan_files` | `(plan: survey_plan.SurveyPlan) -> set[str]` | 계획에 든 배치들이 가리키는 파일 집합. |
+| `AnnotateSymbolsStage.compare_plan` | `(plan: survey_plan.SurveyPlan, d: D.WarmupDiff) -> list[str]` | 계획과 diff 가 같은 범위를 말하는지 양방향으로 본다. 불평 목록을 낸다. |
 | `AnnotateSymbolsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
 | `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
@@ -317,7 +311,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`Outcome`** | *class* | `perform()` 이 낸 것. 갈래는 정확히 하나이고, 세션 N개면 행도 N개다. |
 | **`RunContext`** | *class* | 세 모드가 공유하는 칸만. 모드마다 이것을 상속해 자기 칸을 더한다. |
 | **`Artifact`** | *class* | 단계가 읽고 쓰는 파일 하나. 자리는 `ctx` 가 정하므로 경로를 박지 않는다. |
-| `read_json` | `(path: str) -> object` | `json.load` 의 `Any` 를 `object` 로 좁히는 유일한 자리. 못 읽으면 `None`. |
+| `load` | `(path: str, t: type[T]) -> T` | JSON 파일을 형 `t` 로 읽는다. 없거나 깨졌거나 꼴이 틀리면 예외다 — 여기서 잡지 않는다. |
+| `check_file` | `(path: str, schema: type[object] \| None, check: Callable[[object], list[str]] \| None = None) -> list[str]` | 꼴을 먼저, 통과하면 뜻을 본다. 불평 목록을 낸다. 산출물 경계에서만 쓴다. |
 | **`Stage`** | *class* | 단계 하나. `emits` 는 **선언**이고 실제로 난 갈래는 `perform` 이 반환한다. |
 | `Stage.reads` | `(self, ctx: C) -> list[Artifact[C]]` | 돌기 전에 있어야 하는 것. 없으면 단계를 돌리지 않는다. |
 | `Stage.writes` | `(self, ctx: C) -> list[Artifact[C]]` | **돌고 나면 있어야 하는 것.** 꼴이 어긋나면 `FAIL` 이 된다. |
@@ -386,6 +381,11 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `human_gate_open` | `(has_answers: bool) -> bool` | 사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다. |
 | `_text` | `(v: object) -> str` | `str(v or "")` 와 같다. 숫자가 와도 글자로 본다. |
+| **`Question`** | *class* | `questions.json` 의 문항 하나. LLM 이 쓰고 사람이 손댈 수 있어 칸은 전부 선택이다 — |
+| **`TermEntry`** | *class* |  |
+| **`QuestionsDoc`** | *class* |  |
+| **`Candidates`** | *class* | `term-candidates.json`. |
+| **`SheetDoc`** | *class* | 사람이 채운 `answers.json`. 칸 안은 무엇이든 올 수 있어 `validate_answers` 가 하나씩 본다. |
 | `split_new_concepts` | `(new_concepts: Iterable[str], answer_key: object) -> tuple[list[str], list[str]]` | Plan 이 새로 만든 개념을 **출제할 것**과 **미룰 것**으로 가른다. |
 | `validate_questions` | `(doc: object) -> list[str]` | `questions.json` 이 채점 가능한 꼴인지 본다. 불평 목록을 낸다(없으면 빈 목록). |
 | `unasked_known` | `(candidates: object, doc: object) -> list[str]` | 후보의 `known` 중 **출제도 안 되고 뺀 이유도 안 적힌** 용어를 낸다. |
@@ -401,7 +401,6 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
-| `_read_json` | `(path: str) -> object` | 있으면 읽고 없거나 깨졌으면 `None`. 재개 판단은 파일 존재만으로 하지 않는다. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다. |
 | **`Mode15Context`** | *class* | Mode 1.5 의 단계 사이를 건너다니는 값. 산출 파일 자리는 `workdir` 이 정한다. |
 | `Mode15Context.p_cand` | `(self) -> str` |  |
@@ -523,13 +522,9 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `test_문자열_열쇠_사전만_통과시킨다` | `()` |  |
-| `test_정수가_아니면_0이다` | `()` |  |
-| `test_수가_아니면_0점0이다` | `()` |  |
-| `test_문자열이_아니면_빈_문자열이다` | `()` |  |
 | `test_토큰_합계는_캐시_둘을_포함한다` | `()` |  |
 | `test_결과가_없으면_전부_0이다` | `()` |  |
-| `test_망가진_값은_예외가_아니라_0이다` | `()` |  |
+| `test_망가진_값은_읽는_자리에서_거부된다` | `()` | 옛 정책(조용히 0)을 뒤집었다 — 꼴이 틀린 결과는 `parse_result` 가 던지고 세션 행이 실패로 남는다. |
 | `test_사용량을_열쇠별로_접는다` | `()` |  |
 | `test_종료_코드가_0이어도_is_error_면_실패다` | `()` |  |
 | `test_결과_JSON_이_없으면_실패다` | `()` |  |
@@ -542,9 +537,10 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_건너뛴_단계는_실패가_아니다` | `()` |  |
 | `test_배치_행을_단계_이름으로_접는다` | `()` |  |
 | `test_하트비트는_문맥_관리자다` | `()` |  |
-| `test_as_list_는_목록이_아니면_빈_목록이다` | `()` |  |
-| `test_as_list_는_원소를_그대로_낸다` | `()` |  |
-| `test_as_list_는_사본이라_원본을_건드리지_않는다` | `()` |  |
+| `test_결과_JSON_은_형으로_읽힌다` | `()` |  |
+| `test_토큰_칸에_참거짓이나_문자열이_오면_거부한다` | `()` |  |
+| `test_깨진_JSON_은_DecodeError_다` | `()` |  |
+| `test_없는_칸은_0으로_센다` | `()` |  |
 
 ---
 
@@ -557,18 +553,18 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `_ctx` | `(tmp_path: Path) -> X.Mode1Context` |  |
 | `test_문맥의_기본값은_전량이_아니다` | `(tmp_path: Path)` |  |
 | `test_산출물은_저장소_아래_자리를_가리킨다` | `(tmp_path: Path)` |  |
-| `test_코드지도_검사는_최상위_열쇠만_본다` | `()` |  |
-| `test_층계획_검사는_층과_합계를_본다` | `()` |  |
+| `test_코드지도_검사는_최상위_열쇠만_본다` | `(tmp_path: Path)` |  |
+| `test_층계획_검사는_실제_형으로_본다` | `(tmp_path: Path)` |  |
 | `test_읽기_레코드_자리는_자기호스팅만_다르다` | `(tmp_path: Path)` |  |
 | `test_측정_행은_단계_이름과_토큰_0_을_담는다` | `()` |  |
 | `test_기계_단계는_저장소를_cwd_로_한다` | `(tmp_path: Path)` |  |
 | `_verdicts` | `() -> dict[str, list[str]]` |  |
 | `test_diff_는_넷_갈래와_범위를_담는다` | `(tmp_path: Path)` |  |
 | `test_전량이면_targets_가_None_이다` | `(tmp_path: Path)` |  |
-| `test_diff_검사는_넷_갈래가_다_있어야_통과한다` | `()` |  |
+| `test_diff_검사는_형으로_보고_갈래_넷은_쓰는_쪽이_채운다` | `(tmp_path: Path)` |  |
 | `test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다` | `()` |  |
 | `test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다` | `()` |  |
-| `_plan_with` | `(files: list[str]) -> dict[str, object]` | 배치 하나짜리 계획. ⚠ 이것으로 `annotate-symbols` 를 돌리면 세션이 실제로 뜬다 — 대조 시험에만 쓴다. |
+| `_plan_with` | `(files: list[str]) -> survey_plan.SurveyPlan` | 배치 하나짜리 계획 — 실제 `SurveyPlan` 꼴이라 msgspec 검증을 통과한다. |
 | `test_기계_단계_다섯은_저장소를_cwd_로_한다` | `(tmp_path: Path)` |  |
 | `test_prep_은_전량이면_force_증분이면_diff_를_넘긴다` | `(tmp_path: Path)` |  |
 | `test_terms_argv_는_정적_지도를_위치_인자로_준다` | `()` |  |
@@ -588,7 +584,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_snapshot_sources_는_조사가_실패하면_쓰지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_snapshot_sources_는_전량이면_직접_훑어_찍는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_지문은_옛_이름도_읽고_새_이름으로_쓴다` | `(tmp_path: Path)` |  |
-| `_empty_plan` | `() -> dict[str, object]` | 층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다. |
+| `_empty_plan` | `() -> survey_plan.SurveyPlan` | 층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다. |
 | `_diff` | `(targets: list[str] \| None) -> D.WarmupDiff` |  |
 | `test_계획이_diff_보다_넓으면_잡는다` | `()` |  |
 | `test_계획이_diff_보다_좁으면_잡는다` | `()` |  |
@@ -623,6 +619,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`Terms`** | *class* | 시험용 산출물 꼴. |
 | `test_갈래_넷은_서로_다른_비트다` | `()` |  |
 | `test_Outcome_은_행_없이도_만들어진다` | `()` |  |
 | `test_Outcome_둘이_행_목록을_공유하지_않는다` | `()` |  |
@@ -637,6 +634,8 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_읽을_것이_없으면_이름으로_말해_준다` | `(tmp_path: Path)` |  |
 | `test_읽을_것이_있으면_불평이_없다` | `(tmp_path: Path)` |  |
 | `test_꼴이_어긋난_산출물은_불평이_된다` | `(tmp_path: Path)` |  |
+| `test_load_는_형으로_읽고_틀리면_던진다` | `(tmp_path: Path)` |  |
+| `test_단계_안의_꼴_예외는_FAIL_행이_된다` | `(tmp_path: Path)` |  |
 | `test_쓰지_못한_산출물은_없다고_말한다` | `(tmp_path: Path)` |  |
 | `test_전이표는_단계별_규칙을_먼저_본다` | `()` |  |
 | `test_전이표에_없는_갈래는_None_이다` | `()` |  |

@@ -61,6 +61,8 @@ from dataclasses import dataclass
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import msgspec  # noqa: E402
+
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 
@@ -324,8 +326,9 @@ def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
         p = subprocess.run(argv, input=prompt, cwd=project,
                            capture_output=True, text=True, timeout=timeout)
     try:
-        return p.returncode, json.loads(p.stdout)
-    except (ValueError, TypeError):
+        return p.returncode, M.parse_result(p.stdout)
+    except msgspec.DecodeError as e:
+        print("결과 JSON 이 꼴에 안 맞는다 — %s" % e, file=sys.stderr)
         tail = (p.stderr or p.stdout or "")[-800:]
         if tail:
             print(tail, file=sys.stderr)
@@ -431,7 +434,7 @@ class AgentStage(P.LlmStage[Mode2Context]):
                 rnd: int) -> P.Outcome:
         """LLM Model이 낸 글을 화면에 흘린 뒤 기본 거두기를 그대로 쓴다."""
         for _, _, _, result in got:
-            text = M.as_str(result.get("result")) if result else ""
+            text = result.get("result", "") if result else ""
             if text:
                 print(text)
         return super().harvest(ctx, got, rnd)

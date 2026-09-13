@@ -1,11 +1,10 @@
 """`detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다."""
-import json
 import os
 import sys
 import time
 
 import declmap
-import measure as M
+import msgspec
 import pipeline as P
 import warmup
 from mode1 import context as X
@@ -33,18 +32,19 @@ class SnapshotScan:
         if not codegraph_path:
             return None
         try:
-            with open(codegraph_path, encoding="utf-8") as f:
-                name = json.load(f).get("language")
-        except (OSError, ValueError):
+            raw = P.load(codegraph_path, dict[str, object]).get("language")
+        except (OSError, msgspec.DecodeError):
             return None
-        name = SnapshotScan.LANG_ALIAS.get(name, name)
+        if not isinstance(raw, str):
+            return None
+        name = SnapshotScan.LANG_ALIAS.get(raw, raw)
         return name if name in declmap.LANGS else None
 
     @staticmethod
     def lang_for(ctx: Mode1Context) -> str | None:
         """언어. `lang-select.json` 을 먼저, 없으면 코드 지도를 본다."""
-        sel = M.as_map(P.read_json(X.LANG_SELECT.locate(ctx)))
-        word = M.as_str(sel.get("language"))
+        p = X.LANG_SELECT.locate(ctx)
+        word = P.load(p, X.LangSelect)["language"] if os.path.exists(p) else None
         if word:
             name = SnapshotScan.LANG_ALIAS.get(word, word)
             return name if name in declmap.LANGS else None

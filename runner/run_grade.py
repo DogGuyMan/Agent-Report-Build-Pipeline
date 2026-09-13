@@ -30,6 +30,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # `run_mode1_5` 를 모듈 이름으로 부르려면 이 디렉토리가 sys.path 에 있어야 한다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import msgspec  # noqa: E402
+
+import pipeline as P  # noqa: E402
 import run_mode1_5 as Q  # noqa: E402
 
 
@@ -103,9 +106,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         answers = found
 
     # 문항지가 채점 가능한 꼴인지 먼저 본다 — `quiz.py` 는 꼴을 보지 않는다.
-    doc = Q._read_json(questions)  # pyright: ignore[reportPrivateUsage]
-    complaints = Q.validate_questions(doc) if doc is not None \
-        else ["%s 을 읽지 못했다" % questions]
+    try:
+        complaints = Q.validate_questions(P.load(questions, object))
+    except msgspec.DecodeError as e:
+        complaints = ["%s 을 읽지 못했다 — %s" % (questions, e)]
     if complaints:
         for c in complaints:
             print("  문항지 — %s" % c, file=sys.stderr)

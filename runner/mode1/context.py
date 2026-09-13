@@ -3,11 +3,11 @@ import os
 from dataclasses import dataclass, field
 from typing import NotRequired, TypedDict
 
-import measure as M
 import pipeline as P
 import survey_plan
 import warmup
-from mode1.diff import check_diff
+from mode1.diff import WarmupDiff
+from mode1.resume import ResumeDoc
 
 # 이 파일은 <ROOT>/runner/mode1/ 에 있다. 저장소 뿌리는 그 셋 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -72,44 +72,26 @@ def raw_dir(c: Mode1Context) -> str:
     return os.path.join(c.repo, "out", "codegraph-raw")
 
 
-# ── 산출물 검사. 최상위 열쇠와 성긴 형까지만 본다 ────────────────────────
+# ── 산출물의 꼴. `Artifact.schema` 가 되어 경계에서 msgspec 이 검증한다 ─────────
 
 
-def check_codegraph(obj: object) -> list[str]:
-    top = M.as_map(obj)
-    if not top:
-        return ["코드 지도가 객체가 아니다"]
-    out: list[str] = []
-    for k in ("nodes", "edges"):
-        if not isinstance(top.get(k), list):
-            out.append("`%s` 가 배열이 아니다" % k)
-    return out
+class CodeGraphDoc(TypedDict):
+    """`codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과
+    어긋나(`file` 에 `null` 이 온다) 러너는 열지 않는다 — `survey_plan.plan` 에 넘길 때 `cast` 한다.
+    """
+    nodes: list[dict[str, object]]
+    edges: list[dict[str, object]]
 
 
-def check_batches(obj: object) -> list[str]:
-    top = M.as_map(obj)
-    if not top:
-        return ["층 계획이 객체가 아니다"]
-    out: list[str] = []
-    if not isinstance(top.get("layers"), list):
-        out.append("`layers` 가 배열이 아니다")
-    if not isinstance(top.get("totals"), dict):
-        out.append("`totals` 가 객체가 아니다")
-    return out
+class LangSelect(TypedDict):
+    """`lang-select.json`. `language` 는 못 골랐으면 `null` 이다."""
+    language: str | None
+    collector: str
 
 
-def check_lang_select(obj: object) -> list[str]:
-    top = M.as_map(obj)
-    return [] if "collector" in top else ["`collector` 가 없다"]
-
-
-def check_outline(obj: object) -> list[str]:
-    top = M.as_map(obj)
-    return [] if isinstance(top.get("pages"), list) else ["`pages` 가 배열이 아니다"]
-
-
-def check_reading(obj: object) -> list[str]:
-    return [] if isinstance(obj, dict) else ["읽기 레코드가 객체가 아니다"]
+class Outline(TypedDict):
+    """`outline.json`."""
+    pages: list[WikiPage]
 
 
 def reading_path(repo: str, root: str) -> str:
@@ -126,25 +108,25 @@ def reading_path(repo: str, root: str) -> str:
 # ── 산출물 선언. 자리는 ctx 가 정한다 ────────────────────────────────────
 
 LANG_SELECT = P.Artifact[Mode1Context](
-    "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), check_lang_select)
+    "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), LangSelect)
 CODEGRAPH = P.Artifact[Mode1Context](
-    "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), check_codegraph)
+    "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), CodeGraphDoc)
 SNAPSHOT = P.Artifact[Mode1Context](
     "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
 CHANGES = P.Artifact[Mode1Context](
-    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), check_diff)
+    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), WarmupDiff)
 BATCHES = P.Artifact[Mode1Context](
-    "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), check_batches)
+    "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), survey_plan.SurveyPlan)
 READING = P.Artifact[Mode1Context](
-    "terms-reading.json", lambda c: reading_path(c.repo, c.root), check_reading)
+    "terms-reading.json", lambda c: reading_path(c.repo, c.root), Records)
 TERMS_DB = P.Artifact[Mode1Context](
     "terms-db.json", lambda c: os.path.join(raw_dir(c), "terms-db.json"))
 OUTLINE = P.Artifact[Mode1Context](
-    "outline.json", lambda c: os.path.join(raw_dir(c), "outline.json"), check_outline)
+    "outline.json", lambda c: os.path.join(raw_dir(c), "outline.json"), Outline)
 WIKI_DIR = P.Artifact[Mode1Context](
     "docs/wiki", lambda c: os.path.join(c.repo, "docs", "wiki"))
 RESUME = P.Artifact[Mode1Context](
-    "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"))
+    "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
 
 ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES,
              READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]

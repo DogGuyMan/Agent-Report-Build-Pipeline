@@ -3,9 +3,6 @@ import os
 import sys
 import time
 from collections.abc import Iterable, Mapping, Sequence
-from typing import cast
-
-import measure as M
 import pipeline as P
 import survey_plan
 from mode1 import context as X
@@ -170,9 +167,7 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
                lower=lower_pages or "  (없음 — 네가 첫 장이다)")
 
     def prepare(self, ctx: Mode1Context) -> None:
-        raw = P.read_json(X.OUTLINE.locate(ctx))
-        pages = [p for p in M.as_list(M.as_map(raw).get("pages")) if isinstance(M.as_map(p).get("file"), str)]
-        ctx.wiki_pages = [cast(WikiPage, p) for p in pages]
+        ctx.wiki_pages = P.load(X.OUTLINE.locate(ctx), X.Outline)["pages"]
         assert ctx.plan is not None
         lv = self.page_layers(ctx.wiki_pages, self.symbol_layers(ctx.plan))
         ctx.wiki_levels = sorted(set(lv.values()))
@@ -180,12 +175,8 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         ctx.wiki_done = []
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
-        t0 = time.monotonic()
         if ctx.plan is None:
-            raw = P.read_json(X.BATCHES.locate(ctx))
-            if X.check_batches(raw):
-                return P.Outcome(P.FAIL, "층 계획을 읽지 못했다", [self.row(t0, False, "층 계획을 읽지 못했다")])
-            ctx.plan = cast(survey_plan.SurveyPlan, raw)
+            ctx.plan = P.load(X.BATCHES.locate(ctx), survey_plan.SurveyPlan)
         self.prepare(ctx)
         return super().perform(ctx)
 

@@ -31,14 +31,8 @@ def write_resume(path: str, graph: str, rows: list[M.StageRow], order: list[str]
 
 
 def read_resume(path: str) -> ResumeDoc | None:
-    """`rows` 는 복원하지 않는다 — 측정을 이어 붙이는 것은 화면 표시용이라 범위 밖이다."""
-    top = M.as_map(P.read_json(path))
-    graph, at = M.as_str(top.get("graph")), M.as_str(top.get("failed_at"))
-    if not graph or not at:
-        return None
-    done = [x for x in M.as_list(top.get("done")) if isinstance(x, str)]
-    return {"graph": graph, "failed_at": at, "why": M.as_str(top.get("why")),
-            "done": done, "rows": []}
+    """없으면 `None`. 있는데 꼴이 틀리면 예외다."""
+    return P.load(path, ResumeDoc) if os.path.exists(path) else None
 
 
 def start_stage(doc: ResumeDoc | None, for_graph: str) -> str | None:

@@ -5,7 +5,6 @@ import sys
 import time
 from collections.abc import Sequence
 
-import measure as M
 import pipeline as P
 from mode1 import context as X
 from mode1.context import Mode1Context
@@ -62,7 +61,7 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
             return P.Outcome(P.SKIP, r["why"], [r])
         base = super().harvest(ctx, got, rnd)
         for _, _, rc, result in got:
-            word = M.as_str(M.as_map(result).get("result")).strip().strip("`.").lower()
+            word = (result.get("result", "") if result else "").strip().strip("`.").lower()
             if rc == 0 and word in LANG_WORDS:
                 ctx.proposed = word
         if base.kind != P.OK or ctx.proposed is None:
