@@ -13,8 +13,8 @@
 | `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 10개) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 여섯 `lang` · `scan` · `graph` · `survey` · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산과 프롬프트는 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
-| `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — 형 · 좁히기 도우미 · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
-| `pipeline.py` | 세 실행기가 함께 쓰는 **단계 기계** — 갈래 넷 · `Stage` · 전이표 · `StageDagGraph` · 시뮬레이터 · 드라이버 한 벌 · 팬아웃 호출. `measure.py` 와 같이 **`machine/` 을 import 하지 않는다** |
+| `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
+| `pipeline.py` | 세 실행기가 함께 쓰는 **단계 기계** — 갈래 넷 · `Stage` · `Artifact(schema · check)` · `load` · 전이표 · `StageDagGraph` · 시뮬레이터 · 드라이버 한 벌 · 팬아웃 호출. `measure.py` 와 같이 **`machine/` 을 import 하지 않는다** |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
@@ -111,7 +111,19 @@ if __name__ == "__main__":
 - **Gotcha — 형 자리의 `Any` 는 `pyright` 가 안 잡는다.** strict 모드는 `Unknown` 의 전파만
   잡고 손으로 적은 `Any` 는 통과시킨다(`reportExplicitAny` 는 basedpyright 전용이라 무시된다).
   `test/test_no_any.py` 가 글자로 막으며, 그 `COVERED` 목록이 지금 `Any` 0인 파일을 적어 둔다.
-  아직 남은 곳 — `run_mode1_5.py` 20곳 · `term/quiz.py` 12곳 · `wiki/check.py` 4곳.
+  아직 남은 곳 — `term/quiz.py` 12곳 · `wiki/check.py` 4곳.
+- **바깥 JSON 은 `TypedDict` + `msgspec` 으로 읽는다. 좁히기 도우미(`as_*`)는 없다.** 산출물은
+  `Artifact.schema`(꼴 — msgspec) 와 `check`(뜻 — 문항 수처럼 형으로 못 적는 규칙) 로 경계에서 검증하고,
+  단계 안에서는 `P.load(path, T)` · `msgspec.convert(obj, T)` 로 읽는다. **안 맞으면 예외**이고
+  `Pipeline.run` 이 `stage.perform` 둘레에서 `msgspec.DecodeError` 를 받아 `FAIL` 행으로 바꾼다 —
+  옛 정책(조용히 0·빈 값)을 뒤집은 것이다. LLM 결과도 `measure.parse_result` 가 `ClaudeResult` 로 검증한다.
+- **Gotcha — msgspec 은 한글 열쇠의 `TypedDict` 칸을 못 맞춘다** (🔵 0.21.1). 같은 파일의 리터럴(같은
+  인터닝 객체)일 때만 맞고 `json.loads` · `decode` 로 들어온 열쇠는 "missing required field" 다. 판정 갈래
+  `유효 · 재읽기 · 위치만 · 삭제됨` 은 그래서 `dict[str, list[str]]` 로 두고 넷이 다 있는 것은 쓰는 쪽이
+  보장한다. 우회가 꼭 필요하면 `msgspec.Struct` 의 `rename={"valid": "유효"}` 는 된다.
+- **Gotcha — 기계축 선언이 실물과 어긋난다.** `codegraph.json` 은 `survey_plan.CodeGraph` 로 strict 검증에
+  실패하고(`GraphNode.file` 에 `null`), `warmup.json` 은 `warmup.Manifest` 로 실패한다(`Entry.mtime` 없음).
+  러너는 `CodeGraphDoc`(최상위만)으로 보고 `cast` 로 넘긴다. 지문은 존재만 본다. 기계축 소유자 몫이다.
 - **Gotcha — Mode 2 의 원본 문서 자리 규칙이 두 곳에 중복돼 산다.** `run_mode2.py` 의
   `DOC_DIRS` 와 `../viz/init.py` 의 `DOC_DIRS` 가 같은 값이어야 한다(`specs/` 는
   `-design.md`, `plans/` 는 접미사 없음). 언어가 달라 한 곳에 못 모은다 — 한쪽만 고치면

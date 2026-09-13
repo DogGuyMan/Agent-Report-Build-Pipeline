@@ -1,6 +1,6 @@
 # RESUME — 러너 단계 기계 리팩터링 (3단계 완료 · 후속은 xmldoc 재주입 · 위키 재굽기 · 결함 ③④)
 
-> 작성 2026-09-11 · 브랜치 `refactor/runner-common-axis` · 최신 커밋은 `git log -1` (3단계 커밋 12개가 `f88265a` 뒤에 쌓였다)
+> 작성 2026-09-11 · 2026-09-11 저녁 `main` 에 fast-forward 병합(`8d80494`, 브랜치 삭제) · 이후 작업은 `main` 에서 · 최신 커밋은 `git log -1`
 > 저장소 `$REPO_ROOT` (= `report-builder`)
 > **이 문서가 이 작업의 단일 진입점이다.** 앞선 `RESUME-2026-09-08-…` 은 이 문서가 대체한다.
 
@@ -25,11 +25,19 @@ v2 계획서의 "규칙 R4" 와 "함수 → 소속 대조표". 착수 전 판정
 
 **이 세션의 사용자 규칙**: *"본체 `.py` 를 고치기 전에 diff 를 보이고 사용자가 직접 판단한다. 시험 파일은 예외."* — 새 세션은 유지할지 먼저 묻는다.
 
+## 2026-09-13 — msgspec 도입 (계획 `plans/2026-09-13-runner-msgspec.md`, 커밋 `89d7709` · `bab8e6b` · `70e1e4a` + 문서)
+
+`measure.py` 의 좁히기 도우미 `as_*` 다섯을 없애고 바깥 JSON 을 `TypedDict` + `msgspec` 으로 읽는다. **안 맞으면 예외**,
+`Pipeline.run` 이 `FAIL` 로 바꾼다. `Artifact.check` → `schema`(꼴) + `check`(뜻). `pipeline.read_json` 삭제.
+🔵 발견 둘 — (1) msgspec 0.21.1 은 한글 열쇠 `TypedDict` 를 모듈 경계 너머에서 못 맞춘다(`runner/CLAUDE.md` Gotcha).
+(2) **기계축 선언이 실물과 어긋난다**: `codegraph.json` ↔ `survey_plan.CodeGraph`(`file` 에 `null`), `warmup.json` ↔
+`warmup.Manifest`(`mtime` 없음). 러너는 느슨한 형으로만 본다 — 기계축 소유자가 볼 것.
+
 ## 지금 상태 — 다시 잰 것 (2026-09-11)
 
 ### 브랜치와 커밋
 
-`refactor/runner-common-axis`. 워킹 트리는 **깨끗하다** — 미추적 둘만 있다(사용자 것, 건드리지 않는다):
+`main`(병합됨). 워킹 트리는 **깨끗하다** — 미추적 둘만 있다(사용자 것, 건드리지 않는다):
 `docs/overturn/2026-07-05-번복기록-분석보고서.md` · `runner/runner_presudo.md`.
 
 | 커밋 | 무엇 |
@@ -144,7 +152,7 @@ D0·D1·D2·D5·D6·D7·D8·D9·D10·D11·D12·D13·D15·D16 은 `RESUME-2026-09
 
 ## 가드레일 · 규약
 
-- 브랜치 `refactor/runner-common-axis`. `main` 에서 하지 않는다.
+- 지금은 `main` 이다(2026-09-11 병합). 새 갈래를 열지 말지는 사용자가 정한다.
 - **커밋은 Task 마다.** `[tag] : subject` 소문자 한 줄 한국어, 빈 줄, `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`. **`git add -A` 금지** — 경로를 좁힌다.
 - **TDD.** 시험 먼저, 실패 확인, 구현, 통과. 계획서가 시험 코드를 전부 담고 있다.
 - **`Any` 금지.** `object` + 좁히기(`measure.as_map` 등). `test/test_no_any.py` 가 게이트.
