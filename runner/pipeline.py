@@ -4,10 +4,9 @@
 **`machine/` 을 import 하지 않는다.** 여기를 import 하는 것만으로 해석기가 바뀌거나
 무거운 라이브러리가 실리면 안 된다 — `test_import_isolation.py` 가 그것을 잰다.
 
-**`Any` 를 쓰지 않는다.** 바깥이 꼴을 정하는 값은 `object` 로 받고 `measure.py` 의
-좁히기 도우미로 하나씩 확인한다.
+**`Any` 를 쓰지 않는다.** 바깥이 꼴을 정하는 JSON 은 `TypedDict` 로 선언하고 `msgspec` 이
+`load` 에서 검증한다. 안 맞으면 예외이고, `Pipeline.run` 이 그것을 `FAIL` 로 바꾼다.
 """
-import json
 import os
 import subprocess
 import sys
@@ -16,7 +15,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar
+
+import msgspec
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure as M  # noqa: E402
@@ -65,21 +66,33 @@ C = TypeVar("C", bound=RunContext)
 class Artifact(Generic[C]):
     """단계가 읽고 쓰는 파일 하나. 자리는 `ctx` 가 정하므로 경로를 박지 않는다.
 
-    `check` 가 `None` 이면 있는지만 본다 — `data.ts` 처럼 JSON 이 아닌 것들이다.
-    `check` 가 있으면 JSON 으로 읽어 넘기고, 불평 목록이 비어야 통과한다.
+    둘 다 `None` 이면 있는지만 본다 — `data.ts` 처럼 JSON 이 아닌 것과, 선언이 실물과
+    어긋나 형으로 못 보는 것이다. `schema` 는 **꼴**(msgspec 이 본다), `check` 는 꼴이 맞은
+    뒤의 **뜻**(문항 수 · 정답 자리처럼 형으로 못 적는 규칙)이다. 꼴이 틀리면 뜻은 보지 않는다.
     """
     name: str
     locate: Callable[[C], str]
+    schema: type[object] | None = None
     check: Callable[[object], list[str]] | None = None
 
 
-def read_json(path: str) -> object:
-    """`json.load` 의 `Any` 를 `object` 로 좁히는 유일한 자리. 못 읽으면 `None`."""
+T = TypeVar("T")
+
+
+def load(path: str, t: type[T]) -> T:
+    """JSON 파일을 형 `t` 로 읽는다. 없거나 깨졌거나 꼴이 틀리면 예외다 — 여기서 잡지 않는다."""
+    with open(path, "rb") as f:
+        return msgspec.json.decode(f.read(), type=t)
+
+
+def check_file(path: str, schema: type[object] | None,
+               check: Callable[[object], list[str]] | None = None) -> list[str]:
+    """꼴을 먼저, 통과하면 뜻을 본다. 불평 목록을 낸다. 산출물 경계에서만 쓴다."""
     try:
-        with open(path, encoding="utf-8") as f:
-            return cast(object, json.load(f))
-    except (OSError, ValueError):
-        return None
+        obj = load(path, schema or object)
+    except msgspec.DecodeError as e:
+        return [str(e)]
+    return check(obj) if check is not None else []
 
 
 # ── 2. 단계 — 상태를 갖지 않는다. 갈래는 반환값이다 ─────────────────────
@@ -121,8 +134,8 @@ def missing_reads(stage: Stage[C], ctx: C) -> list[str]:
         if not os.path.exists(path):
             out.append("읽을 것이 없다 — %s" % art.name)
             continue
-        if art.check is not None:
-            out.extend("%s — %s" % (art.name, c) for c in art.check(read_json(path)))
+        if art.schema is not None or art.check is not None:
+            out.extend("%s — %s" % (art.name, c) for c in check_file(path, art.schema, art.check))
     return out
 
 
@@ -134,8 +147,8 @@ def bad_writes(stage: Stage[C], ctx: C) -> list[str]:
         if not os.path.exists(path):
             out.append("%s — 나오지 않았다" % art.name)
             continue
-        if art.check is not None:
-            out.extend("%s — %s" % (art.name, c) for c in art.check(read_json(path)))
+        if art.schema is not None or art.check is not None:
+            out.extend("%s — %s" % (art.name, c) for c in check_file(path, art.schema, art.check))
     return out
 
 
@@ -338,7 +351,14 @@ class Pipeline(Generic[C]):
                                            "usage": M.normalize_usage(None),
                                            "ok": False, "why": why}])
             else:
-                out = stage.perform(ctx)
+                try:
+                    out = stage.perform(ctx)
+                except msgspec.DecodeError as e:
+                    # 단계 안에서 읽은 산출물의 꼴이 어긋났다. 여기가 예외를 받는 유일한 자리다.
+                    why = "산출물 꼴이 어긋났다 — %s" % e
+                    out = Outcome(FAIL, why, [{"stage": cur, "seconds": time.monotonic() - t0,
+                                               "usage": M.normalize_usage(None),
+                                               "ok": False, "why": why}])
                 bad = bad_writes(stage, ctx) if out.kind == OK else []
                 if bad:
                     why = "; ".join(bad)
@@ -407,8 +427,9 @@ def run_agent_with(model: str, repo: str, root: str, prompt: str,
                        capture_output=True, text=True, timeout=timeout)
     seconds = time.monotonic() - t0
     try:
-        return seconds, p.returncode, cast(AgentResult, json.loads(p.stdout))
-    except (ValueError, TypeError):
+        return seconds, p.returncode, M.parse_result(p.stdout)
+    except msgspec.DecodeError as e:
+        print("[%s] 결과 JSON 이 꼴에 안 맞는다 — %s" % (label or "?", e), file=sys.stderr)
         tail = (p.stderr or p.stdout or "")[-800:]
         if tail:
             print("[%s] %s" % (label or "?", tail), file=sys.stderr)

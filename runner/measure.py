@@ -4,19 +4,48 @@
 **`machine/` 을 import 하지 않는다.** 여기를 import 하는 것만으로 해석기가 바뀌거나
 무거운 라이브러리가 실리면 안 된다.
 
-**`Any` 를 쓰지 않는다.** 바깥 프로그램이 꼴을 정하는 값은 `object` 로 받고 아래
-좁히기 도우미로 하나씩 확인한다.
+**`Any` 를 쓰지 않는다.** 바깥 프로그램이 꼴을 정하는 값은 `TypedDict` 로 선언하고
+`msgspec` 이 검증한다. 안 맞으면 예외다 — 조용히 기본값으로 세지 않는다.
 """
 import collections
 import sys
 import threading
 import time
 from collections.abc import Iterable, Sequence
-from typing import NotRequired, TypedDict, cast
+from typing import NotRequired, TypedDict
 
-# `claude -p --output-format json` 이 stdout 으로 내는 객체 하나. 꼴을 정하는 것은 바깥
-# 프로그램이라 칸을 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
-AgentResult = dict[str, object]
+import msgspec
+
+class ClaudeUsage(TypedDict, total=False):
+    """`claude -p --output-format json` 의 `usage`. 칸은 빠질 수 있고, 있으면 정수여야 한다."""
+    input_tokens: int
+    output_tokens: int
+    cache_read_input_tokens: int
+    cache_creation_input_tokens: int
+
+
+class ClaudeResult(TypedDict, total=False):
+    """`claude -p --output-format json` 이 stdout 으로 내는 객체 하나.
+
+    꼴을 정하는 것은 바깥 프로그램이라 칸은 전부 선택이고, 우리가 안 읽는 칸은 버린다.
+    있는 칸의 형이 어긋나면 `msgspec.ValidationError` 다 — 조용히 0 으로 세지 않는다.
+    """
+    result: str
+    usage: ClaudeUsage
+    total_cost_usd: float
+    num_turns: int
+    duration_api_ms: int
+    is_error: bool
+    subtype: str
+
+
+# 옛 이름. 세 실행기와 시험이 이 이름으로 부른다.
+AgentResult = ClaudeResult
+
+
+def parse_result(text: str | bytes) -> ClaudeResult:
+    """`claude` 의 stdout 을 형으로 읽는다. 깨졌으면 `DecodeError`, 꼴이 틀리면 `ValidationError`."""
+    return msgspec.json.decode(text, type=ClaudeResult)
 
 # 잰 값 한 묶음. 정수 여섯에 실수 하나(`cost_usd`)가 섞인 의도된 이종 사전이다.
 # 값 타입을 `float` 으로 적는 것은 파이썬에서 정수가 실수의 부분형이라 둘 다 담기기 때문이다.
@@ -37,49 +66,10 @@ class StageRow(TypedDict):
     skipped: NotRequired[bool]
 
 
-# ── 좁히기 도우미. `object` 를 쓸 수 있는 형으로 바꾸는 자리는 여기뿐이다 ──
-
-
-def as_map(v: object) -> dict[str, object]:
-    """열쇠가 문자열인 사전이면 그것을, 아니면 빈 사전을 낸다."""
-    if not isinstance(v, dict):
-        return {}
-    items = cast(dict[object, object], v).items()
-    return {k: x for k, x in items if isinstance(k, str)}
-
-
-def as_list(v: object) -> list[object]:
-    """목록이면 원소를 `object` 로 본 사본을, 아니면 빈 목록을 낸다.
-
-    `isinstance(v, list)` 하나로 좁히면 `list[Unknown]` 이 되어 원소를 쓰는 자리마다
-    검사기가 걸린다. 원소 형까지 못 박아야 좁히기가 끝난다.
-    """
-    if not isinstance(v, list):
-        return []
-    return list(cast(list[object], v))
-
-
-def as_int(v: object) -> int:
-    """정수면 그것을, 아니면 0. `bool` 은 정수가 아니다 — 참/거짓이 수로 세어지면 안 된다."""
-    return v if isinstance(v, int) and not isinstance(v, bool) else 0
-
-
-def as_float(v: object) -> float:
-    """정수나 실수면 실수로, 아니면 0.0. `bool` 은 제외한다."""
-    if isinstance(v, bool):
-        return 0.0
-    return float(v) if isinstance(v, (int, float)) else 0.0
-
-
-def as_str(v: object) -> str:
-    """문자열이면 그것을, 아니면 빈 문자열."""
-    return v if isinstance(v, str) else ""
-
-
 # ── 토큰 세기 ────────────────────────────────────────────────────────────
 
 
-def normalize_usage(result: AgentResult | None) -> Usage:
+def normalize_usage(result: ClaudeResult | None) -> Usage:
     """`claude -p --output-format json` 의 결과에서 잴 값만 뽑아 평평하게 만든다.
 
     `total` 은 입력·출력·캐시읽기·캐시생성 넷을 더한 값이다. 캐시 둘을 빼고 "토큰 합" 이라
@@ -87,16 +77,16 @@ def normalize_usage(result: AgentResult | None) -> Usage:
 
     기계 단계는 `None` 을 받아 전부 0 을 낸다 — `None` 을 그대로 두면 표를 더할 수 없다.
     """
-    top = as_map(result)
-    u = as_map(top.get("usage"))
+    top: ClaudeResult = result or {}
+    u = top.get("usage", {})
     got: Usage = {
-        "input": as_int(u.get("input_tokens")),
-        "output": as_int(u.get("output_tokens")),
-        "cache_read": as_int(u.get("cache_read_input_tokens")),
-        "cache_write": as_int(u.get("cache_creation_input_tokens")),
-        "cost_usd": as_float(top.get("total_cost_usd")),
-        "turns": as_int(top.get("num_turns")),
-        "api_ms": as_int(top.get("duration_api_ms")),
+        "input": u.get("input_tokens", 0),
+        "output": u.get("output_tokens", 0),
+        "cache_read": u.get("cache_read_input_tokens", 0),
+        "cache_write": u.get("cache_creation_input_tokens", 0),
+        "cost_usd": top.get("total_cost_usd", 0.0),
+        "turns": top.get("num_turns", 0),
+        "api_ms": top.get("duration_api_ms", 0),
     }
     got["total"] = got["input"] + got["output"] + got["cache_read"] + got["cache_write"]
     return got
@@ -114,7 +104,7 @@ def sum_usage(usages: Sequence[Usage]) -> Usage:
 # ── 실패 판정 ────────────────────────────────────────────────────────────
 
 
-def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, str]:
+def agent_verdict(returncode: int, result: ClaudeResult | None) -> tuple[bool, str]:
     """에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다.
 
     종료 코드만 믿으면 안 된다. `claude` 는 최대 턴 수에 걸리거나 권한에 막혀도 0 을
@@ -122,11 +112,10 @@ def agent_verdict(returncode: int, result: AgentResult | None) -> tuple[bool, st
     """
     if result is None:
         return False, "결과 JSON 을 읽지 못했다 (종료 코드 %d)" % returncode
-    top = as_map(result)
-    why = as_str(top.get("subtype")) or "사유 없음"
+    why = result.get("subtype") or "사유 없음"
     if returncode != 0:
         return False, "종료 코드 %d — %s" % (returncode, why)
-    if top.get("is_error"):
+    if result.get("is_error"):
         return False, "에이전트가 오류로 끝났다: %s" % why
     return True, ""
 

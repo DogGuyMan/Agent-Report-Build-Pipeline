@@ -3,12 +3,19 @@ import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import TypedDict
 
+import msgspec
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
+
+
+class Terms(TypedDict):
+    """시험용 산출물 꼴."""
+    terms: list[str]
 
 
 def test_갈래_넷은_서로_다른_비트다():
@@ -37,7 +44,7 @@ def test_RunContext_는_네_칸을_갖는다():
 def test_Artifact_는_ctx_로_자리를_정한다():
     art = P.Artifact[P.RunContext]("계획", lambda c: os.path.join(c.root, "plan.md"))
     assert art.locate(P.RunContext(root="/r", model="opus")) == "/r/plan.md"
-    assert art.check is None
+    assert art.schema is None
 
 
 class 가짜단계(P.Stage[P.RunContext]):
@@ -86,12 +93,34 @@ def test_읽을_것이_있으면_불평이_없다(tmp_path: Path):
 
 
 def test_꼴이_어긋난_산출물은_불평이_된다(tmp_path: Path):
-    (tmp_path / "q.json").write_text('{"terms": []}', encoding="utf-8")
+    (tmp_path / "q.json").write_text('{"terms": [1]}', encoding="utf-8")
     ctx = P.RunContext(root=str(tmp_path), model="opus")
-    art = P.Artifact[P.RunContext](
-        "문항지", lambda c: os.path.join(c.root, "q.json"),
-        check=lambda raw: [] if M.as_map(raw).get("terms") else ["용어가 없다"])
-    assert P.bad_writes(가짜단계("x", writes=[art]), ctx) == ["문항지 — 용어가 없다"]
+    art = P.Artifact[P.RunContext]("문항지", lambda c: os.path.join(c.root, "q.json"), Terms)
+    bad = P.bad_writes(가짜단계("x", writes=[art]), ctx)
+    assert len(bad) == 1 and bad[0].startswith("문항지 — ") and "$.terms[0]" in bad[0]
+
+
+def test_load_는_형으로_읽고_틀리면_던진다(tmp_path: Path):
+    p = tmp_path / "t.json"
+    p.write_text('{"terms": ["a"]}', encoding="utf-8")
+    assert P.load(str(p), Terms) == {"terms": ["a"]}
+    p.write_text('{"terms": "a"}', encoding="utf-8")
+    with pytest.raises(msgspec.ValidationError):
+        P.load(str(p), Terms)
+
+
+def test_단계_안의_꼴_예외는_FAIL_행이_된다(tmp_path: Path):
+    class 던지는단계(P.Stage[P.RunContext]):
+        name = "s"
+
+        def perform(self, ctx: P.RunContext) -> P.Outcome:
+            msgspec.convert({"terms": 1}, Terms)
+            return P.Outcome(P.OK)
+    ctx = P.RunContext(root=str(tmp_path), model="m")
+    g = P.build_graph("g", ["s"], {"s": 던지는단계()},
+                      P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT}), [], ctx)
+    rows = P.Pipeline[P.RunContext]().run(g, ctx)
+    assert rows[0]["ok"] is False and "$.terms" in rows[0]["why"]
 
 
 def test_쓰지_못한_산출물은_없다고_말한다(tmp_path: Path):

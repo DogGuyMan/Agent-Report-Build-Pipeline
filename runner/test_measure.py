@@ -1,34 +1,11 @@
 import os
 import sys
 
+import msgspec
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure as M  # noqa: E402
-
-
-def test_문자열_열쇠_사전만_통과시킨다():
-    assert M.as_map({"a": 1}) == {"a": 1}
-    assert M.as_map([1, 2]) == {}
-    assert M.as_map(None) == {}
-
-
-def test_정수가_아니면_0이다():
-    assert M.as_int(5) == 5
-    assert M.as_int("5") == 0
-    assert M.as_int(True) == 0
-    assert M.as_int(None) == 0
-
-
-def test_수가_아니면_0점0이다():
-    assert M.as_float(1.5) == 1.5
-    assert M.as_float(2) == 2.0
-    assert M.as_float(True) == 0.0
-    assert M.as_float("x") == 0.0
-
-
-def test_문자열이_아니면_빈_문자열이다():
-    assert M.as_str("ok") == "ok"
-    assert M.as_str(3) == ""
-    assert M.as_str(None) == ""
 
 
 def test_토큰_합계는_캐시_둘을_포함한다():
@@ -47,9 +24,10 @@ def test_결과가_없으면_전부_0이다():
     assert got["total"] == 0 and got["cost_usd"] == 0.0
 
 
-def test_망가진_값은_예외가_아니라_0이다():
-    got = M.normalize_usage({"usage": {"input_tokens": "많이"}, "num_turns": None})
-    assert got["input"] == 0 and got["turns"] == 0
+def test_망가진_값은_읽는_자리에서_거부된다():
+    """옛 정책(조용히 0)을 뒤집었다 — 꼴이 틀린 결과는 `parse_result` 가 던지고 세션 행이 실패로 남는다."""
+    with pytest.raises(msgspec.ValidationError):
+        M.parse_result('{"usage": {"input_tokens": "많이"}, "num_turns": null}')
 
 
 def test_사용량을_열쇠별로_접는다():
@@ -119,18 +97,28 @@ def test_하트비트는_문맥_관리자다():
         assert h.label == "시험"
 
 
-def test_as_list_는_목록이_아니면_빈_목록이다():
-    assert M.as_list(None) == []
-    assert M.as_list({"a": 1}) == []
-    assert M.as_list("abc") == []
+# ── LLM 결과의 꼴 ────────────────────────────────────────────────────────
 
 
-def test_as_list_는_원소를_그대로_낸다():
-    assert M.as_list([1, "b", None]) == [1, "b", None]
+def test_결과_JSON_은_형으로_읽힌다():
+    r = M.parse_result('{"result": "ok", "usage": {"input_tokens": 7}, "total_cost_usd": 1}')
+    assert r.get("usage", {}).get("input_tokens") == 7
+    assert r.get("total_cost_usd") == 1.0   # int → float 는 허용
 
 
-def test_as_list_는_사본이라_원본을_건드리지_않는다():
-    원본 = [1, 2]
-    사본 = M.as_list(원본)
-    사본.append(3)
-    assert 원본 == [1, 2]
+def test_토큰_칸에_참거짓이나_문자열이_오면_거부한다():
+    with pytest.raises(msgspec.ValidationError):
+        M.parse_result('{"usage": {"input_tokens": true}}')
+    with pytest.raises(msgspec.ValidationError):
+        M.parse_result('{"usage": {"input_tokens": "7"}}')
+
+
+def test_깨진_JSON_은_DecodeError_다():
+    with pytest.raises(msgspec.DecodeError):
+        M.parse_result("{ broken")
+
+
+def test_없는_칸은_0으로_센다():
+    u = M.normalize_usage(M.parse_result("{}"))
+    assert u["input"] == 0 and u["cost_usd"] == 0.0 and u["total"] == 0
+    assert M.normalize_usage(None)["turns"] == 0
