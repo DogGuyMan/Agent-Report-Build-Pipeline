@@ -110,8 +110,9 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 1. 담당 파일마다 통독 캐시를 먼저 본다:
      {root}/.venv/bin/python {root}/machine/file_cache.py get {repo} <파일경로>
    - 있으면: 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다.
-   - 없으면: 파일을 통독하고, 끝나면 개요를 남긴다:
-     {root}/.venv/bin/python {root}/machine/file_cache.py put {repo} <파일경로> <개요json>
+   - 없으면: 파일을 통독하고, 끝나면 개요를 **JSON 파일로 먼저 쓴 뒤** 그 경로를 넘긴다:
+     {root}/.venv/bin/python {root}/machine/file_cache.py put {repo} <파일경로> <개요json의_파일경로>
+     넷째 인자는 JSON 문자열이 아니라 **파일 경로**다. 문자열을 넣으면 죽는다.
      개요 꼴 — 심볼마다 {{name, kind, line, end_line, signature, one_line}} 에
      파일의 imports 와 head_comment 를 더한 객체.
 2. **네 심볼은 캐시로 때우지 않는다.** 반드시 그 줄 범위를 실제로 읽는다.
