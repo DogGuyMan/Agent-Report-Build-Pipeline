@@ -129,6 +129,27 @@ def test_쓰지_못한_산출물은_없다고_말한다(tmp_path: Path):
     assert P.bad_writes(가짜단계("build", writes=[art]), ctx) == ["보고서 — 나오지 않았다"]
 
 
+def test_드라이버가_쓸_산출물의_폴더를_미리_만든다(tmp_path: Path):
+    ctx = P.RunContext(root=str(tmp_path), model="m")
+    art = P.Artifact[P.RunContext]("지도", lambda c: os.path.join(c.root, "out", "raw", "g.json"))
+
+    class 쓰는단계(P.Stage[P.RunContext]):
+        name = "s"
+
+        def writes(self, ctx: P.RunContext) -> list[P.Artifact[P.RunContext]]:
+            return [art]
+
+        def perform(self, ctx: P.RunContext) -> P.Outcome:
+            with open(art.locate(ctx), "w", encoding="utf-8") as f:
+                f.write("{}")
+            return P.Outcome(P.OK, "", [{"stage": "s", "seconds": 0.0,
+                                         "usage": M.normalize_usage(None), "ok": True, "why": ""}])
+    g = P.build_graph("g", ["s"], {"s": 쓰는단계()},
+                      P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT}), [], ctx)
+    rows = P.Pipeline[P.RunContext]().run(g, ctx)
+    assert rows[0]["ok"] is True and os.path.exists(art.locate(ctx))
+
+
 def test_전이표는_단계별_규칙을_먼저_본다():
     e = P.Edges({("lang-propose", P.FAIL): "lang-decide",
                  ("*", P.FAIL): P.HALT,

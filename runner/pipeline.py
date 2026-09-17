@@ -352,6 +352,9 @@ class Pipeline(Generic[C]):
                                            "ok": False, "why": why}])
             else:
                 try:
+                    # 쓸 산출물의 폴더는 드라이버가 보장한다. 단계와 자식 프로세스는 파일만 쓴다.
+                    for art in stage.writes(ctx):
+                        os.makedirs(os.path.dirname(art.locate(ctx)) or ".", exist_ok=True)
                     out = stage.perform(ctx)
                 except msgspec.DecodeError as e:
                     # 단계 안에서 읽은 산출물의 꼴이 어긋났다. 여기가 예외를 받는 유일한 자리다.
