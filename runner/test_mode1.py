@@ -408,6 +408,21 @@ def test_샤드를_합치고_충돌은_전원을_개명한다(tmp_path: Path):
     assert sorted(got) == ["cli.main", "gui.main"]
 
 
+def test_같은_파일의_같은_키는_개명_없이_갈아_끼운다(tmp_path: Path):
+    """증분 조사. 다시 읽은 카드는 옛 카드의 자리를 그대로 잇는다 — 코드 지도가 그 이름을 안다."""
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"m.run": {"where": "m.py:51", "means": "새"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {"m.run": {"where": "m.py:47", "means": "옛"}})
+    assert got == {"m.run": {"where": "m.py:51", "means": "새"}}
+
+
+def test_다른_파일의_같은_키는_여전히_양쪽_다_개명한다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"main": {"where": "core/net.py:20"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {"main": {"where": "app/gui.py:10"}})
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
 def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
     b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
         {"id": "f", "name": "f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}

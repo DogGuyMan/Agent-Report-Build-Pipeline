@@ -245,7 +245,9 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
                 continue
             for key, rec in shard.items():
-                if key in got and got[key] != rec:
+                # 자리 주인이 남(다른 파일)일 때만 충돌이다. 같은 파일이면 다시 읽은 새 판이라 갈아 끼운다.
+                if key in got and got[key] != rec \
+                        and AnnotateSymbolsStage.file_of(got[key]) != AnnotateSymbolsStage.file_of(rec):
                     # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
                     old = got.pop(key)
                     got[AnnotateSymbolsStage.qualified(key, old)] = old
@@ -255,10 +257,14 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return got
 
     @staticmethod
+    def file_of(rec: Record | None) -> str:
+        """`where` 의 파일 부분. 없으면 빈 글."""
+        return str((rec or {}).get("where") or "").split(":")[0]
+
+    @staticmethod
     def qualified(key: str, rec: Record | None) -> str:
         """`<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다."""
-        where = str((rec or {}).get("where") or "")
-        stem = os.path.splitext(os.path.basename(where.split(":")[0]))[0]
+        stem = os.path.splitext(os.path.basename(AnnotateSymbolsStage.file_of(rec)))[0]
         return "%s.%s" % (stem, key) if stem else key
 
     @staticmethod
