@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -914,3 +915,94 @@ def test_2패스_결과가_깨졌으면_원_샤드를_건드리지_않는다(tmp
     faults = SV.AnnotateSymbolsStage.apply_pass2(str(d), "F03")
     assert faults and faults[0]["kind"] == "malformed"
     assert (d / "F03.json").read_text(encoding="utf-8") == before
+
+
+# ── AnnotateFilesStage — 완료 콜백이 있는 풀 ──────────────────────────────────
+
+def _fake_agent(shards: dict[str, dict[str, object]], calls: list[str]):
+    """라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 '쓰는 곳' 줄에서 경로를 뽑는다."""
+    import re
+
+    def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
+            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+        calls.append(label)
+        m = re.search(r"(\S+/_shards/\S+\.json)", prompt)
+        assert m, label
+        path = m.group(1)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(shards[label], f, ensure_ascii=False)
+        return 0.01, 0, {"subtype": "success", "is_error": False, "num_turns": 2, "total_cost_usd": 0.01,
+                         "usage": {"input_tokens": 1, "output_tokens": 1,
+                                   "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}
+    return run
+
+
+def _three_file_graph() -> X.CodeGraphDoc:
+    """b.py 는 의존 없음(먼저) · a.f 가 b.g 에 의존 · c.k 가 a.f 에 의존."""
+    return {"nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.g", "kind": "function", "file": "b.py", "line": 1, "module": "."},
+        {"id": "c", "name": "c.k", "kind": "function", "file": "c.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1},
+                  {"from": "c", "to": "a", "kind": "dependency", "label": None, "file": "c.py", "line": 1}]}
+
+
+def _rec(where: str, **more: object) -> dict[str, object]:
+    return {**_good_record(), "where": where, "uses": [], **more}
+
+
+def test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면_2패스를_넣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")},
+        ids["a.py"]: {"a.f": _rec("a.py:1", shallow=["b.g"])},      # 세션이 b.g 를 얕게 썼다고 치자
+        ids["c.py"]: {"c.k": _rec("c.py:1", shallow=["a.f"])},
+        ids["a.py"] + "/p2": {"a.f": _rec("a.py:1", does="다듬음")},
+        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}},
+    }
+    calls: list[str] = []
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, calls))
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.OK, out.why
+    assert calls[:3] == [ids["b.py"], ids["a.py"], ids["c.py"]]            # 가중치 순
+    assert ids["a.py"] + "/p2" in calls                                   # a.f: into=1(c→a) · b.g 가 있다 → 2패스
+    assert ids["c.py"] + "/p2" not in calls                               # c.k: into=0 → 다듬지 않는다
+    assert calls[-1] == "NONNODE"
+    merged = json.loads(Path(X.READING.locate(c)).read_text(encoding="utf-8"))
+    assert merged["a.f"]["does"] == "다듬음" and "shallow" not in merged["a.f"]
+    assert merged["c.k"].get("shallow") == ["a.f"]                         # 남은 shallow 는 그대로
+    csv = Path(X.UNRESOLVED.locate(c)).read_text(encoding="utf-8").splitlines()
+    assert csv[0] == "file,key,dep,priority,into,status"
+    assert any(",c.k,a.f," in ln and ln.endswith(",resolved") for ln in csv)
+    stages = [r["stage"] for r in out.rows]
+    assert "annotate-symbols/%s/p2" % ids["a.py"] in stages and stages[-1] == "annotate-symbols/check-shards"
+    assert c.survey_ok is True
+
+
+def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 2
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
+        ids["c.py"]: {"wrong.key": _rec("c.py:1")}, "NONNODE": {}}
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, []))
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.FAIL and c.survey_ok is False
+    assert (raw / "_shards" / (ids["c.py"] + ".json.bad")).exists()
+    faults = SV.AnnotateSymbolsStage.load_faults(str(raw / "_shards"), ids["c.py"])
+    assert faults and faults[0]["kind"] == "coverage"
+    assert "NONNODE" not in [r["stage"].split("/")[-1] for r in out.rows]      # 실패했으면 비노드 세션을 안 띄운다
