@@ -11,19 +11,22 @@
 
 <!-- 실제로 돌린 것만 체크하고, 숫자는 출력에서 옮겨 적는다. -->
 
+- [ ] `.venv/bin/python -m pytest -q` — 통과 ___ / 실패 ___ / 건너뜀 ___ (골든 변수 없으면 19 건너뜀이 정상)
 - [ ] `npm test` — 통과 ___개 / 실패 ___개
-- [ ] `npm run typecheck` (`tsc --noEmit`)
-- [ ] `.venv/bin/python -m pytest codegraph/ -q` — 통과 ___ / 건너뜀 ___
+- [ ] `npm run typecheck` (`tsc --noEmit`) · `npm run typecheck:py` (pyright strict)
+- [ ] `.venv/bin/python tools/gen_readme.py --check machine runner viz tools`
 - [ ] `npm run doctor` (환경 의존이 바뀐 경우에만)
+
+CI 의 `docs-gates` 는 위 중 문서 둘(인용 · README)만 돌린다. 나머지는 여기 손으로 적는다.
 
 **함정 — `node --test test/` 는 Node v25.8.0 에서 죽는다.** 인자 없는 `node --test` 를 쓴다.
 
 ## 문서
 
 - [ ] 파일을 옮기거나 지웠다면 컨텍스트 문서의 경로도 같이 고쳤다
-      (`test/docs-citations.test.mjs` 가 인용과 맨 경로를 둘 다 본다)
+      (`test/test_docs_citations.py` 가 인용과 맨 경로를 둘 다 본다 — 새 컨텍스트 문서는 `contextDocs()` 에 올린다)
 - [ ] 홈 아래 경로를 적지 않았다 — `$REPO_ROOT` 같은 변수를 썼다
-- [ ] `machine/comments.xml` 을 손으로 고치지 않았다 (`xmldoc.py` 가 소유한다)
+- [ ] `# <include …/>` 블록을 새로 심거나 고치지 않았다 (폐지된 잔재 — `docs/decisions/0010`)
 
 ## 구조를 건드렸다면
 

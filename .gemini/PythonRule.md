@@ -95,8 +95,8 @@ import clang_doc as CD
 
 **100자쯤을 목표로 하되 규칙이 아니다.** 표·긴 문자열·f-string 은 넘겨도 된다.
 
-⚠ `# <include file="machine/comments.xml" …/>` 로 시작하는 **주입 블록 세 줄은 길이를 재지 않는다.**
-`machine/xmldoc.py` 가 자동 생성하는 것이라 **줄바꿈으로 접으면 검사가 깨진다.**
+⚠ `# <include file="machine/comments.xml" …/>` 로 시작하는 **주입 블록 세 줄은 건드리지 않는다.**
+폐지된 주석 주입의 잔재다(`docs/decisions/0010`) — 길이를 재지도, 접지도, 새로 심지도 않는다.
 
 ### 주석 — 현 상황만 적는다
 
@@ -306,19 +306,19 @@ JSON 의 `true` 가 숫자 `1` 로 통과하는 것을 막는다.
 
 ## 8. 전수조사 레코드 — 코드를 쓰면 레코드도 쓴다
 
-**이 저장소만의 규약이다. 빠뜨리면 게이트에 걸린다.**
+**이 저장소만의 규약이다.** 게이트는 없다 — 빠뜨리면 다음 Mode 1 증분이 그 심볼을 다시 읽어 채운다.
 
 새 함수·클래스를 만들면 그 자리에서 `machine/terms-reading.json` 에 레코드를 쓴다.
 계약은 `{kind, module, where, means, does, uses[], confidence, source}` 이고
 `where` 는 **실제 `파일:줄`** 이어야 한다.
 
 ```bash
-.venv/bin/python machine/xmldoc.py emit      # comments.xml 생성
-.venv/bin/python machine/xmldoc.py inject    # 소스에 블록 주입 + where 재계산
-.venv/bin/python machine/xmldoc.py check     # 기대: 문제 0건
+.venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json --repo . --reading machine/terms-reading.json
+#   기대: 실패 0. 줄이 밀린 레코드는 L2 실패로 드러난다 — 고치거나 Mode 1 증분으로 다시 읽는다
 ```
 
-⚠ **`# <include …/>` 블록을 손으로 쓰지도 고치지도 마라.** 위 명령이 생성한다.
+⚠ **주석 주입(`xmldoc.py emit` · `inject` · `check`)은 폐지됐다**(`docs/decisions/0010`). 소스에 남은
+`# <include …/>` 블록은 잔재 — 새로 심지도 고치지도 마라.
 
 ---
 
@@ -329,7 +329,6 @@ JSON 의 `true` 가 숫자 `1` 로 통과하는 것을 막는다.
 npm test                                                             # JS 경계만
 npm run typecheck                                                    # tsc --noEmit
 npm run typecheck:py                                                 # pyright strict, 0 errors
-.venv/bin/python machine/xmldoc.py check                             # 주석 주입
 .venv/bin/python tools/gen_readme.py --check machine runner viz tools  # README 표류
 npm run doctor                                                       # 환경
 ```

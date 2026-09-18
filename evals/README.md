@@ -1,6 +1,6 @@
 # evals/ — 실행기가 잰 값을 쌓는 곳
 
-**왜 있는가.** 세 mode 실행기(`codegraph/run_mode*.py`)가 `--json` 으로 단계별 시간·토큰·비용을
+**왜 있는가.** 세 mode 실행기(`runner/run_mode*.py`)가 `--json` 으로 단계별 시간·토큰·비용을
 낸다. 그 값을 버리면 "개선했다" 를 숫자로 말할 수 없다. 여기 쌓아 두고 **전후를 대조한다.**
 
 **이 폴더는 판정하지 않는다.** 원본 측정값과 그 조건만 적는다. 좋아졌는지 나빠졌는지는
@@ -9,7 +9,7 @@
 ## 기록하는 법
 
 ```bash
-.venv/bin/python codegraph/run_mode1.py <저장소> --model opus \
+.venv/bin/python runner/run_mode1.py <저장소> --model opus \
   --json evals/runs/$(date +%F)-mode1-<대상>-<조건>.json
 ```
 
