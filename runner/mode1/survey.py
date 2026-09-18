@@ -232,6 +232,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         "malformed": "JSON 문법이 깨졌다. 그 바이트 자리를 연다 — 문자열 안 따옴표는 \\\" 로, 줄바꿈은 \\n 으로 쓴다.",
         "schema": "필수 칸이 빠졌거나 어휘 밖의 값이다. record-schema.json 의 required 와 enum 에 맞춘다.",
         "where": "where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수 있다.",
+        "coverage": "네 배치의 심볼 목록과 샤드의 키를 하나씩 대조한다. 빠진 것은 읽어 넣고, 목록 밖의 것은 뺀다.",
     }
     SHARD_EXAMPLE: ShardRecords = {"build_terms": {
         "kind": "function", "module": "machine", "where": "machine/terms_db.py:82",
@@ -290,16 +291,29 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return ids + (["NONNODE"] if any(L.get("kind") == "non-node" for L in plan["layers"]) else [])
 
     @staticmethod
+    def check_coverage(raw: bytes, batch: survey_plan.PlanBatch, path: str) -> list[ShardFault]:
+        """계획의 심볼 이름과 샤드의 키를 양방향으로 대조한다. 문법·꼴이 맞은 뒤에만 부른다."""
+        keys = set(msgspec.json.decode(raw, type=ShardRecords))
+        want = {s["name"] or "" for s in batch["symbols"]}
+        F = AnnotateSymbolsStage.fault
+        return ([F("coverage", batch["id"], path, n, "계획에 있는데 샤드에 없다") for n in sorted(want - keys)]
+                + [F("coverage", batch["id"], path, k, "샤드에 있는데 계획에 없다") for k in sorted(keys - want)])
+
+    @staticmethod
     def check_shards(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]:
-        """계획의 배치마다 샤드를 찾아 검문한다. 틀린 것만 `{배치: 결함들}` 으로 낸다."""
+        """계획의 배치마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{배치: 결함들}`."""
         bad: dict[str, list[ShardFault]] = {}
+        batches = {b["id"]: b for L in plan["layers"] for b in L.get("batches", [])}
         for bid in AnnotateSymbolsStage.plan_ids(plan):
             path = os.path.join(shard_dir, bid + ".json")
             if not os.path.exists(path):
                 bad[bid] = [AnnotateSymbolsStage.fault("missing", bid, path, "-", "샤드 없음")]
                 continue
             with open(path, "rb") as f:
-                got = AnnotateSymbolsStage.check_shard(f.read(), bid, path)
+                raw = f.read()
+            got = AnnotateSymbolsStage.check_shard(raw, bid, path)
+            if not got and bid in batches:              # NONNODE 는 계획 심볼이 없어 대조하지 않는다
+                got = AnnotateSymbolsStage.check_coverage(raw, batches[bid], path)
             if got:
                 bad[bid] = got
         return bad

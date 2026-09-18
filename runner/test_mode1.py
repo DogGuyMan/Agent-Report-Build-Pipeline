@@ -782,3 +782,35 @@ def test_전략_기본값은_layer_이고_file_이면_writes_에_csv_가_있다(
     assert X.FILE_PRIORITY not in G.ScheduleBatchesStage().writes(c)
     c.strategy = "file"
     assert X.FILE_PRIORITY in G.ScheduleBatchesStage().writes(c)
+
+
+# ── coverage 검문 — 주문한 심볼이 왔나 ───────────────────────────────────────
+
+def test_coverage_검문은_빠진_심볼과_남의_심볼을_짚는다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("L0-B21")
+    plan["layers"][0]["batches"][0]["symbols"].append(
+        {"id": "g", "name": "m.WikiPage", "kind": "class", "file": "m.py", "line": 9, "in_cycle": False, "depends_on": []})
+    (d / "L0-B21.json").write_text(json.dumps({"f": _good_record(), "m.other": _good_record()}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    kinds = sorted((f["kind"], f["at"]) for f in bad["L0-B21"])
+    assert kinds == [("coverage", "m.WikiPage"), ("coverage", "m.other")]
+    assert "없다" in [f for f in bad["L0-B21"] if f["at"] == "m.WikiPage"][0]["detail"]
+    assert SV.AnnotateSymbolsStage.FIX["coverage"] in bad["L0-B21"][0]["fix"]
+
+
+def test_coverage_는_문법_꼴이_맞을_때만_본다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text("{", encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), _one_batch_plan("L0-B00"))
+    assert [f["kind"] for f in bad["L0-B00"]] == ["malformed"]
+
+
+def test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_본다(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runner", "check_shard.py")
+    raw = tmp_path / "out" / "codegraph-raw"; (raw / "_shards").mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    (raw / "_shards" / "L0-B00.json").write_text(json.dumps({"m.other": _good_record()}), encoding="utf-8")
+    r = subprocess.run([sys.executable, tool, str(raw / "_shards" / "L0-B00.json")], capture_output=True, text=True)
+    assert r.returncode == 1 and "[coverage]" in r.stdout and "f" in r.stdout

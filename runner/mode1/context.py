@@ -46,7 +46,7 @@ class ShardRecord(TypedDict):
 ShardRecords = dict[str, ShardRecord]
 
 # 샤드 검문이 내는 결함 하나. 격리 사유(`.json.bad.why`)와 재조사 프롬프트가 같은 꼴을 쓴다.
-FaultKind = Literal["missing", "malformed", "schema", "where"]
+FaultKind = Literal["missing", "malformed", "schema", "where", "coverage"]
 
 
 class ShardFault(TypedDict):

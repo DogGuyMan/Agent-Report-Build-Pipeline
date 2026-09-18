@@ -17,6 +17,8 @@ sys.path.insert(
     ),
 )
 
+import pipeline as P  # noqa: E402
+import survey_plan  # noqa: E402
 from mode1.survey import AnnotateSymbolsStage  # noqa: E402
 
 
@@ -27,10 +29,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     try:
         with open(args[0], "rb") as f:
-            got = AnnotateSymbolsStage.check_shard(f.read(), path=args[0])
+            raw = f.read()
     except OSError as e:
         print("✗ 파일을 못 읽었다 — %s" % e)
         return 1
+    got = AnnotateSymbolsStage.check_shard(raw, path=args[0])
+    # 샤드 폴더 옆에 계획이 있으면 배치 id 로 찾아 coverage 까지 본다 — 층 끝 검문과 같은 검사다.
+    plan_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(args[0]))), "batches.json")
+    bid = os.path.basename(args[0]).removesuffix(".json")
+    if not got and os.path.exists(plan_path):
+        plan = P.load(plan_path, survey_plan.SurveyPlan)
+        batch = next((b for L in plan["layers"] for b in L.get("batches", []) if b["id"] == bid), None)
+        if batch is not None:
+            got = AnnotateSymbolsStage.check_coverage(raw, batch, args[0])
     for fault in got:
         print("✗ " + AnnotateSymbolsStage.fault_line(fault))
     print("통과 — %s" % args[0] if not got else "불평 %d — 고치고 다시 돌린다" % len(got))
