@@ -9,54 +9,36 @@
 | [`machine/CLAUDE.md`](machine/CLAUDE.md) | **기계축** — 정적 수집 · 정규화 · 전수조사 레코드 · warmup |
 | [`viz/CLAUDE.md`](viz/CLAUDE.md) | **시각축** — 렌더 경로 · 다이어그램 · 직접 실행 가드 |
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
-| [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 |
+| [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 · README 생성 |
+| [`test/CLAUDE.md`](test/CLAUDE.md) | 축을 가로지르는 시험 — 문서 게이트 · Node 렌더 시험 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | [`docs/wiki/`](docs/wiki/index.md) | **이 저장소의 RAG.** 자기 자신에게 Mode 1 을 돌려 구운 위키 21쪽. 코드를 뒤지기 전에 여기를 먼저 grep 한다 |
 | [`docs/decisions/`](docs/decisions/README.md) | 기각·취소·보류된 것들. **같은 제안을 다시 하기 전에 읽는다** |
 | [`docs/overturn/`](docs/overturn/README.md) | 뒤집힌 **판단**과 그 패턴. **무언가를 기각하려 하기 전에 검사표를 읽는다** |
 | [`docs/CLAUDE.md`](docs/CLAUDE.md) | 보관소. **첨부되지 않은 인계·계획 문서는 스스로 열지 않는다** |
 
-## ⚠ 방향 — 옛 산출물은 기준이 아니다 (2026-08-29 확정)
+## ⚠ 방향 — 옛 산출물은 기준이 아니다
 
-**이 도구는 옛 보고서를 재현하려고 만든 것이 아니다.** 2026-07-27 자 HTML 2건은 이 체계의 **출발점**
-이지 도달점이 아니다. 그것을 "정본" 으로 삼아 새 출력을 맞추려는 시도는 **후퇴다.**
+**이 도구는 옛 보고서를 재현하려고 만든 것이 아니다.** 2026-07-27 자 HTML 2건은 **출발점**이지
+도달점이 아니고, 그것에 새 출력을 맞추려는 시도는 후퇴다. 새 정보는 이 저장소를 기반으로 쌓는다.
+옛 저장소는 **CSS 의 출처**와 **장르 참고** 이상으로 쓰지 않는다. "정본" 은 *표기 규약의 기준*이라는
+뜻으로만 남고 옛 HTML 은 **"옛 출력"** 이라 부른다. 세 Phase 가 이 한 결함으로 정리된 경위와
+Track A/B 의 순서는 [`docs/decisions/0008`](docs/decisions/0008-old-output-is-origin-not-target.md) 에 있다.
 
-2026-08-28~29 세션에서 **세 Phase 가 같은 결함으로 정리됐다.** 우연이 아니라 한 가지 실수의 세 얼굴이었다.
-
-| Phase | 하려던 것 | 공통 결함 |
-|---|---|---|
-| 2 (B2) — 기각 | 옛 저장소의 `mPasses` 사례로 파일럿 | 옛 프로젝트의 결정 이력에 의존 |
-| 6 (B5) — 취소 | 옛 보고서 2건을 재생성해 **시각 동등** 확인 | 옛 출력을 목표로 삼음 |
-| 3 (A1) — 취소 | 옛 저장소 설계 문서 60개로 소급 채점 | 옛 프로젝트의 이력에 의존 |
-
-**앞으로는 이 저장소를 기반으로 새 정보를 쌓는다.** 도구를 완성해 실제 프로젝트에 써 보고, 거기서
-실측과 보완점을 얻는다. 옛 저장소는 **CSS 의 출처**와 **장르 참고** 이상으로 쓰지 않는다.
-
-**이 문서에 남은 "정본" 이라는 말은 두 가지 뜻이 섞여 있다.** 하나는 *표기 규약의 기준*(예: 상태 태그는
-한국어가 정본) — 이건 유효하다. 다른 하나는 *옛 HTML 출력* — 이건 기준이 아니다. 뒤엣것은 아래에서
-**"옛 출력"** 으로 고쳐 부른다.
-
-## 이 저장소의 현재 상태 (🔵 2026-09-07 실측)
+## 이 저장소의 현재 상태 (🔵 2026-09-13 실측)
 
 파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
-| 커밋 / 태그 | 최신 `60dfac5` / `v1` — API 는 추가만이라 태그 그대로 |
-| 테스트 | `pytest` **483 통과 · 19 건너뜀** · `npm test` **8개**(JS 경계 `viz/svg.mjs` 만) |
+| 커밋 / 태그 | 최신 `b970b63` / `v1` — API 는 추가만이라 태그 그대로 |
+| 테스트 | `pytest` **597 통과 · 1 실패 · 19 건너뜀** · `npm test` **8개**(JS 경계 `viz/svg.mjs` 만). 실패 1건은 아래 "게이트 여섯" 의 위키 표류다 |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
 | Node / TypeScript / Graphviz | v25.8.0 / 7.0.2 / 15.1.1 |
 
-**아직 "검증됨"이 아닌 것 — 이렇게 쓰지 말 것:**
-- **D축 예측력(A1)** — **취소.** 아래 "Phase 3 취소" 절을 보라. D축은 평가 없이 보류 상태로 남는다.
-
-**2026-08-28 에 해소된 것:**
-- **B1 육안 판정 — 완료.** 사용자가 Chrome 으로 패치 전/후를 대조했다. 패치 전 옛 출력은 2615px SVG 가
-  486px 패널로 눌려 "있기는 한데 너무너무 작다"(창 1200px · 배율 100%). 패치본은 토글이 보이고,
-  누르면 1열로 펴지며 문구가 바뀌고 가로·세로 스크롤이 생긴다. **결함은 실재했고 체크박스 토글로 복구된다.**
-- **옛 출력 재현(Phase 6) — 취소.** 아래 "Phase 6 취소" 절을 보라.
+**"검증됨" 이라고 쓰지 말 것 — D축 예측력.** 평가 없이 보류다([`0004`](docs/decisions/0004-d-axis-on-hold.md)).
 
 ## 위키는 아카이브가 아니라 RAG 다 (🔵 2026-09-08 실측)
 
@@ -76,6 +58,7 @@
 
 - **`Unknown - verify` 가 붙은 문장은 근거가 없다.** 그대로 인용하지 말고 코드로 확인한다.
 - **위키는 스냅샷이다.** 코드가 그 뒤로 움직였으면 조용히 표류한다 — 줄 번호부터 낡는다.
+  🔵 2026-09-13 실제로 낡았다 — `report-wiki check .` 의 L2 실패 43건이 전부 `runner/run_mode1.py` 옛 줄 번호다(위 "게이트 여섯").
 - **충돌하면 코드와 모듈 CLAUDE.md 가 맞다.** 위키는 그것들에서 파생된 2차 산출물이다.
 
 다시 굽는 것은 Mode 1 이다 — [`runner/CLAUDE.md`](runner/CLAUDE.md) 를 보라.
@@ -92,19 +75,14 @@
 코드 지도에서 **계산해서** 그리는 그림은 Graphviz 다 — `constraint=true/false` 분리가
 Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
 
-- **사전 렌더가 핵심이다.** VitePress 의 mermaid 플러그인은 브라우저에서 그린다.
-  `viz/demermaid.py` 가 빌드 전에 전면 치환해 **산출물에 JS 의존이 남지 않게** 한다.
-  ⚠ 원본 위키는 고치지 않는다 — 인용 검증기의 대상으로 그대로 남아야 해서 치환본만 따로 낸다.
-- **Mermaid 블록 앞줄의 `<!-- graphviz: <이름> -->` 표식**이 있으면 mmdc 대신 미리 구운
-  SVG 로 바꾼다. 산문을 손대지 않고 그림만 갈아 끼우는 자리다.
-- 손으로 쓴 DOT 는 `docs/diagrams/<날짜>-<이름>.dot` 에 `.svg`·`.png` 와 함께 둔다.
+사전 렌더 규칙 · `<!-- graphviz: <이름> -->` 표식 · 손으로 쓴 DOT 의 자리는 [`viz/CLAUDE.md`](viz/CLAUDE.md) 의
+"위키 그림 사전 렌더" 절, 보고서 쪽은 같은 문서의 "렌더 경로" 와 "Graphviz SVG 인라인 규칙" 절에 있다.
 
-세부는 [`viz/CLAUDE.md`](viz/CLAUDE.md) 의 "렌더 경로" 와 "Graphviz SVG 인라인 규칙" 절에 있다.
-
-## 사양 원본과 인계 문서 3종
+## 사양 원본과 인계 문서
 
 | 문서 | 역할 |
 |---|---|
+| `docs/handoffs/RESUME-2026-09-11-runner-stage-machine.md` | **지금의 재개 진입점.** 러너 단계 기계 3단계 완료 · 2026-09-13 msgspec 도입까지 반영. 빨간 게이트 둘을 푸는 순서가 여기 있다 |
 | `docs/handoffs/HANDOFF-report-system.md` | **Track A/B 의 사양 원본.** 착수 전 통독한다 |
 | `docs/handoffs/ReportSystem_ReturnHandOff.md` | 위 문서의 **사실 오류와 실행 중 발견된 결함**을 되돌려 보낸 회신. 인계 문서와 충돌하면 이쪽이 실측이다 |
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | **Track C — 별개 갈래.** 코드베이스 위키(deep-wiki + VitePress 다중 페이지). Track A/B 와 섞지 말 것 |
@@ -124,20 +102,28 @@ npm run typecheck        # tsc --noEmit (이 저장소의 viz/src/ 만)
 npm run typecheck:py     # pyright strict
 ```
 
-### 게이트 일곱 — 전부 초록이어야 한다 (🔵 2026-09-07 실측)
+### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-09-13 실측 — 지금 하나가 빨강)
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 483 통과 · 19 건너뜀 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 597 통과 · **1 실패** · 19 건너뜀 |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
-| 주석 주입 | `.venv/bin/python machine/xmldoc.py check` | 레퍼런스 751건 · 문제 0건 |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` | 4개 일치 |
 | 환경 | `npm run doctor` | 필수 전부 있다 |
 
 **건너뛰는 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
 없어서다. 실패가 아니다.**
+
+**빨강 하나 — 위키 표류.** 2026-09-08~11 의 러너 단계 기계 리팩터링이 `runner/run_mode1.py` 의 심볼을
+`runner/mode1/` 로 옮겼는데(파일이 281줄로 줄었다) 위키를 다시 굽지 않았다.
+`test/test_wiki.py::test_check_는_통과를_통과로_보고한다` — 위키가 `runner/run_mode1.py:414~1075` 를 인용하고
+`report-wiki check .` 가 L1 561/0 · **L2 518/43** 으로 exit 1. 푸는 것은 **위키 재굽기(Mode 1 자기 실행)** 이고
+손으로 고치지 않는다. `docs/handoffs/RESUME-2026-09-11-runner-stage-machine.md` 의 "바로 다음 할 일" 중
+1번(xmldoc 재주입)은 [`0010`](docs/decisions/0010-xmldoc-retired.md) 으로 **무효**, 2번(위키)부터다.
+
+**`xmldoc check` 는 게이트가 아니다 (2026-09-13).** 주석 주입은 폐지됐다 — [`0010`](docs/decisions/0010-xmldoc-retired.md).
 
 ### 파이썬이 본체이고 JavaScript 는 경계에만 남는다 (2026-08-31 포팅)
 
@@ -255,19 +241,10 @@ $REPO_ROOT                  <프로젝트>/specs/<slug>/
 `viz/build.py` 가 `viz/src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
 여전히 `<script>` 0개다. **예산이 다 찼으므로 새 런타임 코드를 넣으려면 이 번들 안에 합쳐야 한다.**
 
-## 두 트랙과 강제 순서 (Track A/B)
+## 기각·취소된 것에 착수하지 마라
 
-```
-B1 (완료·육안 판정됨) → B2 (기각) → A1 (취소)
-  → B3~B5 (B3·B4 완료, B5 취소) → A2~A4 (A1 취소로 무기한 보류)
-```
-
-실행 세션은 B2·A1 을 건너뛰고 B3~B5 로 갔다(B2 는 이후 기각). 둘 다 완료 조건이 **사용자 판정**이라 코드 경로를 막지
-않았기 때문이다. 되돌릴 수 있는 이탈이지만 문서의 명시적 순서를 거스른 것은 사실이다.
-
-**기각·취소된 것에 착수하지 마라.** 사유와 되살릴 조건은 전부
-[`docs/decisions/`](docs/decisions/README.md) 에 있다 — Phase 2·3·6 과 D축 보류.
-계획서의 해당 절 체크박스는 유효하지 않다.
+Phase 2·3·6 과 D축 보류의 사유와 되살릴 조건은 전부 [`docs/decisions/`](docs/decisions/README.md) 에 있다.
+계획서의 해당 절 체크박스는 유효하지 않다. Track A/B 의 강제 순서와 이탈 기록은 [`0008`](docs/decisions/0008-old-output-is-origin-not-target.md).
 
 ## 참조 원본의 실제 위치 — 출처이지 기준이 아니다
 
@@ -283,13 +260,8 @@ $GRAPHICS_REPO/doc/
   번복기록/                                    ← 체계의 원천 + **두 번째 보고서 장르**
 ```
 
-`번복기록/` 의 분석 보고서들은 spec 에 딸리지 않고, 수용 판정란이 없고, before/after 쌍이 아니라
-현황 그래프 한 장을 쓴다. ~~현재 `report-spec init` 은 대응 `*-design.md` 를 요구하므로 이 장르를 구조적으로
-배제한다.~~ **2026-08-31 에 절반 풀렸다** — `init` 이 `plans/YYYY-MM-DD-<slug>.md` 도 받으므로
-접미사 없는 문서를 넣을 자리는 생겼다(`viz/CLAUDE.md` 의 "원본은 두 자리에 산다"). 다만 수용
-판정란과 before/after 쌍이라는 **장르 차이는 그대로다.** 그래도 **지금 두 번째 mode 를 추가하지 말 것** —
-실제로 그 장르의 보고서를 쓸 일이 생기기 전에는 소비자가 0이고, mode 축 도입은 거울 함정이다.
-컴포넌트 후보로 횟수와 함께 기록만 한다.
+`번복기록/` 은 두 번째 보고서 장르다 — **지금 mode 를 추가하지 말 것.** 사유와 되살릴 조건은
+[`docs/decisions/0009`](docs/decisions/0009-second-report-genre-deferred.md).
 
 스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 저장소 안 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전).
 
@@ -297,26 +269,22 @@ $GRAPHICS_REPO/doc/
 
 | 자리 | 무엇 | git |
 |---|---|---|
-| `<repo>/.claude/skills/` | `../../.agents/skills/` 로 가는 **심볼릭 링크**. 링크 자체가 추적된다 | 추적됨(20개) |
+| `<repo>/.claude/skills/` | 항목 16개 — **심볼릭 링크 14개**(`../../.agents/skills/<이름>`) + 실제 디렉토리 2개(`spec-review-dashboard` · `term-benchmark`). 링크 자체가 추적된다 | 추적됨(16개, 🔵 2026-09-13) |
 | `~/.claude/skills/` | 홈의 **독립 사본**. 저장소 밖이라 어느 저장소도 추적하지 않는다 | 밖 |
 
 `.gitignore` 에 `.claude` 는 없다 — 저장소 안 것이 git 밖인 이유는 무시라서가 아니라
 **홈 경로가 애초에 워킹 트리 밖**이기 때문이다. 홈 사본은 조용히 표류한다(🔵 2026-08-31 —
 워크플로 7단계 시절 구판으로 남아 층 병렬 배치 절이 통째로 없었다. 원본으로 맞췄다).
 
-Track A 대상은 `confidence-and-sourcing`,
-`design-decision-discipline`, `architecture-design-workflow` 이고, Track B 는 `graphviz-class-diagram` 과
-`spec-review-dashboard` 를 참조한다. ~~B2 는 `spec-review-dashboard` 의 개정이 된다.~~ **B2 기각으로 이 개정 계획도 함께 소멸했다** — 다만 그 스킬은 2026-08-28 에 report-builder 파이프라인 기준으로 따로 포팅됐다.
+Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-origin-not-target.md) 끝에 있다.
 
 ## 혼자 정하지 말 것 (미결정)
 
 - N값(지연 승격 커밋 수) — 근거 없는 임의값 금지
 - D 점수 구간 경계 — A1 취소로 판단 근거가 사라졌다. D축을 되살릴 때 함께 정한다
 - `[잠정됨]` 이라는 이름과 그 적용 범위
-- `# <include …/>` 를 **무엇으로 대체할지**(0007). 표시만 해 두었고 이주안은 비어 있다
 - `data.ts` 의 D축 필드 포함 여부 (D축 자체가 보류라 함께 잠겨 있다)
 
-**해소됨:** "콘솔 에러 0건" 검사는 넣지 않기로 확정(2026-08-28) — `<script>` 0개라 잡을 것이 없다.
 
 ## 함정
 
@@ -364,8 +332,8 @@ Track A 대상은 `confidence-and-sourcing`,
 시험을 두고 주석은 그 이름을 가리킨다. 주석은 썩지만 시험은 깨진다.
 
 모듈·클래스·함수의 목록과 역할은 각 디렉토리의 `README.md` 에 둔다.
-`# <include …/>` 블록은 `machine/xmldoc.py` 가 자동 주입하는 것이라 손대지 않는다.
 
-⚠ **`# <include …/>` 는 폐지 예정이다**([`docs/decisions/0007`](docs/decisions/0007-xmldoc-include-deprecated.md)).
-있는 것은 그대로 두되 **새 코드에 새로 심지 않는다.** 대체 마크업은 미정이다.
+⚠ **소스에 남은 `# <include …/>` 블록은 폐지된 주석 주입의 잔재다**([`0010`](docs/decisions/0010-xmldoc-retired.md)).
+**새 코드에 심지 않고, 있는 것을 고치지도 않는다.** `emit` · `inject` · `check` 어느 것도 돌리지 않는다.
+지우는 것은 별개의 코드 작업이라 사용자가 시점을 정한다. 대체 마크업은 없다 — 의존 그래프는 `terms-db.json` 에 산다.
 - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).

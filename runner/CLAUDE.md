@@ -1,6 +1,6 @@
 # runner/ — 러너축. 순서를 잡고 남을 부른다
 
-> 루트 나침반은 `../CLAUDE.md`. 결정론 기계는 `../machine/CLAUDE.md`, 시각은 `../viz/CLAUDE.md`.
+> 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 결정론 기계는 [`../machine/CLAUDE.md`](../machine/CLAUDE.md), 시각은 [`../viz/CLAUDE.md`](../viz/CLAUDE.md), 시험 규약은 [`../test/CLAUDE.md`](../test/CLAUDE.md).
 
 **여기 있는 코드는 스스로 계산하지 않는다.** 단계의 순서를 잡고, 자식 프로세스를 띄우고,
 시간을 재고, LLM 칸을 부른다. 계산은 전부 `../machine/` 과 `../viz/` 가 한다.
@@ -18,6 +18,19 @@
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
+
+## 자주 쓰는 명령
+
+```bash
+cd $REPO_ROOT
+.venv/bin/python runner/run_mode1.py <저장소> --dry-run          # 자식 프로세스 0개. 폴백 간선까지 실제 흐름을 찍는다
+.venv/bin/python runner/run_mode1.py <저장소> --only collect-graph --cold
+.venv/bin/python runner/run_mode1.py <저장소> --resume --json evals/runs/$(date +%F)-mode1-<대상>-<조건>.json
+.venv/bin/python runner/run_mode1_5.py <plan.md> --dry-run
+.venv/bin/python runner/run_mode2.py <프로젝트> <slug> --dry-run
+.venv/bin/python -m pytest runner/ -q                             # 러너 시험만
+.venv/bin/python -m pytest runner/test_import_isolation.py -q     # measure.py · pipeline.py 가 machine/ 을 물지 않는가
+```
 
 **`bin/` 은 왜 여기 없나.** `~/.zshrc` 가 `$REPO_ROOT/bin` 을 PATH 에 넣으므로 **옮기면 셸이 깨진다.**
 성격은 러너축이지만 자리는 뿌리에 고정이다.
@@ -90,10 +103,27 @@ if __name__ == "__main__":
 
 | 방향 | 무엇 |
 |---|---|
-| `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `runDispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
+| `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `run_dispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
 | 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
+
+## 흔한 변경 패턴 (Common modification patterns)
+
+```bash
+# Mode 1 에 단계를 더한다 — 넷을 한꺼번에 고친다. 하나라도 빠지면 시작 전에 GraphError 로 죽는다
+#   runner/mode1/<모듈>.py   Stage 하위 클래스 — name · emits · reads · writes · perform. 계산은 @staticmethod
+#   runner/mode1/context.py  새 산출물이면 Artifact(schema · check) 를 만들고 ARTIFACTS 에 넣는다
+#   runner/mode1/edges.py    ORDER 에 자리 · STAGES 에 인스턴스 · SKIP 을 내면 EDGES 에 그 갈래 · 옛 이름은 ALIASES
+.venv/bin/python runner/run_mode1.py <저장소> --dry-run    # 시뮬레이터의 다섯 검사가 여기서 돈다
+
+# Mode 1.5 · 2 는 STAGES 목록과 MODE1_5_EDGES · MODE2_EDGES 가 run_mode*.py 안에 있다 — 한 파일에서 끝난다
+
+# bin 명령을 더한다 — 진입점의 table 한 줄 + 스크립트 파일 하나. dispatch.py 가 확장자로 해석기를 고른다
+$EDITOR bin/report-<mode>                     # table={"<명령>": "viz/….py" 또는 "runner/…/….py"}
+
+# 재는 코드가 필요하다 — run_mode1.py 가 아니라 measure.py 를 import 한다 (아래 Gotcha)
+```
 
 ## 비직관적인 것 (Gotchas)
 
@@ -126,5 +156,6 @@ if __name__ == "__main__":
   러너는 `CodeGraphDoc`(최상위만)으로 보고 `cast` 로 넘긴다. 지문은 존재만 본다. 기계축 소유자 몫이다.
 - **Gotcha — Mode 2 의 원본 문서 자리 규칙이 두 곳에 중복돼 산다.** `run_mode2.py` 의
   `DOC_DIRS` 와 `../viz/init.py` 의 `DOC_DIRS` 가 같은 값이어야 한다(`specs/` 는
-  `-design.md`, `plans/` 는 접미사 없음). 언어가 달라 한 곳에 못 모은다 — 한쪽만 고치면
+  `-design.md`, `plans/` 는 접미사 없음). 둘 다 파이썬이 된 뒤로 모을 수는 있지만 아직 합치지 않았다 —
+  러너가 `viz/` 를 import 하지 않는 축 경계 때문이고, 합칠지는 결정 대상이다. 한쪽만 고치면
   `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다. 전체 표는 `../viz/CLAUDE.md` 에 있다.

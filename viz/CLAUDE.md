@@ -1,11 +1,11 @@
 # viz/ — 시각축. 보이는 것을 만든다
 
-> 루트 나침반은 `../CLAUDE.md`. 이 문서는 **산출물을 그리는 코드만** 다룬다.
-> 결정론 기계는 `../machine/CLAUDE.md`, 러너는 `../runner/CLAUDE.md`, 컴포넌트는 `src/CLAUDE.md`.
+> 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 이 문서는 **산출물을 그리는 코드만** 다룬다.
+> 결정론 기계는 [`../machine/CLAUDE.md`](../machine/CLAUDE.md), 러너는 [`../runner/CLAUDE.md`](../runner/CLAUDE.md), 컴포넌트는 [`src/CLAUDE.md`](src/CLAUDE.md), 시험 규약은 [`../test/CLAUDE.md`](../test/CLAUDE.md).
 
 **이 폴더의 기준은 언어가 아니라 성격이다** (2026-08-30 축 분리). `.py` 든 `.mjs` 든
 **사람이 볼 것을 만들면** 여기 산다. 본체는 파이썬이고, `.mjs` 는 esbuild 와 React 가
-실제로 읽는 경계 둘(`svg.mjs` · `lib.mjs`)에만 남는다.
+실제로 읽는 경계 둘(`svg.mjs` · `lib.mjs`)에만 남는다. 다른 `.mjs` 가 보이면 잔재다 — 2026-09-13 에 `patch-legacy.mjs` 를 그렇게 지웠다.
 
 ## 무엇이 여기 있나
 
@@ -17,7 +17,6 @@
 | `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
 | `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
 | `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
-| `patch-legacy.mjs` | Phase 1 잔재. 옛 HTML 을 깁던 일회용 |
 
 **Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를
 불러 **그림을 굽는 것**이다. 코드 지도를 계산하지 않고 이미 계산된 것을 그린다.
@@ -87,6 +86,17 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 - **id 접두사를 붙인다.** 정의(`id="…"`)만이 아니라 `url(#…)` 과 `href`/`xlink:href` 참조까지 **세 곳을
   함께** 치환한다. 하나라도 빠지면 clipPath/marker 가 깨진다.
 - **Mermaid/D3 로 대체하지 않는다.** `constraint=true/false` 분리가 Graphviz 에만 있고 그것이 의미축의 전제다.
+
+### 위키 그림 사전 렌더 (`viz/demermaid.py`)
+
+- **사전 렌더가 핵심이다.** VitePress 의 mermaid 플러그인은 브라우저에서 그린다.
+  `demermaid.py` 가 빌드 전에 전면 치환해 **산출물에 JS 의존이 남지 않게** 한다.
+  ⚠ 원본 위키는 고치지 않는다 — 인용 검증기의 대상으로 그대로 남아야 해서 치환본만 따로 낸다.
+- **Mermaid 블록 앞줄의 `<!-- graphviz: <이름> -->` 표식**이 있으면 mmdc 대신 `--svg-dir` 의 미리 구운
+  SVG 로 바꾼다. 산문을 손대지 않고 그림만 갈아 끼우는 자리다.
+- 손으로 쓴 DOT 는 `docs/diagrams/<날짜>-<이름>.dot` 에 `.svg`·`.png` 와 함께 둔다.
+- Mermaid 와 Graphviz 는 서로의 대체재가 아니다 — 산문 안의 그림은 LLM 이 쓰기 쉬운 Mermaid 로 들어오고,
+  코드 지도에서 **계산해서** 그리는 그림은 Graphviz 다(위 "Graphviz SVG 인라인 규칙").
 
 ## `report-spec init` 의 slug 검증
 

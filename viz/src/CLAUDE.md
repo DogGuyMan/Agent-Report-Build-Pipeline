@@ -1,7 +1,7 @@
 # viz/src/ — 읽기 전용 React 컴포넌트
 
-> 루트 나침반은 `../../CLAUDE.md`. 이 문서는 **보고서 컴포넌트와 테마만** 다룬다.
-> 빌드 배선은 `../CLAUDE.md`.
+> 루트 나침반은 [`../../CLAUDE.md`](../../CLAUDE.md). 이 문서는 **보고서 컴포넌트와 테마만** 다룬다.
+> 빌드 배선은 [`../CLAUDE.md`](../CLAUDE.md), 렌더 시험은 [`../../test/CLAUDE.md`](../../test/CLAUDE.md).
 
 ## 무엇이 여기 있나
 

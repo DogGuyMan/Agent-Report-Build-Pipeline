@@ -1,7 +1,7 @@
 # machine/ — 기계축. 계산하고 그리지 않는다
 
-> 루트 나침반은 `../CLAUDE.md`. 이 문서는 **파이썬 쪽만** 다룬다.
-> Node 배선은 `../viz/CLAUDE.md`, 컴포넌트는 `../viz/src/CLAUDE.md`.
+> 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 이 문서는 **계산하는 쪽만** 다룬다.
+> 부르는 쪽은 [`../runner/CLAUDE.md`](../runner/CLAUDE.md), 그리는 쪽은 [`../viz/CLAUDE.md`](../viz/CLAUDE.md), 컴포넌트는 [`../viz/src/CLAUDE.md`](../viz/src/CLAUDE.md).
 
 이 저장소에서 가장 큰 모듈이다(파이썬 27파일 — 본체 16 · 시험 11). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
@@ -23,7 +23,7 @@
 | `clangd_refs.py` · `reverse_refs.py` | clangd 에 직접 말해 역방향 참조를 받는다 |
 | `terms_db.py` | 용어 사전 병합과 **인용 검사 L1/L2/L3**. 투영이 코드 지도를 덮는다 |
 | `verify_citations.py` | 위키 산문의 `파일:줄` 인용을 3값으로 판정 |
-| `xmldoc.py` | 주석 본문을 `comments.xml` 한 곳에 모으고 소스에는 레퍼런스만 남긴다 |
+| `xmldoc.py` | `Term` · `Terms` 형의 정본 — `terms_db.py` 가 import 한다. 주석 주입 명령(`emit`·`inject`·`check`)은 **폐지** — 돌리지 않는다(`docs/decisions/0010`) |
 | `warmup.py` | 전수조사 증분 캐시 — 무엇을 다시 읽어야 하는지 가려낸다 |
 | `survey_plan.py` | 코드 지도를 의존 위상 층과 배치로 나눈다. **판정하지 않는다** |
 | `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
@@ -70,17 +70,21 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 자리와 단계표는 `../runner/CLAUDE.md` 를 본다. 여기서는 그들이 이 모듈을 어떻게 쓰는지만 적는다.
 
 ```
-Mode 1    lang-select ─▶ prep ─▶ warmup ─▶ survey-plan ─▶ survey ─▶ warmup-save ─▶ terms ─▶ wiki ─▶ build ─▶ check
-#                                            ↑ 기계(survey_plan.py)   ↑ LLM 층별        ↑ terms_db.py
-Mode 1.5  collect ─▶ [사람 차례] ─▶ grade ─▶ emit
+Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
+#            LLM        lang_select.py   warmup.py        normalize.py 등    survey_plan.py        LLM 층별
+          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki
+#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py
+Mode 1.5  collect ─▶ gate ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ [LLM] ─▶ build ─▶ check
 ```
+
+옛 단계 이름(`prep` · `survey` · `warmup-save` …)은 `runner/mode1/edges.py` 의 `ALIASES` 로 명령줄에서만 산다.
 
 🔵 2026-08-30 실측 — **세 mode 모두 LLM 한 칸이 전체 시간의 99%** 를 쓴다.
 Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925,770 토큰 · $15.4991 · 84턴.
 그중 **캐시읽기가 97.3%** 다 — `usage` 의 캐시 둘을 빼고 더하면 실제의 일부만 세게 된다.
 
-**측정 코드는 `run_mode1.py` 한 곳에 있고 나머지 둘이 import 한다.** 재구현하지 마라.
+**측정 코드는 `runner/measure.py` 한 곳에 있고 세 실행기가 import 한다.** 재구현하지 마라.
 
 ## 전수조사 레코드 — 코드를 쓰면 레코드도 쓴다
 
@@ -92,9 +96,9 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 - **`where` 는 실제 `파일:줄`** — `terms_db.py` 가 L1(파일) L2(줄) L3(근처에 그 이름) 로 검사한다
 - `kind` 가 `file` `artifact` `key` `concept` `module` 이면 **이름이 그 줄에 글자 그대로** 있어야 한다
   (`terms_db.py` 의 `_stem` — `codegraph.json` 을 `.` 로 쪼개면 안 되기 때문)
-- 새 함수를 만들면 그 자리에서 레코드를 쓰고 `xmldoc.py emit` → `inject` 로 주석 블록을 박는다
-- 코드가 움직여 줄이 밀리면 `inject` 가 **마커 기준으로** `where` 를 다시 센다.
-  `uses[].where` 는 마커가 없어 재계산되지 않는다(L3 경고로 남는다)
+- 새 함수를 만들면 그 자리에서 레코드를 쓴다. **주석 블록은 박지 않는다** — 주입은 폐지됐다(`docs/decisions/0010`)
+- 코드가 움직여 줄이 밀리면 `where` 는 낡는다. 자동 재계산은 없다 — `terms_db.py` 의 L2 가 잡고, Mode 1 증분(`detect-changes`)이
+  그 파일을 다시 읽거나 손으로 고친다. `uses[].where` 도 같다(L3 경고)
 
 ## warmup 의 판정 네 갈래 — 그리고 알려진 구멍
 
@@ -146,7 +150,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 | K8 | 성공 판정은 **벽시계만.** 토큰·비용 증가는 허용하되 기록한다 |
 
 **서브에이전트 LLM Model은 `claude-sonnet-5` 다.** `main` 의 `--model` 기본값 하나가
-`run_survey`/`run_wiki` → `run_layer` → `run_agent_with` → `claude_argv` 사슬을 타고 내려간다.
+단계(`runner/mode1/survey.py` · `wiki.py`) → `pipeline.run_layer` → `run_agent_with` → `measure.claude_argv` 사슬을 타고 내려간다.
 별명(`sonnet`)이 아니라 정확한 ID 를 쓴다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
 
 **파일 lock 은 걸지 않는다. 필요가 없다.** 배타성이 lock 이 아니라 `survey_plan.pack()` 에서
@@ -201,7 +205,7 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 **코드에도 경로를 박지 않는다.** 파이썬 해석기는 `tools/python.py` 의 `pythonPath()` 로 찾고,
 바깥 명령(`git` · `dot` · `clang-uml` · `dotnet` · `clangd` · `mmdc`)은 PATH 로 부른다.
 새 기계에서 무엇이 빠졌는지는 **`npm run doctor`** 가 한 화면으로 말한다 — 필수가 없으면 exit 1.
-파이썬 의존성은 `requirements.txt` 에 있다(🔵 실측 — `networkx` `numpy` `scipy` `pytest` 넷이면 전량이 돈다).
+파이썬 의존성은 `requirements.txt` 에 있다 — `networkx` `numpy` `scipy` `pytest` `griffe` `msgspec` 여섯이면 전량이 돈다.
 설치 절차는 `README.md` 에 있다.
 
 ## 검증
@@ -209,13 +213,12 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 ```bash
 cd $REPO_ROOT
 .venv/bin/python -m pytest machine/ -q          # 골든 변수가 없으면 일부 건너뛴다
-.venv/bin/python machine/xmldoc.py check        # 마커와 json 이 맞는가
 .venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json \
   --repo . --reading machine/terms-reading.json
 #   기대: 실패 0. "근거 없음" 은 경고이지 실패가 아니다
 ```
 
-**파이썬 의존성은 넷이면 전량이 돈다** — `networkx` `numpy` `scipy` `pytest`
+**파이썬 의존성은 여섯이면 전량이 돈다** — `networkx` `numpy` `scipy` `pytest` `griffe` `msgspec`
 (`requirements.txt`). 표준 라이브러리로 풀 수 있으면 새 의존성을 더하지 마라.
 
 ## 이 모듈이 소유하는 것 (Owns)
@@ -230,11 +233,11 @@ cd $REPO_ROOT
 |---|---|
 | `runner/wiki/prep.py` → 여기 | `pycalls.py` · `normalize.py` · `facts.py` 를 자식 프로세스로 부른다 |
 | `runner/wiki/check.py` → 여기 | `verify_citations.py` 를 부른다 |
-| `runner/run_mode1.py` → 여기 | `declmap` · `survey_plan` · `warmup` 을 import 하고 `terms_db.py` 를 자식 프로세스로 부른다 |
+| `runner/run_mode1.py` · `runner/mode1/*` → 여기 | `survey_plan`(`run_mode1` · `graph` · `survey` · `context` · `wiki`) · `warmup`(`scan` · `diff` · `context`) · `declmap`(`scan`) 을 import 하고, `runner/mode1/terms.py` 가 `terms_db.py` 를 자식 프로세스로 부른다 |
 | 여기 → 바깥 | **없다.** 이 모듈은 아무도 부르지 않는다 — 불려 가기만 한다 |
 
 ⚠ **`render_modules.py`(prep) 와 `demermaid.py`(build) 는 여기 없다.** 그림을 그리므로
-시각축이라 `../viz/` 에 산다. `runner/wiki/prep.py:177` 과 `runner/wiki/build.py:83` 이
+시각축이라 `../viz/` 에 산다. `runner/wiki/prep.py` 와 `runner/wiki/build.py` 의 `run(...)` 호출이
 `viz/` 경로로 부른다 — 여기서 찾지 마라.
 
 ⚠ **`normalize.py` 의 출력 키는 간접 의존이다.** `terms_db.py` 가 `from`/`to` · `id`/`depends_on`
@@ -243,13 +246,12 @@ cd $REPO_ROOT
 ## 흔한 변경 패턴 (Common modification patterns)
 
 ```bash
-# 새 함수를 더했다 — 레코드도 그 자리에서 쓴다
+# 새 함수를 더했다 — 레코드도 그 자리에서 쓴다. 주석 블록은 박지 않는다 (0010)
 $EDITOR machine/terms-reading.json     # {kind, module, where, means, does, uses[], confidence}
-.venv/bin/python machine/xmldoc.py emit && .venv/bin/python machine/xmldoc.py inject
-.venv/bin/python machine/xmldoc.py check    # 기대: 문제 0건
+.venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json --repo . --reading machine/terms-reading.json
 
-# 코드를 옮겨 줄이 밀렸다 — inject 가 마커 기준으로 다시 센다
-.venv/bin/python machine/xmldoc.py inject
+# 코드를 옮겨 줄이 밀렸다 — L2 실패 목록을 보고 where 를 고치거나 Mode 1 증분으로 다시 읽는다
+.venv/bin/python machine/terms_db.py out/codegraph-raw/codegraph.json --repo . --reading machine/terms-reading.json
 
 # 수집기 출력이 바뀌었다 — 골든 시험부터 본다
 GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest machine/ -q
@@ -261,6 +263,6 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest machine/ -q
   투영이 그 파일을 **덮어써서** 노드가 조용히 줄어든다. 🔵 실제로 두 번 겪었다.
 - **Gotcha — 골든 경로 상수가 빈 문자열이 되면 안 된다.** `os.path.join("", "out/…")` 이 상대경로가
   되어 이 저장소의 산출물을 골든으로 착각해 읽는다. 그래서 `… or "/골든저장소_미지정/<변수>"` 를 쓴다.
-- **Why — `run_mode1.py` 만 측정 코드를 갖는다.** 나머지 둘이 import 한다. 세 곳에 같은 토큰 셈이
+- **Why — `runner/measure.py` 만 측정 코드를 갖는다.** 세 실행기가 import 한다. 세 곳에 같은 토큰 셈이
   살면 하나만 고쳐도 표가 어긋난다.
 - **Note — `declmap` 의 정규식은 ASCII 경로만 문다.** 한글 파일명은 인용으로 잡히지 않는다.
