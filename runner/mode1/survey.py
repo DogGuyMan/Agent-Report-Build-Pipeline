@@ -1,14 +1,18 @@
 """`annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다."""
 import json
 import os
+import stat
 import sys
 import time
 from collections.abc import Mapping, Sequence
+
+import msgspec
+
 import pipeline as P
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
-from mode1.context import ROOT, Mode1Context, Record, Records
+from mode1.context import ROOT, FaultKind, Mode1Context, Record, Records, ShardFault, ShardRecords
 from mode1.measured import Measured
 
 
@@ -27,7 +31,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return [X.BATCHES] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.READING]
+        return [X.RECORD_SCHEMA, X.READING]
 
     # ── 자리 ────────────────────────────────────────────────────────────
 
@@ -121,6 +125,8 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 ## 레코드 계약
 
 {{kind, module, where, means, does, uses[], confidence, source:"reading"}}
+정확한 꼴은 {repo}/out/codegraph-raw/record-schema.json (읽기 전용 JSON Schema, examples 에 견본) 이다.
+칸을 빼거나 어휘 밖의 값을 쓰면 기계가 그 샤드를 통째로 되돌린다 — 네 배치가 없던 일이 된다.
 - where = `경로:줄` (필수. 기계가 L1 파일 / L2 줄 / L3 근처에 이름 으로 검사한다)
 - means = 무엇인가, 한 문장. **객체지향을 갓 배운 대학 1학년 눈높이.** 어려운 용어로 설명하지 않는다
 - does  = 무엇을 하는가, 한두 문장
@@ -151,6 +157,9 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 - where 의 줄 번호를 실제로 열어 확인했는가
 - confidence 가 전부 HIGH 는 아닌가
 - 샤드 파일 하나만 만들었는가
+- **기계 검문을 통과했는가** — 다음을 돌려 `통과` 가 나올 때까지 고친다. 통과 전에는 끝내지 않는다:
+    {root}/.venv/bin/python {root}/runner/check_shard.py {repo}/out/codegraph-raw/_shards/{bid}.json
+  (JSON 문법 · 필수 칸 · 어휘 · where 를 본다. 이것이 층 끝 검문과 같은 검사기다)
 
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
 """.format(repo=repo, root=root, bid=batch["id"], n=len(batch["symbols"]),
@@ -200,14 +209,147 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 ## 레코드 계약과 쓰는 곳
 
 {{kind, module, where, means, does, uses[], confidence, source:"reading"}} 이고
+정확한 꼴은 {repo}/out/codegraph-raw/record-schema.json (읽기 전용 JSON Schema) 이다.
+칸을 빼거나 어휘 밖의 값을 쓰면 기계가 이 샤드를 통째로 되돌린다.
 쓰는 곳은 **여기 하나뿐**이다:
 
   {repo}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {{"키": 레코드}}
 
 **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
+끝내기 전에 기계 검문을 돌려 `통과` 가 나올 때까지 고친다:
+  {root}/.venv/bin/python {root}/runner/check_shard.py {repo}/out/codegraph-raw/_shards/NONNODE.json
+
 보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
 """.format(repo=repo, root=root, reading=X.reading_path(repo, ROOT))
+
+    # ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────
+
+    WHERE_OPTIONAL = ("module", "external")
+    # 결함 갈래마다 고치는 법 한 줄. 재조사 프롬프트와 check_shard 명령이 그대로 찍는다.
+    FIX: Mapping[FaultKind, str] = {
+        "missing": "샤드 파일이 없다. 지정된 자리에 {\"키\": 레코드} 꼴로 하나 만든다.",
+        "malformed": "JSON 문법이 깨졌다. 그 바이트 자리를 연다 — 문자열 안 따옴표는 \\\" 로, 줄바꿈은 \\n 으로 쓴다.",
+        "schema": "필수 칸이 빠졌거나 어휘 밖의 값이다. record-schema.json 의 required 와 enum 에 맞춘다.",
+        "where": "where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수 있다.",
+    }
+    SHARD_EXAMPLE: ShardRecords = {"build_terms": {
+        "kind": "function", "module": "machine", "where": "machine/terms_db.py:82",
+        "means": "코드 지도에서 용어 사전을 만드는 함수.",
+        "does": "노드와 모듈을 돌며 이름 · 종류 · 위치 · 관계를 뽑는다.",
+        "uses": [{"to": "_where", "kind": "dependency", "label": "calls", "where": "machine/terms_db.py:110"}],
+        "confidence": "HIGH", "source": "reading"}}
+
+    @staticmethod
+    def write_schema(path: str) -> None:
+        """`ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다.
+
+        이미 있으면 잠시 풀고 다시 쓴다 — 실행마다 형과 같은 글이 있어야 한다.
+        """
+        doc = dict(msgspec.json.schema(ShardRecords))
+        doc["examples"] = [AnnotateSymbolsStage.SHARD_EXAMPLE]
+        if os.path.exists(path):
+            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=1)
+        os.chmod(path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+
+    @staticmethod
+    def fault(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault:
+        return {"kind": kind, "batch": batch, "path": path, "at": at, "detail": detail,
+                "fix": AnnotateSymbolsStage.FIX[kind]}
+
+    @staticmethod
+    def check_shard(raw: bytes, batch: str = "", path: str = "") -> list[ShardFault]:
+        """샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다.
+
+        msgspec 은 꼴 오류(`ValidationError`)를 문법 오류(`DecodeError`)의 하위로 낸다 — 좁은 것을 먼저 잡는다.
+        """
+        F = AnnotateSymbolsStage.fault
+        try:
+            recs = msgspec.json.decode(raw, type=ShardRecords)
+        except msgspec.ValidationError as e:
+            detail, _, at = str(e).partition(" - at ")
+            return [F("schema", batch, path, at.strip("`"), detail)]
+        except msgspec.DecodeError as e:
+            detail, _, at = str(e).rpartition(" (")
+            return [F("malformed", batch, path, at.rstrip(")"), detail or str(e))]
+        return [F("where", batch, path, k, "where 없음 (kind %s)" % r["kind"])
+                for k, r in recs.items()
+                if "where" not in r and r["kind"] not in AnnotateSymbolsStage.WHERE_OPTIONAL]
+
+    @staticmethod
+    def fault_line(f: ShardFault) -> str:
+        """결함 하나를 사람이 읽을 한 줄로."""
+        return "[%s] %s — %s\n    → %s" % (f["kind"], f["at"], f["detail"], f["fix"])
+
+    @staticmethod
+    def plan_ids(plan: survey_plan.SurveyPlan) -> list[str]:
+        """계획이 띄우는 세션의 이름 전부 — 배치 id 들과, 비노드 층이 있으면 `NONNODE`."""
+        ids = [b["id"] for L in plan["layers"] for b in L.get("batches", [])]
+        return ids + (["NONNODE"] if any(L.get("kind") == "non-node" for L in plan["layers"]) else [])
+
+    @staticmethod
+    def check_shards(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]:
+        """계획의 배치마다 샤드를 찾아 검문한다. 틀린 것만 `{배치: 결함들}` 으로 낸다."""
+        bad: dict[str, list[ShardFault]] = {}
+        for bid in AnnotateSymbolsStage.plan_ids(plan):
+            path = os.path.join(shard_dir, bid + ".json")
+            if not os.path.exists(path):
+                bad[bid] = [AnnotateSymbolsStage.fault("missing", bid, path, "-", "샤드 없음")]
+                continue
+            with open(path, "rb") as f:
+                got = AnnotateSymbolsStage.check_shard(f.read(), bid, path)
+            if got:
+                bad[bid] = got
+        return bad
+
+    @staticmethod
+    def quarantine(shard_dir: str, bid: str, faults: Sequence[ShardFault] = ()) -> str:
+        """틀린 샤드를 `.json.bad` 로 옮기고 결함들을 `.json.bad.why` 에 JSON 으로 남긴다.
+
+        `.json` 이 아니라 병합이 안 읽고, `jobs` 가 그 배치를 다시 띄우며 결함을 프롬프트에 싣는다.
+        """
+        src = os.path.join(shard_dir, bid + ".json")
+        dst = src + ".bad"
+        if os.path.exists(src):
+            os.replace(src, dst)
+        if faults:
+            with open(dst + ".why", "wb") as f:
+                f.write(msgspec.json.format(msgspec.json.encode(list(faults)), indent=1))
+        return dst
+
+    @staticmethod
+    def load_faults(shard_dir: str, bid: str) -> list[ShardFault]:
+        """격리 사유. 없거나 꼴이 틀리면 빈 목록 — 낡은 사유로 재조사를 오도하지 않는다."""
+        try:
+            return P.load(os.path.join(shard_dir, bid + ".json.bad.why"), list[ShardFault])
+        except (OSError, msgspec.DecodeError):
+            return []
+
+    @staticmethod
+    def clear_quarantine(shard_dir: str, bid: str) -> None:
+        """검문을 통과한 배치의 옛 격리 흔적을 치운다. 남기면 다음 재조사가 낡은 오류를 받는다."""
+        for suffix in (".json.bad.why", ".json.bad"):
+            path = os.path.join(shard_dir, bid + suffix)
+            if os.path.exists(path):
+                os.remove(path)
+
+    @staticmethod
+    def retry_section(shard_dir: str, bid: str) -> str:
+        """지난 시도가 격리됐으면 그 결함들을 프롬프트 뒤에 붙일 절. 없으면 빈 글."""
+        faults = AnnotateSymbolsStage.load_faults(shard_dir, bid)
+        if not faults:
+            return ""
+        lines = "\n".join("  " + AnnotateSymbolsStage.fault_line(f).replace("\n", "\n  ") for f in faults)
+        return ("\n## 지난 시도가 되돌려졌다 — 같은 실수를 하지 마라\n"
+                "\n"
+                "이 배치는 한 번 돌았고, 기계 검문이 그 샤드에서 결함 %d개를 찾아 되돌렸다:\n"
+                "\n%s\n"
+                "\n"
+                "- 되돌린 샤드는 %s 에 그대로 있다. **결함의 자리를 열어 무엇이 깨졌는지 먼저 본다.**\n"
+                "- 읽은 내용을 다시 쓰되, **끝내기 전에 검문 명령을 반드시 돌려 `통과` 를 본다.**\n"
+                % (len(faults), lines, os.path.join(shard_dir, bid + ".json.bad")))
 
     # ── 레코드 — 읽기 · 샤드 병합 · 계획과 diff 의 대조 ──────────────────
 
@@ -316,11 +458,37 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         n_sessions = sum(len(L.get("batches", [])) or 1 for L in ctx.plan["layers"])
         print("조사 세션 예상 %d개 (층 %d)" % (n_sessions, len(ctx.plan["layers"])), flush=True)
         os.makedirs(self.shard_dir(ctx), exist_ok=True)
+        self.write_schema(X.RECORD_SCHEMA.locate(ctx))
         ctx.baseline = self.load_records(X.READING.locate(ctx))
         ctx.merged = dict(ctx.baseline)
         out = super().perform(ctx)
+        if out.kind == P.OK:
+            out = self.sweep(ctx, out)
         ctx.survey_ok = out.kind == P.OK    # 층이 0개면 harvest 가 안 불리므로 여기서 정한다
         return out
+
+    def sweep(self, ctx: Mode1Context, out: P.Outcome) -> P.Outcome:
+        """세션이 전부 끝난 뒤 샤드 전량을 검문한다. 틀린 샤드는 격리하고 단계를 실패로 세운다."""
+        t0 = time.monotonic()
+        assert ctx.plan is not None
+        d = self.shard_dir(ctx)
+        bad = self.check_shards(d, ctx.plan)
+        for bid, faults in sorted(bad.items()):
+            for f in faults:
+                print("[%s] 샤드가 틀렸다 %s" % (bid, self.fault_line(f)), file=sys.stderr)
+            self.quarantine(d, bid, faults)
+        for bid in self.plan_ids(ctx.plan):
+            if bid not in bad:
+                self.clear_quarantine(d, bid)
+        row = self.row(t0, not bad,
+                       "" if not bad else "샤드 %d개가 틀려 격리했다 — --resume 이 그 배치만 다시 띄운다: %s"
+                       % (len(bad), ", ".join(sorted(bad))))
+        row["stage"] = "annotate-symbols/check-shards"
+        n = sum(len(L.get("batches", [])) or 1 for L in ctx.plan["layers"])
+        print("  샤드 검문 — 세션 %d개 중 틀린 것 %d개" % (n, len(bad)), flush=True)
+        if bad:
+            return P.Outcome(P.FAIL, row["why"], list(out.rows) + [row])
+        return P.Outcome(P.OK, "", list(out.rows) + [row])
 
     def rounds(self, ctx: Mode1Context) -> int:
         return len(ctx.plan["layers"]) if ctx.plan else 0
@@ -335,9 +503,10 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                                                        self.dep_excerpt(ctx.merged, b),
                                                        ctx.targets, ctx.tracked_n))
                     for b in layer["batches"]]
-        # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돈다.
-        return [(bid, pr) for bid, pr in jobs
-                if not os.path.exists(os.path.join(self.shard_dir(ctx), bid + ".json"))]
+        # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돌고, 격리된 사유를 받는다.
+        d = self.shard_dir(ctx)
+        return [(bid, pr + self.retry_section(d, bid)) for bid, pr in jobs
+                if not os.path.exists(os.path.join(d, bid + ".json"))]
 
     def harvest(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome:
         out = super().harvest(ctx, got, rnd)

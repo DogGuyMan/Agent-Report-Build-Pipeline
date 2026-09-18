@@ -8,6 +8,7 @@
 | 파일 | 하는 일 |
 |---|---|
 | [`__init__.py`](__init__.py) | — |
+| [`check_shard.py`](check_shard.py) | 샤드 파일 하나를 기계 검문한다. 배치 세션이 끝내기 전에 스스로 돌리는 문이다. |
 | [`dispatch.py`](dispatch.py) | — |
 | [`measure.py`](measure.py) | 세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트. |
 | [`__init__.py`](__init__.py) | — |
@@ -46,6 +47,16 @@
 | [`compdb.py`](compdb.py) | — |
 | [`paths.py`](paths.py) | — |
 | [`prep.py`](prep.py) | — |
+
+---
+
+## `check_shard.py`
+
+샤드 파일 하나를 기계 검문한다. 배치 세션이 끝내기 전에 스스로 돌리는 문이다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
 
@@ -93,6 +104,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 |---|---|---|
 | **`ShardUse`** | *class* |  |
 | **`ShardRecord`** | *class* | `where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다. |
+| **`ShardFault`** | *class* | `at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
 | `_no_records` | `() -> Records` | `field(default_factory=dict)` 는 원소 형을 잃는다. 형이 붙은 빈 사전을 낸다. |
 | `_no_pages` | `() -> Pages` |  |
@@ -245,9 +257,15 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
 | `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
-| `AnnotateSymbolsStage.check_shard` | `(raw: bytes) -> list[str]` | 샤드 하나의 불평 목록. JSON 이 아니거나 꼴이 틀리면 그 한 줄, 꼴이 맞으면 `where` 규칙을 본다. |
-| `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[str]]` | 계획의 배치마다 샤드를 찾아 검문한다. 틀린 것만 `{배치: 불평}` 으로 낸다. |
-| `AnnotateSymbolsStage.quarantine` | `(shard_dir: str, bid: str) -> str` | 틀린 샤드를 `.json.bad` 로 옮긴다. `.json` 이 아니라 병합이 안 읽고, `jobs` 가 그 배치를 다시 띄운다. |
+| `AnnotateSymbolsStage.fault` | `(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault` |  |
+| `AnnotateSymbolsStage.check_shard` | `(raw: bytes, batch: str = '', path: str = '') -> list[ShardFault]` | 샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다. |
+| `AnnotateSymbolsStage.fault_line` | `(f: ShardFault) -> str` | 결함 하나를 사람이 읽을 한 줄로. |
+| `AnnotateSymbolsStage.plan_ids` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 계획이 띄우는 세션의 이름 전부 — 배치 id 들과, 비노드 층이 있으면 `NONNODE`. |
+| `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]` | 계획의 배치마다 샤드를 찾아 검문한다. 틀린 것만 `{배치: 결함들}` 으로 낸다. |
+| `AnnotateSymbolsStage.quarantine` | `(shard_dir: str, bid: str, faults: Sequence[ShardFault] = ()) -> str` | 틀린 샤드를 `.json.bad` 로 옮기고 결함들을 `.json.bad.why` 에 JSON 으로 남긴다. |
+| `AnnotateSymbolsStage.load_faults` | `(shard_dir: str, bid: str) -> list[ShardFault]` | 격리 사유. 없거나 꼴이 틀리면 빈 목록 — 낡은 사유로 재조사를 오도하지 않는다. |
+| `AnnotateSymbolsStage.clear_quarantine` | `(shard_dir: str, bid: str) -> None` | 검문을 통과한 배치의 옛 격리 흔적을 치운다. 남기면 다음 재조사가 낡은 오류를 받는다. |
+| `AnnotateSymbolsStage.retry_section` | `(shard_dir: str, bid: str) -> str` | 지난 시도가 격리됐으면 그 결함들을 프롬프트 뒤에 붙일 절. 없으면 빈 글. |
 | `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
 | `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
 | `AnnotateSymbolsStage.file_of` | `(rec: Record \| None) -> str` | `where` 의 파일 부분. 없으면 빈 글. |
@@ -624,7 +642,8 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `_one_batch_plan` | `(bid: str = 'L0-B00') -> survey_plan.SurveyPlan` |  |
 | `test_샤드_형은_계약의_칸을_전부_요구한다` | `()` |  |
 | `test_샤드_형은_값의_어휘도_본다` | `()` |  |
-| `test_깨진_JSON_샤드는_불평_하나로_짚는다` | `()` |  |
+| `test_깨진_JSON_샤드는_결함_하나로_짚는다` | `()` |  |
+| `test_결함은_네_갈래이고_갈래마다_고치는_법이_다르다` | `()` |  |
 | `test_module_과_external_만_where_없이_통과한다` | `()` |  |
 | `test_샤드_검문은_계획의_배치마다_파일을_찾는다` | `(tmp_path: Path)` |  |
 | `test_틀린_샤드는_격리되어_병합에서_빠지고_다음_실행에서_다시_뜬다` | `(tmp_path: Path)` |  |
@@ -632,6 +651,12 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_프롬프트_둘은_스키마_파일을_가리킨다` | `()` |  |
 | `test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAIL` | `(tmp_path: Path)` |  |
 | `test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고_OK` | `(tmp_path: Path)` |  |
+| `_fault` | `(kind: X.FaultKind = 'malformed', at: str = 'byte 7014') -> X.ShardFault` |  |
+| `test_격리는_결함을_JSON_으로_옆에_남기고_그대로_읽어_낸다` | `(tmp_path: Path)` |  |
+| `test_재조사_프롬프트는_지난_오류를_싣는다` | `(tmp_path: Path)` |  |
+| `test_프롬프트_둘은_자가검사_명령을_준다` | `()` |  |
+| `test_검문이_통과한_배치의_옛_격리_흔적은_치운다` | `(tmp_path: Path)` |  |
+| `test_check_shard_명령은_통과_0_불평_1` | `(tmp_path: Path)` |  |
 
 ---
 

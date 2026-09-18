@@ -561,3 +561,193 @@ def test_다른_그래프의_재개_문서는_거부한다(tmp_path: Path):
     Z.write_resume(p, graph="mode1-cold", rows=rows, order=["collect-graph"])
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-warm") is None
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-cold") == "collect-graph"
+
+
+# ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────────
+
+def _good_record() -> dict[str, object]:
+    return {"kind": "function", "module": "m", "where": "m.py:1", "means": "뜻", "does": "함",
+            "uses": [{"to": "g", "kind": "dependency", "label": "calls", "where": "m.py:2"}],
+            "confidence": "HIGH", "source": "reading"}
+
+
+def _one_batch_plan(bid: str = "L0-B00") -> survey_plan.SurveyPlan:
+    return {"target": 8, "totals": {"symbols": 1, "edges": 0, "levels": 1, "cyclic_symbols": 0},
+            "layers": [{"level": 0, "symbol_count": 1, "file_count": 1, "batches": [
+                {"id": bid, "files": ["m.py"], "symbols": [
+                    {"id": "f", "name": "f", "kind": "function", "file": "m.py", "line": 1,
+                     "in_cycle": False, "depends_on": []}]}]}]}
+
+
+def test_샤드_형은_계약의_칸을_전부_요구한다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    assert check(json.dumps({"f": _good_record()}).encode()) == []
+    for gone in ("kind", "module", "means", "uses", "confidence", "source"):
+        rec = {k: v for k, v in _good_record().items() if k != gone}
+        assert check(json.dumps({"f": rec}).encode()), gone
+    rec = _good_record(); del rec["does"]           # does 만 선택이다
+    assert check(json.dumps({"f": rec}).encode()) == []
+
+
+def test_샤드_형은_값의_어휘도_본다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    for field, wrong in (("kind", "helper"), ("confidence", "SURE"), ("source", "codegraph")):
+        rec = _good_record(); rec[field] = wrong
+        assert check(json.dumps({"f": rec}).encode()), field
+    rec = _good_record(); rec["kind"] = "method"    # 코드 지도가 내는 종류다
+    assert check(json.dumps({"f": rec}).encode()) == []
+    rec = _good_record(); rec["uses"] = [{"to": "g", "kind": "calls", "label": None, "where": "m.py:2"}]
+    assert check(json.dumps({"f": rec}).encode())
+
+
+def test_깨진_JSON_샤드는_결함_하나로_짚는다():
+    got = SV.AnnotateSymbolsStage.check_shard(b'{"f": {"means": "a "b" c"}}', "L1-B30", "/s/L1-B30.json")
+    assert len(got) == 1
+    f = got[0]
+    assert f["kind"] == "malformed" and f["batch"] == "L1-B30" and f["path"] == "/s/L1-B30.json"
+    assert f["at"].startswith("byte ") and "malformed" in f["detail"] and f["fix"]
+
+
+def test_결함은_네_갈래이고_갈래마다_고치는_법이_다르다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    rec = _good_record(); rec["kind"] = "helper"
+    schema = check(json.dumps({"f": rec}).encode())[0]
+    assert schema["kind"] == "schema" and "kind" in schema["at"] and "helper" in schema["detail"]
+    rec = _good_record(); del rec["where"]
+    where = check(json.dumps({"f": rec}).encode())[0]
+    assert where["kind"] == "where" and where["at"] == "f"
+    fixes = {SV.AnnotateSymbolsStage.FIX[k] for k in ("missing", "malformed", "schema", "where")}
+    assert len(fixes) == 4 and schema["fix"] == SV.AnnotateSymbolsStage.FIX["schema"]
+
+
+def test_module_과_external_만_where_없이_통과한다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    for kind in ("module", "external"):
+        rec = _good_record(); rec["kind"] = kind; del rec["where"]
+        assert check(json.dumps({"f": rec}).encode()) == [], kind
+    rec = _good_record(); del rec["where"]
+    assert [f["kind"] for f in check(json.dumps({"f": rec}).encode())] == ["where"]
+
+
+def test_샤드_검문은_계획의_배치마다_파일을_찾는다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("L0-B00")
+    plan["layers"][0]["batches"].append({"id": "L0-B01", "files": ["n.py"], "symbols": []})
+    plan["layers"][0]["batches"].append({"id": "L0-B02", "files": ["o.py"], "symbols": []})
+    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    (d / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    (d / "L0-B01.json").write_text('{"g": {"means": "a "b" c"}}', encoding="utf-8")
+    (d / "NONNODE.json").write_text(json.dumps({"m.py": {**_good_record(), "kind": "file"}}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    assert sorted(bad) == ["L0-B01", "L0-B02"]
+    assert bad["L0-B01"][0]["kind"] == "malformed" and bad["L0-B02"][0]["kind"] == "missing"
+    assert bad["L0-B01"][0]["path"] == str(d / "L0-B01.json")
+
+
+def test_틀린_샤드는_격리되어_병합에서_빠지고_다음_실행에서_다시_뜬다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B01.json").write_text('{"g": {"means": "a "b" c"}}', encoding="utf-8")
+    moved = SV.AnnotateSymbolsStage.quarantine(str(d), "L0-B01")
+    assert not (d / "L0-B01.json").exists() and os.path.exists(moved) and not moved.endswith(".json")
+    assert SV.AnnotateSymbolsStage.merge_shards(str(d), {}) == {}
+    assert SV.AnnotateSymbolsStage.quarantine(str(d), "L0-B01") == moved   # 없으면 그대로 그 이름
+
+
+def test_스키마_파일은_읽기_전용이고_다시_쓸_수_있다(tmp_path: Path):
+    p = tmp_path / "record-schema.json"
+    SV.AnnotateSymbolsStage.write_schema(str(p))
+    assert os.stat(p).st_mode & 0o222 == 0
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    assert doc["examples"] and SV.AnnotateSymbolsStage.check_shard(json.dumps(doc["examples"][0]).encode()) == []
+    SV.AnnotateSymbolsStage.write_schema(str(p))                # 두 번째도 죽지 않는다
+    assert os.stat(p).st_mode & 0o222 == 0
+
+
+def test_프롬프트_둘은_스키마_파일을_가리킨다():
+    b = _one_batch_plan()["layers"][0]["batches"][0]
+    assert "record-schema.json" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "record-schema.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
+
+
+def test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAIL(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")   # 샤드가 있어 세션은 안 뜬다
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.FAIL and c.survey_ok is False
+    assert not (shards / "L0-B00.json").exists() and (shards / "L0-B00.json.bad").exists()
+    assert out.rows[-1]["stage"] == "annotate-symbols/check-shards" and out.rows[-1]["ok"] is False
+    assert os.stat(X.RECORD_SCHEMA.locate(c)).st_mode & 0o222 == 0
+
+
+def test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고_OK(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.OK and c.survey_ok is True
+    assert out.rows[-1]["stage"] == "annotate-symbols/check-shards" and out.rows[-1]["ok"] is True
+
+
+# ── 오류 인계 — 격리 사유 저장 · 재조사 프롬프트 · 세션 안 자가검사 ────────
+
+def _fault(kind: X.FaultKind = "malformed", at: str = "byte 7014") -> X.ShardFault:
+    return {"kind": kind, "batch": "L1-B30", "path": "/s/L1-B30.json", "at": at,
+            "detail": "JSON is malformed: expected ',' or '}'", "fix": SV.AnnotateSymbolsStage.FIX[kind]}
+
+
+def test_격리는_결함을_JSON_으로_옆에_남기고_그대로_읽어_낸다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L1-B30.json").write_text("{", encoding="utf-8")
+    SV.AnnotateSymbolsStage.quarantine(str(d), "L1-B30", [_fault()])
+    assert SV.AnnotateSymbolsStage.load_faults(str(d), "L1-B30") == [_fault()]
+    assert json.loads((d / "L1-B30.json.bad.why").read_text(encoding="utf-8"))[0]["kind"] == "malformed"
+    assert SV.AnnotateSymbolsStage.load_faults(str(d), "L1-B31") == []
+
+
+def test_재조사_프롬프트는_지난_오류를_싣는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L1-B30")
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    first = SV.AnnotateSymbolsStage().jobs(c, 0)[0][1]
+    assert "지난 시도" not in first
+    (d / "L1-B30.json.bad").write_text("{", encoding="utf-8")
+    SV.AnnotateSymbolsStage.quarantine(str(d), "L1-B30", [_fault()])
+    again = SV.AnnotateSymbolsStage().jobs(c, 0)[0][1]
+    assert "## 지난 시도" in again and "byte 7014" in again and "L1-B30.json.bad" in again
+    assert SV.AnnotateSymbolsStage.FIX["malformed"] in again      # 갈래별 고치는 법이 실린다
+    assert again.startswith(first)          # 원래 지시는 그대로, 뒤에 붙는다
+
+
+def test_프롬프트_둘은_자가검사_명령을_준다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "/root/runner/check_shard.py /repo/out/codegraph-raw/_shards/L0-B00.json" in p
+    assert "check_shard.py /repo/out/codegraph-raw/_shards/NONNODE.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
+
+
+def test_검문이_통과한_배치의_옛_격리_흔적은_치운다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    (shards / "L0-B00.json.bad").write_text("{", encoding="utf-8")
+    (shards / "L0-B00.json.bad.why").write_text("[]", encoding="utf-8")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.OK
+    assert not (shards / "L0-B00.json.bad").exists() and not (shards / "L0-B00.json.bad.why").exists()
+
+
+def test_check_shard_명령은_통과_0_불평_1(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runner", "check_shard.py")
+    good = tmp_path / "g.json"; good.write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    bad = tmp_path / "b.json"; bad.write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")
+    ok = subprocess.run([sys.executable, tool, str(good)], capture_output=True, text=True)
+    assert ok.returncode == 0 and "통과" in ok.stdout
+    no = subprocess.run([sys.executable, tool, str(bad)], capture_output=True, text=True)
+    assert no.returncode == 1 and "malformed" in no.stdout and SV.AnnotateSymbolsStage.FIX["malformed"] in no.stdout

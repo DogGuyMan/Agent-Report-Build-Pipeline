@@ -1,7 +1,7 @@
 """Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다."""
 import os
 from dataclasses import dataclass, field
-from typing import NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 import pipeline as P
 import survey_plan
@@ -15,6 +15,48 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
 Record = dict[str, object]
 Records = dict[str, Record]
+
+# 배치 세션이 샤드에 쓰는 레코드의 꼴. 프롬프트의 "레코드 계약" 과 같은 칸이고, 기계가 이 형으로
+# 샤드를 검문한다. `method` 는 코드 지도(pycalls)가 내는 종류라 함께 받는다.
+RecordKind = Literal["file", "module", "function", "method", "class", "struct", "enum", "interface",
+                     "delegate", "record", "external", "artifact", "key", "concept"]
+UseKind = Literal["dependency", "inheritance", "aggregation", "composition", "association", "realization"]
+Confidence = Literal["HIGH", "MEDIUM", "LOW"]
+
+
+class ShardUse(TypedDict):
+    to: str
+    kind: UseKind
+    label: str | None
+    where: str
+
+
+class ShardRecord(TypedDict):
+    """`where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다."""
+    kind: RecordKind
+    module: str | None
+    where: NotRequired[str]
+    means: str
+    does: NotRequired[str]
+    uses: list[ShardUse]
+    confidence: Confidence
+    source: Literal["reading"]
+
+
+ShardRecords = dict[str, ShardRecord]
+
+# 샤드 검문이 내는 결함 하나. 격리 사유(`.json.bad.why`)와 재조사 프롬프트가 같은 꼴을 쓴다.
+FaultKind = Literal["missing", "malformed", "schema", "where"]
+
+
+class ShardFault(TypedDict):
+    """`at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키."""
+    kind: FaultKind
+    batch: str
+    path: str
+    at: str
+    detail: str
+    fix: str
 
 
 class WikiPage(TypedDict):
@@ -117,6 +159,8 @@ CHANGES = P.Artifact[Mode1Context](
     "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), WarmupDiff)
 BATCHES = P.Artifact[Mode1Context](
     "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), survey_plan.SurveyPlan)
+RECORD_SCHEMA = P.Artifact[Mode1Context](
+    "record-schema.json", lambda c: os.path.join(raw_dir(c), "record-schema.json"))
 READING = P.Artifact[Mode1Context](
     "terms-reading.json", lambda c: reading_path(c.repo, c.root), Records)
 TERMS_DB = P.Artifact[Mode1Context](
@@ -128,7 +172,7 @@ WIKI_DIR = P.Artifact[Mode1Context](
 RESUME = P.Artifact[Mode1Context](
     "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
 
-ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES,
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, RECORD_SCHEMA,
              READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
 
 
