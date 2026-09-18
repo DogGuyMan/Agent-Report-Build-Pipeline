@@ -44,7 +44,7 @@ terms-db.json ◀─ 재료
   `where`(file:line) 를 붙여서. `terms_db.py` 가 그 인용을 L1/L2/L3 로 기계 검사하고, 정적 수집기가 있는
   저장소에서는 구조 필드(`id kind module where`)를 codegraph 쪽으로 덮는다. 결정론은 codegraph 와 투영이
   지키고, 나는 인용으로 붙들린다
-- **Mode 2 의 파일을 건드리지 않는다.** `viz/src/*` · `viz/build.mjs` · `viz/check.mjs` 는 내 것이 아니다
+- **Mode 2 의 파일을 건드리지 않는다.** `viz/src/*` · `viz/build.py` · `viz/check.py` 는 내 것이 아니다
 
 ## 소유 파일과 경계
 

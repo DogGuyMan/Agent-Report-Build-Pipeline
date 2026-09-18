@@ -85,12 +85,12 @@ report-term emit term-grades.json               → terms.json + term-study-note
 |---|---|
 | `runner/term/collect.mjs` · `quiz.mjs` · `emit.mjs` | **소유** |
 | `test/term.test.mjs` | **소유** (append). 기존 테스트를 건드리지 않는다 |
-| `runner/dispatch.mjs` · `bin/report-term` | 읽기만 — 명령표 변경은 오케스트레이터 승인 후 |
+| `runner/dispatch.py` · `bin/report-term` | 읽기만 — 명령표 변경은 오케스트레이터 승인 후 |
 | `codegraph/*` | 읽기만 (`terms-db.json` 의 생산자) |
 | `viz/src/*` | 읽기만 — `Term.mental` 필드는 Mode 2 소유 |
 | `~/.claude/skills/term-benchmark/SKILL.md` | 읽기 전용. 고칠 일이 생기면 보고한다 |
 
-**절대 건드리지 않는 파일:** `viz/build.mjs` · `viz/check.mjs` · `viz/src/runtime/term-graph.ts` ·
+**절대 건드리지 않는 파일:** `viz/build.py` · `viz/check.py` · `viz/src/runtime/term-graph.ts` ·
 `viz/src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx`
 
 ## 전제

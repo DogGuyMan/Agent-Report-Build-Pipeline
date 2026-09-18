@@ -57,10 +57,10 @@ grep -c '<script' out/report.html    # 용어집 없으면 0, 있으면 1. 2 이
 | 파일 | 내 권한 |
 |---|---|
 | `viz/src/*` (`types.ts` · `components/*` · `theme.css` · `runtime/*`) | **소유.** 단 **추가만** |
-| `viz/build.mjs` · `check.mjs` · `init.mjs` · `svg.mjs` | **소유** |
+| `viz/build.py` · `check.py` · `init.py` · `svg.mjs` | **소유** |
 | `test/components.test.mjs` | **소유** (append + import). 기존 테스트를 건드리지 않는다 |
 | 대상 저장소 `specs/<slug>/data.ts` · `report.tsx` | **소유** — 원고는 대상 저장소에 산다 |
-| 대상 저장소 `specs/<slug>/tsconfig.json` | 남기지 않는다. `check.mjs` 가 임시 생성 후 지운다 |
+| 대상 저장소 `specs/<slug>/tsconfig.json` | 남기지 않는다. `check.py` 가 임시 생성 후 지운다 |
 | `runner/term/*` · `codegraph/*` | 읽기만 |
 
 **컴포넌트 API 규율** — props 제거 · 의미 변경 금지. 추가만 한다. API 가 바뀌는 갱신마다 태그(`v1`, `v2`).
