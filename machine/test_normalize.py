@@ -1199,3 +1199,42 @@ def test_pyfx_namespace_package_filepath_is_a_list(tmp_path: Path) -> None:
     assert [n["name"] for n in first] == ["nspkg.m.A"]
     assert first[0]["file"] == "nspkg/m.py"                 # list 를 풀어 상대경로가 제대로 났다
     assert first[0]["module"] == "nspkg"
+
+
+PYABS_FILES = {
+    "pyabs/__init__.py": "",
+    "pyabs/shapes.py": (
+        "from abc import ABC, abstractmethod\n"
+        "from typing import Protocol\n"
+        "\n"
+        "\n"
+        "class Drawable(Protocol):\n"
+        "    def draw(self) -> None: ...\n"
+        "\n"
+        "\n"
+        "class Shape(ABC):\n"
+        "    @abstractmethod\n"
+        "    def area(self) -> float: ...\n"
+        "\n"
+        "\n"
+        "class Half:\n"
+        "    @abstractmethod\n"
+        "    def size(self) -> int: ...\n"
+        "\n"
+        "\n"
+        "class Square(Shape):\n"
+        "    def area(self) -> float:\n"
+        "        return 1.0\n"
+    ),
+}
+
+
+def test_golden_python_marks_interface_and_abstract_classes(tmp_path: Path) -> None:
+    """Protocol 베이스 = interface, ABC 베이스나 @abstractmethod 멤버 = abstract. 구체 클래스는 칸이 없다."""
+    dump = _griffe_dump(tmp_path, PYABS_FILES, "pyabs")
+    g, _ = N.normalize_python(dump, str(tmp_path), "griffe test")
+    by = {n["name"].rsplit(".", 1)[-1]: n for n in g["nodes"] if n["kind"] != "external"}
+    assert by["Drawable"].get("abstraction") == "interface"
+    assert by["Shape"].get("abstraction") == "abstract"
+    assert by["Half"].get("abstraction") == "abstract"       # 베이스 없이 데코레이터만으로도
+    assert "abstraction" not in by["Square"]

@@ -39,6 +39,9 @@ class Node(TypedDict):
     # C++ clang-doc 갈래가 함수 노드에 붙인다.
     signature: NotRequired[str]
     doc: NotRequired[str]
+    # 클래스 노드에만 — 인터페이스(구현 없이 계약만)인가, 추상 클래스(추상 멤버가 있다)인가.
+    # 구체 클래스는 이 칸이 없다. 파이썬 갈래는 Protocol 베이스 · ABC 베이스 · @abstractmethod 로 가른다.
+    abstraction: NotRequired[Literal["interface", "abstract"]]
 
 
 # `from` 이 파이썬 예약어라 class 문법으로는 필드로 적을 수 없다. 함수 꼴이 유일한 길이다.

@@ -12,6 +12,7 @@ from typing import cast
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import survey_plan as SP  # noqa: E402
 from survey_plan import CodeGraph, layer_of, pack, plan  # noqa: E402
 
 
@@ -171,9 +172,9 @@ def test_이_저장소_실측():
     """이 저장소의 실제 지도로 층 분포를 못박는다 — 코드가 바뀌면 기대값을 함께 고친다."""
     p = plan(json.load(open(REAL, encoding="utf-8")))
     sizes = [L["symbol_count"] for L in p["layers"] if L.get("kind") != "non-node"]
-    assert sizes == [287, 254, 146, 86, 9, 4]
+    assert sizes == [514, 323, 161, 96, 23, 14]
     # ⚠ cast — `symbol_count` 가 None 인 것은 비노드 층뿐이고 그것은 바로 위 조건이 걸렀다.
-    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 786
+    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 1131
     # lock 없는 설계의 전제 — 실제 지도에서도 층 안 파일이 배타적이어야 한다
     for L in p["layers"]:
         seen = collections.Counter(f for b in L.get("batches", []) for f in b["files"])
@@ -206,3 +207,78 @@ def test_진입점은_맨_위층이다():
     assert 진입점 == ["main"]
     assert lv["main"] == max(lv.values())      # 진입점이 맨 위
     assert lv["leaf"] == 0                     # 잎이 맨 아래
+
+
+# ── 파일 가중치와 파일 단위 계획 ──────────────────────────────────────────
+
+def _cg2(nodes: list[tuple[str, str, str]], edges: list[tuple[str, str]],
+         abstraction: dict[str, str] | None = None) -> CodeGraph:
+    """(id, 이름, 파일). 이름의 마지막 마디가 `_` 로 시작하면 비공개다."""
+    out: CodeGraph = {"nodes": [{"id": i, "name": n, "kind": "function", "file": f, "line": 1}
+                                for i, n, f in nodes],
+                      "edges": [{"from": s, "to": d} for s, d in edges]}
+    for i, a in (abstraction or {}).items():
+        node = next(x for x in out["nodes"] if x["id"] == i)
+        node["kind"] = "class"; node["abstraction"] = a   # pyright: ignore[reportGeneralTypeIssues]
+    return out
+
+
+def test_공개는_마지막_마디가_밑줄로_시작하지_않는_것():
+    assert SP.is_public("m.run") and SP.is_public("m.Cls.run")
+    assert not SP.is_public("m._helper") and not SP.is_public("m.Cls.__init__") and not SP.is_public("m.Cls._x")
+
+
+def test_파일_가중치_out_은_모든_심볼_in_은_공개_심볼만_센다():
+    # a.py: pub 가 b.py 의 pub 을, _priv 가 c.py 의 pub 을 쓴다. c.py 의 _hidden 이 a.py 의 pub 을 쓴다(비공개 → 안 셈)
+    cg = _cg2([("a1", "a.pub", "a.py"), ("a2", "a._priv", "a.py"),
+               ("b1", "b.pub", "b.py"), ("c1", "c.pub", "c.py"), ("c2", "c._hidden", "c.py"),
+               ("c3", "c.other", "c.py")],
+              [("a1", "b1"), ("a2", "c1"), ("c2", "a1"), ("c3", "a2"), ("a1", "a2")])
+    w = {r["file"]: r for r in SP.file_weights(cg)}
+    assert (w["a.py"]["out"], w["a.py"]["into"]) == (2, 1)     # c._hidden → a.pub: 받는 쪽이 공개라 센다. c.other → a._priv: 받는 쪽 비공개라 안 센다. 같은 파일 간선도 안 센다
+    assert (w["b.py"]["out"], w["b.py"]["into"]) == (0, 1)
+    assert (w["c.py"]["out"], w["c.py"]["into"]) == (2, 1)
+
+
+def test_파일_가중치_수식은_세_항의_합이고_큰_순으로_난다():
+    cg = _cg2([("a", "a.f", "a.py"), ("b", "b.f", "b.py"), ("c", "c.I", "c.py"), ("d", "d.A", "d.py")],
+              [("a", "b"), ("a", "c"), ("d", "b")], {"c": "interface", "d": "abstract"})
+    rows = SP.file_weights(cg)
+    w = {r["file"]: r for r in rows}
+    # out_max = 2(a) · into_max = 2(b) · 추상 점수 최대 = 5(c: 인터페이스)
+    assert w["a.py"]["weight"] == pytest.approx((1 - 2 / 2) + 0 / 2 + 0)
+    assert w["b.py"]["weight"] == pytest.approx((1 - 0 / 2) + 2 / 2 + 0)
+    assert w["c.py"]["weight"] == pytest.approx((1 - 0 / 2) + 1 / 2 + 5 / 5)
+    assert w["d.py"]["weight"] == pytest.approx((1 - 1 / 2) + 0 / 2 + 3 / 5)
+    assert [r["file"] for r in rows] == ["c.py", "b.py", "d.py", "a.py"]
+    assert (w["c.py"]["interfaces"], w["d.py"]["abstracts"]) == (1, 1)
+
+
+def test_파일_가중치_최대값이_0이면_그_항은_0이_아니라_정의대로():
+    cg = _cg2([("a", "a.f", "a.py"), ("b", "b.f", "b.py")], [])
+    w = {r["file"]: r for r in SP.file_weights(cg)}
+    assert w["a.py"]["weight"] == pytest.approx(1.0)      # out 항은 의존이 하나도 없으면 1, 나머지는 0
+
+
+def test_파일_계획은_파일_하나가_배치_하나이고_가중치_내림차순():
+    cg = _cg2([("a", "a.f", "a.py"), ("a2", "a.g", "a.py"), ("b", "b.f", "b.py")], [("a", "b")])
+    p = SP.plan_by_file(cg)
+    assert p["layers"][0]["batches"][0]["files"] == ["b.py"]     # b 가 피의존 1, 의존 0 → 앞
+    assert [b["id"] for b in p["layers"][0]["batches"]] == ["F00", "F01"]
+    assert sorted(s["name"] or "" for s in p["layers"][0]["batches"][1]["symbols"]) == ["a.f", "a.g"]
+    assert p["layers"][0]["batches"][0].get("weight", 0.0) > p["layers"][0]["batches"][1].get("weight", 0.0)
+    assert p["layers"][-1].get("kind") == "non-node" and p["totals"]["symbols"] == 3
+    assert p["layers"][0]["batches"][1]["symbols"][0]["depends_on"] == ["b"]
+
+
+def test_파일_계획은_결정론():
+    cg = _cg2([("a", "a.f", "a.py"), ("b", "b.f", "b.py")], [("a", "b")])
+    assert json.dumps(SP.plan_by_file(cg), sort_keys=True) == json.dumps(SP.plan_by_file(cg), sort_keys=True)
+
+
+def test_가중치_csv_는_원값과_가중치를_함께_적는다():
+    cg = _cg2([("a", "a.f", "a.py"), ("b", "b.f", "b.py")], [("a", "b")])
+    text = SP.weights_csv(SP.file_weights(cg))
+    lines = text.splitlines()
+    assert lines[0] == "file,out,into,interfaces,abstracts,weight"
+    assert lines[1].startswith("b.py,0,1,0,0,") and lines[2].startswith("a.py,1,0,0,0,")

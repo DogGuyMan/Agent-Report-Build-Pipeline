@@ -13,7 +13,7 @@
 import argparse, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 from collections.abc import Sequence
-from typing import Any, Required, TypedDict, cast
+from typing import Any, Literal, Required, TypedDict, cast
 
 from clang_doc import Symbol, load_clang_doc
 from pycalls import PyCallsDump
@@ -914,6 +914,7 @@ class GriffeObject(TypedDict, total=False):
     annotation: "GriffeExpr | None"
     parameters: list[GriffeParam]
     returns: "GriffeExpr | None"
+    labels: list[str]
 
 
 # griffe dump 의 뿌리 — 최상위 패키지 이름 -> 모듈 나무.
@@ -985,6 +986,23 @@ def py_expr_name(expr: GriffeExpr | None) -> str | None:
     if expr.get("cls") == "ExprAttribute":
         parts = [v.get("name") for v in expr.get("values", []) if isinstance(v, dict)]
         return ".".join(p for p in parts if p) or None
+    return None
+
+
+def py_abstraction(cls: GriffeObject) -> Literal["interface", "abstract"] | None:
+    """클래스가 인터페이스인가 추상 클래스인가. 구체면 None.
+
+    `Protocol` 베이스면 인터페이스. `ABC`/`ABCMeta` 베이스이거나 멤버 함수에 griffe 가
+    `abstractmethod` 라벨을 붙였으면 추상. 베이스 이름은 마지막 마디만 본다(`abc.ABC` 도 잡는다).
+    """
+    base_names = {(py_expr_name(b) or "").rsplit(".", 1)[-1] for b in cls.get("bases") or []}
+    if "Protocol" in base_names:
+        return "interface"
+    members: dict[str, GriffeObject] = cls.get("members") or {}
+    has_abstract = any(m.get("kind") == "function" and "abstractmethod" in (m.get("labels") or [])
+                       for m in members.values())
+    if base_names & {"ABC", "ABCMeta"} or has_abstract:
+        return "abstract"
     return None
 
 
@@ -1129,6 +1147,8 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
             "id": nid, "name": qname, "kind": "class",
             "module": module_of(rel), "file": rel, "line": cls.get("lineno"),
         }
+        if (abstraction := py_abstraction(cls)) is not None:
+            nodes[nid]["abstraction"] = abstraction
         node_id[qname] = nid
         stats["1차 노드"] += 1
 

@@ -42,6 +42,7 @@ GraphNode = TypedDict("GraphNode", {
     "kind": NotRequired[str],
     "file": NotRequired[str],
     "line": NotRequired[int],
+    "abstraction": NotRequired[str],     # 클래스 노드만 — "interface" | "abstract"
 })
 GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str})
 
@@ -84,6 +85,7 @@ class PlanBatch(TypedDict):
     id: str
     files: list[str]
     symbols: list[PlanSymbol]
+    weight: NotRequired[float]     # 파일 단위 계획만 — 그 파일의 가중치
 
 
 # <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.PlanLayer']"/>
@@ -236,6 +238,106 @@ def plan(cg: CodeGraph, target: int = 8,
     return {"target": target, "layers": layers,
             "totals": {"symbols": len(keep), "edges": len(edges), "levels": len(bylv),
                        "cyclic_symbols": sum(1 for n in keep if in_cycle.get(n))}}
+
+
+# ── 파일 단위 계획 — 파일 하나가 배치 하나. 순서는 가중치.
+
+class FileWeight(TypedDict):
+    """파일 하나의 우선순위 재료와 결과. `out`·`into` 는 다른 파일과 오가는 간선 수."""
+    file: str
+    out: int            # 이 파일의 어느 심볼이든 다른 파일로 내는 간선
+    into: int           # 다른 파일에서 이 파일의 **공개** 심볼로 들어오는 간선
+    interfaces: int
+    abstracts: int
+    weight: float
+
+
+INTERFACE_WEIGHT = 5
+ABSTRACT_WEIGHT = 3
+
+
+def is_public(name: str) -> bool:
+    """마지막 마디가 `_` 로 시작하지 않으면 공개. 던더(`__init__`)도 비공개로 친다."""
+    return not name.rsplit(".", 1)[-1].startswith("_")
+
+
+def file_weights(cg: CodeGraph) -> list[FileWeight]:
+    """파일마다 `(1 − out/out_max) + into/into_max + 추상점수/추상점수_max`. 큰 순, 같으면 이름순.
+
+    의존이 적을수록(잎) 먼저 읽어야 위가 재활용하고, 피의존이 많을수록 중요하다. 인터페이스는
+    추상 클래스보다 무겁다. 어느 항이든 최대값이 0이면 그 항은 정의대로 — out 항은 1, 나머지는 0.
+    """
+    nodes = {n["id"]: n for n in cg["nodes"] if n.get("kind") != "external"}
+    file_of = {i: n.get("file") or "" for i, n in nodes.items()}
+    rows: dict[str, FileWeight] = {}
+    for f in sorted({v for v in file_of.values() if v}):
+        rows[f] = {"file": f, "out": 0, "into": 0, "interfaces": 0, "abstracts": 0, "weight": 0.0}
+    for i, n in nodes.items():
+        a = n.get("abstraction")
+        if a == "interface":
+            rows[file_of[i]]["interfaces"] += 1
+        elif a == "abstract":
+            rows[file_of[i]]["abstracts"] += 1
+    for e in cg.get("edges", []):
+        s, d = e["from"], e["to"]
+        if s not in nodes or d not in nodes or file_of[s] == file_of[d] or not file_of[s] or not file_of[d]:
+            continue
+        rows[file_of[s]]["out"] += 1
+        if is_public(nodes[d].get("name") or ""):
+            rows[file_of[d]]["into"] += 1
+    out_max = max((r["out"] for r in rows.values()), default=0)
+    into_max = max((r["into"] for r in rows.values()), default=0)
+    abs_score = {f: INTERFACE_WEIGHT * r["interfaces"] + ABSTRACT_WEIGHT * r["abstracts"] for f, r in rows.items()}
+    abs_max = max(abs_score.values(), default=0)
+    for f, r in rows.items():
+        r["weight"] = ((1 - r["out"] / out_max) if out_max else 1.0) \
+            + (r["into"] / into_max if into_max else 0.0) \
+            + (abs_score[f] / abs_max if abs_max else 0.0)
+    return sorted(rows.values(), key=lambda r: (-r["weight"], r["file"]))
+
+
+def weights_csv(rows: Iterable[FileWeight]) -> str:
+    """`file-priority.csv` 본문. 원값을 함께 적어 수식을 바꿔도 다시 세지 않는다."""
+    lines = ["file,out,into,interfaces,abstracts,weight"]
+    lines += ["%s,%d,%d,%d,%d,%.6f" % (r["file"], r["out"], r["into"], r["interfaces"], r["abstracts"], r["weight"])
+              for r in rows]
+    return "\n".join(lines) + "\n"
+
+
+def plan_by_file(cg: CodeGraph) -> SurveyPlan:
+    """코드 지도 -> 파일 하나가 배치 하나인 계획. 층은 하나(0)이고 배치 순서가 곧 우선순위다.
+
+    `depends_on` 은 층 계획과 같은 뜻이다. 층이 없으므로 의존 대상이 아직 안 읽혔을 수 있고,
+    그것은 조사 단계가 미해결 표로 다룬다.
+    """
+    nodes = {n["id"]: n for n in cg["nodes"]}
+    first = {i: n for i, n in nodes.items() if n.get("kind") != "external"}
+    edges = [(e["from"], e["to"]) for e in cg.get("edges", [])]
+    _, in_cycle = layer_of(first, edges)
+    file_of = {i: n.get("file") for i, n in first.items()}
+    byfile: collections.defaultdict[str, list[str]] = collections.defaultdict(list)
+    for i in first:
+        if file_of.get(i):
+            byfile[file_of[i] or ""].append(i)
+    batches: list[PlanBatch] = []
+    for k, w in enumerate(file_weights(cg)):
+        f = w["file"]
+        batches.append({
+            "id": "F%02d" % k, "files": [f], "weight": w["weight"],
+            "symbols": [{"id": s, "name": first[s].get("name"), "file": f,
+                         "line": first[s].get("line"), "kind": first[s].get("kind"),
+                         "in_cycle": in_cycle.get(s, False),
+                         "depends_on": sorted({d for (o, d) in edges if o == s and d in first and d != s})}
+                        for s in sorted(byfile[f])]})
+    kept = sum(len(b["symbols"]) for b in batches)
+    layers: list[PlanLayer] = [{"level": 0, "symbol_count": kept, "file_count": len(batches), "batches": batches}]
+    layers.append({
+        "level": 1, "kind": "non-node", "symbol_count": None, "batches": [],
+        "note": "file · module · artifact · key · concept. 파일 세션이 전부 끝난 뒤 한 세션으로 돈다.",
+    })
+    return {"target": 0, "layers": layers,
+            "totals": {"symbols": kept, "edges": len(edges), "levels": 1,
+                       "cyclic_symbols": sum(1 for n in first if in_cycle.get(n))}}
 
 
 # <include file="machine/comments.xml" path="//term[@id='machine.survey_plan.main']"/>

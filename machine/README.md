@@ -208,6 +208,7 @@ codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든�
 | **`GriffeObject`** | *class* | 모듈·클래스·속성·함수를 한 형으로 받는다 — griffe 가 `kind` 로만 가르기 때문이다. |
 | `py_external_group` | `(target: str) -> str` | R2 — 외부 하나 = 노드 하나. 입도는 import 루트 이름이다. |
 | `py_expr_name` | `(expr: GriffeExpr \| None) -> str \| None` | 식이 단순 이름이면 그 이름을, 아니면 None. |
+| `py_abstraction` | `(cls: GriffeObject) -> Literal['interface', 'abstract'] \| None` | 클래스가 인터페이스인가 추상 클래스인가. 구체면 None. |
 | `py_resolve` | `(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str` | 이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 클래스 -> 못 품. |
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Counter[str], depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
 | `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Counter[str]]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
@@ -272,6 +273,11 @@ codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든�
 | `layer_of` | `(first: Collection[str], edges: Iterable[tuple[str, str]]) -> tuple[dict[str, int], dict[str, bool]]` | 의존 대상이 없으면 층0, 아니면 1 + 의존 대상들의 최대 층. |
 | `pack` | `(members: Iterable[str], file_of: Mapping[str, str \| None], target: int) -> list[PackedBatch]` | 같은 파일의 같은 층 심볼은 **한 배치에** 몰아넣는다 — 층 안 중복 통독을 0으로 만든다. |
 | `plan` | `(cg: CodeGraph, target: int = 8, only_files: Iterable[str] \| None = None) -> SurveyPlan` | 코드 지도 -> 층 · 배치 계획. |
+| **`FileWeight`** | *class* | 파일 하나의 우선순위 재료와 결과. `out`·`into` 는 다른 파일과 오가는 간선 수. |
+| `is_public` | `(name: str) -> bool` | 마지막 마디가 `_` 로 시작하지 않으면 공개. 던더(`__init__`)도 비공개로 친다. |
+| `file_weights` | `(cg: CodeGraph) -> list[FileWeight]` | 파일마다 `(1 − out/out_max) + into/into_max + 추상점수/추상점수_max`. 큰 순, 같으면 이름순. |
+| `weights_csv` | `(rows: Iterable[FileWeight]) -> str` | `file-priority.csv` 본문. 원값을 함께 적어 수식을 바꿔도 다시 세지 않는다. |
+| `plan_by_file` | `(cg: CodeGraph) -> SurveyPlan` | 코드 지도 -> 파일 하나가 배치 하나인 계획. 층은 하나(0)이고 배치 순서가 곧 우선순위다. |
 | `main` | `(argv: list[str] \| None = None) -> int` |  |
 
 ---
@@ -488,6 +494,7 @@ clang-doc 적재기의 회귀 시험.
 | `test_golden_python_ownership_edges_are_absent` | `(tmp_path: Path) -> None` | C# 과 같은 자리 — 파이썬은 모든 바인딩이 참조라 소유 kind 가 나올 수 없다. |
 | `test_selfhost_python_smoke` | `() -> None` | 실제 저장소를 태워도 파이프라인이 죽지 않는지만 본다 — 불변식 검증이 아니다. |
 | `test_pyfx_namespace_package_filepath_is_a_list` | `(tmp_path: Path) -> None` | 네임스페이스 패키지(= __init__.py 없음)는 filepath 가 디렉토리 목록(list)으로 온다. |
+| `test_golden_python_marks_interface_and_abstract_classes` | `(tmp_path: Path) -> None` | Protocol 베이스 = interface, ABC 베이스나 @abstractmethod 멤버 = abstract. 구체 클래스는 칸이 없다. |
 
 ---
 
@@ -536,6 +543,14 @@ AST 호출 수집기의 회귀 시험.
 | `test_이_저장소_실측` | `()` | 이 저장소의 실제 지도로 층 분포를 못박는다 — 코드가 바뀌면 기대값을 함께 고친다. |
 | `test_간선은_from_이_의존하는_쪽이다` | `()` | `{from: A, to: B}` 는 "A 가 B 에 의존" 이다 — 뒤집어 읽으면 정렬이 정반대가 된다. |
 | `test_진입점은_맨_위층이다` | `()` | in_deg 0 은 아무도 안 쓰는 것 = 진입점이다. 거기서 시작하면 top-down 이 된다. |
+| `_cg2` | `(nodes: list[tuple[str, str, str]], edges: list[tuple[str, str]], abstraction: dict[str, str] \| None = None) -> CodeGraph` | (id, 이름, 파일). 이름의 마지막 마디가 `_` 로 시작하면 비공개다. |
+| `test_공개는_마지막_마디가_밑줄로_시작하지_않는_것` | `()` |  |
+| `test_파일_가중치_out_은_모든_심볼_in_은_공개_심볼만_센다` | `()` |  |
+| `test_파일_가중치_수식은_세_항의_합이고_큰_순으로_난다` | `()` |  |
+| `test_파일_가중치_최대값이_0이면_그_항은_0이_아니라_정의대로` | `()` |  |
+| `test_파일_계획은_파일_하나가_배치_하나이고_가중치_내림차순` | `()` |  |
+| `test_파일_계획은_결정론` | `()` |  |
+| `test_가중치_csv_는_원값과_가중치를_함께_적는다` | `()` |  |
 
 ---
 
