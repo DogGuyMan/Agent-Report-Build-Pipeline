@@ -456,6 +456,71 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                   for r in rows]
         return "\n".join(lines) + "\n"
 
+    # ── 2패스 — 파일을 열지 않고 shallow 레코드를 다듬는다 ────────────────
+
+    @staticmethod
+    def pass2_prompt(repo: str, root: str, bid: str, file: str,
+                     shallow: Mapping[str, Mapping[str, object]],
+                     deps: Mapping[str, Mapping[str, object]]) -> str:
+        """2패스 — 파일을 다시 읽지 않는다. 얕게 쓴 레코드와, 이제 조사된 의존 대상의 뜻만 받아 다듬는다."""
+        mine = json.dumps({k: dict(v) for k, v in shallow.items()}, ensure_ascii=False, indent=1)
+        theirs = "\n".join("  - %s — %s / %s" % (k, r.get("means") or "", r.get("does") or "")
+                           for k, r in sorted(deps.items()))
+        return """\
+너는 코드베이스 전수조사의 **2패스** 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}. 파일 {file}.
+사람에게 묻지 않는다 — 헤드리스 세션이다.
+
+## 소스를 열지 않는다
+
+이 세션은 파일을 **읽지 않는다.** 1패스가 이 파일을 이미 읽었다. 네가 받은 것은 둘뿐이다:
+
+### 1패스가 얕게 쓴 레코드 (의존 대상의 뜻을 모른 채 썼다)
+
+{mine}
+
+### 그 의존 대상들 — 이제 조사가 끝났다
+
+{theirs}
+
+## 할 일
+
+레코드마다 `does` 와 `uses[].label` 을 **의존 대상의 뜻을 알게 된 지금** 다시 쓴다.
+`means` `where` `kind` `confidence` 와 `uses[].to` `uses[].where` 는 그대로 둔다. `shallow` 칸은 **뗀다.**
+새 레코드를 만들지 않는다 — 받은 키만 낸다.
+
+## 쓰는 곳 — 여기 하나뿐
+
+  {repo}/out/codegraph-raw/_shards/_pass2/{bid}.json      꼴은 {{"키": 레코드}}
+
+정확한 꼴은 {repo}/out/codegraph-raw/record-schema.json 이다. 끝내기 전에 검문한다:
+  {root}/.venv/bin/python {root}/runner/check_shard.py {repo}/out/codegraph-raw/_shards/_pass2/{bid}.json
+""".format(repo=repo, root=root, bid=bid, file=file, mine=mine, theirs=theirs or "  (없음)")
+
+    @staticmethod
+    def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:
+        """2패스 샤드를 검문하고 원 샤드의 **같은 키만** 덮는다. 틀리면 원 샤드를 두고 결함을 낸다.
+
+        덮은 레코드는 `shallow` 를 잃는다. 2패스 파일은 `<bid>.done.json` 으로 남긴다.
+        """
+        src = os.path.join(shard_dir, "_pass2", bid + ".json")
+        dst = os.path.join(shard_dir, bid + ".json")
+        with open(src, "rb") as f:
+            raw = f.read()
+        faults = AnnotateSymbolsStage.check_shard(raw, bid, src)
+        if faults:
+            return faults
+        patch = msgspec.json.decode(raw, type=ShardRecords)
+        with open(dst, "rb") as f:
+            base = msgspec.json.decode(f.read(), type=ShardRecords)
+        for k, rec in patch.items():
+            if k in base:
+                rec.pop("shallow", None)
+                base[k] = rec
+        with open(dst, "w", encoding="utf-8") as f:
+            json.dump(base, f, ensure_ascii=False, indent=1, sort_keys=True)
+        os.replace(src, os.path.join(shard_dir, "_pass2", bid + ".done.json"))
+        return []
+
     # ── 레코드 — 읽기 · 샤드 병합 · 계획과 diff 의 대조 ──────────────────
 
     @staticmethod

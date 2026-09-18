@@ -883,3 +883,34 @@ def test_미해결_csv_머리줄():
     text = SV.AnnotateSymbolsStage.unresolved_csv([
         {"file": "m.py", "key": "a.f", "dep": "b.g", "priority": 1.25, "into": 2, "status": "shallow"}])
     assert text.splitlines() == ["file,key,dep,priority,into,status", "m.py,a.f,b.g,1.250000,2,shallow"]
+
+
+# ── 2패스 — 파일을 열지 않고 shallow 레코드를 다듬어 원 샤드에 덧씌운다 ─────────
+
+def test_2패스_프롬프트는_파일을_열지_말라_하고_얕은_레코드와_의존_뜻을_준다():
+    shallow = {"a.f": {**_good_record(), "shallow": ["b.g"]}}
+    deps = {"b.g": {**_good_record(), "means": "지 뜻", "does": "지 일"}}
+    p = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F03", "a.py", shallow, deps)
+    assert "열지" in p and "a.f" in p and "지 뜻" in p and "_shards/_pass2/F03.json" in p and "shallow" in p
+
+
+def test_2패스_결과는_원_샤드의_같은_키만_덮고_shallow_를_뗀다(tmp_path: Path):
+    d = tmp_path / "_shards"; (d / "_pass2").mkdir(parents=True)
+    (d / "F03.json").write_text(json.dumps({"a.f": {**_good_record(), "shallow": ["b.g"]}, "a.h": _good_record()}), encoding="utf-8")
+    (d / "_pass2" / "F03.json").write_text(json.dumps({"a.f": {**_good_record(), "does": "다듬음"}, "a.zzz": _good_record()}), encoding="utf-8")
+    faults = SV.AnnotateSymbolsStage.apply_pass2(str(d), "F03")
+    assert faults == []
+    got = json.loads((d / "F03.json").read_text(encoding="utf-8"))
+    assert got["a.f"]["does"] == "다듬음" and "shallow" not in got["a.f"] and got["a.h"] == _good_record()
+    assert "a.zzz" not in got                                   # 계획 밖 키는 버린다
+    assert (d / "_pass2" / "F03.done.json").exists()            # 감사용으로 남긴다
+
+
+def test_2패스_결과가_깨졌으면_원_샤드를_건드리지_않는다(tmp_path: Path):
+    d = tmp_path / "_shards"; (d / "_pass2").mkdir(parents=True)
+    before = json.dumps({"a.f": {**_good_record(), "shallow": ["b.g"]}})
+    (d / "F03.json").write_text(before, encoding="utf-8")
+    (d / "_pass2" / "F03.json").write_text("{", encoding="utf-8")
+    faults = SV.AnnotateSymbolsStage.apply_pass2(str(d), "F03")
+    assert faults and faults[0]["kind"] == "malformed"
+    assert (d / "F03.json").read_text(encoding="utf-8") == before
