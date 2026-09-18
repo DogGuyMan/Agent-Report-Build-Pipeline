@@ -288,8 +288,8 @@ def test_의존_발췌는_아래층에_있는_것만_낸다():
     merged = {"encode": {"means": "바이트로 바꾼다"}, "무관": {"means": "상관없다"}}
     # 일부러 모자란 배치다 — `dep_excerpt` 가 보는 열쇠(`symbols[].depends_on`)만 담았다.
     # `id` · `files` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
-    batch = cast(PlanBatch, {"symbols": [{"id": "send", "depends_on": ["encode", "아직없음"]}]})
-    got = R.dep_excerpt(merged, batch)
+    batch = cast(PlanBatch, {"symbols": [{"id": "send", "depends_on": ["C1", "C9"]}]})
+    got = R.dep_excerpt(merged, batch, {"C1": "encode", "C9": "아직없음"})   # depends_on 은 id, 표가 이름으로 건넨다
     assert "encode" in got and "바이트로 바꾼다" in got
     assert "무관" not in got
     assert "아직없음" not in got
@@ -300,7 +300,7 @@ def test_의존_발췌는_아래층에_있는_것만_낸다():
 # 쓰는 것: runner.run_mode1.dep_excerpt · 쓰이는 곳: 없음
 def test_의존_발췌는_아무것도_없으면_빈_문자열():
     # 위와 같은 이유로 부분 배치다
-    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]})) == ""
+    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]}), {}) == ""
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_terms_argv_passes_the_static_codegraph_positionally']"/>

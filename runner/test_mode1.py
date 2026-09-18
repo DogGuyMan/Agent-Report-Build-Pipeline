@@ -814,3 +814,18 @@ def test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_�
     (raw / "_shards" / "L0-B00.json").write_text(json.dumps({"m.other": _good_record()}), encoding="utf-8")
     r = subprocess.run([sys.executable, tool, str(raw / "_shards" / "L0-B00.json")], capture_output=True, text=True)
     assert r.returncode == 1 and "[coverage]" in r.stdout and "f" in r.stdout
+
+
+# ── dep_excerpt — depends_on 은 id, 레코드 키는 이름 ─────────────────────────
+
+def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
+    b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": ["C1"]}]}
+    merged = {"b.g": {"means": "지 뜻"}}
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {"C1": "b.g"}) == "  - b.g — 지 뜻"
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {}) == ""      # 이름을 모르면 못 찾는다
+
+
+def test_name_of_는_계획_전체의_id_이름_표다():
+    plan = _one_batch_plan("L0-B00")
+    assert SV.AnnotateSymbolsStage.name_of(plan) == {"f": "f"}

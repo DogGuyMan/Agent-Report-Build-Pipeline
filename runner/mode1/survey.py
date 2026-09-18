@@ -67,19 +67,25 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 % (X.reading_path(repo, ROOT), len(targets), total, len(targets), 목록))
 
     @staticmethod
+    def name_of(plan: survey_plan.SurveyPlan) -> dict[str, str]:
+        """계획 전체의 `id -> name`. `depends_on` 은 노드 id 이고 레코드 키는 이름이라 이 표로 건넌다."""
+        return {s["id"]: s["name"] or ""
+                for L in plan["layers"] for b in L.get("batches", []) for s in b["symbols"]}
+
+    @staticmethod
     def dep_excerpt(merged: Mapping[str, Mapping[str, object]],
-                    batch: survey_plan.PlanBatch) -> str:
+                    batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> str:
         """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
 
+        `depends_on` 은 노드 id 다. `name_of` 로 이름을 얻고 그 이름이 `merged` 에 있을 때만 싣는다.
         아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
 
         읽기만 하므로 `Records` 가 아니라 `Mapping` 을 받는다 — `dict` 는 값 형이 고정이라
         `dict[str, dict[str, str]]` 같은 더 좁은 사전을 그대로 넘길 수 없다.
         """
-        want = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
-        lines = ["  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
-                 for k in want if k in merged]
-        return "\n".join(lines)
+        want = sorted({name_of.get(d, "") for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
+        return "\n".join("  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
+                         for k in want if k and k in merged)
 
     @staticmethod
     def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
@@ -514,7 +520,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
             jobs = [("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root))]
         else:
             jobs = [(b["id"], self.survey_batch_prompt(ctx.repo, ctx.root, b,
-                                                       self.dep_excerpt(ctx.merged, b),
+                                                       self.dep_excerpt(ctx.merged, b, self.name_of(ctx.plan)),
                                                        ctx.targets, ctx.tracked_n))
                     for b in layer["batches"]]
         # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돌고, 격리된 사유를 받는다.
