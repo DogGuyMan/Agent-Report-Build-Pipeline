@@ -41,6 +41,9 @@ class ShardRecord(TypedDict):
     uses: list[ShardUse]
     confidence: Confidence
     source: Literal["reading"]
+    # 1패스가 의존 대상을 열지 않고 시그니처로 얕게 쓴 레코드. 값은 그 의존 대상들의 이름.
+    # 2패스가 다듬으면 뗀다. 기계는 이 칸으로 미해결 표를 만든다.
+    shallow: NotRequired[list[str]]
 
 
 ShardRecords = dict[str, ShardRecord]

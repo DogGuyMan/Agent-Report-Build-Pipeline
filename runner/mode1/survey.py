@@ -90,10 +90,11 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     @staticmethod
     def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
                             dep_records: str, targets: Sequence[str] | None = None,
-                            total: int = 0) -> str:
+                            total: int = 0, pending: str = "") -> str:
         """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
 
-        `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다.
+        `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
+        **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 붙는다.
 
         `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
         `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
@@ -170,7 +171,37 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
 """.format(repo=repo, root=root, bid=batch["id"], n=len(batch["symbols"]),
                syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)") \
+            + AnnotateSymbolsStage.pending_section(pending) \
             + AnnotateSymbolsStage.warmup_section(targets, total, repo)
+
+    @staticmethod
+    def pending_section(pending: str) -> str:
+        """미조사 의존 대상이 있을 때만 붙는 절. 열지 말고 얕게 쓰고 `shallow` 를 표시하라고 시킨다."""
+        if not pending:
+            return ""
+        return ("\n## 아직 조사되지 않은 의존 대상 — 열지 마라\n"
+                "\n%s\n"
+                "\n"
+                "이것들의 모듈을 **열지 않는다.** 이름·종류·시그니처(호출 자리에서 보이는 것)만으로 **얕게** 쓴다.\n"
+                "그렇게 쓴 레코드에는 `\"shallow\": [\"그 이름들\"]` 을 적는다 — 기계가 모아 두었다가, 그 대상이 조사된 뒤\n"
+                "**너 대신 다른 세션이** does 와 uses[].label 을 다듬는다. means 와 where 는 네 코드만 보면 되니 지금 정확히 쓴다.\n"
+                "뜻을 지어내지 마라 — does 에는 코드에서 보이는 사실만.\n" % pending)
+
+    @staticmethod
+    def pending_excerpt(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch,
+                        nodes: Mapping[str, Mapping[str, object]]) -> str:
+        """`depends_on` 중 **아직 레코드가 없는** 것을 `이름 (종류) 파일:줄` 로. 세션이 열지 않고 볼 최소 정보다.
+
+        `nodes` 는 `codegraph.json` 의 노드를 id 로 키질한 것이다.
+        """
+        ids = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
+        lines: list[str] = []
+        for i in ids:
+            n = nodes.get(i)
+            if n is None or str(n.get("name") or "") in merged:
+                continue
+            lines.append("  - %s (%s) %s:%s" % (n.get("name"), n.get("kind"), n.get("file"), n.get("line")))
+        return "\n".join(lines)
 
     @staticmethod
     def nonnode_prompt(repo: str, root: str) -> str:

@@ -829,3 +829,28 @@ def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
 def test_name_of_는_계획_전체의_id_이름_표다():
     plan = _one_batch_plan("L0-B00")
     assert SV.AnnotateSymbolsStage.name_of(plan) == {"f": "f"}
+
+
+# ── shallow 표시와 미조사 의존 절 ────────────────────────────────────────────
+
+def test_샤드_형은_shallow_를_선택_칸으로_받는다():
+    rec = {**_good_record(), "shallow": ["b.g", "c.h"]}
+    assert SV.AnnotateSymbolsStage.check_shard(json.dumps({"f": rec}).encode()) == []
+    rec["shallow"] = "b.g"                                   # 목록이어야 한다
+    assert SV.AnnotateSymbolsStage.check_shard(json.dumps({"f": rec}).encode())[0]["kind"] == "schema"
+
+
+def test_미조사_의존_절은_아직_없는_의존_대상을_이름_종류_자리로_적는다():
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": ["C1", "C9"]}]}
+    nodes = {"C1": {"id": "C1", "name": "b.g", "kind": "function", "file": "b.py", "line": 7, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    got = SV.AnnotateSymbolsStage.pending_excerpt({"b.g": {"means": "있다"}}, b, nodes)
+    assert got == "  - c.h (class) c.py:3"                    # b.g 는 이미 있으니 빠진다
+
+
+def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다():
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", pending="  - c.h (class) c.py:3")
+    assert "## 아직 조사되지 않은 의존 대상" in p and "c.h (class)" in p and "shallow" in p
+    assert "## 아직 조사되지 않은 의존 대상" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
