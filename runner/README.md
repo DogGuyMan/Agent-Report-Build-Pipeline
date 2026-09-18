@@ -91,6 +91,8 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`ShardUse`** | *class* |  |
+| **`ShardRecord`** | *class* | `where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
 | `_no_records` | `() -> Records` | `field(default_factory=dict)` 는 원소 형을 잃는다. 형이 붙은 빈 사전을 낸다. |
 | `_no_pages` | `() -> Pages` |  |
@@ -242,12 +244,18 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
 | `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
 | `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
+| `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
+| `AnnotateSymbolsStage.check_shard` | `(raw: bytes) -> list[str]` | 샤드 하나의 불평 목록. JSON 이 아니거나 꼴이 틀리면 그 한 줄, 꼴이 맞으면 `where` 규칙을 본다. |
+| `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[str]]` | 계획의 배치마다 샤드를 찾아 검문한다. 틀린 것만 `{배치: 불평}` 으로 낸다. |
+| `AnnotateSymbolsStage.quarantine` | `(shard_dir: str, bid: str) -> str` | 틀린 샤드를 `.json.bad` 로 옮긴다. `.json` 이 아니라 병합이 안 읽고, `jobs` 가 그 배치를 다시 띄운다. |
 | `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
 | `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
+| `AnnotateSymbolsStage.file_of` | `(rec: Record \| None) -> str` | `where` 의 파일 부분. 없으면 빈 글. |
 | `AnnotateSymbolsStage.qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `AnnotateSymbolsStage.plan_files` | `(plan: survey_plan.SurveyPlan) -> set[str]` | 계획에 든 배치들이 가리키는 파일 집합. |
 | `AnnotateSymbolsStage.compare_plan` | `(plan: survey_plan.SurveyPlan, d: D.WarmupDiff) -> list[str]` | 계획과 diff 가 같은 범위를 말하는지 양방향으로 본다. 불평 목록을 낸다. |
 | `AnnotateSymbolsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| `AnnotateSymbolsStage.sweep` | `(self, ctx: Mode1Context, out: P.Outcome) -> P.Outcome` | 세션이 전부 끝난 뒤 샤드 전량을 검문한다. 틀린 샤드는 격리하고 단계를 실패로 세운다. |
 | `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
 | `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
 | `AnnotateSymbolsStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
@@ -593,6 +601,8 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_annotate_symbols_는_바뀐_것이_없고_레코드가_있으면_SKIP` | `(tmp_path: Path)` |  |
 | `test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다` | `(tmp_path: Path)` |  |
 | `test_샤드를_합치고_충돌은_전원을_개명한다` | `(tmp_path: Path)` |  |
+| `test_같은_파일의_같은_키는_개명_없이_갈아_끼운다` | `(tmp_path: Path)` | 증분 조사. 다시 읽은 카드는 옛 카드의 자리를 그대로 잇는다 — 코드 지도가 그 이름을 안다. |
+| `test_다른_파일의_같은_키는_여전히_양쪽_다_개명한다` | `(tmp_path: Path)` |  |
 | `test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다` | `()` |  |
 | `test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세션_없이_OK` | `(tmp_path: Path)` |  |
 | `test_목차_프롬프트는_새_이름의_파일을_말한다` | `()` |  |
@@ -610,6 +620,18 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_재개_문서는_어디서_왜_멈췄는지를_담는다` | `(tmp_path: Path)` |  |
 | `test_실패가_없으면_재개_문서를_쓰지_않는다` | `(tmp_path: Path)` |  |
 | `test_다른_그래프의_재개_문서는_거부한다` | `(tmp_path: Path)` |  |
+| `_good_record` | `() -> dict[str, object]` |  |
+| `_one_batch_plan` | `(bid: str = 'L0-B00') -> survey_plan.SurveyPlan` |  |
+| `test_샤드_형은_계약의_칸을_전부_요구한다` | `()` |  |
+| `test_샤드_형은_값의_어휘도_본다` | `()` |  |
+| `test_깨진_JSON_샤드는_불평_하나로_짚는다` | `()` |  |
+| `test_module_과_external_만_where_없이_통과한다` | `()` |  |
+| `test_샤드_검문은_계획의_배치마다_파일을_찾는다` | `(tmp_path: Path)` |  |
+| `test_틀린_샤드는_격리되어_병합에서_빠지고_다음_실행에서_다시_뜬다` | `(tmp_path: Path)` |  |
+| `test_스키마_파일은_읽기_전용이고_다시_쓸_수_있다` | `(tmp_path: Path)` |  |
+| `test_프롬프트_둘은_스키마_파일을_가리킨다` | `()` |  |
+| `test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAIL` | `(tmp_path: Path)` |  |
+| `test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고_OK` | `(tmp_path: Path)` |  |
 
 ---
 
@@ -637,6 +659,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_load_는_형으로_읽고_틀리면_던진다` | `(tmp_path: Path)` |  |
 | `test_단계_안의_꼴_예외는_FAIL_행이_된다` | `(tmp_path: Path)` |  |
 | `test_쓰지_못한_산출물은_없다고_말한다` | `(tmp_path: Path)` |  |
+| `test_드라이버가_쓸_산출물의_폴더를_미리_만든다` | `(tmp_path: Path)` |  |
 | `test_전이표는_단계별_규칙을_먼저_본다` | `()` |  |
 | `test_전이표에_없는_갈래는_None_이다` | `()` |  |
 | `test_전이표는_넘겨받은_사전을_복사한다` | `()` |  |
