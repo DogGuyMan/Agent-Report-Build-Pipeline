@@ -4,7 +4,8 @@ import os
 import stat
 import sys
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
+from typing import Literal, cast
 
 import msgspec
 
@@ -12,7 +13,8 @@ import pipeline as P
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
-from mode1.context import ROOT, FaultKind, Mode1Context, Record, Records, ShardFault, ShardRecords
+from mode1.context import (ROOT, FaultKind, Mode1Context, Record, Records, ShardFault, ShardRecords,
+                           UnresolvedRow)
 from mode1.measured import Measured
 
 
@@ -401,6 +403,58 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 "- 되돌린 샤드는 %s 에 그대로 있다. **결함의 자리를 열어 무엇이 깨졌는지 먼저 본다.**\n"
                 "- 읽은 내용을 다시 쓰되, **끝내기 전에 검문 명령을 반드시 돌려 `통과` 를 본다.**\n"
                 % (len(faults), lines, os.path.join(shard_dir, bid + ".json.bad")))
+
+    # ── 미해결 표 — 얕게 쓴 레코드가 기다리는 의존 대상 ───────────────────
+
+    @staticmethod
+    def shallow_of(rec: Mapping[str, object]) -> list[str]:
+        """레코드의 `shallow` 를 이름 목록으로 좁힌다. 없거나 목록이 아니면 빈 목록."""
+        got = rec.get("shallow")
+        if not isinstance(got, list):
+            return []
+        items: list[object] = list(cast(list[object], got))
+        return [str(x) for x in items]
+
+    @staticmethod
+    def into_of(cg: X.CodeGraphDoc) -> dict[str, int]:
+        """심볼 이름마다 **다른 파일에서** 들어오는 간선 수 — 얕게 쓴 레코드를 다듬을 가치의 척도다."""
+        nodes = {str(n.get("id")): n for n in cg["nodes"] if n.get("kind") != "external"}
+        got = {str(n.get("name") or ""): 0 for n in nodes.values()}
+        for e in cg.get("edges", []):
+            s, d = nodes.get(str(e.get("from"))), nodes.get(str(e.get("to")))
+            if s is not None and d is not None and s.get("file") != d.get("file"):
+                got[str(d.get("name") or "")] += 1
+        return got
+
+    @staticmethod
+    def unresolved_rows(merged: Mapping[str, Mapping[str, object]], weight: Mapping[str, float],
+                        into: Mapping[str, int], known: Collection[str],
+                        queued: Collection[str] = ()) -> list[UnresolvedRow]:
+        """`shallow` 를 가진 레코드마다 의존 대상 한 줄. `into` 의 키 집합이 "계획에 있는 이름" 이다."""
+        rows: list[UnresolvedRow] = []
+        for key in sorted(merged):
+            rec = merged[key]
+            f = AnnotateSymbolsStage.file_of(dict(rec))
+            for dep in AnnotateSymbolsStage.shallow_of(rec):
+                status: Literal["shallow", "queued", "resolved", "unknown"]
+                if dep in known:
+                    status = "resolved"
+                elif dep not in into:
+                    status = "unknown"
+                elif key in queued:
+                    status = "queued"
+                else:
+                    status = "shallow"
+                rows.append({"file": f, "key": key, "dep": dep, "priority": weight.get(f, 0.0),
+                             "into": into.get(key, 0), "status": status})
+        return rows
+
+    @staticmethod
+    def unresolved_csv(rows: Sequence[UnresolvedRow]) -> str:
+        lines = ["file,key,dep,priority,into,status"]
+        lines += ["%s,%s,%s,%.6f,%d,%s" % (r["file"], r["key"], r["dep"], r["priority"], r["into"], r["status"])
+                  for r in rows]
+        return "\n".join(lines) + "\n"
 
     # ── 레코드 — 읽기 · 샤드 병합 · 계획과 diff 의 대조 ──────────────────
 

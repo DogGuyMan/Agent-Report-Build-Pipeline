@@ -62,6 +62,21 @@ class ShardFault(TypedDict):
     fix: str
 
 
+class UnresolvedRow(TypedDict):
+    """`unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나.
+
+    `into` 는 `key` 의 피의존수(다른 파일에서 들어오는 간선), `priority` 는 그 파일의 가중치.
+    `status` 는 shallow(대상이 아직 없다) · queued(2패스에 들어갔다) · resolved(대상이 생겼다) ·
+    unknown(어느 계획에도 없는 이름 — 영원히 안 생긴다).
+    """
+    file: str
+    key: str
+    dep: str
+    priority: float
+    into: int
+    status: Literal["shallow", "queued", "resolved", "unknown"]
+
+
 class WikiPage(TypedDict):
     """`outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
 

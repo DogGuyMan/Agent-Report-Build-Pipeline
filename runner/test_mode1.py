@@ -854,3 +854,32 @@ def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는
     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", pending="  - c.h (class) c.py:3")
     assert "## 아직 조사되지 않은 의존 대상" in p and "c.h (class)" in p and "shallow" in p
     assert "## 아직 조사되지 않은 의존 대상" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+
+
+# ── 미해결 표 unresolved.csv ─────────────────────────────────────────────────
+
+def test_into_of_는_다른_파일에서_들어오는_간선_수를_이름으로_센다():
+    cg: X.CodeGraphDoc = {"nodes": [{"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+                                    {"id": "b", "name": "b.g", "kind": "function", "file": "b.py", "line": 1, "module": "."},
+                                    {"id": "b2", "name": "b.h", "kind": "function", "file": "b.py", "line": 2, "module": "."}],
+                          "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1},
+                                    {"from": "b2", "to": "b", "kind": "dependency", "label": None, "file": "b.py", "line": 2}]}
+    assert SV.AnnotateSymbolsStage.into_of(cg) == {"a.f": 0, "b.g": 1, "b.h": 0}   # 같은 파일 b2→b 는 안 센다
+
+
+def test_미해결_표는_shallow_레코드마다_의존_대상_한_줄이고_상태를_가른다():
+    merged = {"a.f": {**_good_record(), "shallow": ["b.g", "z.none"]}, "b.g": _good_record()}
+    weight = {"m.py": 1.25}; into = {"a.f": 2, "b.g": 0}
+    rows = SV.AnnotateSymbolsStage.unresolved_rows(merged, weight, into, known={"b.g"})
+    assert rows == [
+        {"file": "m.py", "key": "a.f", "dep": "b.g", "priority": 1.25, "into": 2, "status": "resolved"},
+        {"file": "m.py", "key": "a.f", "dep": "z.none", "priority": 1.25, "into": 2, "status": "unknown"}]
+    rows = SV.AnnotateSymbolsStage.unresolved_rows({"a.f": {**_good_record(), "shallow": ["c.k"]}}, weight,
+                                                   {"a.f": 1, "c.k": 0}, known=set(), queued={"a.f"})
+    assert [r["status"] for r in rows] == ["queued"]
+
+
+def test_미해결_csv_머리줄():
+    text = SV.AnnotateSymbolsStage.unresolved_csv([
+        {"file": "m.py", "key": "a.f", "dep": "b.g", "priority": 1.25, "into": 2, "status": "shallow"}])
+    assert text.splitlines() == ["file,key,dep,priority,into,status", "m.py,a.f,b.g,1.250000,2,shallow"]
