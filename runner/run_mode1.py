@@ -125,7 +125,7 @@ import argparse
 import json
 import time
 from collections.abc import Sequence
-from typing import cast
+from typing import Literal, cast
 
 # 러너는 `runner/`, 결정론 기계는 `machine/` 이다. 이 파일이 CLI 로 돌 때 sys.path[0] 은
 # `runner/` 라 machine 을 못 찾는다 — 그래서 여기서 넣는다.
@@ -209,6 +209,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--timeout", type=float, default=None, help="에이전트 단계의 제한 시간(초)")
     ap.add_argument("--cold", action="store_true", help="전량. 옛 지문으로 좁히지 않는다")
     ap.add_argument("--resume", action="store_true", help="resume.json 이 있으면 멈춘 자리부터")
+    ap.add_argument("--strategy", choices=("layer", "file"), default="layer",
+                    help="annotate-symbols 전략. layer = 위상 층 · file = 파일 하나가 세션 하나, 가중치 순 (--cold 전용)")
     a = ap.parse_args(argv)
 
     repo = os.path.abspath(os.path.expanduser(cast(str, a.repo)))
@@ -217,9 +219,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     model, only, skip = cast(str, a.model), cast(str | None, a.only), cast(str | None, a.skip)
     cold, dry_run, json_out = bool(a.cold), bool(a.dry_run), cast(str | None, a.json_out)
+    strategy = cast(Literal["layer", "file"], a.strategy)
+    if strategy == "file" and not cold:
+        print("에러 — file 전략은 --cold 에서만 돈다. 파일 계획에는 증분 좁히기가 없다", file=sys.stderr)
+        return 1
     ctx = Mode1Context(root=ROOT, model=model, timeout=cast(float | None, a.timeout),
                        concurrency=cast(int, a.concurrency), repo=repo,
-                       target=cast(int, a.target), hops=cast(int, a.hops), cold=cold)
+                       target=cast(int, a.target), hops=cast(int, a.hops), cold=cold,
+                       strategy=strategy)
     start = None
     if a.resume:
         start = resume.start_stage(resume.read_resume(X.RESUME.locate(ctx)),
@@ -242,8 +249,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         cg = X.CODEGRAPH.locate(ctx)
         if "schedule-batches" in graph.order and os.path.exists(cg):
             narrowed = None if cold else (d["targets"] if d else None)
-            미리 = survey_plan.plan(cast(survey_plan.CodeGraph, P.load(cg, X.CodeGraphDoc)),
-                                  ctx.target, only_files=narrowed)
+            cg_doc = cast(survey_plan.CodeGraph, P.load(cg, X.CodeGraphDoc))
+            미리 = (survey_plan.plan_by_file(cg_doc) if ctx.strategy == "file"
+                  else survey_plan.plan(cg_doc, ctx.target, only_files=narrowed))
             print("\n층 계획 (기계가 결정론으로 낸다)%s" % (" — diff 로 좁힘" if narrowed else ""))
             for line in ScheduleBatchesStage.plan_summary(미리):
                 print(line)

@@ -751,3 +751,34 @@ def test_check_shard_명령은_통과_0_불평_1(tmp_path: Path):
     assert ok.returncode == 0 and "통과" in ok.stdout
     no = subprocess.run([sys.executable, tool, str(bad)], capture_output=True, text=True)
     assert no.returncode == 1 and "malformed" in no.stdout and SV.AnnotateSymbolsStage.FIX["malformed"] in no.stdout
+
+
+# ── 전략 스위치 — schedule-batches 의 파일 계획 ─────────────────────────────
+
+def test_전략_file_이면_schedule_batches_가_파일_계획과_우선순위_csv_를_낸다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text(json.dumps({"language": "python", "nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.f", "kind": "function", "file": "b.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+    out = G.ScheduleBatchesStage().perform(c)
+    assert out.kind == P.OK and c.plan is not None
+    assert [b["id"] for b in c.plan["layers"][0]["batches"]] == ["F00", "F01"]
+    assert c.plan["layers"][0]["batches"][0]["files"] == ["b.py"]
+    csv = Path(X.FILE_PRIORITY.locate(c)).read_text(encoding="utf-8").splitlines()
+    assert csv[0] == "file,out,into,interfaces,abstracts,weight" and csv[1].startswith("b.py,")
+
+
+def test_계획_요약은_파일_계획도_읽는다():
+    p = survey_plan.plan_by_file({"nodes": [{"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1}], "edges": []})
+    lines = G.ScheduleBatchesStage.plan_summary(p)
+    assert any("파일 1" in ln and "배치 1" in ln for ln in lines)
+
+
+def test_전략_기본값은_layer_이고_file_이면_writes_에_csv_가_있다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert c.strategy == "layer"
+    assert X.FILE_PRIORITY not in G.ScheduleBatchesStage().writes(c)
+    c.strategy = "file"
+    assert X.FILE_PRIORITY in G.ScheduleBatchesStage().writes(c)

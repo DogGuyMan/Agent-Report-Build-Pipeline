@@ -94,6 +94,7 @@ class Mode1Context(P.RunContext):
     target: int = 8
     hops: int = 1
     cold: bool = False
+    strategy: Literal["layer", "file"] = "layer"     # annotate-symbols 를 위상 층으로 돌지, 파일 하나 = 세션 하나로 돌지
     # 단계 사이를 건너다니는 값. 채우는 단계 → 읽는 단계.
     proposed: str | None = None                      # lang-hint → lang-decide
     targets: list[str] | None = None                 # detect-changes → schedule-batches · annotate-symbols
@@ -159,6 +160,10 @@ CHANGES = P.Artifact[Mode1Context](
     "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), WarmupDiff)
 BATCHES = P.Artifact[Mode1Context](
     "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), survey_plan.SurveyPlan)
+FILE_PRIORITY = P.Artifact[Mode1Context](
+    "file-priority.csv", lambda c: os.path.join(raw_dir(c), "file-priority.csv"))
+UNRESOLVED = P.Artifact[Mode1Context](
+    "unresolved.csv", lambda c: os.path.join(raw_dir(c), "unresolved.csv"))
 RECORD_SCHEMA = P.Artifact[Mode1Context](
     "record-schema.json", lambda c: os.path.join(raw_dir(c), "record-schema.json"))
 READING = P.Artifact[Mode1Context](
@@ -172,8 +177,8 @@ WIKI_DIR = P.Artifact[Mode1Context](
 RESUME = P.Artifact[Mode1Context](
     "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
 
-ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, RECORD_SCHEMA,
-             READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED,
+             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
 
 
 def snapshot_path(c: Mode1Context) -> str:
