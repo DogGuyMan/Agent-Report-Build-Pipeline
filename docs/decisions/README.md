@@ -11,7 +11,10 @@
 | [0004](0004-d-axis-on-hold.md) | D축을 평가 없이 보류 | 보류 | 0002 가 게이트였다. `viz/src/types.ts` 에 필드를 넣지 않는다 |
 | [0005](0005-rejected-proposals.md) | 기각안과 부활 트리거 | 유효 | Vite · panzoom · Tailwind 등. 조건부다 |
 | [0006](0006-yellow-decisions-without-option-tables.md) | 🟡 결정의 빈 옵션표 | 확정 | 없는 대안을 지어내지 않고 보고만 한다 |
-| [0007](0007-xmldoc-include-deprecated.md) | `# <include …/>` 주석 주입 | **폐지 예정** | 지우지 않되 **새 코드에 새로 심지 않는다.** 대체안은 미정 |
+| [0007](0007-xmldoc-include-deprecated.md) | `# <include …/>` 주석 주입 | 폐지 예정 → **폐지 (0010)** | 표시 단계였다. 0010 이 확정했다 |
+| [0008](0008-old-output-is-origin-not-target.md) | 옛 산출물은 출발점이지 기준이 아니다 | 확정 | 0001~0003 의 공통 원인. Track A/B 순서와 2026-08-28 해소 항목도 여기 |
+| [0009](0009-second-report-genre-deferred.md) | 두 번째 보고서 장르(`번복기록`) mode | 보류 | 소비자 0 인 동안 mode 축을 파지 않는다. `plans/` 입력은 열렸다 |
+| [0010](0010-xmldoc-retired.md) | `xmldoc` 주석 주입을 쓰지 않는다 | **폐지** | 게이트에서 뺐다. `emit`·`inject` 안 돌린다. 남은 블록은 잔재 — 지우는 건 별개 작업 |
 
 ## 새 기록을 더하는 법
 
