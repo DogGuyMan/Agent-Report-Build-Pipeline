@@ -1006,3 +1006,13 @@ def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다
     faults = SV.AnnotateSymbolsStage.load_faults(str(raw / "_shards"), ids["c.py"])
     assert faults and faults[0]["kind"] == "coverage"
     assert "NONNODE" not in [r["stage"].split("/")[-1] for r in out.rows]      # 실패했으면 비노드 세션을 안 띄운다
+
+
+def test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_이름이_갈린다(tmp_path: Path):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    assert isinstance(g.stages["annotate-symbols"], SF.AnnotateFilesStage) and g.name == "mode1-cold-file"
+    c.strategy = "layer"
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    assert type(g.stages["annotate-symbols"]) is SV.AnnotateSymbolsStage and g.name == "mode1-cold"

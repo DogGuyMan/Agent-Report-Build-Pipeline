@@ -8,6 +8,7 @@ from mode1.graph import CollectGraphStage, ScheduleBatchesStage
 from mode1.lang import LangDecideStage, LangHintStage
 from mode1.scan import DetectChangesStage, SnapshotSourcesStage
 from mode1.survey import AnnotateSymbolsStage
+from mode1.survey_files import AnnotateFilesStage
 from mode1.terms import VerifyTermsStage
 from mode1.wiki import OutlineWikiStage, PublishWikiStage, VerifyWikiStage, WriteWikiStage
 
@@ -47,6 +48,20 @@ EDGES = P.Edges({
 })
 
 
+def graph_name(ctx: Mode1Context) -> str:
+    """전량/증분과 전략이 이름을 가른다 — `resume.json` 이 이 이름으로 자기 그래프를 알아본다."""
+    base = "mode1-cold" if ctx.cold else "mode1-warm"
+    return base + ("-file" if ctx.strategy == "file" else "")
+
+
+def stages_for(ctx: Mode1Context) -> dict[str, P.Stage[Mode1Context]]:
+    """전략이 고르는 단계는 하나뿐이다 — annotate-symbols."""
+    got = dict(STAGES)
+    if ctx.strategy == "file":
+        got["annotate-symbols"] = AnnotateFilesStage()
+    return got
+
+
 def expand(names: Iterable[str]) -> list[str]:
     out: list[str] = []
     for n in names:
@@ -76,6 +91,6 @@ def build_mode1_graph(ctx: Mode1Context, only: Iterable[str] | None,
         if start_at not in names:
             raise ValueError("재개할 단계가 흐름에 없다: %s" % start_at)
         names = names[names.index(start_at):]
-    name = "mode1-cold" if ctx.cold else "mode1-warm"
-    return P.build_graph(name, names, {n: STAGES[n] for n in names},
+    stages = stages_for(ctx)
+    return P.build_graph(graph_name(ctx), names, {n: stages[n] for n in names},
                          EDGES, P.existing(X.ARTIFACTS, ctx), ctx)

@@ -186,7 +186,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from mode1 import context as X  # noqa: E402
 from mode1 import diff, resume  # noqa: E402
 from mode1.context import Mode1Context  # noqa: E402
-from mode1.edges import ORDER as STAGES, build_mode1_graph  # noqa: E402
+from mode1.edges import ORDER as STAGES, build_mode1_graph, graph_name  # noqa: E402
 from mode1.edges import expand as expand, plan_stages as plan_stages  # noqa: E402
 
 
@@ -229,8 +229,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                        strategy=strategy)
     start = None
     if a.resume:
-        start = resume.start_stage(resume.read_resume(X.RESUME.locate(ctx)),
-                                   "mode1-cold" if cold else "mode1-warm")
+        start = resume.start_stage(resume.read_resume(X.RESUME.locate(ctx)), graph_name(ctx))
         if start is None:
             print("에러 — 이 그래프용 resume.json 이 없다", file=sys.stderr)
             return 1
