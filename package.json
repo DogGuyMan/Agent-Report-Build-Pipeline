@@ -8,8 +8,6 @@
   },
   "scripts": {
     "test": "node --test",
-    "build": "node viz/build.mjs",
-    "check": "node viz/check.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:py": "npx --yes pyright@1.1.413",
     "pretest": "node viz/lib.mjs",

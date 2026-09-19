@@ -16,7 +16,7 @@ def contextDocs(root=ROOT, exists=os.path.exists):
     docs = ["CLAUDE.md", "README.md", "ARCHITECTURE.md",
             "machine/CLAUDE.md", "viz/CLAUDE.md", "viz/src/CLAUDE.md",
             "runner/CLAUDE.md", "tools/CLAUDE.md",
-            "docs/CLAUDE.md"]
+            "docs/CLAUDE.md", "test/CLAUDE.md"]
     return [d for d in docs if exists(os.path.join(root, d))]
 
 def isExempt(p):

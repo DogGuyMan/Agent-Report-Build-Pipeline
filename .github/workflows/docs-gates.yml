@@ -1,0 +1,27 @@
+# 문서 게이트 — 코드 없이도 도는 둘만 CI 에서 돌린다.
+# 나머지 게이트(pytest 전량 · npm test · tsc · pyright · doctor)는 Graphviz · clang-uml · Node 25 ·
+# 골든 저장소가 필요해 로컬 몫이다 — 루트 CLAUDE.md "게이트 여섯".
+name: docs-gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+
+      # 컨텍스트 문서의 파일:줄 인용이 실재하는가 · 형 자리의 Any 가 0인가
+      - name: citations and no-Any
+        run: python -m pytest test/test_docs_citations.py test/test_no_any.py -q
+
+      # 디렉토리별 README.md 가 소스 독스트링과 같은가
+      - name: README drift
+        run: python tools/gen_readme.py --check machine runner viz tools
