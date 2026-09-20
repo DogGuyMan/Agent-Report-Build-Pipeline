@@ -76,16 +76,16 @@ def test_grading_only_starts_once_a_human_answered():
 # Mode 1.5 실행기에 LLM Model을 부르는 단계가 하나도 없음을 못박는 시험이다.
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 def test_no_stage_calls_the_model():
-    """**이 실행기는 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다.
+    """**`--ask` 없이는 이 실행기가 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다.
 
-    CLI 칸으로 되돌리면 스킬과 두 곳에서 같은 일을 하게 되고, 헤드리스 세션은
-    사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
+    헤드리스 출제 칸은 두지 않는다 — 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
+    `ask` 는 대화형 세션을 띄워 그 스킬을 부르는 자리이고, 기계 단계 셋(`STAGES`)에는 들지 않는다.
     """
     for has_cand in (False, True):
         for has_ans in (False, True):
             stages = R.plan_stages(has_cand, has_ans)
             assert [s for s in stages if R.is_agent_stage(s)] == []
-    assert R.AGENT_STAGES == set()
+    assert R.AGENT_STAGES == {R.ASK} and R.ASK not in R.STAGES
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_collect_is_skipped_when_candidates_already_exist']"/>
@@ -683,3 +683,88 @@ def test_문항지가_있으면_관문이_기입란을_깔고_안내를_남긴�
     assert out.kind == P.GATE
     assert os.path.exists(tmp_path / R.SHEET)
     assert ctx.gate is not None and R.ANSWERS in ctx.gate
+
+
+# ── --ask — CLI 가 대화형 세션을 띄워 term-benchmark 스킬이 출제·문답한다 ─────────
+def _claude_found(name: str) -> str | None:
+    return "/usr/local/bin/claude"
+
+
+def _claude_missing(name: str) -> str | None:
+    return None
+
+
+def _session_left_nothing(argv: Sequence[str], cwd: str) -> int:
+    return 0
+
+
+def test_ask_를_주면_사람_차례_자리에_ask_가_서고_채점이_뒤따른다():
+    """답안이 없을 때만 `ask` 가 들어가고, 그 뒤에 `grade` `emit` 이 이어진다."""
+    assert R.plan_stages(has_candidates=False, has_answers=False, ask=True) == ["collect", "ask", "grade", "emit"]
+    assert R.plan_stages(has_candidates=True, has_answers=False, ask=True) == ["ask", "grade", "emit"]
+    assert R.plan_stages(has_candidates=True, has_answers=True, ask=True) == ["grade", "emit"]     # 답안이 있으면 물을 것이 없다
+
+
+def test_ask_는_LLM_을_부르는_유일한_단계다():
+    assert R.is_agent_stage("ask") and R.AGENT_STAGES == {"ask"}
+    assert [s for s in R.plan_stages(True, False) if R.is_agent_stage(s)] == []          # --ask 없이는 여전히 0
+
+
+def test_ask_명령줄은_대화형_claude_에_스킬_호출을_첫_프롬프트로_준다(tmp_path: Path):
+    argv = R.ask_argv("/root", "/plans/p.md", str(tmp_path), "/root/.venv/bin/python")
+    assert argv[0] == "claude" and "-p" not in argv and "--print" not in argv
+    prompt = argv[-1]
+    assert prompt.startswith("/term-benchmark ") and "/plans/p.md" in prompt and str(tmp_path) in prompt
+    assert R.ANSWERS in prompt and R.QUESTIONS in prompt and "run_mode1_5.py" in prompt
+    assert "--add-dir" in argv and str(tmp_path) in argv
+
+
+def test_ask_그래프는_답안이_남지_않으면_GATE_로_끝나고_남으면_채점으로_간다(tmp_path: Path):
+    g = R.build_mode1_5_graph(_m15(tmp_path), has_candidates=True, has_answers=False,
+                              only=None, skip=None, ask=True)
+    assert g.order == ["ask", "grade", "emit"]
+    assert g.stages["ask"].emits & P.GATE
+    assert g.next_of("ask", P.GATE) is None and g.next_of("ask", P.OK) == "grade"
+
+
+def test_ask_는_터미널이_아니면_세션을_띄우지_않고_실패한다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(R.sys.stdin, "isatty", lambda: False)
+    launched: list[Sequence[str]] = []
+    def spy(argv: Sequence[str], cwd: str) -> int:
+        launched.append(argv)
+        return 0
+    monkeypatch.setattr(R, "run_interactive", spy)
+    out = R.AskStage().perform(_m15(tmp_path))
+    assert out.kind == P.FAIL and "터미널" in out.why and launched == []
+
+
+def test_ask_뒤에_답안이_없으면_기입란을_깔고_GATE_로_멈춘다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(R.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(R.sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr(R.shutil, "which", _claude_found)
+    (tmp_path / R.QUESTIONS).write_text(json.dumps(good_doc(), ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(R, "run_interactive", _session_left_nothing)      # 세션은 문항지만 남기고 끝났다고 치자
+    ctx = _m15(tmp_path)
+    out = R.AskStage().perform(ctx)
+    assert out.kind == P.GATE and os.path.exists(tmp_path / R.SHEET) and ctx.gate is not None
+    assert len(out.rows) == 1 and out.rows[0]["stage"] == "ask" and out.rows[0]["ok"]
+
+
+def test_ask_뒤에_답안이_있으면_OK_로_채점에_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(R.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(R.sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr(R.shutil, "which", _claude_found)
+    def fake(argv: Sequence[str], cwd: str) -> int:
+        (tmp_path / R.ANSWERS).write_text("{}", encoding="utf-8")
+        return 0
+    monkeypatch.setattr(R, "run_interactive", fake)
+    out = R.AskStage().perform(_m15(tmp_path))
+    assert out.kind == P.OK and out.rows[0]["ok"]
+
+
+def test_ask_는_claude_가_없으면_실패한다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(R.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(R.sys.stdout, "isatty", lambda: True)
+    monkeypatch.setattr(R.shutil, "which", _claude_missing)
+    out = R.AskStage().perform(_m15(tmp_path))
+    assert out.kind == P.FAIL and "claude" in out.why

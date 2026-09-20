@@ -19,7 +19,11 @@
 | `grade`   | 사람이 쓴 답안을 채점한다(확실 / 모름) | `runner/term/quiz.py` |
 | `emit`    | 용어집과 학습 노트를 낸다 | `runner/term/emit.py` |
 
-**이 실행기에는 LLM Model을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
+**`--ask` 를 주면 스킬 차례를 실행기가 연다** — 대화형 `claude` 세션을 띄워 첫 프롬프트로
+`/term-benchmark` 를 넘기고, 세션이 `answers.json` 을 남기면 그대로 `grade` `emit` 으로 이어간다.
+남기지 않으면 관문처럼 기입란을 깔고 멈춘다. 터미널에서만 된다.
+
+**`--ask` 없이는 이 실행기에 LLM Model을 부르는 칸이 없다.** 출제는 `term-benchmark` 스킬의 일이다 —
 스킬이 `questions.json` 을 쓰고, 실행기는 그것을 **기계로 검사**해 정답을 뺀 기입란을 깐다.
 오답 보기의 그럴듯함은 기계가 만들 수 없고, 묻는 자리에는 사람이 있어야 한다.
 
@@ -93,6 +97,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -118,12 +123,17 @@ import msgspec  # noqa: E402
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 
-# 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
+# 기계 단계는 셋 고정이다. 사이의 출제·문답은 `term-benchmark` 스킬이 맡는다.
 STAGES = ["collect", "grade", "emit"]
 
-# LLM Model을 부르는 단계. **비어 있다.** 출제를 CLI 칸으로 두면 스킬과 두 곳에서 같은 일을
-# 하게 되고, 헤드리스 세션은 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
-AGENT_STAGES: set[str] = set()
+# 사람 차례 자리에 `--ask` 로 끼우는 단계. 헤드리스가 아니라 **대화형** `claude` 세션을 띄워
+# 스킬이 사용자에게 직접 묻게 한다 — 출제는 여전히 스킬의 일이고 실행기는 자리만 내준다.
+ASK = "ask"
+SKILL = "term-benchmark"
+
+# LLM Model을 부르는 단계. `ask` 하나뿐이고 `--ask` 를 줄 때만 그래프에 들어간다.
+# 헤드리스 출제 칸은 두지 않는다 — 사람에게 되물을 수 없어 신규 개념의 뜻을 지어내게 된다.
+AGENT_STAGES: set[str] = {ASK}
 
 
 # "모르겠다" 는 자리도 문구도 고정이다. 흔들리면 그것을 고르는 비용이 문항마다 달라진다.
@@ -152,13 +162,16 @@ def is_agent_stage(stage: str) -> bool:
 
 def plan_stages(has_candidates: bool, has_answers: bool,
                 only: Iterable[str] | None = None,
-                skip: Iterable[str] | None = None) -> list[str]:
+                skip: Iterable[str] | None = None,
+                ask: bool = False) -> list[str]:
     """무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다.
 
-    두 가지 규칙뿐이다.
+    세 가지 규칙뿐이다.
 
       - 후보 파일이 있으면 `collect` 를 건너뛴다. 다시 모으면 덮어쓴다.
       - 답안이 없으면 `grade` 와 `emit` 을 아예 넣지 않는다. 이것이 사람 차례다.
+      - `ask` 면 그 사람 차례 자리에 `ask` 를 세우고 `grade` `emit` 을 뒤에 붙인다 —
+        세션이 답안을 남기면 그대로 이어 채점한다. 답안이 이미 있으면 물을 것이 없다.
     """
     for name in list(only or []) + list(skip or []):
         if name not in STAGES:
@@ -172,7 +185,10 @@ def plan_stages(has_candidates: bool, has_answers: bool,
         if s == "collect" and has_candidates:
             continue
         if s in ("grade", "emit") and not has_answers:
-            continue
+            if ask and s == "grade":
+                out.append(ASK)
+            if not ask:
+                continue
         out.append(s)
     return out
 
@@ -488,6 +504,28 @@ def emit_argv(root: str, grades: str) -> list[str]:
     return [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "emit.py"), grades]
 
 
+def ask_argv(root: str, plan: str, workdir: str, python: str) -> list[str]:
+    """대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다.
+
+    `-p` 를 쓰지 않는다 — 스킬은 `AskUserQuestion` 으로 사람에게 묻고, 헤드리스는 되물을 수 없다.
+    작업 폴더가 저장소 밖일 수 있어 `--add-dir` 로 열어 준다. 채점은 세션이 끝난 뒤 실행기 몫이라
+    프롬프트에 "하지 마라" 를 박는다.
+    """
+    prompt = ("/%s 계획서 %s · 작업 폴더 %s · 후보는 %s 에 이미 있다. "
+              "문항지는 %s 에 쓰고, 기입란은 `%s %s %s --workdir %s` 를 돌려 %s 로 깔고, "
+              "사용자에게 한 용어씩 물어 UserAns 를 채운 것을 %s 으로 둔 뒤 세션을 끝낸다. "
+              "채점(grade · emit)은 이 세션이 끝나면 실행기가 이어서 한다 — 여기서 하지 마라."
+              % (SKILL, plan, workdir, os.path.join(workdir, CANDIDATES),
+                 os.path.join(workdir, QUESTIONS), python, os.path.join(root, "runner", "run_mode1_5.py"),
+                 plan, workdir, os.path.join(workdir, SHEET), os.path.join(workdir, ANSWERS)))
+    return ["claude", "--add-dir", workdir, prompt]
+
+
+def run_interactive(argv: Sequence[str], cwd: str) -> int:
+    """터미널을 그대로 넘겨 자식을 띄우고 끝날 때까지 기다린다. 출력을 가로채지 않는다."""
+    return subprocess.run(list(argv), cwd=cwd).returncode
+
+
 # ── 6. 보고 — 멈춘 것을 실패로 그리지 않는다 ────────────────────────────
 def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
                 answer_key: str, unasked: Sequence[str] = ()) -> str:
@@ -677,27 +715,63 @@ class GateStage(P.Stage[Mode15Context]):
         return P.Outcome(P.GATE, "사람 차례")
 
 
+class AskStage(P.Stage[Mode15Context]):
+    """`--ask` 의 사람 차례. 대화형 `claude` 세션을 띄워 `term-benchmark` 스킬이 출제하고 묻게 한다.
+
+    세션이 답안을 남기면 `OK` 로 채점에 넘기고, 남기지 않았으면 관문과 같은 일(기입란 · 안내)을
+    하고 `GATE` 로 멈춘다. 터미널이 아니거나 `claude` 가 없으면 세션을 띄우지 않고 `FAIL`.
+    토큰·비용은 대화형 세션이라 여기서 잡히지 않는다 — 행의 usage 는 0 이다.
+    """
+    name = ASK
+    emits = P.OK | P.FAIL | P.GATE
+
+    def perform(self, ctx: Mode15Context) -> P.Outcome:
+        t0 = time.monotonic()
+        row: M.StageRow = {"stage": self.name, "seconds": 0.0, "usage": M.normalize_usage(None),
+                           "ok": False, "why": ""}
+        if not (sys.stdin.isatty() and sys.stdout.isatty()):
+            row["why"] = "대화형 터미널이 아니다 — --ask 는 터미널에서만 돈다"
+            return P.Outcome(P.FAIL, row["why"], [row])
+        if shutil.which("claude") is None:
+            row["why"] = "PATH 에 claude 가 없다"
+            return P.Outcome(P.FAIL, row["why"], [row])
+        python = pythonPath(ctx.root, sys.platform, dict(os.environ))
+        rc = run_interactive(ask_argv(ctx.root, ctx.plan, ctx.workdir, python), cwd=ctx.root)
+        row["seconds"] = time.monotonic() - t0
+        if rc != 0:
+            row["why"] = "claude 세션 종료 코드 %d" % rc
+            return P.Outcome(P.FAIL, row["why"], [row])
+        row["ok"] = True
+        if os.path.exists(ctx.p_ans):
+            print("%s — 답안이 남았다. 이어서 채점한다 (%s)" % (self.name, M.hms(row["seconds"])), flush=True)
+            return P.Outcome(P.OK, "", [row])
+        gate = GateStage().perform(ctx)      # 기입란과 안내는 관문과 같은 것을 깐다
+        return P.Outcome(P.GATE, gate.why or "답안이 남지 않았다", [row])
+
+
 MODE1_5_STAGES: dict[str, P.Stage[Mode15Context]] = {
     "collect": CollectStage(), "grade": GradeStage(), "emit": EmitStage(),
-    "gate": GateStage()}
+    "gate": GateStage(), ASK: AskStage()}
 
 # 갈래는 지금 동작과 1:1 이다. `gate` 의 `GATE` 만 새 줄이고, 이것도 지금 루프 밖에서
-# 하던 일에 이름을 붙인 것이다.
+# 하던 일에 이름을 붙인 것이다. `ask` 는 답안이 안 남으면 관문처럼 `GATE` 로 멈춘다.
 MODE1_5_EDGES = P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT,
-                         ("gate", P.GATE): P.HALT})
+                         ("gate", P.GATE): P.HALT, (ASK, P.GATE): P.HALT})
 
 
 def build_mode1_5_graph(ctx: Mode15Context, has_candidates: bool, has_answers: bool,
                         only: Iterable[str] | None,
-                        skip: Iterable[str] | None) -> P.StageDagGraph[Mode15Context]:
-    """진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다.
+                        skip: Iterable[str] | None,
+                        ask: bool = False) -> P.StageDagGraph[Mode15Context]:
+    """진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다 — `ask` 면
+    그 자리를 `ask` 가 대신하므로 `gate` 를 붙이지 않는다.
 
     `questions.json` 과 `answers.json` 은 사람과 스킬이 만드는 것이라 어떤 단계도
     쓰지 않는다 — 늘 `given` 에 넣고 실제 존재는 드라이버가 본다.
     """
     names = plan_stages(has_candidates=has_candidates, has_answers=has_answers,
-                        only=only, skip=skip)
-    if human_gate_open(has_answers):
+                        only=only, skip=skip, ask=ask)
+    if human_gate_open(has_answers) and ASK not in names:
         names = names + ["gate"]
     given = P.existing([CANDIDATES_ART, GRADES_ART], ctx) + [
         P.Artifact[Mode15Context](QUESTIONS, lambda c: c.p_ques),
@@ -720,6 +794,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
     ap.add_argument("--dry-run", action="store_true", help="무엇을 돌릴지만 보이고 끝낸다")
+    ap.add_argument("--ask", action="store_true",
+                    help="사람 차례를 여기서 연다 — 대화형 claude 세션을 띄워 %s 스킬이 출제·문답하고, "
+                         "답안이 남으면 이어서 채점한다. 터미널에서만 된다" % SKILL)
     a = ap.parse_args(argv)
 
     plan = os.path.abspath(os.path.expanduser(a.plan))
@@ -750,7 +827,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             has_candidates=os.path.exists(ctx.p_cand),
             has_answers=os.path.exists(ctx.p_ans),
             only=a.only.split(",") if a.only else None,
-            skip=a.skip.split(",") if a.skip else None)
+            skip=a.skip.split(",") if a.skip else None,
+            ask=bool(a.ask))
     except (ValueError, P.GraphError) as e:
         print("에러 — %s" % e, file=sys.stderr)
         return 1
@@ -784,7 +862,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         for s_name, why in skipped:
             print("건너뜀 — %s (%s)" % (s_name, why))
         if human_gate_open(os.path.exists(ctx.p_ans)):
-            print("사람 차례에서 멈출 예정이다 — 답안 %s 이 없다." % ctx.p_ans)
+            print("사람 차례를 %s 세션이 연다 — 답안 %s 이 남으면 이어 채점한다." % (SKILL, ctx.p_ans)
+                  if a.ask else "사람 차례에서 멈출 예정이다 — 답안 %s 이 없다." % ctx.p_ans)
         print(graph.render())
         return 0
 
