@@ -201,9 +201,11 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                         nodes: Mapping[str, Mapping[str, object]]) -> str:
         """`depends_on` 중 **아직 레코드가 없는** 것을 `이름 (종류) 파일:줄` 로. 세션이 열지 않고 볼 최소 정보다.
 
+        같은 배치의 심볼은 뺀다 — 세션이 지금 읽는 파일이라 "열지 마라" 가 성립하지 않는다.
         `nodes` 는 `codegraph.json` 의 노드를 id 로 키질한 것이다.
         """
-        ids = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
+        mine = {s["id"] for s in batch.get("symbols", [])}
+        ids = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])} - mine)
         lines: list[str] = []
         for i in ids:
             n = nodes.get(i)

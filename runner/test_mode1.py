@@ -867,6 +867,18 @@ def test_미조사_의존_절은_아직_없는_의존_대상을_이름_종류_�
     assert got == "  - c.h (class) c.py:3"                    # b.g 는 이미 있으니 빠진다
 
 
+def test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다():
+    """자기 파일 안의 함수는 지금 읽고 있는 것이다 — "열지 마라" 목록에 들어가면 안 된다."""
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C3", "C9"]},
+        {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "in_cycle": False,
+         "depends_on": []}]}
+    nodes = {"C3": {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    assert SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes) == "  - c.h (class) c.py:3"
+
+
 def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다():
     b = _one_batch_plan("F00")["layers"][0]["batches"][0]
     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", pending="  - c.h (class) c.py:3")
