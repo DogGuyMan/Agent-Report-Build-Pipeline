@@ -827,6 +827,23 @@ def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
     assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {}) == ""      # 이름을 모르면 못 찾는다
 
 
+def test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인다():
+    b: survey_plan.PlanBatch = {"id": "F00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C1", "C9"]}]}
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", name_of={"C1": "b.g"})
+    assert "의존 -> b.g, C9" in p                 # 이름표에 없는 id 는 그대로 둔다 — 지어내지 않는다
+    assert "의존 -> C1" not in p
+    assert "uses[].to 는 이 저장소 안 심볼의 레코드 키" in p
+    assert "subprocess.run" in p                  # 외부 의존은 적지 않는다는 예시가 계약에 있다
+    assert '"shallow": ["위 목록의 이름 그대로"]' in SV.AnnotateSymbolsStage.pending_section("  - c.h (class) c.py:3")
+
+
+def test_배치_프롬프트는_이름표_없이도_돈다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    assert "의존 -> 없음" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+
+
 def test_name_of_는_계획_전체의_id_이름_표다():
     plan = _one_batch_plan("L0-B00")
     assert SV.AnnotateSymbolsStage.name_of(plan) == {"f": "f"}

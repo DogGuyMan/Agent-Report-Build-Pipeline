@@ -92,19 +92,23 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     @staticmethod
     def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
                             dep_records: str, targets: Sequence[str] | None = None,
-                            total: int = 0, pending: str = "") -> str:
+                            total: int = 0, pending: str = "",
+                            name_of: Mapping[str, str] | None = None) -> str:
         """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
 
         `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
         **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 붙는다.
+        `name_of` 는 계획의 `id -> name`. 심볼 줄의 `의존 ->` 를 이름으로 보인다 — 세션은 보이는 것을
+        `uses[].to` 에 그대로 베끼므로, id 를 보이면 id 가 레코드에 박힌다.
 
         `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
         `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
         """
+        names = name_of or {}
         syms = "\n".join(
             "  - %s (%s) %s:%s   의존 -> %s"
             % (s["name"], s["kind"], s["file"], s["line"],
-               ", ".join(s.get("depends_on") or []) or "없음")
+               ", ".join(names.get(d, d) for d in (s.get("depends_on") or [])) or "없음")
             for s in batch["symbols"])
         return """\
 너는 코드베이스 전수조사의 배치 {bid} 담당이다. 대상 저장소 {repo}. 도구 저장소 {root}.
@@ -141,6 +145,9 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 - does  = 무엇을 하는가, 한두 문장
 - uses[] = {{to, kind, label, where}}. kind 는 dependency inheritance aggregation composition
   association realization 중 하나
+- **uses[].to 는 이 저장소 안 심볼의 레코드 키다** — 위 심볼 목록과 아래층 발췌에 적힌 이름 **그대로**.
+  `C218` 같은 id 나 `GraphNode` 같은 짧은 이름을 쓰지 않는다. 표준 라이브러리·서드파티
+  (`subprocess.run`, `networkx`)는 uses 에 넣지 않는다 — 기계가 떼어 내고 기록만 남긴다.
 - confidence = HIGH(코드를 읽고 썼다) / MEDIUM(일부 읽고 나머지는 추론) / LOW(이름·구조에서 추론)
   **전부 HIGH 로 적으면 그 칸이 장식이 된다.**
 
@@ -185,7 +192,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 "\n%s\n"
                 "\n"
                 "이것들의 모듈을 **열지 않는다.** 이름·종류·시그니처(호출 자리에서 보이는 것)만으로 **얕게** 쓴다.\n"
-                "그렇게 쓴 레코드에는 `\"shallow\": [\"그 이름들\"]` 을 적는다 — 기계가 모아 두었다가, 그 대상이 조사된 뒤\n"
+                "그렇게 쓴 레코드에는 `\"shallow\": [\"위 목록의 이름 그대로\"]` 을 적는다 — 기계가 모아 두었다가, 그 대상이 조사된 뒤\n"
                 "**너 대신 다른 세션이** does 와 uses[].label 을 다듬는다. means 와 where 는 네 코드만 보면 되니 지금 정확히 쓴다.\n"
                 "뜻을 지어내지 마라 — does 에는 코드에서 보이는 사실만.\n" % pending)
 
@@ -669,9 +676,10 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         if layer.get("kind") == "non-node":
             jobs = [("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root))]
         else:
+            names = self.name_of(ctx.plan)
             jobs = [(b["id"], self.survey_batch_prompt(ctx.repo, ctx.root, b,
-                                                       self.dep_excerpt(ctx.merged, b, self.name_of(ctx.plan)),
-                                                       ctx.targets, ctx.tracked_n))
+                                                       self.dep_excerpt(ctx.merged, b, names),
+                                                       ctx.targets, ctx.tracked_n, name_of=names))
                     for b in layer["batches"]]
         # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돌고, 격리된 사유를 받는다.
         d = self.shard_dir(ctx)
