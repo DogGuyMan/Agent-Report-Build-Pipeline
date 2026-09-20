@@ -1,6 +1,6 @@
 ---
 name: term-benchmark
-description: Use before a Mode 2 design review whenever a Plan or Spec is about to be judged — "용어 이해도 점검", "이 Plan 에서 내가 모르는 용어", "용어 시험", "term benchmark", or when spec-review-dashboard is about to start and the reader's mental model of the Plan's vocabulary has not been measured. Runs a human-facing multiple-choice benchmark (3 questions per term plus an "I don't know" choice), grades it through report-term, and emits terms.json for the Mode 2 glossary. The CLI never asks anything — the asking is this skill's job.
+description: Use before a Mode 2 design review whenever a Plan or Spec is about to be judged — "용어 이해도 점검", "이 Plan 에서 내가 모르는 용어", "용어 시험", "term benchmark", or when spec-review-dashboard is about to start and the reader's mental model of the Plan's vocabulary has not been measured. Runs a human-facing multiple-choice benchmark (3 questions per term, 5 choices each with "모르겠다" last), fills in the runner's answer sheet, grades it through report-term, and emits terms.json for the Mode 2 glossary. The CLI never asks anything — the asking is this skill's job.
 ---
 
 # Term Benchmark (Mode 1.5 — 용어 이해도 점검)
@@ -43,6 +43,20 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 ```
 
 ## Workflow — 7단계
+
+**층이 둘이다 — CLI 와 실행기.** 아래 7단계는 이 스킬이 사람에게 물어 가며 손으로 도는 길이다.
+그 위에 오케스트레이터가 따로 있어 **출제까지 대신 돌린다**:
+
+```bash
+.venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업 디렉토리> --terms-db <terms-db.json>
+```
+
+`runner/run_mode1_5.py` 의 단계는 `collect → author → grade → emit` 넷이고, 그 중 `author`(3~5단계에
+해당하는 용어 보충과 출제) 하나만 LLM 칸이라 실행기가 `claude -p` 로 부른다. `--only` / `--skip` 으로
+단계를 고르고, `--dry-run` 은 무엇이 돌지만 보이고 끝낸다.
+
+**답안(`answers.json`)이 없으면 실행기는 사람 차례에서 멈춘다.** 실행기가 도는 것은 출제까지이고,
+사람에게 묻고 기입란을 채우는 6단계 앞의 일은 여전히 이 스킬의 몫이다.
 
 ### 1. 전제 확인
 
@@ -100,40 +114,54 @@ report-term collect <plan.md> <terms-db.json>
 
 정답이 정해지지 않은 용어는 **출제하지 않는다.** 정답 없는 문항은 채점이 불가능하다.
 
-### 5. 출제 — 한 용어씩, 3문항 + "모른다"
+### 5. 출제 — 한 용어씩, 3문항 × 5지선다
 
 용어마다 객관식 **3문항**을 낸다. 정답은 그 용어의 `means` 다. (2026-08-29 사용자 변경 — 5문항은 첫 시험 100문항에서 피로가 실측됐다)
 
 - `AskUserQuestion` 으로 **한 용어씩** 묻는다. 여러 용어를 한 질문에 몰아넣지 않는다
-- 문항마다 보기 3~4개 + 마지막에 **"모른다"** 를 둔다
-- 응답을 세어 `answers.json` 을 쓴다:
+- 문항마다 보기는 **실제 뜻 4개 + 마지막에 "모르겠다"** 로 **정확히 5개**다.
+  개수가 문항마다 다르면 찍어서 맞을 확률이 달라져 정답률을 문항끼리 견줄 수 없다
+
+문항지를 파일로 낸다면 `questions.json` 꼴로 쓴다(`runner/run_mode1_5.py` 의 `validate_questions`
+가 검사하는 꼴이다). 그 파일을 실행기에 주면 정답을 뺀 기입란 `answer-sheet.json` 이 나온다.
+
+**응답을 세지 않는다.** 맞고 틀림은 `report-term grade` 가 문항지와 대조해 센다. 이 스킬이 할 일은
+기입란의 `UserAns` 칸을 사용자의 응답으로 채우는 것뿐이다:
 
 ```json
-{
-  "C-19": { "correct": 3, "dontKnow": 0, "means": "인용 원점을 재는 결정 항목" },
-  "calls[]": { "correct": 0, "dontKnow": 2, "means": "함수 호출 간선 목록" }
-}
+{ "plan": "<plan.md>",
+  "questions": [
+    { "QNum": 1,
+      "Term": "C-19",
+      "Question": "C-19 은 무엇을 가리키는가?",
+      "AnsChoices": {"1": "…", "2": "…", "3": "…", "4": "…", "5": "모르겠다"},
+      "UserAns": 2 } ] }
 ```
 
-- `correct` — 3문항 중 맞힌 수
-- `dontKnow` — "모른다" 를 고른 수
-- `means` — 4단계까지 확정된 정답 문구. `emit` 이 이 문구를 그대로 용어집으로 넘긴다
+- `UserAns` — 사용자가 고른 보기 번호(1부터). `5` 는 "모르겠다"
+- **빈 칸을 남기지 않는다.** 채점기가 거부한다 — 안 푼 것과 모르는 것은 다르기 때문이다
+- `QNum` · `Term` · `Question` 은 **손대지 않는다.** 채점기가 문항지와 대조하고, 다르면 멈춘다
+
+채운 파일을 `answers.json` 이라는 이름으로 둔다.
 
 출제 규율은 아래 별도 절에 있다. **그 절을 읽지 않고 출제하지 않는다.**
 
 ### 6. 채점
 
 ```bash
-report-term grade answers.json
+report-term grade answers.json questions.json
 # → term-grades.json
 #   확실 N · 애매 N · 모름 N
 ```
+
+**인자가 둘이다.** 채운 기입란에는 정답이 없고 문항지에만 있어서, 둘이 만나야 채점이 된다.
+아귀가 안 맞으면(빈 칸 · 보기 밖 번호 · 어긋난 용어) 채점하지 않고 무엇이 틀렸는지 적고 멈춘다.
 
 채점 구간(사용자가 확정한 값이다. 임의로 바꾸지 않는다):
 
 | 조건 | 판정 |
 |---|---|
-| "모른다" 2회 이상 | **모름** — 정답률과 무관하다. 찍어서 맞힌 것을 안다고 세지 않는다 |
+| "모르겠다" 2회 이상 | **모름** — 정답률과 무관하다. 찍어서 맞힌 것을 안다고 세지 않는다 |
 | 맞힌 수 2~3 (정답률 67% 이상) | **확실** |
 | 맞힌 수 0~1 | **모름** |
 
@@ -154,6 +182,9 @@ report-term emit term-grades.json
 `terms.json` 을 Mode 2 로 옮기는 방법을 **사용자에게 안내한다**:
 
 > `report-spec init <slug>` 이 만든 `data.ts` 의 `terms: []` 자리에 옮겨 적는다.
+> 그 `data.ts` 는 **원본 문서 옆**에 산다 — 원본이 `specs/YYYY-MM-DD-<slug>-design.md` 면
+> `specs/<slug>/`, `plans/YYYY-MM-DD-<slug>.md` 면 `plans/<slug>/` 다. 자리를 단정하지 말고
+> `init` 이 알려 준 경로를 그대로 쓴다.
 > `{ "용어": { TermMeans, UserMentalValue } }` 를
 > `{ id, label, short, kind, mental }` 로 바꾼다 — `TermMeans` → `short`,
 > `UserMentalValue` → `mental`(`"확실"|"애매"|"모름"`), `kind` 는
@@ -172,10 +203,13 @@ report-term emit term-grades.json
   찾아내려고 괴롭히는 것이 아니다. `known` 과 `newConcepts` 밖으로 나가지 않는다
 - **한 문항은 한 가지만 묻는다.** "A 이면서 B 인 것은?" 처럼 두 조건을 겹치면 어느 쪽을 몰라서
   틀렸는지 알 수 없다
-- **"모른다" 선택지는 항상 마지막에, 항상 같은 문구로.** 위치나 문구가 흔들리면 사용자가 그것을
-  고르는 비용이 문항마다 달라진다
+- **"모르겠다" 선택지는 항상 마지막(5번)에, 항상 이 문구 그대로.** 위치나 문구가 흔들리면 사용자가
+  그것을 고르는 비용이 문항마다 달라진다
+- **보기는 정확히 5개다** — 실제 뜻 4개 + "모르겠다". 문항마다 개수가 다르면 찍어서 맞을 확률이
+  달라지고, 그러면 정답률을 문항끼리 견줄 수 없다
 - **문항 수는 3이다.** 2026-08-29 첫 시험(용어 20개 × 5문항 = 100문항)에서 사용자가 피로를 보고해 5 에서 3 으로 줄였다.
-  맞힌 수 2~3 확실 / 0~1 모름. 이 수를 임의로 바꾸지 않는다 — 바꾸면 `quiz.mjs` 의 상수와 경계를 함께 바꿔야 한다
+  맞힌 수 2~3 확실 / 0~1 모름. 이 수를 임의로 바꾸지 않는다 — 바꾸면 `runner/term/quiz.mjs` 의
+  `QUESTIONS_PER_TERM` 과 `runner/run_mode1_5.py` 의 같은 이름 상수를 **함께** 바꿔야 한다. 보기 수(`CHOICES_PER_QUESTION`)도 두 곳에 산다
 
 ## Style rules
 
@@ -197,12 +231,19 @@ report-term emit term-grades.json
 - **코드베이스 전체를 출제한다** — 이 Plan 이 요구하는 용어만 낸다.
   코드베이스 용어 DB 는 C++ 저장소 기준 200개 남짓이고, 그걸 다 물으면 1,000문항이 된다
 - **CLI 에 묻는 기능을 넣으려 한다** — `report-term` 에 `quiz` 명령은 없다. 일부러 없다.
-  도구는 결정론적인 부분(수집·채점·산출)만 하고 판정하지 않는다. 묻는 것은 이 스킬의 일이다
+  도구는 결정론적인 부분(수집·채점·산출)만 하고 판정하지 않는다. 묻는 것은 이 스킬의 일이다.
+  `runner/run_mode1_5.py` 가 `author` 단계에서 모형을 부르는 것은 이 금지와 어긋나지 않는다 —
+  **층이 다르다.** CLI(`bin/report-term`)는 묻지도 판정하지도 않고, 오케스트레이터(실행기)는
+  LLM 칸을 부를 수 있다. 그래도 사람에게 묻는 자리는 실행기에도 없다 — 거기서 멈춘다
 - **C++ 용어를 짧은 이름으로 찾는다** — `terms-db.json` 의 C++ 키는 `SJH::Material` 처럼
   네임스페이스를 포함한다(C# 키는 단순 이름이다). Plan 본문이 `Material` 이라고만 쓰면
   `collect` 가 잡지 못한다. 그런 용어는 3단계에서 사람이 이어 붙인다
-- **`means` 를 비운 채 `answers.json` 을 쓴다** — `emit` 이 그 문구를 그대로 용어집의 `TermMeans` 로
+- **`means` 를 비운 채 문항지를 쓴다** — `emit` 이 그 문구를 그대로 용어집의 `TermMeans` 로
   넘긴다. 비어 있으면 뜻 없는 용어집이 나온다
+- **맞힌 수를 손으로 센다** — 세지 않는다. 옛 `answers.json`(`{용어: {correct, dontKnow}}`)은
+  더 이상 받지 않고 거부된다. 사람이 세던 자리를 없앤 것이 이번 변경의 요점이다
+- **`UserAns` 를 빈 칸으로 남긴다** — 채점기가 멈춘다. 사용자가 답을 안 준 문항은 다시 묻는다.
+  "모르겠다"(5번)로 대신 채우지 않는다 — 안 푼 것과 모르는 것은 다르다
 - **작업 디렉토리를 옮겨 가며 명령을 돈다** — 세 명령 모두 산출 파일을 **현재 디렉토리**에 쓴다.
   중간에 `cd` 하면 다음 명령이 앞 단계의 파일을 찾지 못한다
 
@@ -211,7 +252,9 @@ report-term emit term-grades.json
 | 파일 | 누가 만드나 | 누가 읽나 | 어디로 가나 |
 |---|---|---|---|
 | `term-candidates.json` | `report-term collect` | 이 스킬 (3~5단계) | 중간 산물. 남겨 두면 재출제에 쓴다 |
-| `answers.json` | **이 스킬** (사용자 응답을 세어 쓴다) | `report-term grade` | 중간 산물 |
+| `questions.json` | 출제자(이 스킬 또는 Mode 1.5 실행기) | `report-term grade` | 중간 산물. **정답이 들어 있다 — 사용자에게 보이지 않는다** |
+| `answer-sheet.json` | 실행기(`run_mode1_5.py`) | 사람 | 정답을 뺀 기입란. 이것을 채워 `answers.json` 으로 둔다 |
+| `answers.json` | **이 스킬** (사용자가 고른 보기 번호를 `UserAns` 에 적는다) | `report-term grade` | 중간 산물 |
 | `term-grades.json` | `report-term grade` | 사용자(집계 확인) · `report-term emit` | 중간 산물 |
 | `terms.json` | `report-term emit` | 사람이 읽고 옮긴다 | **Mode 2 `data.ts` 의 `terms` 배열** |
 | `term-study-note.md` | `report-term emit` | 사용자 | 공부할 것. 모름·애매만, 정답률 낮은 순 |
@@ -220,5 +263,5 @@ report-term emit term-grades.json
 
 - **이 시험이 실제 이해도와 얼마나 맞는지는 표본 1건뿐이다.** 2026-08-29 첫 시험(5문항 규칙, 용어 20개): 확실 6 · 애매 3 · 모름 11 —
   모름 11개가 전부 Plan 의 결정 코드·지표 표기였고, 사용자가 판정을 그대로 확정했다. 3문항·2/3 경계라는 값은 사용자가 정한 것이지 관측에서 나온 것이 아니다
-- **"모른다" 2회 규칙이 너무 세거나 약한지도 아직 모른다.** 정답률이 높은데 모름으로 떨어지는
+- **"모르겠다" 2회 규칙이 너무 세거나 약한지도 아직 모른다.** 정답률이 높은데 모름으로 떨어지는
   사례가 반복되면 사용자에게 보고한다. 혼자 고치지 않는다

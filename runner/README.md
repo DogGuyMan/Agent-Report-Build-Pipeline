@@ -430,7 +430,7 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 곳은 여기뿐이다. |
-| `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
+| `plan_stages` | `(has_candidates: bool, has_answers: bool, only: Iterable[str] \| None = None, skip: Iterable[str] \| None = None, ask: bool = False) -> list[str]` | 무엇을 실제로 돌릴지 정한다. 파일 시스템을 보지 않는 순수 함수다. |
 | `human_gate_open` | `(has_answers: bool) -> bool` | 사람 차례가 아직 안 끝났는가. 답안 파일 하나로 판정한다. |
 | `_text` | `(v: object) -> str` | `str(v or "")` 와 같다. 숫자가 와도 글자로 본다. |
 | **`Question`** | *class* | `questions.json` 의 문항 하나. LLM 이 쓰고 사람이 손댈 수 있어 칸은 전부 선택이다 — |
@@ -451,6 +451,8 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.py` 명령줄. node 는 PATH 에서 찾는다. |
 | `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
 | `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
+| `ask_argv` | `(root: str, plan: str, workdir: str, python: str) -> list[str]` | 대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다. |
+| `run_interactive` | `(argv: Sequence[str], cwd: str) -> int` | 터미널을 그대로 넘겨 자식을 띄우고 끝날 때까지 기다린다. 출력을 가로채지 않는다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다. |
@@ -475,7 +477,9 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `EmitStage.reads` | `(self, ctx: Mode15Context) -> list[P.Artifact[Mode15Context]]` |  |
 | **`GateStage`** | *class* | 사람 차례. 기입란을 깔아 두고 흐름을 멈춘다 — **실패가 아니다.** |
 | `GateStage.perform` | `(self, ctx: Mode15Context) -> P.Outcome` |  |
-| `build_mode1_5_graph` | `(ctx: Mode15Context, has_candidates: bool, has_answers: bool, only: Iterable[str] \| None, skip: Iterable[str] \| None) -> P.StageDagGraph[Mode15Context]` | 진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다. |
+| **`AskStage`** | *class* | `--ask` 의 사람 차례. 대화형 `claude` 세션을 띄워 `term-benchmark` 스킬이 출제하고 묻게 한다. |
+| `AskStage.perform` | `(self, ctx: Mode15Context) -> P.Outcome` |  |
+| `build_mode1_5_graph` | `(ctx: Mode15Context, has_candidates: bool, has_answers: bool, only: Iterable[str] \| None, skip: Iterable[str] \| None, ask: bool = False) -> P.StageDagGraph[Mode15Context]` | 진입점에서 부른다. 사람 차례가 안 끝났으면 `gate` 를 맨 뒤에 붙인다 — `ask` 면 |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
@@ -881,7 +885,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `good_doc` | `() -> dict[str, Any]` | 정상 `questions.json` 한 장. 용어 하나 · 문항 셋. |
 | `test_a_fresh_run_stops_before_grading` | `()` | 아무것도 없으면 모으고 **거기서 끝난다.** 출제도 답안도 사람 쪽 일이다. |
 | `test_grading_only_starts_once_a_human_answered` | `()` | 답안이 생긴 뒤에야 채점과 산출이 붙는다. |
-| `test_no_stage_calls_the_model` | `()` | **이 실행기는 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다. |
+| `test_no_stage_calls_the_model` | `()` | **`--ask` 없이는 이 실행기가 LLM Model을 부르지 않는다.** 출제는 term-benchmark 스킬의 일이다. |
 | `test_collect_is_skipped_when_candidates_already_exist` | `()` | 다시 모으면 앞 실행이 쌓은 후보 파일을 덮어쓴다. |
 | `test_nothing_runs_while_the_human_turn_is_open` | `()` | 후보는 있고 답안은 없는 자리가 사람 차례다 — 돌릴 기계 단계가 없다. |
 | `test_only_and_skip_are_honoured` | `()` |  |
@@ -943,6 +947,17 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_관문은_GATE_로_흐름을_끝낸다` | `(tmp_path: Path)` |  |
 | `test_문항지가_없으면_관문은_아무것도_하지_않는다` | `(tmp_path: Path)` |  |
 | `test_문항지가_있으면_관문이_기입란을_깔고_안내를_남긴다` | `(tmp_path: Path)` |  |
+| `_claude_found` | `(name: str) -> str \| None` |  |
+| `_claude_missing` | `(name: str) -> str \| None` |  |
+| `_session_left_nothing` | `(argv: Sequence[str], cwd: str) -> int` |  |
+| `test_ask_를_주면_사람_차례_자리에_ask_가_서고_채점이_뒤따른다` | `()` | 답안이 없을 때만 `ask` 가 들어가고, 그 뒤에 `grade` `emit` 이 이어진다. |
+| `test_ask_는_LLM_을_부르는_유일한_단계다` | `()` |  |
+| `test_ask_명령줄은_대화형_claude_에_스킬_호출을_첫_프롬프트로_준다` | `(tmp_path: Path)` |  |
+| `test_ask_그래프는_답안이_남지_않으면_GATE_로_끝나고_남으면_채점으로_간다` | `(tmp_path: Path)` |  |
+| `test_ask_는_터미널이_아니면_세션을_띄우지_않고_실패한다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_ask_뒤에_답안이_없으면_기입란을_깔고_GATE_로_멈춘다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_ask_뒤에_답안이_있으면_OK_로_채점에_넘긴다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_ask_는_claude_가_없으면_실패한다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 
 ---
 
