@@ -15,6 +15,9 @@ if ! cmp -s package-lock.json node_modules/.setup-lock.json; then
   cp package-lock.json node_modules/.setup-lock.json
 fi
 
+# test_components 와 CLAUDE.md 의 인용이 .tmp/lib.mjs 를 읽는다. npm test 의 pretest 와 같은 굽기다.
+node viz/lib.mjs
+
 # Claude Code 의 SessionStart 훅에서 불렸으면 bin/ 을 그 세션의 PATH 에 남긴다.
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   echo "export PATH=\"$PWD/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
