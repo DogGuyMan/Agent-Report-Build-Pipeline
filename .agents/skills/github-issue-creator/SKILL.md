@@ -77,8 +77,8 @@ Transform messy input (error logs, voice notes, screenshots) into clean, actiona
 Agent deployment fails silently - no error displayed, agent disappears from list
 
 ## Environment
-- **Product/Service**: Azure AI Foundry
-- **Region/Version**: westus2
+- **Product/Service**: [PRODUCT]
+- **Region/Version**: [REGION]
 
 ## Reproduction Steps
 1. Navigate to agent deployment

@@ -244,47 +244,10 @@ Every architecture decision should be evaluated against all five pillars:
 
 ## Architecture Review Workflow
 
-When reviewing or designing a system, follow this structured approach:
-
-### Step 1: Identify Requirements
-
-```
-Functional: What must the system do?
-Non-functional:
-  - Availability target (e.g., 99.9%, 99.99%)
-  - Latency requirements (p50, p95, p99)
-  - Throughput (requests/sec, messages/sec)
-  - Data residency and compliance
-  - Recovery targets (RTO, RPO)
-  - Cost constraints
-```
-
-### Step 2: Select Architecture Style
-
-Match requirements to architecture style using the selection criteria table above.
-
-### Step 3: Choose Technology Stack
-
-Use the technology choices decision framework. Prefer managed services (PaaS) over IaaS.
-
-### Step 4: Apply Design Patterns
-
-Select relevant patterns from the 44 cloud design patterns based on identified concerns.
-
-### Step 5: Address Cross-Cutting Concerns
-
-- **Identity & access** — Microsoft Entra ID, managed identity, RBAC
-- **Monitoring** — Application Insights, Azure Monitor, Log Analytics
-- **Security** — Network segmentation, encryption at rest/in transit, Key Vault
-- **CI/CD** — GitHub Actions, Azure DevOps Pipelines, infrastructure as code
-
-### Step 6: Validate Against WAF Pillars
-
-Review each pillar systematically. Document tradeoffs explicitly.
-
-### Step 7: Document Decisions
-
-Use Architecture Decision Records (ADRs):
+When reviewing or designing a system, establish the functional and non-functional requirements (availability,
+latency, throughput, data residency and compliance, RTO/RPO, cost). Justify the architecture style, services and
+patterns you choose against them and against the five WAF pillars, covering identity, monitoring, security and
+CI/CD. Record each decision and its tradeoffs as an ADR:
 
 ```markdown
 # ADR-NNN: [Decision Title]

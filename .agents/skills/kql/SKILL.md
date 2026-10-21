@@ -1,6 +1,6 @@
 ---
 name: kql
-description: "KQL language expertise for writing correct, efficient Kusto Query Language queries. Covers syntax gotchas, join patterns, dynamic types, datetime pitfalls, regex patterns, serialization, memory management, result-size discipline, and advanced functions (geo, vector, graph). USE THIS SKILL whenever writing, debugging, or reviewing KQL queries — even simple ones — because the gotchas section prevents the most common errors that waste tool calls and cause expensive retry cascades. Trigger on: KQL, Kusto, ADX, Azure Data Explorer, Fabric Real-Time Intelligence, EventHouse, Log Analytics, log analysis, data exploration, time series, anomaly detection, summarize, where clause, join, extend, project, let statement, parse operator, extract function, any mention of pipe-forward query syntax."
+description: "KQL language expertise for writing correct, efficient Kusto Query Language queries. Covers syntax gotchas, join patterns, dynamic types, datetime pitfalls, regex patterns, serialization, memory management, result-size discipline, and advanced functions (geo, vector, graph). USE THIS SKILL whenever writing, debugging, or reviewing KQL queries — even simple ones — because the gotchas section prevents the most common errors that waste tool calls and cause expensive retry cascades. Trigger on: KQL, Kusto, ADX / Azure Data Explorer, Fabric Real-Time Intelligence / EventHouse, Log Analytics, Microsoft Sentinel queries, and any pipe-forward query text (`| where`, `| summarize`)."
 ---
 
 # KQL Mastery
@@ -109,7 +109,7 @@ StormEvents | join kind=inner (PopulationData) on $left.State == $right.State
 ```
 
 ### Cardinality check before large joins
-**Always** check cardinality before joining tables with >10K rows. A cross-join explosion was the source of the single `E_RUNAWAY_QUERY` error (25K × 195 = potential 4.8M rows).
+Check cardinality before joining tables with more than ~10K rows. A 25K × 195 join can expand to ~4.8M rows and fail with `E_RUNAWAY_QUERY`.
 
 ```kql
 // Before joining, check how many rows each side contributes

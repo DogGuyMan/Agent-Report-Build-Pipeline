@@ -43,7 +43,7 @@ Before coding, commit to an aesthetic direction:
 - **Spatial Composition**: Asymmetry, overlap, diagonal flow, grid-breaking elements, generous negative space OR controlled density.
 - **Backgrounds**: Gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, grain overlays.
 
-**AVOID**: Overused fonts, cliched color schemes, predictable layouts, cookie-cutter design without context-specific character.
+**AVOID** these default looks: a cream or off-white background, italic accent words in headlines, numbered "01 / 02 / 03" section labels, monospace labels, pill-shaped buttons, and the fonts above. When a draft lands on another stock look, add it here by name.
 
 Match implementation complexity to vision. Maximalist = elaborate code. Minimalist = restraint and precision.
 

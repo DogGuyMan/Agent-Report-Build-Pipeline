@@ -17,12 +17,8 @@ Experience → Capture → Reflect → Persist → Apply
 
 ## Quick Start
 
-Install the hook (one step):
-```bash
-cp -r hooks/continual-learning .github/hooks/
-```
-
-Auto-initializes on first session. No config needed.
+The hook this guide describes is not bundled with this copy of the skill. Obtain it from the
+upstream source before following the steps below.
 
 ## Two-Tier Memory
 
