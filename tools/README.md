@@ -21,8 +21,13 @@
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| `version_of` | `(text: str \| None) -> tuple[int, ...] \| None` | 글 속 첫 x.y 또는 x.y.z 를 숫자 묶음으로. 없으면 None. |
+| `meets` | `(version: str \| None, minimum: tuple[int, ...] \| None) -> bool` | 버전 글이 하한 이상인가. 하한이 없으면 있기만 하면 된다. |
+| `node_minimum` | `(root: str) -> tuple[int, ...] \| None` | package.json 의 engines.node 하한. |
+| `requirement_names` | `(root: str) -> list[str]` | requirements.txt 의 배포 이름들. 주석과 판 조건은 뗀다. |
+| `bin_on_path` | `(root: str) -> str \| None` | PATH 의 report-spec 이 이 저장소 bin/ 의 것이면 그 경로. 아니면 None. |
 | `probe` | `(cmd: str \| None, args: list[str]) -> str \| None` | 명령 하나를 돌려 첫 줄을 돌려준다. 못 돌리면 None. |
-| `line` | `(name: str, version: str \| None, required: bool) -> str` | 결과 줄 하나를 글자로. 필수인데 없으면 없음, 선택이면 선택. |
+| `line` | `(name: str, version: str \| None, required: bool, minimum: tuple[int, ...] \| None = None) -> str` | 결과 줄 하나를 글자로. 하한보다 낮으면 낮음, 필수인데 없으면 없음, 선택이면 선택. |
 | `main` | `() -> int` |  |
 
 ---
