@@ -116,10 +116,10 @@ def test_build_terms_keeps_id_and_typed_uses():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q`
 Expected: FAIL — `KeyError: 'id'` (또는 `'uses'`)
 
-- [ ] **Step 3: 구현 — `codegraph/terms_db.py` 의 `_where` 아래에 헬퍼 2개를 더하고 `build_terms` 를 통째로 바꾼다**
+- [ ] **Step 3: 구현 — `machine/terms_db.py` 의 `_where` 아래에 헬퍼 2개를 더하고 `build_terms` 를 통째로 바꾼다**
 
 ```python
 def _split_where(where):
@@ -242,7 +242,7 @@ def build_terms(graph, facts, hotspot):
 
 - [ ] **Step 4: 통과를 확인한다 — 새 테스트와 기존 §8 셋 다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py codegraph/test_normalize.py -q -k "terms"`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py machine/test_normalize.py -q -k "terms"`
 Expected: `4 passed` (신규 1 + 기존 3). 기존 3개가 깨지면 `neighbors` 재계산 순서가 틀린 것이다.
 
 - [ ] **Step 5: 커밋 — 오케스트레이터가 사용자 승인 후**
@@ -257,8 +257,8 @@ git commit -m "[feat] : terms-db 레코드가 간선의 방향, 종류, 위치�
 ## Task 2: `project_codegraph` — terms-db 에서 codegraph.json 을 되돌린다
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (함수 1개 + 상수 추가, `import sys`)
-- Modify: `codegraph/test_terms_db.py` (append)
+- Modify: `machine/terms_db.py` (함수 1개 + 상수 추가, `import sys`)
+- Modify: `machine/test_terms_db.py` (append)
 
 - [ ] **Step 1: 실패하는 테스트 — `test_terms_db.py` 끝에 append**
 
@@ -308,7 +308,7 @@ def test_project_golden_is_superset_of_real_codegraph(repo, lang):
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q`
 Expected: 3~5개 FAIL — `AttributeError: module 'terms_db' has no attribute 'project_codegraph'`
 
 - [ ] **Step 3: 구현 — `terms_db.py` 상단 상수 + 함수. `import sys` 를 `import os` 아래에 더한다**
@@ -383,7 +383,7 @@ def project_codegraph(db, language="unknown", repo_commit=""):
 
 - [ ] **Step 4: 통과를 확인한다 — 골든 2개 포함**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q`
 Expected: `5 passed` (골든 2개는 이 머신에 산출물이 있으므로 **skip 이 아니라 pass** 여야 한다. skip 이 뜨면 경로가 틀린 것)
 
 - [ ] **Step 5: 커밋 — 오케스트레이터가 사용자 승인 후**
@@ -398,8 +398,8 @@ git commit -m "[feat] : terms-db 에서 codegraph.json 을 투영하는 project_
 ## Task 3: `check_terms` — LLM 이 쓴 인용을 3값으로 판정한다
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (함수 2개 추가, `from verify_citations import short`)
-- Modify: `codegraph/test_terms_db.py` (append)
+- Modify: `machine/terms_db.py` (함수 2개 추가, `from verify_citations import short`)
+- Modify: `machine/test_terms_db.py` (append)
 
 - [ ] **Step 1: 실패하는 테스트 — append**
 
@@ -477,7 +477,7 @@ def test_check_skips_citations_of_codegraph_records(tmp_path):
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q -k check`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q -k check`
 Expected: 7개 FAIL — `AttributeError: ... 'merge_terms'` (Task 4 의 함수를 먼저 부른다. Step 3 에서 **둘 다** 최소 구현한다 — merge 는 Task 4 에서 완성)
 
 - [ ] **Step 3: 구현 — `terms_db.py`. import 에 `from verify_citations import short` 추가 (같은 디렉토리, 표준 라이브러리만 씀)**
@@ -575,7 +575,7 @@ def merge_terms(base, reading):
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q`
 Expected: `12 passed`
 
 - [ ] **Step 5: 커밋 — 오케스트레이터가 사용자 승인 후**
@@ -590,8 +590,8 @@ git commit -m "[feat] : LLM 이 쓴 용어 인용을 L1, L2, L3 3값으로 판�
 ## Task 4: `merge_terms` — LLM 읽기를 합치되 구조는 codegraph 가 이긴다 (D3)
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (`merge_terms` 완성)
-- Modify: `codegraph/test_terms_db.py` (append)
+- Modify: `machine/terms_db.py` (`merge_terms` 완성)
+- Modify: `machine/test_terms_db.py` (append)
 
 - [ ] **Step 1: 실패하는 테스트 — append**
 
@@ -638,7 +638,7 @@ def test_merge_is_deterministic():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q -k merge`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q -k merge`
 Expected: 첫 테스트 FAIL — `assert r["means"] == ...` (기존 레코드는 아직 안 덮는다)
 
 - [ ] **Step 3: 구현 — `merge_terms` 를 이것으로 교체**
@@ -697,8 +697,8 @@ git commit -m "[feat] : LLM 읽기를 합치되 구조 필드는 codegraph 가 �
 ## Task 5: CLI — codegraph 없이도 돌고, 있으면 부분집합을 대조한다
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (docstring · `main`, `import subprocess`)
-- Modify: `codegraph/test_terms_db.py` (append)
+- Modify: `machine/terms_db.py` (docstring · `main`, `import subprocess`)
+- Modify: `machine/test_terms_db.py` (append)
 
 - [ ] **Step 1: 실패하는 테스트 — append**
 
@@ -753,7 +753,7 @@ def test_cli_needs_at_least_one_input(tmp_path):
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -q -k cli`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -q -k cli`
 Expected: 4개 중 3개 FAIL (`--reading` 인자를 모른다 / positional 필수라 exit 2)
 
 - [ ] **Step 3: 구현 — 모듈 docstring 의 사용법 줄과 `main` 을 교체. `import subprocess` 추가**
@@ -849,7 +849,7 @@ if __name__ == "__main__":
 Run: `.venv/bin/python -m pytest codegraph/ -q`
 Expected: `50 passed`
 
-Run: `.venv/bin/python codegraph/terms_db.py $CSHARP_REPO/out/codegraph-raw/codegraph.json --repo $CSHARP_REPO -o /tmp/rb-t5`
+Run: `.venv/bin/python machine/terms_db.py $CSHARP_REPO/out/codegraph-raw/codegraph.json --repo $CSHARP_REPO -o /tmp/rb-t5`
 Expected: 마지막 두 줄이 `... 용어 241개 / 실패 0 / 근거 없음 0` 과 `투영 대조 — codegraph 노드 231개 중 투영에 없는 것 0개`. 종료 코드 0.
 
 - [ ] **Step 5: 커밋 — 오케스트레이터가 사용자 승인 후**
@@ -866,7 +866,7 @@ git commit -m "[feat] : terms_db CLI 가 codegraph 없이 --reading 만으로 DB
 - [ ] 다섯 Task 모두 실패 테스트를 먼저 썼고 실패를 실제로 봤는가
 - [ ] .venv/bin/python -m pytest codegraph/ -q 가 50 passed 인가 (기존 31 + 신규 19). skip 0
 - [ ] StickRush 실물에 기존 호출 꼴을 돌려 "용어 241개 / 실패 0 / 근거 없음 0" 과 "투영에 없는 것 0개" 가 나오는가
-- [ ] git status --porcelain 에 codegraph/terms_db.py · codegraph/test_terms_db.py 외에 당신이 만든 변경이 없는가
+- [ ] git status --porcelain 에 machine/terms_db.py · machine/test_terms_db.py 외에 당신이 만든 변경이 없는가
 - [ ] "검증됨" "입증" "증명" 이 두 파일에 없는가 (grep)
 - [ ] 커밋하지 않았는가
 

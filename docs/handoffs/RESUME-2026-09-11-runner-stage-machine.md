@@ -114,7 +114,7 @@ caffeinate -i .venv/bin/python runner/run_mode1.py . --cold --json evals/runs/$(
 - 결함 ④(`삭제됨` 삭제)는 이번 실행에 필요 없다 — 빈 원본이라 고아 카드가 없다. 첫 **증분** 실행 전에 필요하다.
 - 벽시계는 `time.time()` 로 따로 재야 수면을 포함한다. 측정의 뜻(잠든 시간을 넣을지)은 사용자가 정한다.
 
-## 2026-09-13 — msgspec 도입 (계획 `plans/2026-09-13-runner-msgspec.md`, 커밋 `89d7709` · `bab8e6b` · `70e1e4a` + 문서)
+## 2026-09-13 — msgspec 도입 (계획 `docs/superpowers/plans/2026-09-13-runner-msgspec.md`, 커밋 `89d7709` · `bab8e6b` · `70e1e4a` + 문서)
 
 `measure.py` 의 좁히기 도우미 `as_*` 다섯을 없애고 바깥 JSON 을 `TypedDict` + `msgspec` 으로 읽는다. **안 맞으면 예외**,
 `Pipeline.run` 이 `FAIL` 로 바꾼다. `Artifact.check` → `schema`(꼴) + `check`(뜻). `pipeline.read_json` 삭제.
@@ -154,9 +154,9 @@ caffeinate -i .venv/bin/python runner/run_mode1.py . --cold --json evals/runs/$(
 
 | 단계 | 무엇 | 계획서 | 상태 |
 |---|---|---|---|
-| 1 | `measure.py` 추출 · 파사드 · import 부작용 제거 · `Any` 게이트 | `plans/2026-09-08-runner-common-axis.md` | ✅ |
-| 2 | `pipeline.py` 신설 · Mode 2 · 1.5 이주 | `plans/2026-09-08-runner-pipeline.md` | ✅ |
-| **3** | Mode 1 을 `mode1/` 패키지로 · 증분/전량 그래프 · `changes.json` · 재개 JSON · 이름 12개 | `plans/2026-09-11-runner-mode1-v2.md` | ✅ (`f88265a` … 마지막 커밋은 `git log`) |
+| 1 | `measure.py` 추출 · 파사드 · import 부작용 제거 · `Any` 게이트 | `docs/superpowers/plans/2026-09-08-runner-common-axis.md` | ✅ |
+| 2 | `pipeline.py` 신설 · Mode 2 · 1.5 이주 | `docs/superpowers/plans/2026-09-08-runner-pipeline.md` | ✅ |
+| **3** | Mode 1 을 `mode1/` 패키지로 · 증분/전량 그래프 · `changes.json` · 재개 JSON · 이름 12개 | `docs/superpowers/plans/2026-09-11-runner-mode1-v2.md` | ✅ (`f88265a` … 마지막 커밋은 `git log`) |
 
 ## 2026-09-11 에 확정된 것 — 다시 논쟁하지 말 것
 

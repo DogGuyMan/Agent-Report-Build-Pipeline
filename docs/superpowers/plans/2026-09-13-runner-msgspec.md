@@ -12,7 +12,7 @@
 
 ## 실측 (🔵 2026-09-13) — 계획이 기대는 사실
 
-- `as_*` 호출 **99곳 · 12파일**: `run_mode1_5.py` 24 · `test_measure.py` 19 · `measure.py` 16 · `mode1/diff.py` 7 · `mode1/survey.py` 5 · `mode1/resume.py` 4 · `mode1/context.py` 4 · `mode1/scan.py` 2 · `test_pipeline.py` 1 · `run_mode2.py` 1 · `mode1/wiki.py` 1 · `mode1/lang.py` 1.
+- `as_*` 호출 **99곳 · 12파일**: `run_mode1_5.py` 24 · `test_measure.py` 19 · `measure.py` 16 · `runner/mode1/diff.py` 7 · `runner/mode1/survey.py` 5 · `runner/mode1/resume.py` 4 · `runner/mode1/context.py` 4 · `runner/mode1/scan.py` 2 · `test_pipeline.py` 1 · `run_mode2.py` 1 · `runner/mode1/wiki.py` 1 · `runner/mode1/lang.py` 1.
 - msgspec strict 동작: `bool`→`int` **거부** · `float`→`int` 거부 · `str`→`int` 거부 · `int`→`float` 허용 · `TypedDict(total=False)` 칸 없음 OK · 남는 칸 버림 · `None` 통째 거부 · `ValidationError ⊂ DecodeError`. 오류 문구에 경로가 붙는다(`at $.usage.input_tokens`).
 - pyright strict 에서 `def load(path, t: type[T]) -> T` 에 `TypedDict` 를 넘기는 것 **0 errors**.
 - **`machine/` 의 선언과 실물이 어긋난다.** `out/codegraph-raw/codegraph.json` 은 `survey_plan.CodeGraph` 로 검증 실패(`nodes[83].file` 이 `null`, 선언은 `NotRequired[str]`). `warmup.json` 은 `warmup.Manifest` 로 실패(`Entry.mtime` 없음). `survey-plan.json → SurveyPlan` · `changes.json → WarmupDiff` 는 통과. → 러너는 `codegraph.json` 을 **러너 소유의 느슨한 형**(최상위 `nodes` · `edges` 배열)으로만 검증한다 — 지금 `check_codegraph` 가 보던 만큼. 지문(`snapshot.json`)은 존재만 본다(지금과 같다). 기계축 어긋남은 **보고만** 한다(소유 밖).

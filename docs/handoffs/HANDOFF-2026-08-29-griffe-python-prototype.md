@@ -9,7 +9,7 @@
 **"없음"** 으로 기록해 뒀다(지금 정책은 `codebase-terms-survey` 스킬의 LLM 전수조사 →
 `terms_db.py::project_codegraph` 투영). 외부 조사 문서(`compass_artifact_wf-9ef6b1d8-…md`, 사용자 제공)가
 Python 은 **griffe**, JS/TS 는 **ts-morph 자작 덤퍼**를 1순위로 추천했고, 세션 내 대조 결과 이 계약
-(`codegraph/normalize.py` 의 `_assemble` 출구, kind 8종 enum, R1~R7 규칙)과 구조적으로는 맞지만 두 지점
+(`machine/normalize.py` 의 `_assemble` 출구, kind 8종 enum, R1~R7 규칙)과 구조적으로는 맞지만 두 지점
 (소유권 축 부재, R5 제네릭 파싱)이 미검증이었다.
 
 **사용자 결정 — Option B: griffe(Python) 만 우선 프로토타입.** ts-morph/JS-TS 는 범위 밖.

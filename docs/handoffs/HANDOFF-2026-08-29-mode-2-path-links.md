@@ -10,4 +10,4 @@
 해석 순서: 보고서 폴더 → `specs/` → 저장소 루트 → `<루트>/out/codegraph-raw` → `data.linkRoots`(선택, 외부 저장소) → `git ls-files` 이름 유일 검색. **없는 파일은 링크하지 않는다.**
 `ReportData.linkRoots?: string[]` 추가(추가만). llm 보고서 `data.ts` 에 StickRush `out/codegraph-raw` 를 linkRoots 로 — 그 Plan 의 `facts/*.md` `codegraph.json` 이 거기 있다.
 
-프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `scripts/link-paths.mjs`(신규) · `test/link-paths.test.mjs`(신규) · `scripts/build.mjs` · `src/types.ts`(필드 추가만) · `src/theme.css`(추가만) · `docs/superpowers/specs/llm-load-reduction/data.ts`(`linkRoots` 한 줄만).
+프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `scripts/link-paths.mjs`(신규) · `test/link-paths.test.mjs`(신규) · `scripts/build.mjs` · `viz/src/types.ts`(필드 추가만) · `viz/src/theme.css`(추가만) · `docs/superpowers/specs/llm-load-reduction/data.ts`(`linkRoots` 한 줄만).

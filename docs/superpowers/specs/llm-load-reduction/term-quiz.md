@@ -333,9 +333,9 @@
 답: 4
 
 ### 9-5. 이 표기의 예가 적힌 코드 위치는?
-1. codegraph/normalize.py
+1. machine/normalize.py
 2. bin/report
-3. src/types.ts 의 Term.id 주석
+3. viz/src/types.ts 의 Term.id 주석
 4. 모른다
 답: 4
 
@@ -349,9 +349,9 @@
 답: 4
 
 ### 10-2. 그 표기가 등장하는 파일은?
-1. codegraph/facts.py
+1. machine/facts.py
 2. scripts/check.mjs
-3. src/theme.css
+3. viz/src/theme.css
 4. 모른다
 답: 4
 
@@ -395,7 +395,7 @@
 ### 11-3. 이 표기가 등장하는 파일은?
 1. scripts/term/emit.mjs
 2. scripts/check.mjs
-3. codegraph/terms_db.py
+3. machine/terms_db.py
 4. 모른다
 답: 4
 

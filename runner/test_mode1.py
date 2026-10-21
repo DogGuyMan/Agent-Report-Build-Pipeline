@@ -948,6 +948,53 @@ def test_2패스_결과가_깨졌으면_원_샤드를_건드리지_않는다(tmp
 
 # ── AnnotateFilesStage — 완료 콜백이 있는 풀 ──────────────────────────────────
 
+def test_병합_보정은_id_를_이름으로_바꾸고_모르는_대상은_떼어_기록한다():
+    got: X.Records = {
+        "a.f": {**_good_record(), "where": "a.py:1", "uses": [
+            {"to": "C1", "kind": "dependency", "label": "calls", "where": "a.py:2"},
+            {"to": "subprocess.run", "kind": "dependency", "label": "runs", "where": "a.py:3"},
+            {"to": "b.g", "kind": "dependency", "label": "ok", "where": "a.py:4"},
+            {"to": "z.notyet", "kind": "dependency", "label": "later", "where": "a.py:5"}],
+         "shallow": ["C1", "os.walk"]},
+        "b.g": _good_record()}
+    out, dropped = SV.AnnotateSymbolsStage.normalize_records(got, {"C1": "b.g", "C7": "z.notyet"})
+    uses = cast(list[dict[str, object]], out["a.f"]["uses"])
+    assert [u["to"] for u in uses] == ["b.g", "b.g", "z.notyet"]      # id 는 이름으로 · 계획에 있는 미조사 이름은 산다
+    assert out["a.f"]["shallow"] == ["b.g"]
+    assert [(d["to"], d["why"]) for d in dropped if d["key"] == "a.f"] == [("subprocess.run", "unknown-target"),
+                                                                            ("os.walk", "unknown-shallow")]
+    assert dropped[0]["file"] == "a.py" and dropped[0]["key"] == "a.f" and dropped[0]["where"] == "a.py:3"
+    # _good_record() 의 uses.to 'g' 는 어느 키도 아니라 떼인다. 나머지 칸은 그대로다.
+    assert out["b.g"]["uses"] == [] and out["b.g"]["means"] == got["b.g"]["means"]
+    assert [(d["key"], d["to"]) for d in dropped if d["key"] == "b.g"] == [("b.g", "g")]
+
+
+def test_병합_보정은_shallow_가_다_떨어지면_칸을_뗀다():
+    got: X.Records = {"a.f": {**_good_record(), "uses": [], "shallow": ["os.walk"]}}
+    out, dropped = SV.AnnotateSymbolsStage.normalize_records(got, {})
+    assert "shallow" not in out["a.f"] and [d["why"] for d in dropped] == ["unknown-shallow"]
+
+
+def test_dropped_csv_머리줄과_label_의_따옴표():
+    text = SV.AnnotateSymbolsStage.dropped_csv([{"file": "a.py", "key": "a.f", "to": "subprocess.run",
+                                                 "label": 'runs "x"', "where": "a.py:3", "why": "unknown-target"}])
+    assert text.splitlines() == ["file,key,to,label,where,why",
+                                 "a.py,a.f,subprocess.run,\"runs 'x'\",a.py:3,unknown-target"]
+
+
+def test_refresh_merged_는_보정본을_reading_과_dropped_csv_로_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path); c.plan = _one_batch_plan("L0-B00")
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    (d / "L0-B00.json").write_text(json.dumps({"f": {**_good_record(), "uses": [
+        {"to": "os.walk", "kind": "dependency", "label": "walks", "where": "m.py:2"}]}}), encoding="utf-8")
+    os.makedirs(os.path.dirname(X.READING.locate(c)), exist_ok=True)
+    dropped = SV.AnnotateSymbolsStage().refresh_merged(c)
+    assert [x["to"] for x in dropped] == ["os.walk"]
+    merged = json.loads(Path(X.READING.locate(c)).read_text(encoding="utf-8"))
+    assert merged["f"]["uses"] == [] and c.merged == merged
+    assert Path(X.DROPPED.locate(c)).read_text(encoding="utf-8").splitlines()[1].startswith("m.py,f,os.walk,")
+
+
 def _fake_agent(shards: dict[str, dict[str, object]], calls: list[str]):
     """라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 '쓰는 곳' 줄에서 경로를 뽑는다."""
     import re

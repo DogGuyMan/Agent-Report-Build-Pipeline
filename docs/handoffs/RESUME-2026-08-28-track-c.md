@@ -1,7 +1,7 @@
 # RESUME — Track C 코드베이스 위키 파이프라인 (2026-08-28)
 
 > 🟡 **부분 대체됨 (2026-08-29 18:15)** — Mode 1 파이프라인이 **terms-db 우선** 구조로 바뀌었다(계획서 `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md`, 7/7 완료).
-> `codegraph/terms_db.py` 가 `--reading terms-reading.json`(LLM 전수조사 원본)을 받아 `terms-db.json`(원본)을 만들고 `codegraph.json` 을 **투영**한다. 정적 수집기(roslyn/clang-uml)가 있는
+> `machine/terms_db.py` 가 `--reading terms-reading.json`(LLM 전수조사 원본)을 받아 `terms-db.json`(원본)을 만들고 `codegraph.json` 을 **투영**한다. 정적 수집기(roslyn/clang-uml)가 있는
 > 저장소에서는 기존 호출 꼴 `terms_db.py <codegraph.json> --repo …` 이 그대로 돌고 투영이 상위집합인지 대조한다. **`normalize.py` 출력 키는 불변이다.**
 > 전수조사 절차는 `.claude/agents/mode-1-codebase-wiki.md` `## 전수조사 절차`. 이 문서의 C#/C++ 갈래 서술과 함정 절은 그대로 유효하다. 세션 재개의 단일 진입점은
 > `RESUME-2026-08-29-mode-1-5-orchestrator.md` 다.
@@ -77,10 +77,10 @@ ea33069 feat : 실측과 판단을 별개 행으로 가르는 주석 블록
 
 | 파일 | 상태 | 무엇 |
 |---|---|---|
-| `codegraph/test_normalize.py` | 신규 | **회귀 테스트 28개** — 정규화 계층의 "틀려도 오류가 안 나는" 자리 고정 |
-| `codegraph/fix_citation_paths.py` | 신규 | 인용 경로 축약 복구기 |
-| `codegraph/demermaid.py` | 수정 | mermaid 문법 제약 4종 폴백 추가 |
-| `codegraph/verify_citations.py` | 수정 | 오탐 2건 수정(인접 줄 대조 · Sources 주석 제외) |
+| `machine/test_normalize.py` | 신규 | **회귀 테스트 28개** — 정규화 계층의 "틀려도 오류가 안 나는" 자리 고정 |
+| `machine/fix_citation_paths.py` | 신규 | 인용 경로 축약 복구기 |
+| `viz/demermaid.py` | 수정 | mermaid 문법 제약 4종 폴백 추가 |
+| `machine/verify_citations.py` | 수정 | 오탐 2건 수정(인접 줄 대조 · Sources 주석 제외) |
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | 수정 | Phase 9·10·10-1·5-3 + C-16~C-18 |
 | `docs/superpowers/plans/2026-08-28-llm-load-reduction.md` | 신규 | **다음 작업 계획 8 Task** |
 | `codegraph/__pycache__/*.pyc` ×3 | 수정/신규 | ⚠ §1(나) 참조 — **커밋에 넣지 말 것** |
@@ -220,7 +220,7 @@ cd $REPO_ROOT
 
 | # | 작업 | 막는 것 | 문서 |
 |---|---|---|---|
-| 1 | **LLM 부담 감축 계획 8 Task** | 사용자의 실행 방식 선택 | `plans/2026-08-28-llm-load-reduction.md` |
+| 1 | **LLM 부담 감축 계획 8 Task** | 사용자의 실행 방식 선택 | `docs/superpowers/plans/2026-08-28-llm-load-reduction.md` |
 | 2 | **VitePress 조립** | `wiki-built/` 준비 완료 — 바로 가능 | `deep-wiki:build` 스킬 |
 | 3 | C++ 위키 (0장) | 없음 — `material` 클래스 SVG 까지 있다 | `wiki/managers.md` 를 형식 정본으로 |
 | 4 | C++ 문서 마감 5건 | 없음 | `HANDOFF-cpp-pattern-collection.md` §0-1 "⏳ C++ 쪽 미완" |
@@ -240,10 +240,10 @@ cd $REPO_ROOT
 |---|---|---|
 | `codegraph/measure_citation_origin.py` | 1 | 없음(신규) |
 | `codegraph/roslyn-dump/Program.cs` | 2 | 없음 |
-| `codegraph/verify_citations.py` | 3 | ⚠ **Task 1 도 이 모듈을 import 한다** — 순서대로 |
-| `codegraph/facts.py` | 4, 6 | ⚠ **두 Task 가 같은 파일** — 반드시 순차 |
-| `codegraph/warmup.py` | 5 | 없음(신규) |
-| `codegraph/test_normalize.py` | 1~6 전부 | ⚠ **모든 Task 가 끝에 추가한다** — 병렬 금지 |
+| `machine/verify_citations.py` | 3 | ⚠ **Task 1 도 이 모듈을 import 한다** — 순서대로 |
+| `machine/facts.py` | 4, 6 | ⚠ **두 Task 가 같은 파일** — 반드시 순차 |
+| `machine/warmup.py` | 5 | 없음(신규) |
+| `machine/test_normalize.py` | 1~6 전부 | ⚠ **모든 Task 가 끝에 추가한다** — 병렬 금지 |
 
 **결론: 이 계획은 병렬 실행에 맞지 않는다.** `test_normalize.py` 와 `facts.py` 가 여러 Task 에
 걸쳐 있어 순차가 안전하다. 서브에이전트를 쓰더라도 **Task 하나씩** 돌리고 사이에 검토한다.

@@ -851,7 +851,7 @@ Expected: `modules.md · classes.md · external.md · entrypoints.md · hotspot.
 
 - [ ] **Step 2: `codebase-terms-survey` 스킬로 전수조사를 돌린다**
 
-산출물은 대상 저장소의 `docs/codegraph/terms-reading.json` 이다. 이 저장소에서 했던 것과 같은 규율을 따른다 — 레코드 계약은 `{id, kind, module, where, means, does?, uses[], confidence, source}`, `neighbors` 는 손으로 쓰지 않는다.
+산출물은 대상 저장소의 `machine/terms-reading.json` 이다. 이 저장소에서 했던 것과 같은 규율을 따른다 — 레코드 계약은 `{id, kind, module, where, means, does?, uses[], confidence, source}`, `neighbors` 는 손으로 쓰지 않는다.
 
 **C++(②)에서 주의할 것** — 용어 키에 네임스페이스가 붙는 문제(열린 결정 R3)가 여기서 처음 실제로 나타난다. 마주치면 **혼자 정하지 말고 사례와 함께 보고**한다.
 
@@ -939,7 +939,7 @@ git commit -m "[docs] : report-wiki 진입점 반영과 위키 완주 실측"
 
 | 안 하는 것 | 왜 |
 |---|---|
-| **WarmUp 증분 캐시** | W4 — 전량 1회 완주가 있어야 이득을 잴 수 있다. `2026-08-28-llm-load-reduction.md` Task 5 가 그 계획이고 `codegraph/warmup.py` 는 아직 없다 |
+| **WarmUp 증분 캐시** | W4 — 전량 1회 완주가 있어야 이득을 잴 수 있다. `2026-08-28-llm-load-reduction.md` Task 5 가 그 계획이고 `machine/warmup.py` 는 아직 없다 |
 | **`render_classes.py` 를 prep 에 넣기** | Graphviz 15.1.1 이 일부 모듈에서 `mincross.c:273` 어서션으로 죽는다(🔵 이 저장소 `codegraph` 모듈에서 재현). 상류 버그라 우리가 못 고친다. 모듈 다이어그램만 넣고 클래스 다이어그램은 손으로 부른다 |
 | **수집기 자동 설치·빌드** | `dotnet` 과 `cmake` 는 대상 저장소마다 설정이 다르다. `prep` 은 재료가 없으면 **정확한 사유와 함께 exit 1** 을 낸다 |
 | **VitePress 에 Mermaid 런타임 얹기** | 결정 C-18 — 다이어그램은 사전 렌더 SVG 다. `vitepress-plugin-mermaid` 는 설치돼 있지만 쓰지 않는다 |

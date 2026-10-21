@@ -7,4 +7,4 @@
 제목 줄에 개수("모름 (11)") · 빈 그룹은 안 그린다 · 그룹 안 순서는 `data.ts` 순서 그대로 · props(`terms`)는 그대로, 마크업만 바뀐다.
 
 프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — `[ROLE]` `[HARD RULES]` `[BOUNDARIES]` `[VERIFIED FACTS]` `[STEP]` `[SELF-REVIEW]` `[REPORT]`.
-소유: `src/components/terms.tsx`(Glossary 만) · `src/theme.css`(추가만) · `test/components.test.mjs`(Glossary 테스트). 두 보고서 재빌드 + check 5/5 가 인수 조건.
+소유: `viz/src/components/terms.tsx`(Glossary 만) · `viz/src/theme.css`(추가만) · `test/components.test.mjs`(Glossary 테스트). 두 보고서 재빌드 + check 5/5 가 인수 조건.

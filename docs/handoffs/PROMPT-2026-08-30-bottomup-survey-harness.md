@@ -296,7 +296,7 @@ if __name__ == "__main__":
 - 🔵 이 저장소로 돌리면 층이 **0:110 · 1:32 · 2:16 · 3:7 · 4:2** 로 나와야 한다. 안 나오면 멈추고 보고하라.
 
 ========================================================================
-[STEP 2] codegraph/file_cache.py (신규) — 층 경계 중복 통독을 없앤다
+[STEP 2] machine/file_cache.py (신규) — 층 경계 중복 통독을 없앤다
 ========================================================================
 ```python
 #!/usr/bin/env python3
@@ -379,7 +379,7 @@ if __name__ == "__main__":
 - `out/codegraph-raw/` 는 gitignore 다. 캐시가 거기 사는 것이 맞다 — 재생성 가능한 파생물이다.
 
 ========================================================================
-[STEP 3] codegraph/run_mode1.py (개조) — **본체.** agent 칸을 층 병렬로 바꾼다
+[STEP 3] runner/run_mode1.py (개조) — **본체.** agent 칸을 층 병렬로 바꾼다
 ========================================================================
 지금 구조: `STAGES = ["prep","agent","terms","build","check"]`, `AGENT_STAGES = {"agent"}`,
 `agent_prompt()` 하나가 전수조사와 산문을 **둘 다** 지시하고 `run_agent()` 가 **한 번** 부른다.
@@ -562,7 +562,7 @@ def merge_shards(shard_dir, existing):
 (사용자 결정 K1~K7)와 **비용은 아직 재지 않았다**는 것을 함께 적는다.
 
 ========================================================================
-[STEP 4] codegraph/test_run_mode1.py (개조) — 잠긴 결정이 바뀐 것을 테스트로 드러낸다
+[STEP 4] runner/test_run_mode1.py (개조) — 잠긴 결정이 바뀐 것을 테스트로 드러낸다
 ========================================================================
 - `test_only_one_stage_calls_the_model` (`:34`) → **갈아 끼운다**:
 ```python
@@ -579,7 +579,7 @@ def test_두_단계가_LLM Model을_부른다():
   키 충돌을 **양쪽 다** 개명하는지, `plan_stages` 가 `has_reading` 만 있을 때 `survey` 만 건너뛰는지.
 
 ========================================================================
-[STEP 5] codegraph/test_survey_plan.py (신규)
+[STEP 5] machine/test_survey_plan.py (신규)
 ========================================================================
 ```python
 #!/usr/bin/env python3
@@ -730,7 +730,7 @@ def test_이_저장소_실측():
 - `.venv/bin/python -m pytest codegraph/ -q`
   → 🔵 기준선은 골든 변수 없이 **201 통과 · 19 건너뜀**이다. 실패 0이어야 하고,
     통과 수는 네가 더한 만큼 늘어야 한다. **줄어들면 무언가를 조용히 깬 것이다.**
-- `.venv/bin/python codegraph/survey_plan.py out/codegraph-raw/codegraph.json`
+- `.venv/bin/python machine/survey_plan.py out/codegraph-raw/codegraph.json`
   → **층 분포가 0:110 · 1:32 · 2:16 · 3:7 · 4:2** 여야 한다.
 - 결정론:
   ```
@@ -747,9 +747,9 @@ def test_이_저장소_실측():
       c=collections.Counter(f for b in L.get('batches',[]) for f in b['files'])
       print(L['level'], '중복', [f for f,n in c.items() if n>1] or '없음')"
   ```
-- `.venv/bin/python codegraph/run_mode1.py . --dry-run`
+- `.venv/bin/python runner/run_mode1.py . --dry-run`
   → 단계가 `prep -> survey -> terms -> wiki -> build -> check` 로 나와야 한다.
-- 마커: `.venv/bin/python codegraph/xmldoc.py emit && … inject && … check` → 문제 0건.
+- 마커: `.venv/bin/python machine/xmldoc.py emit && … inject && … check` → 문제 0건.
 - `npm test` → 기존 통과 수 유지(네 변경은 Node 쪽을 안 건드리므로 숫자가 그대로여야 한다).
 - 심볼릭 링크: `ls -la .claude/skills/codebase-terms-survey` → 여전히 링크여야 한다.
 

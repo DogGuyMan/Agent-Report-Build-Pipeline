@@ -26,3 +26,6 @@ __pycache__/
 
 # 로컬 유지보수 도구 - 기계마다 다른 경로가 규칙에 박혀 있어 공유하지 않는다
 tools/scrub_local_paths.py
+
+# ai-readiness-cartography 출력 - report.json 에 로컬 경로가 들어간다
+.claude/readiness/

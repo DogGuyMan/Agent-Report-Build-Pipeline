@@ -77,6 +77,20 @@ class UnresolvedRow(TypedDict):
     status: Literal["shallow", "queued", "resolved", "unknown"]
 
 
+class DroppedUse(TypedDict):
+    """`dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나.
+
+    `to` 는 떼어 낸 대상 이름(노드 id 였으면 이름으로 바꾼 뒤). `why` 는 unknown-target(어느 레코드 키도
+    계획 이름도 아니다 — stdlib·서드파티·짧은 이름) · unknown-shallow(같은 사유, `shallow` 칸).
+    """
+    file: str
+    key: str
+    to: str
+    label: str
+    where: str
+    why: Literal["unknown-target", "unknown-shallow"]
+
+
 class WikiPage(TypedDict):
     """`outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
 
@@ -182,6 +196,8 @@ FILE_PRIORITY = P.Artifact[Mode1Context](
     "file-priority.csv", lambda c: os.path.join(raw_dir(c), "file-priority.csv"))
 UNRESOLVED = P.Artifact[Mode1Context](
     "unresolved.csv", lambda c: os.path.join(raw_dir(c), "unresolved.csv"))
+DROPPED = P.Artifact[Mode1Context](
+    "dropped-uses.csv", lambda c: os.path.join(raw_dir(c), "dropped-uses.csv"))
 RECORD_SCHEMA = P.Artifact[Mode1Context](
     "record-schema.json", lambda c: os.path.join(raw_dir(c), "record-schema.json"))
 READING = P.Artifact[Mode1Context](
@@ -195,7 +211,7 @@ WIKI_DIR = P.Artifact[Mode1Context](
 RESUME = P.Artifact[Mode1Context](
     "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
 
-ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED,
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
              RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
 
 

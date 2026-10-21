@@ -63,10 +63,10 @@ git -C "$CS" diff --name-only HEAD~1..HEAD -- 'Assets/@Scripts/*.cs' 'Assets/@Ed
 |---|---|---|
 | `codegraph/measure_citation_origin.py` | 위키 인용이 어디를 가리키는지 분류. **모든 이득 주장의 계측기** | 신규 |
 | `codegraph/roslyn-dump/Program.cs` | `calls[]` 추출 추가 (F15) | 수정 |
-| `codegraph/normalize.py` | `calls[]` 통과 + `nodes[].members` 없이 유지 | 수정 |
-| `codegraph/facts.py` | `facts/calls.md` 추가 · 계층 분류(`tier`) 열 | 수정 |
-| `codegraph/warmup.py` | 파일별 이해 요약 캐시 + git 무효화 | 신규 |
-| `codegraph/test_normalize.py` | 위 전부의 회귀 | 수정 |
+| `machine/normalize.py` | `calls[]` 통과 + `nodes[].members` 없이 유지 | 수정 |
+| `machine/facts.py` | `facts/calls.md` 추가 · 계층 분류(`tier`) 열 | 수정 |
+| `machine/warmup.py` | 파일별 이해 요약 캐시 + git 무효화 | 신규 |
+| `machine/test_normalize.py` | 위 전부의 회귀 | 수정 |
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | C-19~C-21 결정 기록 | 수정 |
 | `docs/handoffs/DECISION-csharp-intermediate-format.md` | F15 형식 확장 기록 | 수정 |
 
@@ -82,11 +82,11 @@ git -C "$CS" diff --name-only HEAD~1..HEAD -- 'Assets/@Scripts/*.cs' 'Assets/@Ed
 
 **Files:**
 - Create: `codegraph/measure_citation_origin.py`
-- Test: `codegraph/test_normalize.py` (추가)
+- Test: `machine/test_normalize.py` (추가)
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
-`codegraph/test_normalize.py` 끝에 추가:
+`machine/test_normalize.py` 끝에 추가:
 
 ```python
 # ── 8. 계측기 — 인용 출처 분류
@@ -116,7 +116,7 @@ def test_citation_origin_static_share_is_measured():
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k citation_origin -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k citation_origin -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'measure_citation_origin'`
 
 - [ ] **Step 3: 계측기를 만든다**
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k citation_origin -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k citation_origin -q`
 Expected: PASS (2 passed)
 
 - [ ] **Step 5: 착수 시점 수치를 기록한다**
@@ -263,11 +263,11 @@ M2 의 호출식 64건이 이 Task 의 대상이다. **Track C §7 이 금지한
 
 **Files:**
 - Modify: `codegraph/roslyn-dump/Program.cs`
-- Test: `codegraph/test_normalize.py`
+- Test: `machine/test_normalize.py`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
-`codegraph/test_normalize.py` 끝에 추가:
+`machine/test_normalize.py` 끝에 추가:
 
 ```python
 # ── 9. calls[] — 호출 관계 (F15)
@@ -298,7 +298,7 @@ def test_roslyn_dump_calls_have_locations():
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k roslyn_dump_emits_calls -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k roslyn_dump_emits_calls -q`
 Expected: FAIL — `AssertionError: calls[] 가 없다 — Program.cs 가 아직 v3 가 아니다`
 
 - [ ] **Step 3: `Program.cs` 에 호출 수집을 더한다**
@@ -401,8 +401,8 @@ git commit -m "[feature] : roslyn-dump 호출 관계 수집"
 `calls[]` 를 뽑아도 검증기가 모르면 호출식 인용은 계속 "근거 없음" 에 떨어진다.
 
 **Files:**
-- Modify: `codegraph/verify_citations.py`
-- Test: `codegraph/test_normalize.py`
+- Modify: `machine/verify_citations.py`
+- Test: `machine/test_normalize.py`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -426,12 +426,12 @@ def test_verifier_recognizes_call_sites(tmp_path):
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k recognizes_call_sites -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k recognizes_call_sites -q`
 Expected: FAIL — `근거없음 1` 이 나온다
 
 - [ ] **Step 3: 검증기에 호출 색인을 더한다**
 
-`codegraph/verify_citations.py` 의 `load_detail_index` 끝(`return idx` 직전)에 추가:
+`machine/verify_citations.py` 의 `load_detail_index` 끝(`return idx` 직전)에 추가:
 
 ```python
     # calls[] (F15) — 호출식도 근거가 있는 위치다. C-16 이 "위치 있는 간선 전부" 로 넓힌 것과
@@ -444,7 +444,7 @@ Expected: FAIL — `근거없음 1` 이 나온다
 
 - [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -q`
 Expected: 전부 PASS
 
 - [ ] **Step 5: 이득을 잰다 — 계측기로**
@@ -470,8 +470,8 @@ git commit -m "[feature] : 인용 검증기 호출식 판정"
 `calls[]` 가 있어도 위키 작성자에게 주지 않으면 여전히 소스를 읽는다. C-3(입력 주입)의 재료를 늘린다.
 
 **Files:**
-- Modify: `codegraph/facts.py`
-- Test: `codegraph/test_normalize.py`
+- Modify: `machine/facts.py`
+- Test: `machine/test_normalize.py`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -488,12 +488,12 @@ def test_facts_calls_md_generated():
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k facts_calls -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k facts_calls -q`
 Expected: FAIL — `facts/calls.md 가 없다`
 
 - [ ] **Step 3: `facts.py` 에 호출 표를 더한다**
 
-`codegraph/facts.py` 의 `main()` 안, `facts/hotspot.md` 를 쓰는 블록 **앞**에 추가:
+`machine/facts.py` 의 `main()` 안, `facts/hotspot.md` 를 쓰는 블록 **앞**에 추가:
 
 ```python
     # ── facts/calls.md — 호출 관계 (F15). LLM 이 구현 본문을 읽지 않고도
@@ -556,8 +556,8 @@ git commit -m "[feature] : facts 호출 관계 표"
 U4·U6 의 구현. **캐시가 요약을 만들지 않는다** — 요약은 LLM 이 내고, 이 도구는 수명과 무효화만 맡는다.
 
 **Files:**
-- Create: `codegraph/warmup.py`
-- Test: `codegraph/test_normalize.py`
+- Create: `machine/warmup.py`
+- Test: `machine/test_normalize.py`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -600,7 +600,7 @@ def test_warmup_detects_change_via_blob(tmp_path):
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k warmup -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k warmup -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'warmup'`
 
 - [ ] **Step 3: `warmup.py` 를 만든다**
@@ -746,7 +746,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k warmup -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k warmup -q`
 Expected: PASS (3 passed)
 
 - [ ] **Step 5: 증분 이득을 실측한다**
@@ -784,8 +784,8 @@ git commit -m "[feature] : warmup 캐시와 git 기반 무효화"
 ## Task 6: 계층 분류 — 정독 대상을 소수로 제한한다 (U2)
 
 **Files:**
-- Modify: `codegraph/facts.py`
-- Test: `codegraph/test_normalize.py`
+- Modify: `machine/facts.py`
+- Test: `machine/test_normalize.py`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -805,12 +805,12 @@ def test_facts_modules_have_tier():
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/pytest codegraph/test_normalize.py -k modules_have_tier -q`
+Run: `.venv/bin/pytest machine/test_normalize.py -k modules_have_tier -q`
 Expected: FAIL — `modules[] 에 tier 가 없다`
 
 - [ ] **Step 3: `facts.py` 에 계층 분류를 더한다**
 
-`codegraph/facts.py` 의 `ranking` 딕셔너리를 만드는 부분에서 `modules` 계산을 교체한다.
+`machine/facts.py` 의 `ranking` 딕셔너리를 만드는 부분에서 `modules` 계산을 교체한다.
 기존:
 
 ```python

@@ -75,12 +75,12 @@ git 은 **삭제·추적 여부**를 묻는 데만 쓴다.
 
 | graphify | 우리 것 | 다시 안 해도 되는 일 |
 |---|---|---|
-| `ast_hash` | 그 파일의 **선언 목록** — `codegraph/declmap.py` 산출 | 파일 다시 읽기 |
+| `ast_hash` | 그 파일의 **선언 목록** — `machine/declmap.py` 산출 | 파일 다시 읽기 |
 | `semantic_hash` | 그 파일에서 나온 **전수조사 레코드**(`means`·`does`·`uses`) | **LLM 재추론** ← 값어치의 전부 |
 
 **두 겹이 왜 중요한가.** 주석만 고치거나 줄만 밀린 변경은 파일 해시가 바뀌어도
 **선언 목록은 같다.** 그러면 LLM 을 다시 부를 필요가 없고 `where` 만 고치면 된다 —
-그 일은 `codegraph/xmldoc.py inject` 가 **이미 마커 기준으로 하고 있다.**
+그 일은 `machine/xmldoc.py inject` 가 **이미 마커 기준으로 하고 있다.**
 
 ### 판정 표 (이대로 구현하라)
 
@@ -104,12 +104,12 @@ manifest 는 **파일 단위**라 "A 는 안 바뀌었는데 B 가 바뀌어 A �
 
 | 사실 | 확인 |
 |---|---|
-| `codegraph/warmup.py` 는 **아직 없다** | `ls codegraph/warmup.py` |
-| 선언 추출기는 있다 | `codegraph/declmap.py` — `--lang cs\|cpp\|py\|ts`, `scan()` 이 `{파일: {lines, decls[]}}` 를 낸다 |
+| `machine/warmup.py` 는 **아직 없다** | `ls machine/warmup.py` |
+| 선언 추출기는 있다 | `machine/declmap.py` — `--lang cs\|cpp\|py\|ts`, `scan()` 이 `{파일: {lines, decls[]}}` 를 낸다 |
 | 사전 원본 | `<대상저장소>/docs/codegraph/terms-reading.json` — `{키: 레코드}`, 레코드에 `where: "경로:줄"` |
-| 좌표 재계산 | `codegraph/xmldoc.py inject` — 마커 기준. `uses[].where` 는 **재계산되지 않는다**(L3 경고로 남는다) |
+| 좌표 재계산 | `machine/xmldoc.py inject` — 마커 기준. `uses[].where` 는 **재계산되지 않는다**(L3 경고로 남는다) |
 | 검사 둘 | `terms_db.py --repo <r> --reading <json>` (L1/L2/L3) · `xmldoc.py check` (마커 대조) |
-| 시험 재료 | `$CSHARP_REPO`(StickRush) · `$CPP_REPO`(QtVisionEdit). 둘 다 `docs/codegraph/terms-reading.json` 을 갖고 있다 |
+| 시험 재료 | `$CSHARP_REPO`(StickRush) · `$CPP_REPO`(QtVisionEdit). 둘 다 `machine/terms-reading.json` 을 갖고 있다 |
 | 파이썬 의존성 | `requirements.txt` — `networkx numpy scipy pytest`. **표준 라이브러리로 풀 수 있으면 새 의존성을 더하지 마라** |
 
 ---
@@ -118,13 +118,13 @@ manifest 는 **파일 단위**라 "A 는 안 바뀌었는데 B 가 바뀌어 A �
 
 ### STEP 1 — 시험을 먼저 쓴다
 
-**파일:** `codegraph/test_warmup.py` (신규). `tmp_path` 로 진짜 파일을 만들어 시험한다.
+**파일:** `machine/test_warmup.py` (신규). `tmp_path` 로 진짜 파일을 만들어 시험한다.
 **가짜 경로를 쓰지 마라** — 이 저장소에서 그 실수로 시험 둘이 잘못 통과한 적이 있다.
 
 못박을 것: ① 안 바뀐 파일은 `유효` ② 내용이 바뀌면 `낡음` ③ **커밋하지 않은 변경도 `낡음`**
 (원안의 결함을 못박는 시험이다) ④ 없어진 파일은 `삭제됨` ⑤ 선언이 같으면 `LLM 불필요`.
 
-### STEP 2 — `codegraph/warmup.py` 를 만든다
+### STEP 2 — `machine/warmup.py` 를 만든다
 
 ```python
 def file_hash(path):        """바이트 그대로 sha256. 커밋 여부와 무관하다."""
@@ -172,10 +172,10 @@ python codegraph/warmup.py blast "$CSHARP_REPO" --codegraph .../codegraph.json -
 
 | 파일 | 왜 |
 |---|---|
-| `codegraph/normalize.py` | 다른 작업(clang-doc 합치기)이 만지는 중일 수 있다 |
-| `codegraph/xmldoc.py` | 좌표 재계산의 주인. **부르되 고치지 마라** |
-| `codegraph/terms_db.py` | 사전 병합. 여기에 캐시를 끼워 넣지 마라 — `warmup.py` 는 **독립 도구**다 |
-| 대상 저장소의 `docs/codegraph/terms-reading.json` | 사람과 LLM 이 쓴 원고다. **캐시가 자동으로 고치게 하지 마라** |
+| `machine/normalize.py` | 다른 작업(clang-doc 합치기)이 만지는 중일 수 있다 |
+| `machine/xmldoc.py` | 좌표 재계산의 주인. **부르되 고치지 마라** |
+| `machine/terms_db.py` | 사전 병합. 여기에 캐시를 끼워 넣지 마라 — `warmup.py` 는 **독립 도구**다 |
+| 대상 저장소의 `machine/terms-reading.json` | 사람과 LLM 이 쓴 원고다. **캐시가 자동으로 고치게 하지 마라** |
 
 **`warmup.py` 는 요약을 만들지 않는다.** 수명과 무효화만 맡는다. 요약은 LLM 이 낸다.
 이 분리가 원안의 요점이고 그대로 지킨다.
@@ -200,7 +200,7 @@ npm test                                     # 기대: fail 0 (이 작업은 Nod
 ## 9. 이 저장소의 규약 (반드시 지킬 것)
 
 - **커밋하지 마라.** 사용자 승인 후 오케스트레이터가 한다. `git add -A` 금지.
-- **새 코드를 쓰면 그 자리에서 전수조사 레코드도 쓴다** — `docs/codegraph/terms-reading.json` 에
+- **새 코드를 쓰면 그 자리에서 전수조사 레코드도 쓴다** — `machine/terms-reading.json` 에
   `{kind, module, where, means, does?, uses[], confidence, source:"reading"}` 를 넣고
   `xmldoc.py emit` → `inject`. **코드와 좌표는 같은 커밋에.**
 - **경로를 코드에 박지 마라.** 환경변수와 탐색으로 찾는다.

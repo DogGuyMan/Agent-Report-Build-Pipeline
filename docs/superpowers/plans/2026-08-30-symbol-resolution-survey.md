@@ -21,9 +21,9 @@
 
 **결함 1 — `dep_excerpt` 가 모든 배치에서 빈 문자열을 낸다.**
 `survey-plan.json` 의 심볼 `depends_on` 은 노드 **id** 목록(`["C10"]`)인데
-(`codegraph/survey_plan.py:142-143` 이 `edges` 의 id 쌍에서 만든다),
+(`machine/survey_plan.py:142-143` 이 `edges` 의 id 쌍에서 만든다),
 `dep_excerpt` 는 그것을 **이름으로 키가 잡힌** `terms-reading.json` 에서 찾는다
-(`codegraph/run_mode1.py:392-394`). 교집합이 언제나 공집합이다.
+(`runner/run_mode1.py:392-394`). 교집합이 언제나 공집합이다.
 
 ```
 batch L1-B00: depends_on=['C10', 'C21', 'C23'] -> dep_excerpt=EMPTY
@@ -36,11 +36,11 @@ batch L4-B00: depends_on=['C4', 'C5', 'C6', 'C7'] -> dep_excerpt=EMPTY
 Bottom-Up 층 설계(`codegraph/CLAUDE.md` 의 K1~K8)의 핵심 기제가 작동한 적이 없다.
 
 **결함 2 — 프롬프트가 내부 id 를 그대로 노출한다.**
-`codegraph/run_mode1.py:412-414` 가 `의존 -> C10` 을 렌더한다. 세션은 `C10` 이 무엇인지 풀 방법이
+`runner/run_mode1.py:412-414` 가 `의존 -> C10` 을 렌더한다. 세션은 `C10` 이 무엇인지 풀 방법이
 없고(결함 1로 발췌도 비어 있다) `uses.to` 에 `C10` 을 그대로 적었다 — 실패 6건이 이것이다.
 
-**왜 시험이 못 잡았나.** `codegraph/test_survey_plan.py:15` 의 `_cg` 와
-`codegraph/test_run_mode1.py:258-262` 의 `_배치` 가 **`id` 와 `name` 을 같은 값으로** 만든다.
+**왜 시험이 못 잡았나.** `machine/test_survey_plan.py:15` 의 `_cg` 와
+`runner/test_run_mode1.py:258-262` 의 `_배치` 가 **`id` 와 `name` 을 같은 값으로** 만든다.
 합성 데이터에서는 두 결함이 보이지 않는다. 루트 `CLAUDE.md` 의 "합성 데이터만으로 검증하지 말 것" 이
 가리키는 바로 그 사고다.
 
@@ -62,12 +62,12 @@ Task 1 이 `C10` 계열 5개를 원천 제거하므로 **최종 격하 대상은
 
 | 파일 | 책임 | 이 계획에서 |
 |---|---|---|
-| `codegraph/survey_plan.py` | 코드 지도를 층·배치로 나눈다 | `depends_on` 을 이름으로 낸다 (Task 1) |
-| `codegraph/test_survey_plan.py` | 위 회귀 | id≠name 시험 추가 (Task 1) |
-| `codegraph/run_mode1.py` | 실행기·프롬프트 | `dep_excerpt` 회귀 시험 · external 안내 (Task 2, 6) |
-| `codegraph/test_run_mode1.py` | 위 회귀 | id≠name 픽스처 (Task 2) |
-| `codegraph/terms_db.py` | 사전 병합·인용 판정 | 해석 사다리 신설 (Task 3~5) |
-| `codegraph/test_terms_db.py` | 위 회귀 | 해석 사다리 시험 (Task 3~5) |
+| `machine/survey_plan.py` | 코드 지도를 층·배치로 나눈다 | `depends_on` 을 이름으로 낸다 (Task 1) |
+| `machine/test_survey_plan.py` | 위 회귀 | id≠name 시험 추가 (Task 1) |
+| `runner/run_mode1.py` | 실행기·프롬프트 | `dep_excerpt` 회귀 시험 · external 안내 (Task 2, 6) |
+| `runner/test_run_mode1.py` | 위 회귀 | id≠name 픽스처 (Task 2) |
+| `machine/terms_db.py` | 사전 병합·인용 판정 | 해석 사다리 신설 (Task 3~5) |
+| `machine/test_terms_db.py` | 위 회귀 | 해석 사다리 시험 (Task 3~5) |
 
 새 파일은 만들지 않는다. 해석 사다리는 `terms_db.py` 안 순수 함수 두 개(`resolve_target` ·
 `synthesize_record`)이며, 플러그인 구조나 레지스트리를 만들지 않는다 — 루트 `CLAUDE.md` 의
@@ -78,12 +78,12 @@ Task 1 이 `C10` 계열 5개를 원천 제거하므로 **최종 격하 대상은
 ### Task 1: `survey_plan.py` 가 `depends_on` 을 이름으로 낸다
 
 **Files:**
-- Modify: `codegraph/survey_plan.py:139-144`
-- Test: `codegraph/test_survey_plan.py`
+- Modify: `machine/survey_plan.py:139-144`
+- Test: `machine/test_survey_plan.py`
 
 - [ ] **Step 1: id 와 name 이 다른 회귀 시험을 쓴다**
 
-`codegraph/test_survey_plan.py` 의 `test_배치는_자기_심볼의_의존_대상을_들고_있다` 바로 아래에 더한다:
+`machine/test_survey_plan.py` 의 `test_배치는_자기_심볼의_의존_대상을_들고_있다` 바로 아래에 더한다:
 
 ```python
 def test_의존_대상은_id_가_아니라_이름이다():
@@ -103,12 +103,12 @@ def test_의존_대상은_id_가_아니라_이름이다():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `cd /Users/escatrgot/LLM-Tools/report-builder && .venv/bin/python -m pytest codegraph/test_survey_plan.py -k 이름이다 -v`
+Run: `cd /Users/escatrgot/LLM-Tools/report-builder && .venv/bin/python -m pytest machine/test_survey_plan.py -k 이름이다 -v`
 Expected: FAIL — `assert ['C10'] == ['AlignmentOptions']`
 
 - [ ] **Step 3: 최소 구현 — id 를 이름으로 바꿔 담는다**
 
-`codegraph/survey_plan.py` 의 `plan()` 안, `layers = []` 바로 위에 이름 표를 만든다:
+`machine/survey_plan.py` 의 `plan()` 안, `layers = []` 바로 위에 이름 표를 만든다:
 
 ```python
     # 배치가 내는 depends_on 은 **이름**이다. `dep_excerpt` 가 이름으로 키가 잡힌
@@ -119,7 +119,7 @@ Expected: FAIL — `assert ['C10'] == ['AlignmentOptions']`
     layers = []
 ```
 
-이어서 `"depends_on"` 줄을 고친다 (`codegraph/survey_plan.py:142-143`):
+이어서 `"depends_on"` 줄을 고친다 (`machine/survey_plan.py:142-143`):
 
 ```python
                               "depends_on": sorted({name_of[d] for (o, d) in edges
@@ -128,7 +128,7 @@ Expected: FAIL — `assert ['C10'] == ['AlignmentOptions']`
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_survey_plan.py -v`
+Run: `.venv/bin/python -m pytest machine/test_survey_plan.py -v`
 Expected: 전부 PASS (기존 `test_배치는_자기_심볼의_의존_대상을_들고_있다` 는 `_cg` 가 id==name 이라 그대로 통과한다)
 
 - [ ] **Step 5: 커밋**
@@ -145,11 +145,11 @@ git commit -m "[fix] : 전수조사 계획의 의존 대상을 내부 id 가 아
 Task 1 이 원인을 없앴다. 이 Task 는 **다시 깨지지 않게** 회귀를 박는다.
 
 **Files:**
-- Test: `codegraph/test_run_mode1.py`
+- Test: `runner/test_run_mode1.py`
 
 - [ ] **Step 1: id≠name 픽스처로 실패 시험을 쓴다**
 
-`codegraph/test_run_mode1.py` 의 `_배치()` 정의 아래에 더한다:
+`runner/test_run_mode1.py` 의 `_배치()` 정의 아래에 더한다:
 
 ```python
 def _배치_실데이터꼴():
@@ -181,14 +181,14 @@ def test_프롬프트는_내부_id_를_노출하지_않는다():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_run_mode1.py -k "발췌는_이름으로 or 노출하지" -v`
+Run: `.venv/bin/python -m pytest runner/test_run_mode1.py -k "발췌는_이름으로 or 노출하지" -v`
 Expected: `test_발췌는_이름으로_아래층_레코드를_찾는다` PASS (Task 1 이 이미 고쳤다),
 `test_프롬프트는_내부_id_를_노출하지_않는다` **FAIL** — 프롬프트가 심볼 자신의 `id` 를 쓰지는 않으나
 `s["id"]` 가 아니라 `s["name"]` 을 쓰는지 확인이 필요하다.
 
 - [ ] **Step 3: 프롬프트 렌더가 이름을 쓰는지 확인하고 필요하면 고친다**
 
-`codegraph/run_mode1.py:411-415` 를 연다. 현재:
+`runner/run_mode1.py:411-415` 를 연다. 현재:
 
 ```python
     syms = "\n".join(
@@ -204,7 +204,7 @@ Expected: `test_발췌는_이름으로_아래층_레코드를_찾는다` PASS (T
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_run_mode1.py -v`
+Run: `.venv/bin/python -m pytest runner/test_run_mode1.py -v`
 Expected: 전부 PASS
 
 - [ ] **Step 5: 커밋**
@@ -219,12 +219,12 @@ git commit -m "[test] : 배치 발췌와 프롬프트가 내부 id 를 노출하
 ### Task 3: 해석 사다리 — 조상 rollup
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (`_stem` 아래에 추가)
-- Test: `codegraph/test_terms_db.py`
+- Modify: `machine/terms_db.py` (`_stem` 아래에 추가)
+- Test: `machine/test_terms_db.py`
 
 - [ ] **Step 1: 실패 시험을 쓴다**
 
-`codegraph/test_terms_db.py` 의 `test_check_flags_unknown_uses_target` 아래에 더한다:
+`machine/test_terms_db.py` 의 `test_check_flags_unknown_uses_target` 아래에 더한다:
 
 ```python
 # ── 5. 심볼 해석 — 이름꼴이 달라도 같은 개체면 찾아낸다
@@ -259,12 +259,12 @@ def test_resolve_returns_none_when_nothing_matches():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k resolve -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k resolve -v`
 Expected: FAIL — `AttributeError: module 'terms_db' has no attribute 'resolve_target'`
 
 - [ ] **Step 3: 최소 구현**
 
-`codegraph/terms_db.py` 의 `_stem` 함수 정의 바로 아래에 더한다:
+`machine/terms_db.py` 의 `_stem` 함수 정의 바로 아래에 더한다:
 
 ```python
 # <include file="docs/codegraph/comments.xml" path="//term[@id='resolve_target']"/>
@@ -299,7 +299,7 @@ def resolve_target(target, keys):
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k resolve -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k resolve -v`
 Expected: 5개 PASS
 
 - [ ] **Step 5: 커밋**
@@ -316,8 +316,8 @@ git commit -m "[feat] : 사전에 없는 참조를 조상과 짧은 이름으로
 rollup 으로 안 되는 것 중 **분류는 가능한** 것들이다. 원문을 고치지 않고 레코드를 만들어 준다.
 
 **Files:**
-- Modify: `codegraph/terms_db.py`
-- Test: `codegraph/test_terms_db.py`
+- Modify: `machine/terms_db.py`
+- Test: `machine/test_terms_db.py`
 
 - [ ] **Step 1: 실패 시험을 쓴다**
 
@@ -354,12 +354,12 @@ def test_synthesize_refuses_an_unknown_bare_name(tmp_path):
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k synthesize -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k synthesize -v`
 Expected: FAIL — `AttributeError: module 'terms_db' has no attribute 'synthesize_record'`
 
 - [ ] **Step 3: 최소 구현**
 
-`codegraph/terms_db.py` 의 `resolve_target` 아래에 더한다:
+`machine/terms_db.py` 의 `resolve_target` 아래에 더한다:
 
 ```python
 # 이 접두사로 시작하는 이름은 저장소 밖 라이브러리다. **목록을 늘리기 전에 멈춘다** —
@@ -391,7 +391,7 @@ def synthesize_record(target, repo):
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k synthesize -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k synthesize -v`
 Expected: 3개 PASS
 
 - [ ] **Step 5: 커밋**
@@ -406,8 +406,8 @@ git commit -m "[feat] : 외부 라이브러리 심볼과 실재하는 파일에 
 ### Task 5: 사다리를 병합에 배선하고, 남은 것은 실패가 아니라 격하한다
 
 **Files:**
-- Modify: `codegraph/terms_db.py` (`merge_terms` 아래에 `resolve_uses` 신설 · `check_terms:321-322` 수정 · `main` 배선)
-- Test: `codegraph/test_terms_db.py`
+- Modify: `machine/terms_db.py` (`merge_terms` 아래에 `resolve_uses` 신설 · `check_terms:321-322` 수정 · `main` 배선)
+- Test: `machine/test_terms_db.py`
 
 - [ ] **Step 1: 실패 시험을 쓴다**
 
@@ -462,12 +462,12 @@ def test_unresolvable_target_is_unfounded_not_failure(tmp_path):
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k "resolve_uses or unresolvable" -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k "resolve_uses or unresolvable" -v`
 Expected: FAIL — `AttributeError: module 'terms_db' has no attribute 'resolve_uses'`
 
 - [ ] **Step 3: `resolve_uses` 를 만든다**
 
-`codegraph/terms_db.py` 의 `merge_terms` 아래에 더한다:
+`machine/terms_db.py` 의 `merge_terms` 아래에 더한다:
 
 ```python
 # <include file="docs/codegraph/comments.xml" path="//term[@id='resolve_uses']"/>
@@ -506,7 +506,7 @@ def resolve_uses(db, repo):
 
 - [ ] **Step 4: `check_terms` 가 격하하도록 고친다**
 
-`codegraph/terms_db.py:321-322` 를 연다. 현재:
+`machine/terms_db.py:321-322` 를 연다. 현재:
 
 ```python
             if u.get("to") not in db:
@@ -526,7 +526,7 @@ def resolve_uses(db, repo):
 
 - [ ] **Step 5: `main` 에 배선한다**
 
-`codegraph/terms_db.py` 의 `main()` 에서 `problems = check_terms(db, repo)` **바로 위**에 더한다:
+`machine/terms_db.py` 의 `main()` 에서 `problems = check_terms(db, repo)` **바로 위**에 더한다:
 
 ```python
     db, unresolved = resolve_uses(db, repo)
@@ -540,7 +540,7 @@ def resolve_uses(db, repo):
 
 - [ ] **Step 6: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -v`
 Expected: 전부 PASS (`test_check_flags_unknown_uses_target` 은 Step 1 에서 지웠다)
 
 - [ ] **Step 7: 전체 시험을 돌린다**
@@ -563,8 +563,8 @@ git commit -m "[feat] : 참조 해석을 병합에 배선하고 못 푼 것은 �
 Task 4 가 사후 합성으로 메우지만, 세션이 처음부터 옳게 쓰면 합성이 필요 없다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py:440-449` (`survey_batch_prompt` 의 "레코드 계약" 절)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py:440-449` (`survey_batch_prompt` 의 "레코드 계약" 절)
+- Test: `runner/test_run_mode1.py`
 
 - [ ] **Step 1: 실패 시험을 쓴다**
 
@@ -577,12 +577,12 @@ def test_배치_프롬프트가_외부_심볼_적는_법을_알려_준다():
 
 - [ ] **Step 2: 실패를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_run_mode1.py -k 외부_심볼 -v`
+Run: `.venv/bin/python -m pytest runner/test_run_mode1.py -k 외부_심볼 -v`
 Expected: FAIL — `assert 'external' in p`
 
 - [ ] **Step 3: 프롬프트에 한 줄을 더한다**
 
-`codegraph/run_mode1.py` 의 `survey_batch_prompt` 안, `- confidence = HIGH(...)` 줄 **아래**에 더한다:
+`runner/run_mode1.py` 의 `survey_batch_prompt` 안, `- confidence = HIGH(...)` 줄 **아래**에 더한다:
 
 ```
 - **저장소 밖 심볼**(`cv::` `std::` `Qt::` 같은 라이브러리)을 uses[].to 로 가리켜야 하면
@@ -592,7 +592,7 @@ Expected: FAIL — `assert 'external' in p`
 
 - [ ] **Step 4: 통과를 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_run_mode1.py -v`
+Run: `.venv/bin/python -m pytest runner/test_run_mode1.py -v`
 Expected: 전부 PASS
 
 - [ ] **Step 5: 커밋**
@@ -609,11 +609,11 @@ git commit -m "[docs] : 배치 프롬프트에 저장소 밖 심볼을 external 
 합성 데이터만으로 검증하지 않는다 — 이 결함 자체가 합성 시험을 통과했었다.
 
 **Files:**
-- Test: `codegraph/test_terms_db.py`
+- Test: `machine/test_terms_db.py`
 
 - [ ] **Step 1: 골든 시험을 쓴다**
 
-`codegraph/test_terms_db.py` 맨 아래에 더한다:
+`machine/test_terms_db.py` 맨 아래에 더한다:
 
 ```python
 # ── 6. 골든 — 실제 저장소의 전수조사 레코드로 사다리를 대조한다
@@ -638,7 +638,7 @@ def test_resolve_uses_leaves_few_unresolved_on_a_real_reading(tmp_path):
 
 - [ ] **Step 2: 시험을 돌린다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_terms_db.py -k real_reading -v`
+Run: `.venv/bin/python -m pytest machine/test_terms_db.py -k real_reading -v`
 Expected: `GRAPHICS_REPO` 가 없으면 SKIP (실패가 아니다). 있으면 PASS
 
 - [ ] **Step 3: 실측 저장소로 직접 확인한다**

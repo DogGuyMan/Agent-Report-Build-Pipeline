@@ -58,7 +58,7 @@ Track C §12 가 이 순서를 못박았다.
 
 ### 산출물 (§4 목록 대비)
 
-`samples/cpp/` 에 `OBSERVATION.md` · `shapes/node.json` · `shapes/edge-<kind>.json`(**7종**) ·
+`samples/cpp/` 에 `OBSERVATION.md` · `resources/samples/cpp/shapes/node.json` · `shapes/edge-<kind>.json`(**7종**) ·
 `shapes/module.dot.txt` · `external-nodes.tsv` · `counts.tsv` 전량 있다.
 `out/codegraph-raw/` 에는 추가로 `07-external-touch.txt` · `08-external-collapse-simulation.txt` ·
 `09-fileline-census-full.txt` · `10-dot-sidefile-subset-check.txt` · `12-r7-primitive-check.txt` 가 있다.

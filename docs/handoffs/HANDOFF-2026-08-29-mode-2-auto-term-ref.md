@@ -12,4 +12,4 @@
 긴 id 부터. ASCII 로 시작/끝나는 id 는 낱말 경계, 한글 id 는 경계 없음(`모듈을` 도 감싼다). 카드에 `body`(용례)와 이해도 배지 추가, 밑줄 낱말 끝에 작은 `?`.
 두 보고서의 수동 `<T id>` 18곳은 지운다(자동으로 같은 결과). `defineTerms` 는 남긴다(추가만).
 
-프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `scripts/wrap-terms.mjs`(신규) · `test/wrap-terms.test.mjs`(신규) · `scripts/build.mjs` · `src/components/terms.tsx` 의 `defineTerms` · `src/theme.css`(추가만) · `test/components.test.mjs`(추가) · 두 보고서 `report.tsx`(수동 `<T>` 제거만).
+프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `scripts/wrap-terms.mjs`(신규) · `test/wrap-terms.test.mjs`(신규) · `scripts/build.mjs` · `viz/src/components/terms.tsx` 의 `defineTerms` · `viz/src/theme.css`(추가만) · `test/components.test.mjs`(추가) · 두 보고서 `report.tsx`(수동 `<T>` 제거만).

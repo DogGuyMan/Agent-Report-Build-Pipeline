@@ -43,8 +43,8 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 | 파일 | A | B | C | D |
 |---|---|---|---|---|
 | `scripts/term/*` · `src/*` · `test/*` | **소유** | — | — | 읽기만 |
-| `codegraph/terms_db.py` | 읽기만 | **건드리지 말 것** (A 가 참조) | — | — |
-| `codegraph/normalize.py` 의 **출력 키** | — | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to`·`id`/`depends_on` 을 읽는다 (간접 의존) | — | — |
+| `machine/terms_db.py` | 읽기만 | **건드리지 말 것** (A 가 참조) | — | — |
+| `machine/normalize.py` 의 **출력 키** | — | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to`·`id`/`depends_on` 을 읽는다 (간접 의존) | — | — |
 | `codegraph/` 나머지 | — | **소유** | — | — |
 | `CLAUDE.md` | 소유 | Track C 절만 | — | — |
 | `~/.claude/skills/term-benchmark/` | 검토 | — | **소유** | — |
@@ -96,7 +96,7 @@ Task 를 배분하고, 결과를 검토하고, 사용자 판정이 필요한 지
 
 ### (가) ~~계획서의 섹션 번호 하나가 틀렸다~~ — Task 1.1 에서 `# ── 8.` 로 처리됨
 
-계획서 Task 1.1 Step 1 이 `codegraph/test_normalize.py` 에 `# ── 12.` 섹션을 추가하라고 적었다.
+계획서 Task 1.1 Step 1 이 `machine/test_normalize.py` 에 `# ── 12.` 섹션을 추가하라고 적었다.
 🔵 실측 — 그 파일의 마지막 섹션은 **`# ── 7.`** 이다(`test_normalize.py:221`). **`# ── 8.` 로 붙여라.**
 계획서 본문은 고치지 않았다. 이 문서가 우선한다.
 
@@ -209,19 +209,19 @@ L6 ── Task 6.1  ~/.claude/skills/term-benchmark/SKILL.md
 | `scripts/dispatch.mjs` · `test/dispatch.test.mjs` | 0.1 | — |
 | `bin/report` `bin/report-spec` `bin/report-term` `bin/report-wiki` | 0.2 | — |
 | `CLAUDE.md` | 0.3 (명령 절만) | **오케스트레이터가 다른 절을 고칠 수 있다.** 0.3 은 `## 명령` 절 밖을 건드리지 않는다 |
-| `codegraph/terms_db.py` | 1.1 | — |
-| `codegraph/test_normalize.py` | 1.1 (append 만) | 기존 7개 섹션을 **건드리지 않는다** |
+| `machine/terms_db.py` | 1.1 | — |
+| `machine/test_normalize.py` | 1.1 (append 만) | 기존 7개 섹션을 **건드리지 않는다** |
 | `scripts/term/collect.mjs` | 2.1 | — |
 | `scripts/term/quiz.mjs` | 3.1 | — |
 | `scripts/term/emit.mjs` | 4.1 | — |
 | **`test/term.test.mjs`** | **2.1 생성 → 3.1 append → 4.1 append** | **동시 편집 금지.** 앞 Task 가 끝난 뒤에만 |
-| `src/types.ts` · `src/components/terms.tsx` · `src/theme.css` | 5.1 | **기존 필드·클래스 제거 금지** (컴포넌트는 추가만) |
+| `viz/src/types.ts` · `viz/src/components/terms.tsx` · `viz/src/theme.css` | 5.1 | **기존 필드·클래스 제거 금지** (컴포넌트는 추가만) |
 | `test/components.test.mjs` | 5.1 (append + import 1줄) | 기존 테스트를 건드리지 않는다 |
 | `scripts/init.mjs` | 5.2 | — |
 | `~/.claude/skills/term-benchmark/SKILL.md` | 6.1 | 저장소 밖. 사본을 `.claude/skills/term-benchmark/` 에 |
 
 **절대 건드리지 않는 파일** (어느 Task 도 소유하지 않음):
-`scripts/build.mjs` · `scripts/check.mjs` · `src/runtime/term-graph.ts` · `src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx` ·
+`scripts/build.mjs` · `scripts/check.mjs` · `viz/src/runtime/term-graph.ts` · `src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx` ·
 `docs/superpowers/specs/llm-load-reduction/*` — 이것들은 Mode 2 의 완성된 부분이다. 계획서 File Structure 가
 `scripts/build.mjs [수정]` 이라고 적었으나 **실제 Task 중 build.mjs 를 고치는 것은 없다.** 계획서의 오기다.
 

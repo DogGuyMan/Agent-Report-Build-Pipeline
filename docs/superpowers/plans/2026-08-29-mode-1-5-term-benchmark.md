@@ -15,7 +15,7 @@
 | Phase | 내용 | 성격 | 산출물 |
 |---|---|---|---|
 | 0 | CLI 빌드 타깃 분리 | 코드 | `bin/report-wiki` · `report-term` · `report-spec` |
-| 1 | 코드베이스 용어 DB — Mode 1 확장 | 코드 (Python) | `codegraph/terms_db.py` → `terms-db.json` |
+| 1 | 코드베이스 용어 DB — Mode 1 확장 | 코드 (Python) | `machine/terms_db.py` → `terms-db.json` |
 | 2 | 용어 후보 수집 — Plan 교차 | 코드 (Node) | `scripts/term/collect.mjs` |
 | 3 | 출제와 채점 | 코드 (Node) | `scripts/term/quiz.mjs` |
 | 4 | 산출물 두 갈래 | 코드 (Node) | 학습 노트 `.md` + 용어집 DB `.json` |
@@ -64,8 +64,8 @@ report-builder/
 | Node | v25.8.0 | `node -v` |
 | Python | 3.14.6 (`.venv/bin/python`) | `.venv/bin/python --version` |
 | pytest | 9.1.1 | `.venv/bin/python -m pytest --version` |
-| `facts.py` 산출물 | `<out>/facts/` 에 `modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | `codegraph/facts.py:200-296` |
-| `facts.py` 인자 | `facts.py <codegraph.json> --repo <저장소> [--detail roslyn-dump.json] [-o 출력디렉토리]` | `codegraph/facts.py:128-133` |
+| `facts.py` 산출물 | `<out>/facts/` 에 `modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | `machine/facts.py:200-296` |
+| `facts.py` 인자 | `facts.py <codegraph.json> --repo <저장소> [--detail roslyn-dump.json] [-o 출력디렉토리]` | `machine/facts.py:128-133` |
 | `bin/report` | `init`/`build`/`check` 를 `scripts/*.mjs` 로 디스패치만 | `bin/report:11-15` |
 | PATH 등록 | `~/.zshrc:211` — `export PATH="$HOME/LLM-Tools/report-builder/bin:$PATH"` | `grep -n report-builder ~/.zshrc` |
 | 현재 컴포넌트 export | 17개 | `node -e 'import("./.tmp/lib.mjs")...'` |
@@ -333,7 +333,7 @@ git commit -m "[docs] : mode 별 CLI 진입점 분리 반영"
 ## Task 1.1: 용어 추출 — 실패하는 테스트 먼저
 
 > **⚠ 2026-08-29 실측 정정 — 아래 코드의 키 두 곳이 실제 `codegraph.json` 과 다르다.** 구현 서브에이전트가
-> `codegraph/normalize.py:237,287` 을 열어 확인했다. 실제 산출물 기준으로 구현된 `codegraph/terms_db.py` 가 정본이다.
+> `machine/normalize.py:237,287` 을 열어 확인했다. 실제 산출물 기준으로 구현된 `machine/terms_db.py` 가 정본이다.
 >
 > | 항목 | 이 계획서 (틀림) | 실제 |
 > |---|---|---|
@@ -348,12 +348,12 @@ git commit -m "[docs] : mode 별 CLI 진입점 분리 반영"
 > - 외부 노드 6건(`(STL) std` 등)이 수집에 포함된다. `means` 가 "__external__ 모듈의 external." 로 어색하다
 
 **Files:**
-- Create: `codegraph/terms_db.py`
-- Test: `codegraph/test_normalize.py` (추가)
+- Create: `machine/terms_db.py`
+- Test: `machine/test_normalize.py` (추가)
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
-`codegraph/test_normalize.py` 끝에 추가:
+`machine/test_normalize.py` 끝에 추가:
 
 ```python
 # ── 8. 코드베이스 용어 DB (Mode 1.5 의 재료)
@@ -406,12 +406,12 @@ def test_terms_db_is_deterministic():
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_normalize.py -k terms_db -v`
+Run: `.venv/bin/python -m pytest machine/test_normalize.py -k terms_db -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'terms_db'`
 
 - [ ] **Step 3: 최소 구현을 쓴다**
 
-`codegraph/terms_db.py`:
+`machine/terms_db.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -516,7 +516,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
-Run: `.venv/bin/python -m pytest codegraph/test_normalize.py -k terms_db -v`
+Run: `.venv/bin/python -m pytest machine/test_normalize.py -k terms_db -v`
 Expected: PASS — 3 tests
 
 - [ ] **Step 5: 커밋**
@@ -936,9 +936,9 @@ git commit -m "[feat] : term - 학습 노트와 Mode 2 용어집 DB 출력"
 ## Task 5.1: `Term` 에 이해도 필드를 더한다
 
 **Files:**
-- Modify: `src/types.ts`
-- Modify: `src/components/terms.tsx`
-- Modify: `src/theme.css`
+- Modify: `viz/src/types.ts`
+- Modify: `viz/src/components/terms.tsx`
+- Modify: `viz/src/theme.css`
 - Test: `test/components.test.mjs` (추가)
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
@@ -968,7 +968,7 @@ Expected: FAIL — `이해도 클래스가 없다`
 
 - [ ] **Step 3: 타입에 필드를 더한다**
 
-`src/types.ts` 의 `Term` 에 추가한다. **기존 필드를 지우거나 뜻을 바꾸지 않는다**(컴포넌트는 추가만 한다 규약):
+`viz/src/types.ts` 의 `Term` 에 추가한다. **기존 필드를 지우거나 뜻을 바꾸지 않는다**(컴포넌트는 추가만 한다 규약):
 
 ```typescript
   /** Mode 1.5 가 실측한 읽는 사람의 이해도. 없으면 표시하지 않는다 */
@@ -977,7 +977,7 @@ Expected: FAIL — `이해도 클래스가 없다`
 
 - [ ] **Step 4: 컴포넌트에 표시를 더한다**
 
-`src/components/terms.tsx` 의 `Glossary` 표에 컬럼을 하나 붙인다.
+`viz/src/components/terms.tsx` 의 `Glossary` 표에 컬럼을 하나 붙인다.
 
 ```tsx
         <thead>
@@ -1004,7 +1004,7 @@ Expected: FAIL — `이해도 클래스가 없다`
 
 - [ ] **Step 5: 스타일을 더한다**
 
-`src/theme.css` 의 용어집 구획에 추가한다. **확실한 것은 흐리게** 해 시선이 빈 칸으로 가게 한다.
+`viz/src/theme.css` 의 용어집 구획에 추가한다. **확실한 것은 흐리게** 해 시선이 빈 칸으로 가게 한다.
 
 ```css
 .term-mental { display: inline-block; padding: 1px 7px; border-radius: 4px;
@@ -1174,7 +1174,7 @@ grep -c '<script' out/report.html            # 1 이하여야 한다
 
 **2. 자리표시자 점검** — "TBD"·"적절한 처리"·"Task N 과 유사" 없음. 모든 코드 단계에 실제 코드가 있다. 단 **Task 3.1 의 구간 경계는 제안값**이며 그 사실을 명시했다.
 
-**3. 타입 일관성** — `mental` 은 `"확실"|"애매"|"모름"` 으로 `src/types.ts`(Task 5.1)·`quiz.mjs`(Task 3.1)·`emit.mjs`(Task 4.1)에서 동일하다. `TermMeans`/`UserMentalValue` 는 `emit.mjs` 에서 정의되고 Task 5.2 주석에서 같은 이름으로 참조된다. `QUESTIONS_PER_TERM` 은 `quiz.mjs` 에서만 쓰인다.
+**3. 타입 일관성** — `mental` 은 `"확실"|"애매"|"모름"` 으로 `viz/src/types.ts`(Task 5.1)·`quiz.mjs`(Task 3.1)·`emit.mjs`(Task 4.1)에서 동일하다. `TermMeans`/`UserMentalValue` 는 `emit.mjs` 에서 정의되고 Task 5.2 주석에서 같은 이름으로 참조된다. `QUESTIONS_PER_TERM` 은 `quiz.mjs` 에서만 쓰인다.
 
 **4. 남은 위험**
 

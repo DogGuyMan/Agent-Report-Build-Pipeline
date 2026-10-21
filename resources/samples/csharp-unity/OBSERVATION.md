@@ -1,6 +1,6 @@
 # 관찰 보고서 — StickRushGame / C# (Unity)
 
-> 이 파일은 `docs/handoffs/templates/OBSERVATION-template.md` 의 사본이다.
+> 이 파일은 `resources/templates/OBSERVATION-template.md` 의 사본이다.
 > **절 번호와 제목을 바꾸지 말 것.** C++ 쪽 보고서와 C# 쪽 보고서가 같은 골격이어야
 > `normalize.py` 의 파서 두 개를 나란히 놓고 설계할 수 있다.
 > 채울 수 없는 칸은 **지우지 말고 `미확인` 또는 `해당 없음` 으로 남긴다.** 빈칸 자체가 정보다.

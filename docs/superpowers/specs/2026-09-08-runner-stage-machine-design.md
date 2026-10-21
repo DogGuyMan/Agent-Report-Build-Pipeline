@@ -675,7 +675,7 @@ D10 은 그것을 세 모드로 넓히는 것이다.
 | `out/codegraph-raw/warmup-diff.json` | `warmup` | `prep`(D15) · `survey-plan` · `survey` | 러너가 선언. `verdicts` 칸은 `machine/warmup.py` 의 `Verdicts` (D14) |
 | `out/codegraph-raw/survey-plan.json` | `survey-plan` | `survey` · `wiki` | `machine/survey_plan.py` 의 `SurveyPlan`. **`survey` 가 로딩 시 diff 와 양방향 대조** (D14) |
 | warmup 매니페스트 | `warmup-save` | `warmup` | `machine/warmup.py` 의 `Manifest` |
-| `docs/codegraph/terms-reading.json` | `survey` | **`survey` 자신** · `terms` | 러너의 `Records` (레코드 칸은 배치 세션이 정하므로 못 박지 않는다) |
+| `machine/terms-reading.json` | `survey` | **`survey` 자신** · `terms` | 러너의 `Records` (레코드 칸은 배치 세션이 정하므로 못 박지 않는다) |
 | `out/codegraph-raw/_shards/<배치>.json` | **LLM 세션** (러너가 아니다) | `survey` (`merge_shards` · 재개 판정) | 러너의 `Records` |
 | `out/codegraph-raw/wiki-plan.json` | `wiki`(목차) | `wiki`(장) | 러너의 `WikiPage` 목록 |
 

@@ -444,10 +444,10 @@ clang-uml JSON은 표준 `json` 모듈로 충분하다.
 
 Phase 0·2의 산출물을 §7의 `codegraph.json`으로 변환한다.
 
-> 🔵 **2026-08-27 — C++ 경로 착수·동작 확인.** `codegraph/normalize.py` (C-12).
+> 🔵 **2026-08-27 — C++ 경로 착수·동작 확인.** `machine/normalize.py` (C-12).
 >
 > ```
-> .venv/bin/python codegraph/normalize.py \
+> .venv/bin/python machine/normalize.py \
 >   --clang-uml <저장소>/out/codegraph-raw/full_class_all.json \
 >   --repo <저장소> -o <저장소>/out/codegraph-raw/codegraph.json
 > ```
@@ -490,7 +490,7 @@ Phase 0·2의 산출물을 §7의 `codegraph.json`으로 변환한다.
 
 ### Phase 5-1 — 모듈 다이어그램 렌더러 🔵 완료 (2026-08-27)
 
-`codegraph/render_modules.py` — `codegraph.json` → `.dot` + `.svg` + `.png`.
+`viz/render_modules.py` — `codegraph.json` → `.dot` + `.svg` + `.png`.
 **언어 무관이다.** 스키마 v2 가 같으므로 렌더러는 하나이고 두 언어에 그대로 돈다.
 
 ```bash
@@ -554,7 +554,7 @@ v2 살 — members 695 · methods 532 · is_abstract=true 25
 
 ### Phase 5-2 — facts + ranking 생성기 🔵 완료 (2026-08-27)
 
-`codegraph/facts.py` — `codegraph.json` (+ C# 은 `--detail roslyn-dump.json`) →
+`machine/facts.py` — `codegraph.json` (+ C# 은 `--detail roslyn-dump.json`) →
 **`ranking.json` + `facts/*.md` 5종** (modules · classes · external · entrypoints · hotspot).
 언어 무관, 전량 기계 덤프 — **생략하지 않는다**(생략 판단은 LLM 계층 §1 20번의 몫).
 
@@ -621,7 +621,7 @@ L3  노드 14 · 소유간선 0 · 근거없음 42
 | dead-link | VitePress **내장** `ignoreDeadLinks: false` 가 빌드 시 전수 검사·실패 처리. 외부는 `lychee`/`markdown-link-check` | ✅ 내장으로 충분 — 별도 도구 불요 |
 | VitePress 조립 | deep-wiki `wiki-vitepress` 스킬이 스캐폴딩·다크테마 3층·click-to-zoom 까지 규정 | ✅ 기성 사용 |
 | 회귀 테스트 | `pytest` / stdlib `unittest` | ✅ 기성 사용 |
-| **Mermaid 정책 집행** | **없음** | ❌ **자체 제작** — `codegraph/demermaid.py` |
+| **Mermaid 정책 집행** | **없음** | ❌ **자체 제작** — `viz/demermaid.py` |
 
 ⚠ **기성 경로가 C-8 과 충돌했다.** `wiki-vitepress` 는 `vitepress-plugin-mermaid` 로
 **클라이언트에서 Mermaid 를 그린다.** 그대로 쓰면 "Graphviz 가 정본" 이 무력화된다.
@@ -650,7 +650,7 @@ C-17(생략 규칙)이 확정돼 큰 모듈이 서술 가능해졌으므로 남�
 |---|---|---|
 | **인용 경로 축약** | 6 | 같은 파일을 재인용할 때 `UI_StarRate.cs:50` 처럼 **파일명만** 남긴다. 사람이 읽기엔 자연스럽지만 링크로는 죽는다. **프롬프트로 경고해도 반복 발생**했다 |
 
-→ `codegraph/fix_citation_paths.py` 로 기계 복구한다. 저장소에서 그 파일명이 **정확히 하나일 때만**
+→ `machine/fix_citation_paths.py` 로 기계 복구한다. 저장소에서 그 파일명이 **정확히 하나일 때만**
 치환하고, 여러 개면 손대지 않고 보고한다(어느 것인지 기계가 정할 수 없다).
 🔵 실측 — 6건 전부 모호 0 · 미발견 0 으로 복구 가능했다.
 
@@ -690,7 +690,7 @@ Mermaid — Graphviz 교체 1 · mmdc 렌더 32 · 실패 0 · 클라이언트 �
 
 ### Phase 5-3 — 회귀 테스트 🔵 완료
 
-`codegraph/test_normalize.py` — **28개 통과.** 정규화 계층의 "틀려도 오류가 안 나는" 자리를 고정한다:
+`machine/test_normalize.py` — **28개 통과.** 정규화 계층의 "틀려도 오류가 안 나는" 자리를 고정한다:
 kind 대응표(항등 금지) · R5 투과 목록(일반화 금지) · R7 정식 이름 · 모듈 경계 · 외부 노드 명명 ·
 중첩 타입 `##` · 검증기 오염 시험 3종.
 **골든은 합성이 아니라 실제 산출물**을 쓴다(C++ 191/417/20 · C# 231/540/10)。
@@ -915,10 +915,10 @@ MSVC 전용 확장(`__declspec`, MSVC STL 내부)을 쓰는 코드는 mingw 로 
 
 **L3가 값의 전부다.** deep-wiki가 "Renderer는 `renderer.h:42`에 있다"고 쓰면 `codegraph.json`과 맞춰 참/거짓을 기계적으로 판정할 수 있다.
 
-> 🔵 **2026-08-27 — 검증기 구현 완료: `codegraph/verify_citations.py`.**
+> 🔵 **2026-08-27 — 검증기 구현 완료: `machine/verify_citations.py`.**
 >
 > ```bash
-> .venv/bin/python codegraph/verify_citations.py <문서.md ...> --repo <저장소> --codegraph <codegraph.json>
+> .venv/bin/python machine/verify_citations.py <문서.md ...> --repo <저장소> --codegraph <codegraph.json>
 > ```
 >
 > - **판정 3값** — 통과 / 실패(L1·L2, 종료코드 1) / 근거 없음(L3). 인용 패턴은 확장자
@@ -1055,7 +1055,7 @@ C++ 는 전부 `shared`/`composite` 로 몰려 `association` 0건, C# 은 전부
 |---|---|
 | `HANDOFF-unity-pattern-collection.md` | §2-2(C-9 의 C# 적용) · 단계 2-1(패키지 노드) · **단계 5-1(Roslyn 질의 파이프라인)** 신설. §3 단계 5 의 "정규식은 전부 하한" 경고를 **실측으로 정정** |
 | `HANDOFF-cpp-pattern-collection.md` | §2-3(C-9 의 C++ 적용) 신설 + R7 |
-| `templates/OBSERVATION-template.md` | D절 enum 6종 → 8종 |
+| `resources/templates/OBSERVATION-template.md` | D절 enum 6종 → 8종 |
 | `DECISION-csharp-intermediate-format.md` | **F12~F14** 추가 + **§10 v2 구현 노트** 신설 |
 | `samples/{cpp,csharp-unity}/OBSERVATION.md` | D절에 결정 반영 주석. **관찰 기록 자체는 고치지 않았다** — 6종 시점의 관찰이라는 사실이 정보이므로 |
 

@@ -172,7 +172,7 @@ frontmatter
 **프롬프트에 없던 두 가지 (스킬에 반영함):**
 
 1. **`known` 레코드에 필드가 2개 더 있다.** 프롬프트는 `{ kind, module, where, means, neighbors }` 5개로 적었으나
-   실제로는 `source: "codegraph"` 가 항상, `hotspot: true` 가 조건부로 붙는다(`codegraph/terms_db.py:60-66`).
+   실제로는 `source: "codegraph"` 가 항상, `hotspot: true` 가 조건부로 붙는다(`machine/terms_db.py:60-66`).
    출제에 쓰이지 않아 스킬 본문의 형태 예시에서는 생략했다.
 2. **세 명령 모두 산출 파일을 `process.cwd()` 에 쓴다**(`collect.mjs:63` · `quiz.mjs:44` · `emit.mjs:51,54`).
    중간에 `cd` 하면 다음 명령이 앞 단계 파일을 찾지 못한다. 프롬프트에 없던 pitfall 로 추가했다.

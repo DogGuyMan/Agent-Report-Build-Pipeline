@@ -1,0 +1,16 @@
+digraph after {
+  rankdir=LR; fontname="Helvetica"; node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f4f4f4", color="#888"]; edge [fontname="Helvetica", fontsize=10, color="#666"];
+  depf [label="dep_files\n파일 → 의존 파일 집합", fillcolor="#dfe6f4", color="#8fa4d4"];
+  ready[label="준비 집합 refill\n의존 파일이 전부 끝난 것만\n(순환이면 강제 투입)", fillcolor="#d9ead3", color="#6aa06f"];
+  launch[label="launch — 투입 순간 조립\ndep_excerpt(이름) · pending(자기 배치 제외)\n의존 -> 이름", fillcolor="#d9ead3", color="#6aa06f"];
+  pool [label="풀 (동시 8)", fillcolor="#e9e2f6", color="#9a7fd4"];
+  sess [label="세션\nuses.to = 레코드 키\n외부 의존은 적지 않음", fillcolor="#e9e2f6", color="#9a7fd4"];
+  shard[label="_shards/*.json", fillcolor="#f9ecd0", color="#d2a03c"];
+  merge[label="merge_shards", fillcolor="#dfe6f4", color="#8fa4d4"];
+  norm [label="normalize_records\nid → 이름 · 모르는 것은 떼기", fillcolor="#d9ead3", color="#6aa06f"];
+  read [label="terms-reading.json\nunknown uses.to 0", fillcolor="#f9ecd0", color="#d2a03c"];
+  drop [label="dropped-uses.csv\n떼어 낸 간선 (외부 의존)", fillcolor="#d9ead3", color="#6aa06f"];
+  done [label="done_files 갱신\n→ 다음 준비 집합", fillcolor="#dfe6f4", color="#8fa4d4"];
+  vt   [label="verify-terms 통과\n→ outline-wiki 이후 단계", fillcolor="#d9ead3", color="#6aa06f"];
+  depf -> ready -> launch -> pool -> sess -> shard -> merge -> norm; norm -> read; norm -> drop; read -> vt; shard -> done -> ready [style=dashed];
+}

@@ -1,0 +1,14 @@
+digraph before {
+  rankdir=LR; fontname="Helvetica"; node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f4f4f4", color="#888"]; edge [fontname="Helvetica", fontsize=10, color="#666"];
+  t0   [label="t0 — 78개 프롬프트를\n한꺼번에 조립·제출", fillcolor="#f6d5d3", color="#d9534f"];
+  dep  [label="dep_excerpt\n(늘 빈 발췌 — id↔이름 불일치,\n병합 0개 시점)", fillcolor="#f6d5d3", color="#d9534f"];
+  pend [label="pending_excerpt\n(자기 파일 심볼까지 '열지 마라')", fillcolor="#f6d5d3", color="#d9534f"];
+  pool [label="풀 (동시 8)\n가중치 순, 장벽 없음", fillcolor="#e9e2f6", color="#9a7fd4"];
+  sess [label="세션 78개\n의존 -> C218 을 그대로 베낌", fillcolor="#e9e2f6", color="#9a7fd4"];
+  shard[label="_shards/*.json\nuses.to = C218 · shallow 376", fillcolor="#f9ecd0", color="#d2a03c"];
+  merge[label="merge_shards", fillcolor="#dfe6f4", color="#8fa4d4"];
+  read [label="terms-reading.json\nunknown uses.to 533", fillcolor="#f9ecd0", color="#d2a03c"];
+  p2   [label="2패스 후보 12개\n(id 는 unknown → 탈락)", fillcolor="#f6d5d3", color="#d9534f"];
+  vt   [label="verify-terms\n실패 533건 → 정지", fillcolor="#f6d5d3", color="#d9534f"];
+  t0 -> dep; t0 -> pend; dep -> pool; pend -> pool; pool -> sess -> shard -> merge -> read; read -> p2 [style=dashed]; read -> vt;
+}

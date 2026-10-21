@@ -42,10 +42,10 @@ Mode 1 ─────────────▶ Mode 1.5 ───────
 ### 산출물
 | 파일 | 무엇 | 만드는 것 |
 |---|---|---|
-| `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `codegraph/normalize.py` |
-| `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `codegraph/facts.py` |
-| `ranking.json` | 모듈 중요도(PageRank·hotspot) | `codegraph/facts.py` |
-| **`terms-db.json`** | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `codegraph/terms_db.py` (✅ 존재. Task 1.1, 커밋 `8069517`) |
+| `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `machine/normalize.py` |
+| `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `machine/facts.py` |
+| `ranking.json` | 모듈 중요도(PageRank·hotspot) | `machine/facts.py` |
+| **`terms-db.json`** | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `machine/terms_db.py` (✅ 존재. Task 1.1, 커밋 `8069517`) |
 | 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
 
 ### 이 mode 에 새로 붙는 것
@@ -162,8 +162,8 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 - **옛 산출물을 재현하지 않는다.** `CLAUDE.md` `## ⚠ 방향` 절. 2026-07-27 자 HTML 은 출발점이지 기준이 아니다
 - **판정 푸터를 채우지 않는다.** `VerdictFooter` 는 항상 비워서 낸다
 - **용어를 감으로 고르지 않는다.** Mode 1.5 가 붙은 뒤로는 `terms` 가 `terms.json` 에서 온다
-- **D축(결정 불확실성)을 만들지 않는다.** A1 취소로 무기한 보류. `src/types.ts` 에 필드가 없다
-- **새 런타임 스크립트를 추가하지 않는다.** 예산 1개가 찼다. 필요하면 `src/runtime/term-graph.ts` 번들에 합친다
+- **D축(결정 불확실성)을 만들지 않는다.** A1 취소로 무기한 보류. `viz/src/types.ts` 에 필드가 없다
+- **새 런타임 스크립트를 추가하지 않는다.** 예산 1개가 찼다. 필요하면 `viz/src/runtime/term-graph.ts` 번들에 합친다
 
 ### 진입점
 `bin/report-spec` (Task 0.2 후). Skill 은 `~/.claude/skills/spec-review-dashboard/SKILL.md` — 2026-08-28 에 이 파이프라인 기준으로 포팅됐다.

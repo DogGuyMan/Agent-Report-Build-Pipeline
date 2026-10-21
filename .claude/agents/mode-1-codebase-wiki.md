@@ -52,7 +52,7 @@ terms-db.json ◀─ 재료
 |---|---|
 | `codegraph/` 전반 | **소유** |
 | `machine/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
-| `docs/machine/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
+| `machine/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
 | `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
 | `machine/normalize.py` 의 **출력 키** | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to` · `id`/`depends_on` 를 읽는다 (간접 의존) |
 | `CLAUDE.md` | **Track C 절만** |

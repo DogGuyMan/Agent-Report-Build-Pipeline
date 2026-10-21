@@ -267,7 +267,7 @@ README 를 손으로 고치면 **깨진다**(일치 exit 0 · 낡음 exit 1 로 
 
 `docs/superpowers/plans/2026-08-30-symbol-resolution-survey.md`
 
-1. **경로가 전부 낡았다.** File Structure 가 `codegraph/survey_plan.py` 를 가리키는데
+1. **경로가 전부 낡았다.** File Structure 가 `machine/survey_plan.py` 를 가리키는데
    지금은 `machine/survey_plan.py` + `runner/run_mode1.py` 다. 코드 조각의
    `<include file="docs/codegraph/comments.xml">` 도 `machine/comments.xml` 로 바뀌었다.
 2. **계획이 건드릴 3파일이 strict 0 이 됐다.** `survey_plan.py`·`run_mode1.py`·`terms_db.py` 에

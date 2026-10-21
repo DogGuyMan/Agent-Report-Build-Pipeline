@@ -273,7 +273,7 @@ dotnet run --project codegraph/roslyn-dump -- $CSHARP_REPO
 
 ## ✅ 실행 완료 (2026-08-27) — 오케스트레이터 보고용
 
-**고친 것** — `codegraph/roslyn-dump/Program.cs` 416 → 527줄, `codegraph/render_classes.py` 의
+**고친 것** — `codegraph/roslyn-dump/Program.cs` 416 → 527줄, `viz/render_classes.py` 의
 `load_detail()`. **사용자 프로젝트에 남긴 것은 `out/codegraph-raw/` 재생성분뿐이다**(§7 규약 준수).
 
 ### D1~D5 — 전부 구현

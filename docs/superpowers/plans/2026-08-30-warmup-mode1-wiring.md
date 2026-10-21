@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `codegraph/warmup.py` 의 증분 판정을 `codegraph/run_mode1.py` 의 단계 흐름에 끼워, 국소 변경일 때 에이전트가 저장소 전량이 아니라 **바뀐 파일과 그 파급만** 읽게 한다.
+**Goal:** `machine/warmup.py` 의 증분 판정을 `runner/run_mode1.py` 의 단계 흐름에 끼워, 국소 변경일 때 에이전트가 저장소 전량이 아니라 **바뀐 파일과 그 파급만** 읽게 한다.
 
 **Architecture:** 새 단계를 둘 넣는다 — `agent` 앞의 `warmup`(판정만)과 `agent` 뒤의 `warmup-save`(매니페스트 확정). 판정과 확정을 갈라 놓는 것이 이 설계의 급소다. 에이전트가 실패했는데 매니페스트를 이미 "유효" 로 갱신했다면 다음 실행이 읽지 않은 파일을 읽은 것으로 쳐서 낡은 요약이 조용히 살아남는다. 판정 결과는 프롬프트의 **범위 지시문**으로 들어가고, 읽을 것이 하나도 없으면 에이전트를 **아예 부르지 않는다**.
 
-**Tech Stack:** Python 3 (표준 라이브러리 + `pytest`). 새 의존성 없음. 새 파일 없음 — `codegraph/run_mode1.py` 와 그 시험 파일만 고친다.
+**Tech Stack:** Python 3 (표준 라이브러리 + `pytest`). 새 의존성 없음. 새 파일 없음 — `runner/run_mode1.py` 와 그 시험 파일만 고친다.
 
 ---
 
@@ -37,7 +37,7 @@ check  0.2초        0            $0
 | **함수 본문** (`return x + 1` → `return x + 100`) | **위치만 1 · 재읽기 0** |
 | 함수 추가 | 재읽기 1 (50.0%) |
 
-`decl_hash` 는 `(kind, name)` 만 해싱한다(`codegraph/warmup.py:84`). 그래서 본문을 통째로 다시 써도 선언 이름이 같으면 `위치만` 이다. 전수조사 레코드의 `does`(동작)와 위키 산문의 행동 서술은 본문에 달려 있으므로, **`위치만` 을 에이전트에서 빼면 그 서술이 조용히 낡는다.**
+`decl_hash` 는 `(kind, name)` 만 해싱한다(`machine/warmup.py:84`). 그래서 본문을 통째로 다시 써도 선언 이름이 같으면 `위치만` 이다. 전수조사 레코드의 `does`(동작)와 위키 산문의 행동 서술은 본문에 달려 있으므로, **`위치만` 을 에이전트에서 빼면 그 서술이 조용히 낡는다.**
 
 **그래서 이 계획은 `재읽기` 가 아니라 `재읽기 ∪ 위치만` 을 씨앗으로 삼는다.** `warmup.py:244` 의 CLI 도 이미 그렇게 한다 — 도구는 옳고, 배선만 조심하면 된다.
 
@@ -59,10 +59,10 @@ check  0.2초        0            $0
 
 | 무엇 | 왜 이 계획에 없나 |
 |---|---|
-| `codegraph/warmup.py` 수정 | 도구는 옳다. 결함은 배선 쪽에 있다 |
-| `codegraph/xmldoc.py` 를 저장소 무관하게 만들기 | 별개 하위체계다(`xmldoc.py:26-29` 가 report-builder 자신에 고정). `위치만` 을 에이전트에 보내므로 **정확성에는 필요 없고**, 나중의 순수 최적화다 |
+| `machine/warmup.py` 수정 | 도구는 옳다. 결함은 배선 쪽에 있다 |
+| `machine/xmldoc.py` 를 저장소 무관하게 만들기 | 별개 하위체계다(`xmldoc.py:26-29` 가 report-builder 자신에 고정). `위치만` 을 에이전트에 보내므로 **정확성에는 필요 없고**, 나중의 순수 최적화다 |
 | `bin/report-wiki` 에 명령 추가 | 실행기는 Python 이다. Node 진입점을 늘리면 같은 흐름이 두 곳에 생긴다 |
-| `codegraph/normalize.py` 출력 키 | `terms_db.py` 가 간접 의존한다. 건드리면 조용히 깨진다 |
+| `machine/normalize.py` 출력 키 | `terms_db.py` 가 간접 의존한다. 건드리면 조용히 깨진다 |
 | 단계 등록기·플러그인 구조 | 거울 함정. 단계는 일곱 개 고정이고 `if/elif` 로 충분하다 |
 
 ### 파일 구조
@@ -71,10 +71,10 @@ check  0.2초        0            $0
 
 | 파일 | 책임 | 이 계획에서 |
 |---|---|---|
-| `codegraph/run_mode1.py` | 단계 흐름 · 측정 · 보고 | **수정** (순수 함수 4개 추가 + `main` 배선) |
-| `codegraph/test_run_mode1.py` | 위 파일의 회귀 시험 | **수정** (시험 14개 추가) |
-| `codegraph/warmup.py` | 파일 지문과 무효화 판정 | 읽기만 (import) |
-| `codegraph/declmap.py` | 추적 파일 목록과 선언 훑기 | 읽기만 (import) |
+| `runner/run_mode1.py` | 단계 흐름 · 측정 · 보고 | **수정** (순수 함수 4개 추가 + `main` 배선) |
+| `runner/test_run_mode1.py` | 위 파일의 회귀 시험 | **수정** (시험 14개 추가) |
+| `machine/warmup.py` | 파일 지문과 무효화 판정 | 읽기만 (import) |
+| `machine/declmap.py` | 추적 파일 목록과 선언 훑기 | 읽기만 (import) |
 
 ### 이 저장소의 규율 — 실행자가 어길 만한 것
 
@@ -92,22 +92,22 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 .venv/bin/python -m pytest codegraph/ -q                       # 회귀 전량
 ```
 
-착수 시점 기준선: 🔵 `codegraph/test_run_mode1.py` **20 passed**, `codegraph/` 전량 **125 passed, 19 skipped**.
+착수 시점 기준선: 🔵 `runner/test_run_mode1.py` **20 passed**, `codegraph/` 전량 **125 passed, 19 skipped**.
 (건너뜀 19개는 `$GRAPHICS_REPO`·`$CPP_REPO`·`$CSHARP_REPO` 가 없어서다. 실패가 아니다.)
 
 ---
 
 ## Task 1: 언어 이름 다리 — `lang_of`
 
-코드 지도는 언어를 `"cpp"` / `"csharp"` 로 적고(`codegraph/normalize.py:460,725`), `declmap` 은 `"cpp"` / `"cs"` 로 안다(`codegraph/declmap.py:33`). 이 한 칸이 어긋나면 `warmup` 단계가 통째로 죽는다. 수집기를 다시 판별하지 않고 **코드 지도가 이미 적어 둔 값**을 읽는다 — 판별 규칙이 두 곳에 생기는 것을 막는다.
+코드 지도는 언어를 `"cpp"` / `"csharp"` 로 적고(`machine/normalize.py:460,725`), `declmap` 은 `"cpp"` / `"cs"` 로 안다(`machine/declmap.py:33`). 이 한 칸이 어긋나면 `warmup` 단계가 통째로 죽는다. 수집기를 다시 판별하지 않고 **코드 지도가 이미 적어 둔 값**을 읽는다 — 판별 규칙이 두 곳에 생기는 것을 막는다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py` (68번 줄 `AGENT_STAGES` 아래에 상수와 함수 추가)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py` (68번 줄 `AGENT_STAGES` 아래에 상수와 함수 추가)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
-`codegraph/test_run_mode1.py` 의 `# ── 4. 에이전트 호출` 절 **바로 앞**에 새 절을 넣는다:
+`runner/test_run_mode1.py` 의 `# ── 4. 에이전트 호출` 절 **바로 앞**에 새 절을 넣는다:
 
 ```python
 # ── 3.5 WarmUp — 언어 이름 다리
@@ -141,7 +141,7 @@ cd /Users/escatrgot/LLM-Tools/report-builder
 
 - [x] **Step 3: 최소 구현을 쓴다**
 
-`codegraph/run_mode1.py` 의 `AGENT_STAGES = {"agent"}` 줄 **바로 아래**에 넣는다:
+`runner/run_mode1.py` 의 `AGENT_STAGES = {"agent"}` 줄 **바로 아래**에 넣는다:
 
 ```python
 
@@ -212,8 +212,8 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 **이 계획에서 가장 중요한 Task 다.** 위 "반드시 고쳐야 할 결함" 절에서 잰 것 — 함수 본문만 고친 변경이 `위치만` 으로 판정된다. 이것을 에이전트에서 빼면 레코드의 `does` 가 조용히 낡는다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py` (Task 1 에서 넣은 `lang_of` 아래)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py` (Task 1 에서 넣은 `lang_of` 아래)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
@@ -309,8 +309,8 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 국소 변경의 실제 이득이 나오는 자리다. 아무것도 안 바뀌었으면 27분·$15.50 짜리 단계를 통째로 건너뛴다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py` (`changed_seed` 아래)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py` (`changed_seed` 아래)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
@@ -396,8 +396,8 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 판정 결과가 실제로 토큰을 줄이려면 **프롬프트 안으로** 들어가야 한다. 목록을 주는 것만으로는 부족하다 — "이 목록 밖은 읽지 마라" 를 함께 말해야 한다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py` (`agent_prompt` 위, 184번 줄 근처)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py` (`agent_prompt` 위, 184번 줄 근처)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
@@ -474,7 +474,7 @@ def warmup_section(targets, total, repo=""):
 
 - [x] **Step 3-2: `agent_prompt` 가 그 절을 받게 고친다**
 
-`codegraph/run_mode1.py:184` 의 서명을 바꾼다.
+`runner/run_mode1.py:184` 의 서명을 바꾼다.
 
 바꾸기 전:
 
@@ -535,8 +535,8 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 `warmup`(판정)과 `warmup-save`(확정)를 `agent` 앞뒤에 둔다. **둘을 한 단계로 합치지 않는 이유**는 그 사이에 실패할 수 있는 구간(`agent`)이 있기 때문이다.
 
 **Files:**
-- Modify: `codegraph/run_mode1.py:65` (`STAGES`), `codegraph/run_mode1.py:83` (`plan_stages`)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py:65` (`STAGES`), `runner/run_mode1.py:83` (`plan_stages`)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
@@ -597,7 +597,7 @@ def test_skipping_warmup_restores_the_old_five_stage_flow():
 
 - [x] **Step 3: 최소 구현을 쓴다**
 
-`codegraph/run_mode1.py:65` 를 바꾼다.
+`runner/run_mode1.py:65` 를 바꾼다.
 
 바꾸기 전:
 
@@ -681,8 +681,8 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 에이전트를 건너뛴 실행이 표에서 "성공" 으로 보이면, 27분이 15초로 줄어든 이유를 읽는 사람이 알 수 없다. **재는 것이 이 도구의 목적이므로 건너뜀은 보여야 한다.**
 
 **Files:**
-- Modify: `codegraph/run_mode1.py:275` 근처 (`format_report`)
-- Test: `codegraph/test_run_mode1.py`
+- Modify: `runner/run_mode1.py:275` 근처 (`format_report`)
+- Test: `runner/test_run_mode1.py`
 
 - [x] **Step 1: 실패하는 시험을 쓴다**
 
@@ -785,7 +785,7 @@ git add codegraph/run_mode1.py codegraph/test_run_mode1.py
 여기까지의 순수 함수를 실제 흐름에 잇는다. **부수효과는 이 Task 에만 있다.**
 
 **Files:**
-- Modify: `codegraph/run_mode1.py:386` 이후 (`main`)
+- Modify: `runner/run_mode1.py:386` 이후 (`main`)
 
 - [x] **Step 1: `--hops` 를 인자로 더한다**
 
@@ -923,7 +923,7 @@ def save_warmup(cache_path, entries, rows):
 
 - [x] **Step 5: `run_agent` 가 범위를 넘기게 고친다**
 
-`codegraph/run_mode1.py` 의 `run_agent` 를 바꾼다.
+`runner/run_mode1.py` 의 `run_agent` 를 바꾼다.
 
 바꾸기 전:
 
@@ -1022,12 +1022,12 @@ git add codegraph/run_mode1.py
 
 ## Task 8: 새 함수들의 전수조사 레코드를 넣는다
 
-이 저장소의 규약이다 — 새 심볼은 `docs/codegraph/terms-reading.json` 에 레코드를 갖고, 그 레코드가 소스의 주석 블록으로 주입된다. 빠뜨리면 `xmldoc.py check` 가 잡는다.
+이 저장소의 규약이다 — 새 심볼은 `machine/terms-reading.json` 에 레코드를 갖고, 그 레코드가 소스의 주석 블록으로 주입된다. 빠뜨리면 `xmldoc.py check` 가 잡는다.
 
 **Files:**
-- Modify: `docs/codegraph/terms-reading.json`
+- Modify: `machine/terms-reading.json`
 - Modify: `docs/codegraph/comments.xml` (도구가 생성한다 — 손으로 고치지 말 것)
-- Modify: `codegraph/run_mode1.py` (도구가 주석 블록을 주입한다)
+- Modify: `runner/run_mode1.py` (도구가 주석 블록을 주입한다)
 
 - [x] **Step 1: 레코드를 더한다**
 
@@ -1286,7 +1286,7 @@ git status --short
 ```
 
 ⚠ **`git checkout -- .` 을 쓰지 마라.** 그 저장소에는 이번 실행이 만든
-`docs/codegraph/terms-reading.json` 과 `docs/wiki/*.md` 가 커밋되지 않은 채 있다.
+`machine/terms-reading.json` 과 `docs/wiki/*.md` 가 커밋되지 않은 채 있다.
 경로를 하나만 좁혀서 되돌린다.
 
 - [ ] **Step 6: 결과를 보고한다**

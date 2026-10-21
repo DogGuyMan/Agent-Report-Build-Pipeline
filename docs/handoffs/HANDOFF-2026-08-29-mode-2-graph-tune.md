@@ -13,4 +13,4 @@ context7 로 레퍼런싱해라." (2) "일단 임시로 슬라이더 바를 하�
 만든다(같은 번들, `<script>` 1 유지). 슬라이더를 움직이면 힘을 갱신하고 시뮬레이션을 다시 데운다. 현재 값을 `const …` 줄로 보여 주는 칸 — 사용자가 복사해 넘긴다.
 두 보고서에 `tune` 을 **임시로** 켠다. 값이 정해지면 상수로 박고 `tune` 을 끈다.
 
-프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `src/runtime/term-graph.ts` · `src/runtime/graph-math.ts` · `src/components/terms.tsx`(`TermGraph` 만) · `src/theme.css`(추가만) · `test/graph-math.test.mjs` · `test/components.test.mjs`(추가만) · 두 보고서 `report.tsx` 의 `<TermGraph …>` 한 줄.
+프롬프트 본문은 오케스트레이터 세션의 Agent 호출과 같다 — 7블록. 소유: `viz/src/runtime/term-graph.ts` · `viz/src/runtime/graph-math.ts` · `viz/src/components/terms.tsx`(`TermGraph` 만) · `viz/src/theme.css`(추가만) · `test/graph-math.test.mjs` · `test/components.test.mjs`(추가만) · 두 보고서 `report.tsx` 의 `<TermGraph …>` 한 줄.

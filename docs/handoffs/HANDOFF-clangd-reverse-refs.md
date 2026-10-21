@@ -363,7 +363,7 @@ clangd --compile-commands-dir=build_cc --check=src/render/renderer.cpp
 
 ## 6-1. E6 실행 결과 (🔵 2026-08-27 — 전부 이 세션에서 돌린 명령의 출력)
 
-구현물: `$REPO_ROOT/codegraph/clangd_refs.py` (stdio JSON-RPC 클라이언트, E6).
+구현물: `$REPO_ROOT/machine/clangd_refs.py` (stdio JSON-RPC 클라이언트, E6).
 프로브: 같은 디렉토리의 `probe_task3.py` · `probe_index_completeness.py` · `probe_cold.py` · `probe_fullscan.py`.
 
 ### Task 3 통과 — `textDocument/references` 가 응답한다

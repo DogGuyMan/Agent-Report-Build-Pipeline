@@ -80,7 +80,7 @@ Task 7 은 코드가 아니라 데이터다 — LLM 추론 단계이며, 이 저
 - [ ] **Step 2: 같은 파일 `## 소유 파일과 경계` 표에 두 행 추가 (`codegraph/terms_db.py` 행 아래)**
 
 ```
-| `docs/codegraph/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
+| `machine/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
 | `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
 ```
 

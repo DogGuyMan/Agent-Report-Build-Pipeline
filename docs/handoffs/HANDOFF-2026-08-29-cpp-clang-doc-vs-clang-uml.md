@@ -83,7 +83,7 @@ clang-uml  ─→ 관계의 종류 (합성 / 집약 / 의존)
 |---|---|
 | report-builder 루트 | `readlink -f "$(which report-spec)"` → `<루트>/bin/report-spec` |
 | `clang-doc` 위치 | `ls /opt/homebrew/opt/llvm@22/bin/clang-doc` |
-| `normalize.py` CLI 는 `--clang-uml` / `--roslyn-dump` 배타 그룹 | `grep -n "add_argument" codegraph/normalize.py` (현재 647~650줄) |
+| `normalize.py` CLI 는 `--clang-uml` / `--roslyn-dump` 배타 그룹 | `grep -n "add_argument" machine/normalize.py` (현재 647~650줄) |
 | C++ 정규화 진입 | `normalize.py::normalize_cpp` (현재 264줄) |
 | 관계 낱말 대응표 | `normalize.py::CLANG_UML_KIND` (현재 27줄) |
 | 1차 판정 세 겹 | `normalize.py::is_first_party` — 네임스페이스 허용목록 → git 추적 → **그 줄이 정의하는가**(`defines_at`) |
@@ -130,7 +130,7 @@ def load_clang_doc(out_dir):
 
 ### STEP 2 — 시험을 먼저 쓴다
 
-**파일:** `codegraph/test_clang_doc.py` (신규). 합성 데이터로 위 세 함정을 못박는다.
+**파일:** `machine/test_clang_doc.py` (신규). 합성 데이터로 위 세 함정을 못박는다.
 **추가로 골든 시험 하나** — `$CPP_REPO` 가 있으면 실제 산출물에서 `ComputePanorama` 가
 `core/panorama/panorama.cpp:129` 로 나오는지 본다(없으면 `pytest.skip`).
 
@@ -187,8 +187,8 @@ print('노드',len(d['nodes']),'간선',len(d['edges']))"
 
 | 파일 | 왜 |
 |---|---|
-| `codegraph/normalize.py` 의 `normalize_csharp` 와 그 아래 | C# 경로다. 이 작업과 무관하고 골든 시험이 231노드/540간선을 못박고 있다 |
-| `codegraph/terms_db.py` | 사전 병합. 다른 작업(WarmUp)이 만질 수 있다 |
+| `machine/normalize.py` 의 `normalize_csharp` 와 그 아래 | C# 경로다. 이 작업과 무관하고 골든 시험이 231노드/540간선을 못박고 있다 |
+| `machine/terms_db.py` | 사전 병합. 다른 작업(WarmUp)이 만질 수 있다 |
 | `CPP_FIRST_PARTY_NS` · `defines_at` · `tracked_set` | 1차 판정 세 겹. **우회하지 말고 그대로 태워라.** 우회하면 Qt·OpenCV 타입이 1차로 샌다 |
 | 대상 저장소의 소스 | 읽기만 한다 |
 
@@ -214,7 +214,7 @@ report-wiki prep "$CPP_REPO" && report-wiki check "$CPP_REPO"   # 기대: exit 0
 ## 7. 이 저장소의 규약 (반드시 지킬 것)
 
 - **커밋하지 마라.** 사용자 승인 후 오케스트레이터가 한다. `git add -A` 금지, 경로를 좁혀라.
-- **새 코드를 쓰면 그 자리에서 전수조사 레코드도 쓴다.** `docs/codegraph/terms-reading.json` 에
+- **새 코드를 쓰면 그 자리에서 전수조사 레코드도 쓴다.** `machine/terms-reading.json` 에
   `{kind, module, where, means, does?, uses[], confidence, source:"reading"}`. 그다음
   `xmldoc.py emit` → `inject` 로 주석 블록을 박는다. **코드와 좌표는 같은 커밋에.**
 - `scripts/*.mjs` 는 **직접 실행 가드**를 둔다 — `if (process.argv[1]?.endsWith("x.mjs")) { … }`.

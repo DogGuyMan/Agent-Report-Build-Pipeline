@@ -337,3 +337,17 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
 **새 코드에 심지 않고, 있는 것을 고치지도 않는다.** `emit` · `inject` · `check` 어느 것도 돌리지 않는다.
 지우는 것은 별개의 코드 작업이라 사용자가 시점을 정한다. 대체 마크업은 없다 — 의존 그래프는 `terms-db.json` 에 산다.
 - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).
+
+## 문서 정본
+
+- 정본 `.agents/rules/react-best-practices.md` · 같은 내용의 사본 `.gemini/ReactRule.md` (내용을 고칠 때는 정본만 고친다)
+- 정본 `docs/superpowers/plans/2026-08-29-mode-1-terms-db-first.md` · 같은 내용의 사본 `docs/handoffs/HANDOFF-2026-08-29-mode-1-terms-db-tasks-1-5.md`, `docs/superpowers/specs/2026-08-29-mode-1-terms-db-first-design.md` (내용을 고칠 때는 정본만 고친다)
+- 정본 `docs/handoffs/HANDOFF-report-system.md` · 같은 내용의 사본 `docs/handoffs/ReportSystem_HandOff.md` (내용을 고칠 때는 정본만 고친다)
+- 정본 `docs/superpowers/specs/2026-08-28-llm-load-reduction-design.md` · 같은 내용의 사본 `docs/superpowers/plans/2026-08-28-llm-load-reduction.md` (내용을 고칠 때는 정본만 고친다)
+
+## 용어
+
+- LlmStage · 같은 뜻의 다른 표기 llmstage (새로 쓸 때는 LlmStage)
+- codegraph · 같은 뜻의 다른 표기 code graph (새로 쓸 때는 codegraph)
+- deep-wiki · 같은 뜻의 다른 표기 DeepWiki (새로 쓸 때는 deep-wiki)
+- run_dispatch · 같은 뜻의 다른 표기 runDispatch (새로 쓸 때는 run_dispatch)

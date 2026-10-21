@@ -70,7 +70,7 @@
 증분 이득(재요약 비율)은 **전량 실행 1회가 있어야만** 계산되는 값이다 —
 `2026-08-28-llm-load-reduction.md` Task 5 Step 5 가 그렇게 쓰여 있다. 순서를 뒤집으면 "얼마나 줄었나" 를 숫자로 말할 수 없다.
 
-**WarmUp 은 설계만 있고 구현이 0이다.** 🔵 실측 — `codegraph/warmup.py` **부재**, 계획서 Task 1~8 실행 **0건**,
+**WarmUp 은 설계만 있고 구현이 0이다.** 🔵 실측 — `machine/warmup.py` **부재**, 계획서 Task 1~8 실행 **0건**,
 `terms-reading.json` 213 레코드에 **blob·commit·hash 계열 필드가 하나도 없다**. 지금 다시 돌리면 **매번 전량 재계산**이다.
 설계된 보장은 **두 겹**임을 기억한다 — ① `git ls-tree` 의 blob SHA 3값 판정(유효/낡음/판정불가),
 ② `blast_radius()` 로 의존 간선 **양방향 1홉** 파급(“A 는 안 바뀌었는데 B 변경으로 A 서술이 틀려지는” 경우).
@@ -98,7 +98,7 @@ Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했�
 
 ## 0. 방금 착지한 것 — 서브에이전트 ⑭ (2026-08-29 17:50, 미커밋)
 
-**무엇** — `codegraph/xmldoc.py` 의 `where` 를 **마커 기준 재계산**으로 바꾸고, 주입 주석 블록에 **의존 줄**을 더하고,
+**무엇** — `machine/xmldoc.py` 의 `where` 를 **마커 기준 재계산**으로 바꾸고, 주입 주석 블록에 **의존 줄**을 더하고,
 보류됐던 재조사 증분(새 레코드 22 · uses 9)을 합쳤다. 프롬프트 전문: `HANDOFF-2026-08-29-mode-1-xmldoc-relocate.md`.
 
 **사용자 의도(왜 이 파이프라인이 있나)** — *"개발하면서 내 생각과 기능 설명을 코드 옆에 미리 남겨, 나중 LLM 이 코드를 다시 추론하는 부담을 줄인다."*
@@ -143,7 +143,7 @@ Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했�
 
 | # | 메시지 | 경로 |
 |---|---|---|
-| 1 | `[fix] : xmldoc 의 where 를 마커 기준으로 재계산하고 의존 줄 추가` | `codegraph/xmldoc.py` `codegraph/test_xmldoc.py` |
+| 1 | `[fix] : xmldoc 의 where 를 마커 기준으로 재계산하고 의존 줄 추가` | `machine/xmldoc.py` `machine/test_xmldoc.py` |
 | 2 | `[chore] : 주석 블록 재주입 - 마커 기준 where 와 의존 줄 반영` | 소스 38개 (`bin/*` `codegraph/*.py` `scripts/**` `src/**`, 주석만) |
 | 3 | `[feat] : 전수조사 증분 합치기 - 새 레코드 22개와 낡은 인용 정정` | `docs/codegraph/terms-reading.json` `docs/codegraph/comments.xml` |
 | 4 | `[docs] : 전수조사 스킬에 개발 규율과 xmldoc 산출물 반영` | `.agents/skills/codebase-terms-survey/SKILL.md` |
@@ -177,7 +177,7 @@ Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했�
 | 0.1 | `scripts/dispatch.mjs` + 테스트 4 | `3c32fc6` | 서브에이전트 |
 | 0.2 | `bin/report-{spec,term,wiki}`, `report` 위임 | `2316d6c` | 서브에이전트 |
 | 0.3 | `CLAUDE.md` 명령 절 | `af03897` (+ 잔존 5곳 `2fff128`) | 서브에이전트 |
-| 1.1 | `codegraph/terms_db.py` + pytest 3 | `8069517` | 서브에이전트 — **계획서 키 오류 2건 실측 정정** |
+| 1.1 | `machine/terms_db.py` + pytest 3 | `8069517` | 서브에이전트 — **계획서 키 오류 2건 실측 정정** |
 | 2.1 | `scripts/term/collect.mjs` + 테스트 4 | `1d31dc9` | 서브에이전트 |
 | 3.1 | `scripts/term/quiz.mjs` + 테스트 6 | `6c0cca6` (+ `quiz` 명령 제거 `8b0141e`) | 서브에이전트 — **디스패처 인자 오류 실측 정정** |
 | 4.1 | `scripts/term/emit.mjs` + 테스트 4 | `5d09bd9` | 서브에이전트 |
@@ -237,7 +237,7 @@ Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했�
 |---|---|---|---|---|
 | `codegraph/*` (`terms_db.py` 포함 — ⑤ 이후) | 검토·커밋 | **소유** (⑤⑥ 투입) | 읽기 | 읽기 |
 | `docs/codegraph/terms-reading.json` · `comments.xml` | 검토 | **소유** (전수조사 원본과 파생 XML) | 읽기 | 읽기 |
-| `codegraph/xmldoc.py` · `test_xmldoc.py` | 검토·커밋 | **소유** (⑭ 투입 중) | — | — |
+| `machine/xmldoc.py` · `test_xmldoc.py` | 검토·커밋 | **소유** (⑭ 투입 중) | — | — |
 | 소스의 **주석 블록**(`<include …/>`) | 검토 | `xmldoc inject` 로만 바꾼다 — 손으로 고치지 않는다 | — | — |
 | `normalize.py` 출력 키 | — | **바꾸지 말 것** | — | — |
 | `scripts/term/*` · `test/term.test.mjs` | 검토 | 읽기 | **소유** (⑦ 투입) | 읽기 |
@@ -303,7 +303,7 @@ Mode 1 이 두 번(terms-db 우선 전환 · xmldoc 주석 외부화) 진화했�
 |---|---|---|---|---|
 | C++ | **clang-uml 0.6.3** (외부 도구) | `clang-uml -c .clang-uml -n full_class_all -g json --paths-relative-to-pwd` | `elements[].source_location {file,line}` → `normalize.py::normalize_cpp` | `SJH::MouseInput` → `src/input/mouse_input.h:42` |
 | C# | **roslyn-dump 0.1** (**우리 도구**, `Microsoft.CodeAnalysis.CSharp 5.9.0`) | `dotnet run --project codegraph/roslyn-dump -- <저장소>` | `types[].{file,line}` → `normalize.py::normalize_csharp` | `AddressableRenamer` → `Assets/@Editors/AddressableRenamer.cs:9` |
-| Python · JS/TS | **없음** — LLM 전수조사 → `terms_db.py::project_codegraph` 투영 | `codebase-terms-survey` 스킬 | 레코드 `where` 를 쪼갬 | `BeforeAfter` → `src/components/BeforeAfter.tsx:20`, `source_tool: "terms-db"` |
+| Python · JS/TS | **없음** — LLM 전수조사 → `terms_db.py::project_codegraph` 투영 | `codebase-terms-survey` 스킬 | 레코드 `where` 를 쪼갬 | `BeforeAfter` → `viz/src/components/BeforeAfter.tsx:20`, `source_tool: "terms-db"` |
 
 **이미 있는 것**: `nodes[]`/`edges[]` 의 `file`(저장소 루트 기준 **상대** 경로) + `line`. `verify_citations.py::build_index` 가 `(file,line)` 쌍을 색인 키로 쓴다.
 **없는 것**: LLM 이 한 번에 붙여 넣어 뛸 수 있는 **한 문자열**.
@@ -394,10 +394,10 @@ cd ../mode-1-terms-db-first && report-spec build && report-spec check           
 - 2026-08-29 15:00 — **Mode 1.5 첫 시험.** 용어 20개 × 5문항(100문항)을 문제 파일로 치렀다(사용자 요청으로 대화식 출제 중단). 결과 확실 6 · 애매 3 · 모름 11 — 모름 11개가 전부 Plan 의 결정 코드·지표 표기. 사용자 판정 확정. `data.ts` 에 `mental` 20개 반영 → **이해도가 실측된 첫 보고서** (`041d4be`). 사용자 결정으로 채점 규칙을 **3문항 · 맞힌 수 2~3 확실 / 0~1 모름 · 모른다 2회 모름 · 애매 없음** 으로 변경 — 코드는 `mode-1-5-term-benchmark` 첫 실전 투입(`71a3386`), 문서 6곳은 오케스트레이터(`0447d9b`). C1 첫 관측 — 진짜 뜻이 있는 용어의 정답률이 60~100% 로 갈렸다(포화 아님). C2 실측 — 100문항은 많다. `C-19` `M4` `U5` 를 사전에 둔 결정은 무의미했다(전부 '모른다'). 그레이딩 헬퍼 `out/quiz_to_answers.py`(숫자 배열 → answers.json, gitignore).
 - 2026-08-29 15:40 — **Mode 2 프론트 두 건 (사용자 지시).** ① 용어집을 이해도 그룹 **아코디언**으로(`596dec9`, `<details>` 스크립트 0줄, 모름만 열림) — `mode-2-spec-report` 첫 실전 투입. ② 본문 용어 **자동 참조** — 빌드 후 통과 `scripts/wrap-terms.mjs` 가 모든 등장을 `TermRef` 마크업으로 감싼다(`70e4f39`), 카드에 용례·이해도 배지, 밑줄 끝 `?`; 두 보고서의 수동 `<T>` 40곳 제거(`dbb4d0f`). 제목·`.mono` 는 건너뛴다(사용자 확정). 하네스가 내 오류 2건을 더 잡았다(테스트 단언 패턴 · 뒤쪽 경계). 서브에이전트 세션·네트워크 피드백 실측: 정상.
 - 2026-08-29 16:35 — **Mode 2 경로 링크** (사용자 지시). 빌드 후 통과 둘째 `scripts/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더의 `file://` 링크(**새 탭**)로, 없는 파일은 그대로(`f92cb7d`). 해석 순서에서 **`linkRoots` 가 저장소 기본 폴더보다 앞**(사용자 확정) — llm 보고서의 `codegraph.json` 이 StickRush 로 간다. `ReportData.linkRoots?` 추가. llm 28개 · mode-1 36개 · 못 찾은 경로 4종(계획에만 있는 파일). `facts/*.md` 는 SVG 안에만 있어 링크 안 됨(의도). 테스트 86.
-- 2026-08-29 17:45 — **관계도 물리 (사용자 지시 2건, `6ef58b3`).** `forceManyBody` → 덩어리를 아는 쌍 전수 척력 + 노드별 중력, 캔버스 상자 제한, **덩어리 경계 사각형(AABB) 충돌**(context7: d3-force 에 그룹 충돌 없음 → 커스텀 힘). 임시 슬라이더(`<TermGraph tune />`)로 사용자가 값 10개를 육안 확정 → `KNOBS` 에 박고 tune 을 뗌. 순수 계산 `src/runtime/graph-math.ts`(components · bounds · clampBox · rectOverlap) 테스트 9개. 런타임 68.5KB. 테스트 95.
+- 2026-08-29 17:45 — **관계도 물리 (사용자 지시 2건, `6ef58b3`).** `forceManyBody` → 덩어리를 아는 쌍 전수 척력 + 노드별 중력, 캔버스 상자 제한, **덩어리 경계 사각형(AABB) 충돌**(context7: d3-force 에 그룹 충돌 없음 → 커스텀 힘). 임시 슬라이더(`<TermGraph tune />`)로 사용자가 값 10개를 육안 확정 → `KNOBS` 에 박고 tune 을 뗌. 순수 계산 `viz/src/runtime/graph-math.ts`(components · bounds · clampBox · rectOverlap) 테스트 9개. 런타임 68.5KB. 테스트 95.
 - 2026-08-29 18:05 — **카드 결함 2건 (사용자 관측, 오케스트레이터 직접).** ① 표 안 카드가 `.table-wrap`(overflow-x)·`.card`(overflow hidden)에 잘림 → 런타임이 뜰 때 위치만 `position: fixed` 로(`a4d526c`, CLAUDE.md 의 'CSS 만으로' 문장 개정). ② 범례 안 카드가 항상 켜짐 — `.diagram-legend span` 이 자손 전체에 걸려 `.term-card` 의 display:none 을 이김 → 직계 자식 `>` 로(`d42d3b3`). 자동 참조가 새 자리에 term-ref 를 넣으면서 드러난 기존 CSS 의 함정. 같은 꼴의 자손 요소 선택자는 theme.css 에 더 없음(grep).
 - 2026-08-29 18:15 — **핸드오프 전면 갱신(사용자 지시).** TL;DR · §1 · §4 · §6 · §7 · §8 을 재측정으로 다시 썼다. HANDOFF ① 배너에 §0 도 낡았음을 적고, ③ 의 '아직 안 된 것' 을 전부 완료로, Mode 2 절과 정의 파일에 오늘의 프론트 변경 5건을 반영, Track C RESUME 에 terms-db 우선 파이프라인 배너, CLAUDE.md 상태 표 수치 갱신.
-- 2026-08-29 18:55 — R10 재조사(⑬) 서브에이전트 완료(증분 22+17)했으나 **보류** — 다른 세션의 `xmldoc.py inject` 와 `terms-reading.json` 을 놓고 충돌. 사용자 결정: xmldoc 먼저. 증분은 `.tmp/` addendum 으로 분리, 정본은 HEAD 로 복원. 작업 트리의 38개 소스 변경과 `codegraph/xmldoc.py` · `docs/codegraph/comments.xml` 은 **다른 세션 것 — 이 세션은 건드리지 않는다.**
+- 2026-08-29 18:55 — R10 재조사(⑬) 서브에이전트 완료(증분 22+17)했으나 **보류** — 다른 세션의 `xmldoc.py inject` 와 `terms-reading.json` 을 놓고 충돌. 사용자 결정: xmldoc 먼저. 증분은 `.tmp/` addendum 으로 분리, 정본은 HEAD 로 복원. 작업 트리의 38개 소스 변경과 `machine/xmldoc.py` · `docs/codegraph/comments.xml` 은 **다른 세션 것 — 이 세션은 건드리지 않는다.**
 - 2026-08-29 19:00 — **전수조사 절차를 스킬로 분리** (`codebase-terms-survey`, 사용자 결정 C 착수). `wiki-researcher` 는 통째로 부르지 않고 규율만 이식 — 금지 표 · 증거 기준표 · `confidence` 3등급 · 탐색 안 한 것 목록 · (선택) 모듈당 구조 렌즈 1회. "빠진 간선" 측정 도구는 스킬 안에 착수 조건으로 남김. 정의 파일 절차 절은 요약+포인터로. 사용자가 xmldoc(`acf88e1` `77b95de`)과 스킬을 커밋했다.
 - 2026-08-29 17:40 — **/lossless-handoff 재실행.** ⑭(xmldoc where 마커 재계산 + 의존 줄 + 증분)이 **진행 중인 상태로** 문서화 — §0 신설(진척 · 재검증 명령 · 커밋 계획 · 실패 시 복구). `codebase-terms-survey` 스킬 신설과 `.agents/` 이전 반영. R11(codegraph 스키마 `loc`/`url` 확장) 신설 — 정적 수집기 3갈래 실측 표 포함. deep-wiki 조사: `wiki-researcher` 를 통째로 부르지 않고 규율만 이식(R12 로 기록).
 - 2026-08-29 17:50 — ⑭ **착지.** 재검증 전부 통과(pytest 62 · xmldoc check 0 · terms_db 213/실패 0/**근거 없음 0** · 코드 줄 무변경 0 · 멱등). 🔴 **내 진단 정정** — 근본 원인은 셈 오류만이 아니라 `77b95de` 가 소스 블록만 커밋하고 `terms-reading.json` 을 빠뜨린 것이었다(38파일 `strip == acf88e1` 로 확인). R10 해소. §0 을 착지 기록으로, §0.1 에 커밋 5건.

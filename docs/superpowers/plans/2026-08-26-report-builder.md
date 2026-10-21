@@ -207,7 +207,7 @@ rm -f src/__probe.tsx
 Expected: `종료코드: 0` — JSX·strict·react 타입·verbatimModuleSyntax 가 모두 해결된다는 뜻이다.
 (2026-08-26 typescript 7.0.2 로 실측 확인함.)
 
-`src/types.ts`(Task 4.1)가 생긴 뒤부터는 `npx tsc --noEmit`이 그냥 통과한다.
+`viz/src/types.ts`(Task 4.1)가 생긴 뒤부터는 `npx tsc --noEmit`이 그냥 통과한다.
 
 ### Task 0.3: PATH 등록
 
@@ -307,7 +307,7 @@ open "$GRAPHICS_REPO/doc/superpowers/specs/2026-07-27-geometry-winding-ownership
 ### Task 1.2: theme.css 추출
 
 **Files:**
-- Create: `src/theme.css`
+- Create: `viz/src/theme.css`
 
 - [ ] **Step 1: 정본 HTML에서 CSS 블록을 추출한다**
 
@@ -344,7 +344,7 @@ git commit -m "feat : 정본 보고서에서 theme.css 추출"
 ### Task 1.3: B1 패치 — 실제 크기 토글
 
 **Files:**
-- Modify: `src/theme.css`
+- Modify: `viz/src/theme.css`
 
 - [ ] **Step 1: 결함 지점을 확인한다**
 
@@ -362,7 +362,7 @@ Expected:
 
 - [ ] **Step 2: 다이어그램 CSS 구획을 교체한다**
 
-`src/theme.css`에서 `/* (d) Before/After — 반응형 2컬럼 */`로 시작하는 블록 전체(`.diagram-legend i` 줄까지)를 아래로 바꾼다.
+`viz/src/theme.css`에서 `/* (d) Before/After — 반응형 2컬럼 */`로 시작하는 블록 전체(`.diagram-legend i` 줄까지)를 아래로 바꾼다.
 
 ```css
 /* (d) Before/After — 반응형 2컬럼 + 실제 크기 토글 (B1)
@@ -883,7 +883,7 @@ return <span className={`conf-badge conf-${tier}`}>{anchor}</span>;
 ### Task 4.1: 타입 정의
 
 **Files:**
-- Create: `src/types.ts`
+- Create: `viz/src/types.ts`
 
 - [ ] **Step 1: 타입을 쓴다**
 
@@ -1158,7 +1158,7 @@ export * from "./page.js";
 export type * from "./types.js";
 ```
 
-`src/components/index.ts`와 `src/page.tsx`는 Task 4.4~4.7에서 만든다. 지금 실행하면 실패하는 것이 정상이다.
+`src/components/index.ts`와 `viz/src/page.tsx`는 Task 4.4~4.7에서 만든다. 지금 실행하면 실패하는 것이 정상이다.
 
 - [ ] **Step 3: 커밋**
 
@@ -1171,7 +1171,7 @@ git commit -m "chore : 테스트용 esbuild 라이브러리 빌드"
 
 **Files:**
 - Create: `test/components.test.mjs`
-- Create: `src/components/badges.tsx`
+- Create: `viz/src/components/badges.tsx`
 - Create: `src/components/index.ts`
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
@@ -1290,7 +1290,7 @@ git commit -m "feat : 확신도·상태 배지 컴포넌트"
 ### Task 4.5: 표 컴포넌트
 
 **Files:**
-- Create: `src/components/tables.tsx`
+- Create: `viz/src/components/tables.tsx`
 - Modify: `src/components/index.ts`
 - Modify: `test/components.test.mjs`
 
@@ -1482,8 +1482,8 @@ git commit -m "feat : 결정·옵션·lock 표 컴포넌트"
 ### Task 4.6: 블록 컴포넌트
 
 **Files:**
-- Create: `src/components/blocks.tsx`
-- Modify: `src/components/index.ts`, `test/components.test.mjs`, `src/theme.css`
+- Create: `viz/src/components/blocks.tsx`
+- Modify: `src/components/index.ts`, `test/components.test.mjs`, `viz/src/theme.css`
 
 `<Reversal>` `<Correction>` `<TriageBlock>`은 정본의 `⚠ rev.1 번복 기록` / `⚠ 2차 정정` 블록에 대응한다. **`theme.css`에 대응 클래스가 없으므로 CSS도 함께 추가한다.**
 
@@ -1626,7 +1626,7 @@ export * from "./tables.js";
 export * from "./blocks.js";
 ```
 
-- [ ] **Step 4: 대응 CSS를 `src/theme.css`에 추가한다**
+- [ ] **Step 4: 대응 CSS를 `viz/src/theme.css`에 추가한다**
 
 `/* (f) 신규 구조물 신고 */` 블록 바로 다음에 넣는다.
 
@@ -1666,7 +1666,7 @@ git commit -m "feat : 번복·정정·먼저볼것 블록 컴포넌트"
 ### Task 4.7: BeforeAfter와 VerdictFooter
 
 **Files:**
-- Create: `src/components/BeforeAfter.tsx`, `src/components/VerdictFooter.tsx`
+- Create: `viz/src/components/BeforeAfter.tsx`, `viz/src/components/VerdictFooter.tsx`
 - Modify: `src/components/index.ts`, `test/components.test.mjs`
 
 - [ ] **Step 1: 실패하는 테스트를 추가한다**
@@ -1819,7 +1819,7 @@ node scripts/lib.mjs && node --test test/components.test.mjs && npx tsc --noEmit
 
 Expected: `# pass 15`, `# fail 0`
 
-`React.CSSProperties` 타입 오류가 나면 `src/components/BeforeAfter.tsx` 맨 위에 `import type React from "react";`를 추가한다.
+`React.CSSProperties` 타입 오류가 나면 `viz/src/components/BeforeAfter.tsx` 맨 위에 `import type React from "react";`를 추가한다.
 
 - [ ] **Step 5: 커밋**
 
@@ -1831,7 +1831,7 @@ git commit -m "feat : before/after 다이어그램과 수용 판정 푸터"
 ### Task 4.8: 페이지 셸
 
 **Files:**
-- Create: `src/page.tsx`
+- Create: `viz/src/page.tsx`
 
 - [ ] **Step 1: 구현을 쓴다**
 
