@@ -19,8 +19,10 @@ fi
 node viz/lib.mjs
 
 # Claude Code 의 SessionStart 훅에서 불렸으면 bin/ 을 그 세션의 PATH 에 남긴다.
+# CLAUDE_ENV_FILE 은 세션의 다음 명령부터 들으므로 아래 doctor 를 위해 이 프로세스의 PATH 에도 넣는다.
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   echo "export PATH=\"$PWD/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
+  export PATH="$PWD/bin:$PATH"
 fi
 
 python3 tools/doctor.py
