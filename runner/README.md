@@ -11,7 +11,7 @@
 | [`check_shard.py`](check_shard.py) | 샤드 파일 하나를 기계 검문한다. 배치 세션이 끝내기 전에 스스로 돌리는 문이다. |
 | [`dispatch.py`](dispatch.py) | — |
 | [`measure.py`](measure.py) | 세 실행기가 함께 쓰는 재는 코드. 형 · 좁히기 도우미 · 표 그리기 · 하트비트. |
-| [`__init__.py`](__init__.py) | — |
+| [`mode1/__init__.py`](mode1/__init__.py) | — |
 | [`mode1/context.py`](mode1/context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
 | [`mode1/diff.py`](mode1/diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
 | [`mode1/edges.py`](mode1/edges.py) | Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 자기 다음을 모른다. |
@@ -30,7 +30,7 @@
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기. |
 | [`run_mode1_5.py`](run_mode1_5.py) | Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.** |
 | [`run_mode2.py`](run_mode2.py) | Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기. |
-| [`__init__.py`](__init__.py) | — |
+| [`term/__init__.py`](term/__init__.py) | — |
 | [`term/collect.py`](term/collect.py) | — |
 | [`term/emit.py`](term/emit.py) | — |
 | [`term/quiz.py`](term/quiz.py) | — |
@@ -42,9 +42,9 @@
 | [`test_run_mode1.py`](test_run_mode1.py) | Mode 1 실행기의 회귀 테스트. |
 | [`test_run_mode1_5.py`](test_run_mode1_5.py) | Mode 1.5 실행기의 회귀 시험. |
 | [`test_run_mode2.py`](test_run_mode2.py) | Mode 2 실행기의 회귀 시험. |
-| [`build.py`](build.py) | — |
-| [`check.py`](check.py) | — |
-| [`clang_doc.py`](clang_doc.py) | — |
+| [`wiki/build.py`](wiki/build.py) | — |
+| [`wiki/check.py`](wiki/check.py) | — |
+| [`wiki/clang_doc.py`](wiki/clang_doc.py) | — |
 | [`wiki/compdb.py`](wiki/compdb.py) | — |
 | [`wiki/paths.py`](wiki/paths.py) | — |
 | [`wiki/prep.py`](wiki/prep.py) | — |
@@ -107,6 +107,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`ShardRecord`** | *class* | `where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다. |
 | **`ShardFault`** | *class* | `at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키. |
 | **`UnresolvedRow`** | *class* | `unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나. |
+| **`DroppedUse`** | *class* | `dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
 | `_no_records` | `() -> Records` | `field(default_factory=dict)` 는 원소 형을 잃는다. 형이 붙은 빈 사전을 낸다. |
 | `_no_pages` | `() -> Pages` |  |
@@ -259,7 +260,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
 | `AnnotateSymbolsStage.name_of` | `(plan: survey_plan.SurveyPlan) -> dict[str, str]` | 계획 전체의 `id -> name`. `depends_on` 은 노드 id 이고 레코드 키는 이름이라 이 표로 건넌다. |
 | `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
-| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0, pending: str = '') -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
+| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0, pending: str = '', name_of: Mapping[str, str] \| None = None) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
 | `AnnotateSymbolsStage.pending_section` | `(pending: str) -> str` | 미조사 의존 대상이 있을 때만 붙는 절. 열지 말고 얕게 쓰고 `shallow` 를 표시하라고 시킨다. |
 | `AnnotateSymbolsStage.pending_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, nodes: Mapping[str, Mapping[str, object]]) -> str` | `depends_on` 중 **아직 레코드가 없는** 것을 `이름 (종류) 파일:줄` 로. 세션이 열지 않고 볼 최소 정보다. |
 | `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
@@ -282,6 +283,9 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.apply_pass2` | `(shard_dir: str, bid: str) -> list[ShardFault]` | 2패스 샤드를 검문하고 원 샤드의 **같은 키만** 덮는다. 틀리면 원 샤드를 두고 결함을 낸다. |
 | `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
 | `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
+| `AnnotateSymbolsStage.normalize_records` | `(got: Records, ids: Mapping[str, str]) -> tuple[Records, list[X.DroppedUse]]` | `uses[].to` 와 `shallow` 를 레코드 키로 맞춘다. 노드 id 는 이름으로 바꾸고, 어느 키도 아닌 것은 떼어 기록한다. |
+| `AnnotateSymbolsStage.dropped_csv` | `(rows: Sequence[X.DroppedUse]) -> str` | `dropped-uses.csv` 본문. label 만 따옴표로 감싼다 — 세션이 쉼표를 쓰는 칸이 그것뿐이다. |
+| `AnnotateSymbolsStage.refresh_merged` | `(self, ctx: Mode1Context) -> list[X.DroppedUse]` | 샤드를 다시 합치고 보정해 `terms-reading.json` 과 `dropped-uses.csv` 를 쓴다. |
 | `AnnotateSymbolsStage.file_of` | `(rec: Record \| None) -> str` | `where` 의 파일 부분. 없으면 빈 글. |
 | `AnnotateSymbolsStage.qualified` | `(key: str, rec: Record \| None) -> str` | `<파일줄기>.<이름>`. `where` 가 없으면 손댈 근거가 없으므로 이름을 그대로 둔다. |
 | `AnnotateSymbolsStage.plan_files` | `(plan: survey_plan.SurveyPlan) -> set[str]` | 계획에 든 배치들이 가리키는 파일 집합. |
@@ -694,9 +698,12 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_coverage_는_문법_꼴이_맞을_때만_본다` | `(tmp_path: Path)` |  |
 | `test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_본다` | `(tmp_path: Path)` |  |
 | `test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다` | `()` |  |
+| `test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인다` | `()` |  |
+| `test_배치_프롬프트는_이름표_없이도_돈다` | `()` |  |
 | `test_name_of_는_계획_전체의_id_이름_표다` | `()` |  |
 | `test_샤드_형은_shallow_를_선택_칸으로_받는다` | `()` |  |
 | `test_미조사_의존_절은_아직_없는_의존_대상을_이름_종류_자리로_적는다` | `()` |  |
+| `test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다` | `()` | 자기 파일 안의 함수는 지금 읽고 있는 것이다 — "열지 마라" 목록에 들어가면 안 된다. |
 | `test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다` | `()` |  |
 | `test_into_of_는_다른_파일에서_들어오는_간선_수를_이름으로_센다` | `()` |  |
 | `test_미해결_표는_shallow_레코드마다_의존_대상_한_줄이고_상태를_가른다` | `()` |  |
@@ -704,6 +711,10 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_2패스_프롬프트는_파일을_열지_말라_하고_얕은_레코드와_의존_뜻을_준다` | `()` |  |
 | `test_2패스_결과는_원_샤드의_같은_키만_덮고_shallow_를_뗀다` | `(tmp_path: Path)` |  |
 | `test_2패스_결과가_깨졌으면_원_샤드를_건드리지_않는다` | `(tmp_path: Path)` |  |
+| `test_병합_보정은_id_를_이름으로_바꾸고_모르는_대상은_떼어_기록한다` | `()` |  |
+| `test_병합_보정은_shallow_가_다_떨어지면_칸을_뗀다` | `()` |  |
+| `test_dropped_csv_머리줄과_label_의_따옴표` | `()` |  |
+| `test_refresh_merged_는_보정본을_reading_과_dropped_csv_로_쓴다` | `(tmp_path: Path)` |  |
 | `_fake_agent` | `(shards: dict[str, dict[str, object]], calls: list[str])` | 라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 '쓰는 곳' 줄에서 경로를 뽑는다. |
 | `_three_file_graph` | `() -> X.CodeGraphDoc` | b.py 는 의존 없음(먼저) · a.f 가 b.g 에 의존 · c.k 가 a.f 에 의존. |
 | `_rec` | `(where: str, **more) -> dict[str, object]` |  |
