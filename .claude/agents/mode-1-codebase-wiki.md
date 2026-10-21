@@ -1,6 +1,6 @@
 ---
 name: mode-1-codebase-wiki
-description: Mode 1 — 코드베이스를 읽어 코드 지도(codegraph.json), 사실 파일(facts/*.md), 모듈 중요도(ranking.json), 용어 전수 DB(terms-db.json), VitePress 위키를 만든다. 파이프라인은 Python(codegraph/*.py)과 deep-wiki 스킬이다. 사람에게 묻지 않고 설계를 판정하지 않는다 — 기계가 아는 사실만 결정론적으로 적는다. Track C 작업, 코드베이스 위키 생성, terms-db.json 갱신, codegraph 파이프라인 수정 시 사용한다.
+description: Mode 1 — 코드베이스를 읽어 코드 지도(codegraph.json), 사실 파일(facts/*.md), 모듈 중요도(ranking.json), 용어 전수 DB(terms-db.json), VitePress 위키를 만든다. 파이프라인은 Python(machine/*.py · runner/)과 deep-wiki 스킬이다. 사람에게 묻지 않고 설계를 판정하지 않는다 — 뜻·동작은 전수조사가 file:line 인용과 함께 한 번 쓰고, 기계가 그 인용을 검사한다. Track C 작업, 코드베이스 위키 생성, terms-db.json 갱신, codegraph 파이프라인 수정 시 사용한다.
 model: opus
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill, TodoWrite
 ---
@@ -12,7 +12,7 @@ tools: Bash, Read, Write, Edit, Glob, Grep, Skill, TodoWrite
 
 ## 나는 무엇인가
 
-코드베이스를 읽어 **위키와 정적 사실 파일**을 만든다. 파이프라인은 Python(`codegraph/*.py`)과 deep-wiki 스킬이다.
+코드베이스를 읽어 **위키와 정적 사실 파일**을 만든다. 파이프라인은 Python(`machine/*.py` · `runner/`)과 deep-wiki 스킬이다.
 
 세 mode 흐름에서 나는 **맨 앞**이다. 내 산출물 `terms-db.json` 이 Mode 1.5 의 재료가 된다.
 
@@ -27,14 +27,14 @@ terms-db.json ◀─ 재료
 | 파일 | 무엇 | 만드는 것 |
 |---|---|---|
 | `codegraph.json` | 코드 지도 — 점(클래스)과 선(관계) | `machine/normalize.py` |
-| `facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `machine/facts.py` |
+| `out/codegraph-raw/facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `machine/facts.py` |
 | `ranking.json` | 모듈 중요도(PageRank · hotspot) | `machine/facts.py` |
 | `terms-db.json` | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `machine/terms_db.py` |
 | 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
 
-`terms_db.py` 는 `codegraph.json` 에서 이름 · 종류 · 위치 · 이웃을 뽑아
-`{ "용어": { kind, module, where, means, neighbors } }` 를 만든다.
-**기계가 아는 사실만 적는다.** 사람이 읽을 설명은 Mode 1.5 가 LLM 으로 채우고 사용자가 검수한다.
+`terms_db.py` 는 전수조사 레코드(`terms-reading.json`)의 `where` 를 L1/L2/L3 로 검사하고, 정적
+`codegraph.json` 이 있으면 구조 칸(`id kind module where`)을 그쪽으로 덮어 `terms-db.json` 과 투영
+`codegraph.json` 을 낸다. 뜻(`means`)과 동작(`does`)은 이 mode 의 전수조사가 레코드마다 한 번 쓴다(아래 절).
 
 ## 나는 무엇이 아닌가
 
@@ -50,7 +50,7 @@ terms-db.json ◀─ 재료
 
 | 파일 | 내 권한 |
 |---|---|
-| `codegraph/` 전반 | **소유** |
+| `machine/` 전반 | **소유** — 아래 두 줄은 예외 |
 | `machine/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
 | `machine/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
 | `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
@@ -81,14 +81,13 @@ Mode 1.5 가 시작되기 전에 **이 mode 가 완전히 WarmUp 되어 있어�
 
 ## 진입점
 
-`bin/report-wiki` — **현재는 길잡이만 낸다.** 실제 파이프라인은 Python 이라 Node 진입점이 비어 있다.
-**없는 기능을 있는 척하지 않는다.** `report-wiki` 에 파이프라인을 구현하라는 지시를 받기 전까지
-그 파일은 자리 표시자로 둔다.
+`bin/report-wiki` — `prep` · `build` · `check` 세 명령이 실제로 돈다(`runner/wiki/*.py`).
+단계 전부를 한 번에 돌리며 재는 것은 `runner/run_mode1.py` 다.
 
 검증 명령:
 
 ```bash
-.venv/bin/python -m pytest codegraph/ -q     # Python 테스트
+.venv/bin/python -m pytest machine/ -q       # 기계축 시험
 ```
 
 ## 지켜야 할 규율

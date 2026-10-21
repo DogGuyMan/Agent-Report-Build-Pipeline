@@ -22,12 +22,12 @@ Spec/Plan 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 |---|---|
 | CLI | `report-spec init` → `build` → `check` (`report` 는 위임으로 호환) |
 | 컴포넌트 | 17개 — 배지 · 표 · 블록 · BeforeAfter · VerdictFooter · **Glossary · TermGraph · defineTerms** |
-| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`viz/wrap-terms.mjs`) |
+| 용어집 | `data.ts` 의 `terms` 배열 한 곳에만 정의. 본문 인라인 참조 · 용어집 표 · 관계 그래프가 전부 거기서 나온다 **2026-08-29** — 용어집은 이해도 아코디언, 본문 참조는 빌드가 자동으로 감싼다(`viz/wrap_terms.py`) |
 | 관계 그래프 | d3-force 런타임. 드래그 · 확대 · hover. `<script>` 예산 1개를 이것이 쓴다 |
 | 검사 | `<script>` ≤ 1 · `tsc --noEmit` · 링크 무결성 · **용어집 대조(경고)** · builderVersion |
 | 실사용 보고서 | `docs/superpowers/specs/llm-load-reduction/` — 결정 6건, 용어 24개 **이해도 실측**(확실 6 · 애매 3 · 모름 11 · 미측정 4), 관계도 |
-| 본문 용어 자동 참조 (2026-08-29) | 빌드 후 통과 `viz/wrap-terms.mjs` — 용어 id 의 모든 등장을 `TermRef` 마크업으로. 저자는 `<T id>` 를 심지 않는다. 카드: 갈래 · id · 이해도 / 뜻 / 용례, 밑줄 끝 `?`. 위치는 런타임이 `fixed` 로(표의 overflow 회피) |
-| 경로 링크 (2026-08-29) | 둘째 통과 `viz/link-paths.mjs` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더 `file://`(새 탭). 없는 파일은 그대로. `ReportData.linkRoots?` |
+| 본문 용어 자동 참조 (2026-08-29) | 빌드 후 통과 `viz/wrap_terms.py` — 용어 id 의 모든 등장을 `TermRef` 마크업으로. 저자는 `<T id>` 를 심지 않는다. 카드: 갈래 · id · 이해도 / 뜻 / 용례, 밑줄 끝 `?`. 위치는 런타임이 `fixed` 로(표의 overflow 회피) |
+| 경로 링크 (2026-08-29) | 둘째 통과 `viz/link_paths.py` — 본문(`.mono` 포함)의 경로 꼴을 실제 로컬 파일·폴더 `file://`(새 탭). 없는 파일은 그대로. `ReportData.linkRoots?` |
 | 관계도 물리 (2026-08-29) | 덩어리를 아는 척력 · 노드별 중력 · 캔버스 2.5배 상자 · **덩어리 경계 사각형 충돌**. 상수는 `term-graph.ts` 의 `KNOBS`(사용자가 `<TermGraph tune />` 슬라이더로 확정). 순수 계산 `graph-math.ts` |
 
 ## Mode 1.5 연동 (2026-08-29 완료)
@@ -58,10 +58,10 @@ grep -c '<script' out/report.html    # 용어집 없으면 0, 있으면 1. 2 이
 |---|---|
 | `viz/src/*` (`types.ts` · `components/*` · `theme.css` · `runtime/*`) | **소유.** 단 **추가만** |
 | `viz/build.py` · `check.py` · `init.py` · `svg.mjs` | **소유** |
-| `test/components.test.mjs` | **소유** (append + import). 기존 테스트를 건드리지 않는다 |
+| `test/test_components.py` | **소유** (append + import). 기존 테스트를 건드리지 않는다 |
 | 대상 저장소 `specs/<slug>/data.ts` · `report.tsx` | **소유** — 원고는 대상 저장소에 산다 |
 | 대상 저장소 `specs/<slug>/tsconfig.json` | 남기지 않는다. `check.py` 가 임시 생성 후 지운다 |
-| `runner/term/*` · `codegraph/*` | 읽기만 |
+| `runner/term/*` · `machine/*` | 읽기만 |
 
 **컴포넌트 API 규율** — props 제거 · 의미 변경 금지. 추가만 한다. API 가 바뀌는 갱신마다 태그(`v1`, `v2`).
 
@@ -74,17 +74,19 @@ grep -c '<script' out/report.html    # 용어집 없으면 0, 있으면 1. 2 이
 Skill 은 `~/.claude/skills/spec-review-dashboard/SKILL.md` — 2026-08-28 에 이 파이프라인 기준으로 포팅됐다.
 
 ```bash
-cd <프로젝트>                          # specs/ 가 있는 저장소
-report-spec init <slug>                # 대응 specs/YYYY-MM-DD-<slug>-design.md 가 있어야 한다
-cd specs/<slug> && report-spec build   # → out/report.html
+cd <프로젝트>                          # specs/ 나 plans/ 가 있는 저장소
+report-spec init <slug>                # specs/YYYY-MM-DD-<slug>-design.md 또는 plans/YYYY-MM-DD-<slug>.md
+cd <자리>/<slug> && report-spec build  # → out/report.html. <자리> 는 원본이 있던 곳
 report-spec check                      # script 수 · tsc · 링크 · 용어집 대조 · builderVersion
 ```
 
 렌더러 자체를 고쳤을 때의 검증:
 
 ```bash
-npm test            # 인자 없이 — `node --test test/` 는 Node 25 에서 죽는다
-npm run typecheck
+.venv/bin/python -m pytest -q   # 파이썬 시험 전량 — viz/*.py 와 컴포넌트 렌더(test/test_components.py) 포함
+npm test                        # JS 경계 viz/svg.mjs 만. pretest 가 .tmp/lib.mjs 를 다시 굽는다
+npm run typecheck               # tsc --noEmit (viz/src/)
+npm run typecheck:py            # pyright strict
 ```
 
 `viz/src/` 를 고치고 테스트가 옛 동작을 보이면 `.tmp/lib.mjs` 가 낡은 것이다 — `npm test` 로 다시 돌린다.
