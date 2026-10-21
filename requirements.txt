@@ -1,10 +1,12 @@
 # codegraph/*.py 가 쓰는 서드파티. 표준 라이브러리는 적지 않는다.
+# 판을 고정한다. 기계마다 같은 판이 깔리게 하려는 것이다. numpy · scipy 의 이 판은 Python 3.12 이상을 요구한다.
 #
+#   npm run setup                                     # .venv 를 만들고 이 목록을 깐다 (tools/setup.sh)
 #   python3 -m venv .venv
 #   .venv/bin/pip install -r requirements.txt        # 윈도우는 .venv\Scripts\pip
-networkx        # facts.py · render_classes.py · render_modules.py 의 그래프 계산
-numpy           # networkx 의 PageRank 가 탄다 (facts.py). 직접 import 하지는 않는다
-scipy           # 같음 — 없으면 facts.py 가 ModuleNotFoundError 로 죽는다
-pytest          # codegraph/test_*.py
-griffe          # normalize.py 의 Python 갈래 — griffe dump JSON 을 읽는다
-msgspec
+networkx==3.6.1    # facts.py · render_classes.py · render_modules.py 의 그래프 계산
+numpy==2.5.2       # networkx 의 PageRank 가 탄다 (facts.py). 직접 import 하지는 않는다
+scipy==1.18.1      # 같음 — 없으면 facts.py 가 ModuleNotFoundError 로 죽는다
+pytest==9.1.1      # codegraph/test_*.py
+griffe==2.2.0      # normalize.py 의 Python 갈래 — griffe dump JSON 을 읽는다
+msgspec==0.21.1

@@ -13,6 +13,9 @@
     "pretest": "node viz/lib.mjs",
     "doctor": "python3 tools/doctor.py"
   },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
