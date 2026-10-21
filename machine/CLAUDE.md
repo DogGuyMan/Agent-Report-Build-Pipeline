@@ -149,7 +149,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 | K7 | 고립 노드는 층0 |
 | K8 | 성공 판정은 **벽시계만.** 토큰·비용 증가는 허용하되 기록한다 |
 
-**서브에이전트 LLM Model은 `claude-sonnet-5` 다.** `main` 의 `--model` 기본값 하나가
+**서브에이전트 LLM Model은 `claude-sonnet-5-5` 다.** `main` 의 `--model` 기본값 하나가
 단계(`runner/mode1/survey.py` · `wiki.py`) → `pipeline.run_layer` → `run_agent_with` → `measure.claude_argv` 사슬을 타고 내려간다.
 별명(`sonnet`)이 아니라 정확한 ID 를 쓴다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
 
