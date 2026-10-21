@@ -52,9 +52,9 @@ def test_정상이면_성공이다():
 
 
 def test_명령줄에_프롬프트를_싣지_않는다():
-    argv = M.claude_argv("claude-sonnet-5", "/repo", ["/tool"])
+    argv = M.claude_argv("claude-sonnet-5-5", "/repo", ["/tool"])
     assert "-p" in argv and "--output-format" in argv
-    assert argv[argv.index("--model") + 1] == "claude-sonnet-5"
+    assert argv[argv.index("--model") + 1] == "claude-sonnet-5-5"
     assert "--add-dir" in argv and "/repo" in argv and "/tool" in argv
 
 

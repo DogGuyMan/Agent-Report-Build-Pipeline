@@ -401,7 +401,7 @@ def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch: pytest.Mon
 
     monkeypatch.setattr(R, "run_agent_with", fake)
     jobs = [("L0-B%02d" % i, "글 %d" % i) for i in range(20)]
-    got = R.run_layer("claude-sonnet-5", "/r", "/root", jobs, concurrency=3)
+    got = R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs, concurrency=3)
     assert peak[0] <= 3
     assert len(got) == 20
 
@@ -418,7 +418,7 @@ def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(R, "run_agent_with", fake)
     jobs = [("L0-B02", "다"), ("L0-B00", "가"), ("L0-B01", "나")]
-    labels = [row[0] for row in R.run_layer("claude-sonnet-5", "/r", "/root", jobs)]
+    labels = [row[0] for row in R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs)]
     assert labels == ["L0-B00", "L0-B01", "L0-B02"]
 
 
@@ -436,7 +436,7 @@ def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatc
 
     monkeypatch.setattr(R, "run_agent_with", fake)
     jobs = [("L0-B00", "가"), ("L0-B01", "나"), ("L0-B02", "다")]
-    rows = R.run_layer("claude-sonnet-5", "/r", "/root", jobs)
+    rows = R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs)
     bad = [r for r in rows if r[0] == "L0-B01"][0]
     assert bad[2] != 0 and bad[3] is None      # (라벨, 초, 종료코드, 결과)
     assert len(rows) == 3
@@ -453,7 +453,7 @@ def test_빈_층은_LLM_Model을_부르지_않는다(monkeypatch: pytest.MonkeyP
         pytest.fail("빈 층에서 LLM Model을 불렀다")
 
     monkeypatch.setattr(R, "run_agent_with", fake)
-    assert R.run_layer("claude-sonnet-5", "/r", "/root", []) == []
+    assert R.run_layer("claude-sonnet-5-5", "/r", "/root", []) == []
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1._shard']"/>
@@ -595,7 +595,7 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
     assert "deep-wiki" in p
     assert "사이트 조립은 하지" in p       # 그건 report-wiki build 의 일이다
     assert "(경로:줄)" in p               # 로컬 인용 규격
-    assert "Sonnet 5" in p                # 서브에이전트를 띄운다면 같은 계열로
+    assert "Sonnet 5.5" in p                # 서브에이전트를 띄운다면 같은 계열로
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다']"/>

@@ -198,7 +198,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo", help="대상 저장소 경로")
     # 별명이 아니라 정확한 ID 를 적는다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
-    ap.add_argument("--model", default="claude-sonnet-5", help="배치·장 세션이 쓸 Model")
+    ap.add_argument("--model", default="claude-sonnet-5-5", help="배치·장 세션이 쓸 Model")
     ap.add_argument("--concurrency", type=int, default=8, help="한 층에서 동시에 띄울 세션 수")
     ap.add_argument("--target", type=int, default=8, help="배치당 목표 심볼 수")
     ap.add_argument("--hops", type=int, default=1, help="바뀐 파일에서 파급을 몇 홉 퍼뜨릴지")
