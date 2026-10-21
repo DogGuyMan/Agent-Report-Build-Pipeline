@@ -62,3 +62,22 @@ def test_pipe_in_signature_is_escaped(tmp_path: Path) -> None:
     for line in body.splitlines():
         if line.startswith("| `f`"):
             assert line.count("|") - line.count("\\|") == 4   # 표 칸 경계 4개뿐
+
+
+def test_subdirectory_file_links_relative_to_its_readme(tmp_path: Path) -> None:
+    """하위 폴더 파일의 링크는 README 자리 기준 상대 경로다. 파일 이름만 적으면 링크가 깨진다."""
+    (tmp_path / "d" / "sub").mkdir(parents=True)
+    (tmp_path / "d" / "sub" / "m.py").write_text('"""한 줄."""\n', encoding="utf-8")
+    body = G.render_dir(str(tmp_path), "d")
+    assert "| [`sub/m.py`](sub/m.py) | 한 줄. |" in body
+
+
+def test_git_ignored_file_is_left_out(tmp_path: Path) -> None:
+    """git 이 무시하는 파일은 싣지 않는다. 기계마다 있고 없는 파일이 README 를 기계마다 다르게 만든다."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".gitignore").write_text("d/local.py\n", encoding="utf-8")
+    (tmp_path / "d").mkdir()
+    (tmp_path / "d" / "m.py").write_text("", encoding="utf-8")
+    (tmp_path / "d" / "local.py").write_text("", encoding="utf-8")
+    body = G.render_dir(str(tmp_path), "d")
+    assert "m.py" in body and "local.py" not in body

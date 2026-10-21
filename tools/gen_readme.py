@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import ast
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "machine"))
@@ -61,6 +62,20 @@ def cell(text: str) -> str:
     return text.replace("|", "\\|")
 
 
+# git 이 무시하는 경로. 기계마다 있고 없는 파일이 README 에 실리지 않게 한다.
+# 저장소가 아니거나 git 이 없으면 빈 집합.
+# 쓰는 것: 없음 · 쓰이는 곳: render_dir
+def ignored(repo: str, rels: list[str]) -> set[str]:
+    if not rels:
+        return set()
+    try:
+        r = subprocess.run(["git", "-C", repo, "check-ignore", "-z", "--stdin"],
+                           input="\0".join(rels), capture_output=True, text=True)
+    except OSError:
+        return set()
+    return {x for x in r.stdout.split("\0") if x} if r.returncode == 0 else set()
+
+
 # <include file="machine/comments.xml" path="//term[@id='tools.gen_readme.render_dir']"/>
 # 디렉토리 하나 안의 파이썬 파일들을 훑어서 그 디렉토리의 README.md 에 들어갈 글 내용을 만드는 함수다.
 # 쓰는 것: tools.gen_readme.first_line, tools.gen_readme.cell, machine.pycalls.signature_of · 쓰이는 곳: tools.gen_readme.main, tools.test_gen_readme.test_pipe_in_signature_is_escaped, tools.test_gen_readme.test_signature_comes_from_pycalls_not_a_copy
@@ -73,7 +88,8 @@ def render_dir(repo: str, d: str) -> str:
         for fn in filenames:
             if fn.endswith(".py"):
                 files.append(os.path.relpath(os.path.join(dirpath, fn), repo))
-    files.sort()
+    skip = ignored(repo, files)
+    files = sorted(f for f in files if f not in skip)
 
     trees: dict[str, ast.Module] = {}
     for rel in files:
@@ -83,7 +99,8 @@ def render_dir(repo: str, d: str) -> str:
     out = [f"# `{d}/` — {DIR_ROLE.get(d, '')}", "", BANNER, "## 파일", "",
            "| 파일 | 하는 일 |", "|---|---|"]
     for rel in files:
-        out.append(f"| [`{os.path.basename(rel)}`]({os.path.basename(rel)}) "
+        link = os.path.relpath(rel, d).replace(os.sep, "/")
+        out.append(f"| [`{link}`]({link}) "
                    f"| {cell(first_line(trees[rel])) or '—'} |")
     out.append("")
 
