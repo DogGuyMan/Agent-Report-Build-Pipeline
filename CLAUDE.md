@@ -93,7 +93,8 @@ Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
 ## 명령
 
 ```bash
-npm run doctor           # 이 컴퓨터에 무엇이 있고 무엇이 없는지. 필수가 없으면 exit 1
+npm run setup            # 새 기계에서 먼저 — .venv · node_modules 를 고정된 판으로 깔고 doctor 까지 (tools/setup.sh)
+npm run doctor           # 이 컴퓨터에 무엇이 있고 무엇이 없는지. 필수가 없거나 판이 낮으면 exit 1
 .venv/bin/python -m pytest -q                        # 파이썬 시험 전량
 .venv/bin/python -m pytest test/test_check.py -q     # 단일 파일
 .venv/bin/python -m pytest -k "링크" -q               # 이름으로 고르기

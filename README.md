@@ -22,9 +22,9 @@
 
 | | 무엇 | 왜 |
 |---|---|---|
-| **필수** | Node 22+ | 진입점과 보고서 빌드 |
-| **필수** | Python 3.11+ | `machine/`, `runner/` 등 파이썬 도구 및 실행기 |
-| **필수** | Graphviz (`dot`) | 모듈·클래스 다이어그램 |
+| **필수** | Node 22.13+ | 진입점과 보고서 빌드. 하한은 `package.json` 의 `engines` |
+| **필수** | Python 3.12+ | `machine/`, `runner/` 등 파이썬 도구 및 실행기. `requirements.txt` 의 numpy · scipy 판이 요구한다 |
+| **필수** | Graphviz 10.0.1+ (`dot`) | 모듈·클래스 다이어그램. `-Tsvg_inline` 이 이 판부터 있다. Ubuntu 24.04 의 apt 판은 이보다 낮다 — `tools/cloud_env.sh` 가 공식 `.deb` 로 까는 법이다 |
 | **필수** | git | 커밋 해시와 파일 목록을 읽는다 |
 | 선택 | `clang-uml` | C++ 저장소를 분석할 때만 |
 | 선택 | .NET SDK | C# 저장소를 분석할 때만 (`machine/roslyn-dump`) |
@@ -36,10 +36,15 @@ macOS 예시 — `brew install node python graphviz clang-uml`
 ### 2. 설치
 
 ```bash
-npm install
+npm run setup      # tools/setup.sh — 아래 셋을 하고 끝에 doctor 를 돌린다
+```
 
+`setup.sh` 가 하는 일을 손으로 하면 이렇다(윈도우처럼 bash 가 없을 때):
+
+```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt      # 윈도우는 .venv\Scripts\pip
+.venv/bin/pip install -r requirements.txt      # 윈도우는 .venv\Scripts\pip — 판이 고정돼 있다
+npx --yes npm@11.11.0 ci                       # package-lock.json 은 npm 11 이 썼다. npm 10 의 npm ci 는 거부한다
 ```
 
 ### 3. 확인
