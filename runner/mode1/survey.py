@@ -33,7 +33,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return [X.BATCHES] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.RECORD_SCHEMA, X.READING]
+        return [X.RECORD_SCHEMA, X.READING, X.DROPPED]
 
     # ── 자리 ────────────────────────────────────────────────────────────
 
@@ -579,6 +579,72 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return got
 
     @staticmethod
+    def normalize_records(got: Records, ids: Mapping[str, str]) -> tuple[Records, list[X.DroppedUse]]:
+        """`uses[].to` 와 `shallow` 를 레코드 키로 맞춘다. 노드 id 는 이름으로 바꾸고, 어느 키도 아닌 것은 떼어 기록한다.
+
+        `ids` 는 계획의 `id -> name`. 아는 이름 = 병합된 키 전부 ∪ 계획의 이름 전부 — 아직 조사되지
+        않은 계획 심볼을 가리키는 간선은 살려 둔다(그 샤드가 오면 키가 생긴다). 비노드 키(file·artifact…)는
+        병합된 키에 들어 있으므로 산다. 짧은 이름은 고치지 않는다 — 유일하지 않을 수 있어 떼어 기록만 한다.
+        """
+        known = set(got) | set(ids.values())
+        dropped: list[X.DroppedUse] = []
+        out: Records = {}
+        for key, rec in got.items():
+            f = AnnotateSymbolsStage.file_of(rec)
+            new: Record = dict(rec)
+            uses_raw = rec.get("uses")
+            if isinstance(uses_raw, list):
+                kept: list[object] = []
+                for u in cast(list[object], uses_raw):
+                    if not isinstance(u, dict):
+                        continue
+                    ud = cast(dict[str, object], u)
+                    to = str(ud.get("to") or "")
+                    to = ids.get(to, to)
+                    if to in known:
+                        kept.append({**ud, "to": to})
+                    else:
+                        dropped.append({"file": f, "key": key, "to": to, "label": str(ud.get("label") or ""),
+                                        "where": str(ud.get("where") or ""), "why": "unknown-target"})
+                new["uses"] = kept
+            sh = AnnotateSymbolsStage.shallow_of(rec)
+            if sh:
+                fixed = [ids.get(s, s) for s in sh]
+                new["shallow"] = [s for s in fixed if s in known]
+                for s in fixed:
+                    if s not in known:
+                        dropped.append({"file": f, "key": key, "to": s, "label": "", "where": "",
+                                        "why": "unknown-shallow"})
+                if not new["shallow"]:
+                    del new["shallow"]
+            out[key] = new
+        return out, dropped
+
+    @staticmethod
+    def dropped_csv(rows: Sequence[X.DroppedUse]) -> str:
+        """`dropped-uses.csv` 본문. label 만 따옴표로 감싼다 — 세션이 쉼표를 쓰는 칸이 그것뿐이다."""
+        lines = ["file,key,to,label,where,why"]
+        lines += ['%s,%s,%s,"%s",%s,%s' % (r["file"], r["key"], r["to"], r["label"].replace('"', "'"),
+                                           r["where"], r["why"]) for r in rows]
+        return "\n".join(lines) + "\n"
+
+    def refresh_merged(self, ctx: Mode1Context) -> list[X.DroppedUse]:
+        """샤드를 다시 합치고 보정해 `terms-reading.json` 과 `dropped-uses.csv` 를 쓴다.
+
+        층 끝(`harvest`)과 파일 끝(`AnnotateFilesStage`)이 같은 것을 부른다 — 병합의 정의는 한 곳이다.
+        """
+        assert ctx.plan is not None
+        raw = self.merge_shards(self.shard_dir(ctx), ctx.baseline)
+        ctx.merged, dropped = self.normalize_records(raw, self.name_of(ctx.plan))
+        path = X.READING.locate(ctx)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(ctx.merged, f, ensure_ascii=False, indent=1, sort_keys=True)
+        with open(X.DROPPED.locate(ctx), "w", encoding="utf-8") as f:
+            f.write(self.dropped_csv(dropped))
+        return dropped
+
+    @staticmethod
     def file_of(rec: Record | None) -> str:
         """`where` 의 파일 부분. 없으면 빈 글."""
         return str((rec or {}).get("where") or "").split(":")[0]
@@ -692,10 +758,6 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         out = super().harvest(ctx, got, rnd)
         for row in out.rows:
             row["stage"] = "annotate-symbols/" + row["stage"]
-        ctx.merged = self.merge_shards(self.shard_dir(ctx), ctx.baseline)
-        path = X.READING.locate(ctx)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(ctx.merged, f, ensure_ascii=False, indent=1, sort_keys=True)
-        print("  층 끝 — 레코드 %d개" % len(ctx.merged), flush=True)
+        dropped = self.refresh_merged(ctx)
+        print("  층 끝 — 레코드 %d개 · 떼어 낸 간선 %d개" % (len(ctx.merged), len(dropped)), flush=True)
         return out
