@@ -36,7 +36,7 @@ Track A/B 의 순서는 [`docs/decisions/0008`](docs/decisions/0008-old-output-i
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
-| Node / TypeScript / Graphviz | Mac v25.8.0 / 7.0.2 / 15.1.1 (2026-09-13) · 클라우드 v22.22.0 / 7.0.2 / **2.43.0**. 2.43 의 `dot` 은 `-Tsvg_inline` 을 모른다(`Format: "svg_inline" not recognized`) — 시험은 이것을 부르지 않아 통과하고 `doctor` 도 OK 를 낸다 |
+| Node / TypeScript / Graphviz | Mac v25.8.0 / 7.0.2 / 15.1.1 (2026-09-13) · 클라우드 v22.22.0 / 7.0.2 / 15.1.1 (2026-10-22). 클라우드 Ubuntu 의 apt 판(2.43)은 `-Tsvg_inline` 을 모르므로(`Format: "svg_inline" not recognized`) 환경 설정 스크립트 `tools/cloud_env.sh` 가 공식 `.deb` 를 깐다. `doctor` 는 10.0.1 미만을 낮음으로 막는다 |
 
 **"검증됨" 이라고 쓰지 말 것 — D축 예측력.** 평가 없이 보류다([`0004`](docs/decisions/0004-d-axis-on-hold.md)).
 
