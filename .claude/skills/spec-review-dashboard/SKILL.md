@@ -134,7 +134,8 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 `C-19`·`calls[]`·`PageRank` 같은 낱말이 정의 없이 나오면 그 보고서는 읽히지 않는다.
 
 `StatusTag` 는 상태값이 아니라 **색 계열 + 자유 문구**다. 문구는 한국어가 정본
-(`[제안됨]`/`[잠정됨]`/`[검증됨]`). `proposed`/`accepted` 를 화면 문구로 쓰지 않는다.
+(`[제안됨]`/`[검증됨]`). `proposed`/`accepted` 를 화면 문구로 쓰지 않는다.
+`[잠정됨]` 은 이름과 적용 범위가 미결정이라 쓰지 않는다(report-builder `CLAUDE.md` 의 "혼자 정하지 말 것").
 
 ## Style rules (non-negotiable)
 
