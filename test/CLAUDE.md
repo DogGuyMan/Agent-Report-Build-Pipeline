@@ -11,7 +11,7 @@
 
 | 파일 | 무엇을 고정하나 |
 |---|---|
-| `test_docs_citations.py` | 루트·모듈 `CLAUDE.md` · `README.md` · `ARCHITECTURE.md` 의 `파일:줄` 인용이 실재하는가. `$` 로 시작하는 경로는 바깥 저장소로 보고 건너뛴다. 대상 목록은 `contextDocs()` |
+| `test_docs_citations.py` | 루트·모듈 `CLAUDE.md` · `README.md` · `ARCHITECTURE.md` · `.claude/CLAUDE.md` · 서브에이전트 셋 · 이 저장소의 스킬 셋의 `파일:줄` 인용이 실재하는가. `$` · `~` 로 시작하는 경로는 바깥으로 보고 건너뛴다. 대상 목록은 `contextDocs()` |
 | `test_no_any.py` | 형 자리의 `Any` 를 글자로 막는다. `COVERED` 목록의 파일은 `Any` 0 이어야 한다 |
 | `test_wiki.py` | `report-wiki prep · build · check` 가 실제로 돈다. `check` 는 `docs/wiki/` 를 이 저장소 기준으로 검사한다 |
 | `test_components.py` · `test_graph_math.py` | React 컴포넌트와 용어 그래프 수학을 **Node 자식 프로세스**로 렌더해 본다. `.tmp/lib.mjs` 와 esbuild 가 필요하다 |

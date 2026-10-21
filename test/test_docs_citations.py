@@ -16,11 +16,18 @@ def contextDocs(root=ROOT, exists=os.path.exists):
     docs = ["CLAUDE.md", "README.md", "ARCHITECTURE.md",
             "machine/CLAUDE.md", "viz/CLAUDE.md", "viz/src/CLAUDE.md",
             "runner/CLAUDE.md", "tools/CLAUDE.md",
-            "docs/CLAUDE.md", "test/CLAUDE.md"]
+            "docs/CLAUDE.md", "test/CLAUDE.md",
+            ".claude/CLAUDE.md",
+            ".claude/agents/mode-1-codebase-wiki.md",
+            ".claude/agents/mode-1-5-term-benchmark.md",
+            ".claude/agents/mode-2-spec-report.md",
+            ".claude/skills/spec-review-dashboard/SKILL.md",
+            ".claude/skills/term-benchmark/SKILL.md",
+            ".agents/skills/codebase-terms-survey/SKILL.md"]
     return [d for d in docs if exists(os.path.join(root, d))]
 
 def isExempt(p):
-    return p.startswith("out/") or "<" in p or ">" in p
+    return p.startswith(("out/", "~")) or "<" in p or ">" in p
 
 def stripExternalTrees(text):
     def repl(m):
@@ -77,6 +84,7 @@ def test_path_refs_skips_env_and_placeholders():
     assert len(pathRefsIn("`$GRAPHICS_REPO/doc/a.html` 를 보라")) == 0
     assert len(pathRefsIn("`specs/<slug>/data.ts` 가 생긴다")) == 0
     assert len(pathRefsIn("`out/report.html` 이 나온다")) == 0
+    assert len(pathRefsIn("`~/.claude/skills/a/SKILL.md` 를 보라")) == 0
     assert pathRefsIn("`viz/build.mjs` 가 짓는다") == ["viz/build.mjs"]
 
 def test_path_refs_skips_bare_filenames():

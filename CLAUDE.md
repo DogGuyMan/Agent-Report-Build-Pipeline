@@ -190,8 +190,8 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 `$REPO_ROOT` · `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` · `REPORT_PYTHON`.
 **전체 표와 골든 상수의 함정은 [`machine/CLAUDE.md`](machine/CLAUDE.md) 의 "경로 변수" 절에 있다.**
 
-`test/test_docs_citations.py` 가 컨텍스트 문서의 인용을 검사하며 `$` 로 시작하는 경로는
-바깥 저장소로 보고 건너뛴다. 그 규약을 어기면 게이트에 걸린다.
+`test/test_docs_citations.py` 가 컨텍스트 문서(서브에이전트 · 이 저장소의 스킬 포함)의 인용을 검사하며
+`$` · `~` 로 시작하는 경로는 바깥으로 보고 건너뛴다. 그 규약을 어기면 게이트에 걸린다.
 
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
 
