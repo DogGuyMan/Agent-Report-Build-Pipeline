@@ -45,18 +45,19 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 ## Workflow — 7단계
 
 **층이 둘이다 — CLI 와 실행기.** 아래 7단계는 이 스킬이 사람에게 물어 가며 손으로 도는 길이다.
-그 위에 오케스트레이터가 따로 있어 **출제까지 대신 돌린다**:
+그 위에 실행기가 따로 있어 기계 단계를 이어 돌린다:
 
 ```bash
 .venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업 디렉토리> --terms-db <terms-db.json>
 ```
 
-`runner/run_mode1_5.py` 의 단계는 `collect → author → grade → emit` 넷이고, 그 중 `author`(3~5단계에
-해당하는 용어 보충과 출제) 하나만 LLM 칸이라 실행기가 `claude -p` 로 부른다. `--only` / `--skip` 으로
-단계를 고르고, `--dry-run` 은 무엇이 돌지만 보이고 끝낸다.
+`runner/run_mode1_5.py` 의 단계는 `collect → [사람 차례] → grade → emit` 이다. 실행기에는 출제 칸이 없다 —
+문항지(`questions.json`)는 이 스킬이 쓰고, 실행기는 그것을 기계로 검사해 정답을 뺀 기입란(`answer-sheet.json`)을 깐다.
+`--ask` 를 주면 실행기가 대화형 `claude` 세션을 띄워 이 스킬을 부른다(헤드리스 `-p` 가 아니다 — 사람에게 되묻는 자리라서).
+`--only` / `--skip` 으로 단계를 고르고, `--dry-run` 은 무엇이 돌지만 보이고 끝낸다.
 
-**답안(`answers.json`)이 없으면 실행기는 사람 차례에서 멈춘다.** 실행기가 도는 것은 출제까지이고,
-사람에게 묻고 기입란을 채우는 6단계 앞의 일은 여전히 이 스킬의 몫이다.
+**답안(`answers.json`)이 없으면 실행기는 사람 차례에서 멈춘다.** 출제와, 사람에게 묻고 기입란을 채우는 일은
+이 스킬의 몫이다.
 
 ### 1. 전제 확인
 
@@ -208,8 +209,8 @@ report-term emit term-grades.json
 - **보기는 정확히 5개다** — 실제 뜻 4개 + "모르겠다". 문항마다 개수가 다르면 찍어서 맞을 확률이
   달라지고, 그러면 정답률을 문항끼리 견줄 수 없다
 - **문항 수는 3이다.** 2026-08-29 첫 시험(용어 20개 × 5문항 = 100문항)에서 사용자가 피로를 보고해 5 에서 3 으로 줄였다.
-  맞힌 수 2~3 확실 / 0~1 모름. 이 수를 임의로 바꾸지 않는다 — 바꾸면 `runner/term/quiz.mjs` 의
-  `QUESTIONS_PER_TERM` 과 `runner/run_mode1_5.py` 의 같은 이름 상수를 **함께** 바꿔야 한다. 보기 수(`CHOICES_PER_QUESTION`)도 두 곳에 산다
+  맞힌 수 2~3 확실 / 0~1 모름. 이 수를 임의로 바꾸지 않는다 — 바꿀 때는 `runner/term/quiz.py` 의
+  `QUESTIONS_PER_TERM` 을 고친다(`runner/run_mode1_5.py` 는 그것을 import 한다). 보기 수(`CHOICES_PER_QUESTION`)도 같은 자리다
 
 ## Style rules
 
@@ -232,9 +233,8 @@ report-term emit term-grades.json
   코드베이스 용어 DB 는 C++ 저장소 기준 200개 남짓이고, 그걸 다 물으면 1,000문항이 된다
 - **CLI 에 묻는 기능을 넣으려 한다** — `report-term` 에 `quiz` 명령은 없다. 일부러 없다.
   도구는 결정론적인 부분(수집·채점·산출)만 하고 판정하지 않는다. 묻는 것은 이 스킬의 일이다.
-  `runner/run_mode1_5.py` 가 `author` 단계에서 모형을 부르는 것은 이 금지와 어긋나지 않는다 —
-  **층이 다르다.** CLI(`bin/report-term`)는 묻지도 판정하지도 않고, 오케스트레이터(실행기)는
-  LLM 칸을 부를 수 있다. 그래도 사람에게 묻는 자리는 실행기에도 없다 — 거기서 멈춘다
+  실행기(`runner/run_mode1_5.py`)도 출제하지 않는다 — `--ask` 일 때 대화형 세션을 띄워 이 스킬에
+  넘길 뿐이고, 그렇지 않으면 사람 차례에서 멈춘다
 - **C++ 용어를 짧은 이름으로 찾는다** — `terms-db.json` 의 C++ 키는 `SJH::Material` 처럼
   네임스페이스를 포함한다(C# 키는 단순 이름이다). Plan 본문이 `Material` 이라고만 쓰면
   `collect` 가 잡지 못한다. 그런 용어는 3단계에서 사람이 이어 붙인다

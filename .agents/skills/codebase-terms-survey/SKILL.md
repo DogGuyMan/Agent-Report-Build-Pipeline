@@ -14,7 +14,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 
 - 어떤 저장소의 Plan/Spec 을 Mode 1.5(용어 시험)·Mode 2(설계 검토)로 돌리려는데 그 코드베이스의 `terms-db.json` 이 없을 때
 - 코드가 많이 바뀌어 `terms-reading.json` 이 낡았을 때(증분 재조사)
-- 정적 수집기(roslyn · clang-uml)가 없는 언어(Python · JS/TS 등)의 저장소 — 이 스킬만이 코드 지도를 만든다
+- 정적 수집기(C# roslyn-dump · C++ clang-uml · Python griffe+pycalls)가 코드 지도를 낸 저장소에서, 수집기가 못 채우는 뜻 · 동작 · 관계를 채울 때. 수집기가 없는 언어는 `report-wiki prep` 이 막으므로 대상이 아니다(아래 5단계)
 
 **쓰지 않는 때** — 위키 산문이 필요할 때(그건 deep-wiki), 설계 판정이 필요할 때(그건 Mode 2). 이 스킬은 **판정하지 않는다** — 사실을 적고 인용을 붙인다.
 
@@ -25,7 +25,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 | report-builder | `ls $REPO_ROOT/machine/terms_db.py` | 중단. 경로를 지어내지 않는다 |
 | 대상 저장소 경로 `<repo>` | `git -C <repo> rev-parse --show-toplevel` | 사용자에게 묻는다 |
 | **작업 트리가 조용한가** | `git -C <repo> status --porcelain` 에 소스 변경이 없어야 한다 | **중단.** 남이 파일을 고치는 중이면 `where`(줄 번호)가 움직이는 과녁이 된다 — 2026-08-29 실측: 병렬 세션의 주석 주입 중에 조사해 실패 7 · 근거 없음 121 |
-| (선택) 정적 `codegraph.json` | `<repo>/out/codegraph-raw/codegraph.json` | 없으면 읽기 레코드만으로 만든다 — 정상 |
+| 정적 `codegraph.json` | `<repo>/out/codegraph-raw/codegraph.json` | `report-wiki prep <repo>` 를 먼저 돌린다. prep 이 막히면(수집기 없음) 중단하고 보고한다 |
 
 ## 레코드 계약 — 이것이 산출물이다
 
@@ -124,23 +124,23 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 8. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 10 의 목록에 적는다.
 9. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
    ```bash
-   cd $REPO_ROOT && .venv/bin/python machine/terms_db.py --repo <repo> --reading <repo>/docs/codegraph/terms-reading.json
+   cd $REPO_ROOT && .venv/bin/python machine/terms_db.py <codegraph.json> --repo <repo> --reading <repo>/docs/codegraph/terms-reading.json
    #   (report-builder 자신을 조사할 때만 --reading $REPO_ROOT/machine/terms-reading.json)
-   #   -> <repo>/out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0"
-   #   정적 codegraph 도 있으면:  terms_db.py <codegraph.json> --repo <repo> --reading <…json>  -> "투영에 없는 것 0개" 까지
+   #   -> <repo>/out/codegraph-raw/terms-db.json + codegraph.json.  마지막 줄 "실패 0" · "투영에 없는 것 0개"
+   #   정적 codegraph.json 을 위치 인자에서 빼면 투영이 그 파일을 덮어써 노드가 조용히 줄어든다(machine/CLAUDE.md)
    ```
 10. **보고** — 레코드 수(종류별) · 검사 출력 · 근거 없음 목록과 이유 · 키 충돌 목록 · **`confidence` 분포(HIGH/MEDIUM/LOW 수)** · **탐색 안 한 것**(Explored ✅ / Partial 🔶 / Unexplored ❓ — 범위 안인데 안 읽은 파일, 사슬이 끊긴 자리) · (있으면) Mode 1.5 `collect` 의 known 수.
 
 ## 착수 조건으로 남긴 측정 — "빠진 간선이 몇인가" (아직 도구 없음)
 
 `uses` 가 얼마나 빠졌는지 **재는 도구가 없다.** 정적 codegraph 가 있는 저장소(StickRush)에서 **LLM 이 적은 `uses` ∩ 정적 간선** 을 세면 recall(정적 간선 중 LLM 이 잡은 비율)·precision(LLM 간선 중 정적에 있는 비율)이 숫자로 나온다.
-구현 자리는 `terms_db.py` 의 codegraph+reading 경로(지금은 노드 상위집합만 대조한다) — **작업 트리가 깨끗해지면** 넣는다(2026-08-29 당시 다른 세션이 파이썬 소스 — 지금의 `machine/*.py` — 를 고치는 중이었다). 그 숫자가 나오기 전에는 "렌즈 1회로 `uses` 가 좋아졌다" 고 **주장하지 않는다.**
+구현 자리는 `terms_db.py` 의 codegraph+reading 경로다(지금은 노드 상위집합만 대조한다). 그 숫자가 나오기 전에는 "렌즈 1회로 `uses` 가 좋아졌다" 고 **주장하지 않는다.**
 
 ## C++ 저장소의 함정 — 2026-08-29 실측
 
 | 함정 | 무엇이 일어나나 | 막는 법 |
 |---|---|---|
-| **CMake 타깃 트리가 여럿** | 루트 compdb 만 쓰면 별도로 짓는 타깃이 통째로 빠진다. QtVisionEdit 은 1차 클래스 61개 중 **37개(app)** 가 이렇게 빠졌다 | `report-wiki prep` 이 저장소 안 `compile_commands.json` 을 **전부 찾아 합친다**(`runner/wiki/compdb.mjs`) |
+| **CMake 타깃 트리가 여럿** | 루트 compdb 만 쓰면 별도로 짓는 타깃이 통째로 빠진다. QtVisionEdit 은 1차 클래스 61개 중 **37개(app)** 가 이렇게 빠졌다 | `report-wiki prep` 이 저장소 안 `compile_commands.json` 을 **전부 찾아 합친다**(`runner/wiki/compdb.py`) |
 | **clang-uml 글로브가 깊이 4에서 죽는다** | `app/src/view/*.cpp` 에서 `regular expression complexity exceeded`. 같은 파일을 하나씩 적으면 통과한다 | 생성 설정이 **파일을 열거**한다. 글로브를 쓰지 않는다 |
 | **남의 타입이 1차로 샌다** | `source_location` 이 남의 헤더가 아니라 **이 저장소의 첫 사용 지점**을 가리킨다(F-1). `QWidget` 이 PageRank 1위로 올라온 적이 있다 | `normalize.py` 가 세 겹으로 막는다 — std 계열 이름 · 빌드 산출물 경로 · **그 줄이 실제로 정의하는가**(전방 선언 `class QWidget;` 과 사용 줄을 뺀다) |
 | **네임스페이스 없는 코드** | `CPP_FIRST_PARTY_NS` 만 보면 전역 네임스페이스를 쓰는 모듈이 통째로 외부가 된다 | 허용목록에 없으면 **선언 위치**로 판정한다(위 세 겹을 통과할 때만) |

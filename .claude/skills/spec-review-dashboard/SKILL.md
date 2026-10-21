@@ -1,6 +1,6 @@
 ---
 name: spec-review-dashboard
-description: Use when a Plan/Spec draft is ready and the user needs to make an acceptance call on it — spec review requests, "spec 검토 대시보드", "플랜 HTML로 보여줘", "설계 검토 보고서", "확신도 보고서 만들어줘", or as the natural companion artifact whenever architecture-design-workflow finishes a Decision Log. Also trigger whenever a design document needs to become a scannable HTML so a human can approve/hold/reverse (승인/보류/번복) it instead of reading prose end-to-end. Authors the report through the report-builder pipeline (report init → build → check) — never a hand-written HTML file, never a narrative summary.
+description: Use when a Plan/Spec draft is ready and the user needs to make an acceptance call on it — spec review requests, "spec 검토 대시보드", "플랜 HTML로 보여줘", "설계 검토 보고서", "확신도 보고서 만들어줘", or as the natural companion artifact whenever architecture-design-workflow finishes a Decision Log. Also trigger whenever a design document needs to become a scannable HTML so a human can approve/hold/reverse (승인/보류/번복) it instead of reading prose end-to-end. Authors the report through the report-builder pipeline (report-spec init → build → check) — never a hand-written HTML file, never a narrative summary.
 ---
 
 # Spec Review Dashboard
@@ -9,8 +9,8 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 판정 자체는 항상 사용자 몫.
 
 **이 스킬은 HTML 을 손으로 쓰지 않는다.** `report-builder` 파이프라인에 `data.ts` + `report.tsx` 를
-저작하고 `report build` 가 HTML 을 조립한다. 구판의 `assets/template.html` 복사·`{{PLACEHOLDER}}`
-치환 방식은 **폐기됐다** — 컴포넌트와 `theme.css` 가 그 자리를 대신한다.
+저작하고 `report-spec build` 가 HTML 을 조립한다. 템플릿 HTML 복사·`{{PLACEHOLDER}}`
+치환 방식은 **쓰지 않는다** — 컴포넌트와 `theme.css` 가 그 자리를 대신한다.
 
 ## When to use
 
@@ -22,23 +22,35 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 | 전제 | 확인 방법 | 실패 시 |
 |---|---|---|
-| `report` CLI | `which report` | PATH 미등록. 사용자에게 보고하고 중단 |
-| 대응 spec 문서 | `specs/YYYY-MM-DD-<slug>-design.md` | `report init` 이 거부한다. **slug 를 지어내지 말 것** |
+| `report-spec` CLI | `which report-spec` | PATH 미등록. 사용자에게 보고하고 중단 |
+| 대응 원본 문서 | `specs/YYYY-MM-DD-<slug>-design.md` **또는** `plans/YYYY-MM-DD-<slug>.md` | `report-spec init` 이 거부한다. **slug 를 지어내지 말 것** |
 | Before/After SVG | 아키텍처 변경 spec 인 경우 | **생성을 거부하고** 다이어그램을 먼저 만들라고 보고 |
 
 렌더러 루트는 **`$REPO_ROOT`** 다
-(`readlink -f "$(which report)"` 로 확인. `~/report-builder` 는 존재하지 않는다).
-보고서는 **렌더러 저장소가 아니라 spec 이 있는 저장소**의 `specs/<slug>/` 에 산다.
+(`readlink -f "$(which report-spec)"` 로 확인. `~/report-builder` 는 존재하지 않는다).
+보고서는 **렌더러 저장소가 아니라 원본 문서가 있는 저장소**에 살고, **원본 문서 바로 옆**에 생긴다.
+
+| 원본 문서 자리 | 파일명 관례 | 보고서가 생기는 곳 |
+|---|---|---|
+| `specs/` | `YYYY-MM-DD-<slug>-design.md` (`-design` 접미사 필수) | `specs/<slug>/` |
+| `plans/` | `YYYY-MM-DD-<slug>.md` (접미사 없음) | `plans/<slug>/` |
+
+`specs/` 만 접미사를 요구하는 이유는 그 폴더에 `-before.svg` · `-design-review.html` 같은 다른
+산출물이 함께 살아 접미사가 **오타 가드** 노릇을 하기 때문이다. `plans/` 는 계획서만 있어 필요 없다.
+이 규칙은 `viz/init.py` 의 `DOC_DIRS` 와 `runner/run_mode2.py` 의 `DOC_DIRS` 두 곳에 같은 값으로
+산다 — 언어가 달라 한 곳에 못 모은다.
 
 ## Workflow
 
 1. **스켈레톤**
    ```bash
-   cd <스펙 저장소>        # specs/ 가 있는 곳
-   report init            # 인자 없이 → 보고서 없는 spec 을 날짜 내림차순 나열 후 exit 1
-   report init <slug>     # data.ts · report.tsx · tsconfig.json 생성
+   cd <문서 저장소>         # specs/ 또는 plans/ 가 있는 곳
+   report-spec init        # 인자 없이 → 두 자리 모두에서 보고서 없는 문서를 날짜 내림차순
+                           #   나열(줄 끝에 `specs/` 또는 `plans/` 표시) 후 exit 1
+   report-spec init <slug> # data.ts · report.tsx · tsconfig.json 생성
    ```
-   `date` · `specName`(spec 문서 첫 `# ` 제목) · `branch` 는 `init` 이 자동으로 채운다. 손대지 않는다.
+   `init` 이 slug 로 두 자리를 다 뒤져 원본 문서를 찾고, **그 옆에** 스켈레톤을 놓는다.
+   `date` · `specName`(원본 문서 첫 `# ` 제목) · `branch` 는 `init` 이 자동으로 채운다. 손대지 않는다.
 
 2. **결정 데이터** — spec 의 Decision Log 에서 `D#` · 결정 문구 · Status · 확신도 앵커 · 옵션 수를
    뽑아 `data.ts` 의 `decisions[]` 에 옮긴다. **원문에서 읽은 값만 옮긴다.** 없는 결정을 지어내면
@@ -57,12 +69,12 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 5. **빌드·검사**
    ```bash
-   cd <스펙 저장소>/specs/<slug>
-   report build      # → out/report.html
-   report check      # <script> 수 · tsc --noEmit · 링크 무결성 · builderVersion
+   cd <문서 저장소>/<specs 또는 plans>/<slug>
+   report-spec build      # → out/report.html
+   report-spec check      # <script> 수 · tsc --noEmit · 링크 무결성 · builderVersion
    ```
 
-6. `report check` 가 실패하면 **산출물을 사용자에게 내밀지 않는다.** 통과 출력을 근거로 붙인다.
+6. `report-spec check` 가 실패하면 **산출물을 사용자에게 내밀지 않는다.** 통과 출력을 근거로 붙인다.
 
 ## 블록 구성 — 이 순서 그대로
 
@@ -79,8 +91,8 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | (g) 수용 판정 푸터 | `<VerdictFooter />` | **비워서 산출한다** |
 
 결정 상세 절은 `<Section title="D0 …">` 로 연다 — **`title` 이 `D<숫자>` 로 시작해야 한다.**
-`check.mjs` 의 링크 무결성 검사가 `data.ts` 의 `id` 와 이 제목을 1:1 로 대조한다
-(`viz/check.mjs:21`). 어긋나면 "절이 없는 결정" / "결정이 없는 절" 로 실패한다.
+`viz/check.py` 의 `linkIntegrity` 가 `data.ts` 의 `id` 와 이 제목을 1:1 로 대조한다.
+어긋나면 "절이 없는 결정" / "결정이 없는 절" 로 실패한다.
 
 ## 컴포넌트 전량 17개 — 이 밖의 것을 쓰지 않는다
 
@@ -102,7 +114,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 | `EvidenceNote` | `measured: ReactNode[]`, `judged?: ReactNode[]` |
 | `BeforeAfter` | `id`, `before: DiagramPanel`, `after: DiagramPanel`, `legend: LegendItem[]` |
 | `VerdictFooter` | `note?: string` |
-| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`viz/wrap-terms.mjs`). 손으로 `<T id>` 를 심지 않는다 |
+| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`viz/wrap_terms.py`). 손으로 `<T id>` 를 심지 않는다 |
 | `Glossary` | `terms: Term[]` — 이해도 그룹 아코디언(모름 → 애매 → 확실 → 미측정, 모름만 열림) |
 | `TermGraph` | `terms: Term[]`, `height?: number` |
 
@@ -114,7 +126,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 **정의는 `data.ts` 의 `terms` 배열 한 곳에만 쓴다.** 본문 인라인 참조·용어집 표·관계 그래프가
 전부 그 배열에서 나온다. **본문 인라인 참조는 자동이다** — 본문에 용어 id 를 그냥 쓰면 빌드가 모든 등장을 term-ref(밑줄 + `?` + 카드)로
 감싼다. 제목(h2) · 표 머리 · `.mono` · 용어집 · 관계도 · SVG 안은 건너뛴다.
-**경로도 자동이다** — 본문에 `docs/handoffs/x.md:12` 처럼 경로를 쓰면 빌드가 실제 파일·폴더로 가는 `file://` 링크(새 탭)로 만든다.
+**경로도 자동이다** — 본문에 `docs/handoffs/<파일>.md:12` 처럼 경로를 쓰면 빌드가 실제 파일·폴더로 가는 `file://` 링크(새 탭)로 만든다.
 없는 파일은 그대로 글자로 남는다. 다른 저장소의 산출물을 가리키려면 `data.ts` 에 `linkRoots: ["<절대경로 폴더>"]` 를 적는다. `short` 는 커서를 올렸을 때 뜨는 한 줄이고 `body` 는 용어집 표에만 나온다.
 `links` 는 방향 없는 그물 간선이다 — 양쪽 끝이 모두 정의된 용어일 때만 그려진다.
 
@@ -129,7 +141,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 파이프라인이 **기계로 강제**하는 것 — 어길 수 없다:
 
 - `<script>` 는 **1개까지.** `terms` 가 있으면 용어 그래프 런타임(d3-force, 약 65KB)이 그 한 칸을 쓴다.
-  없으면 0개. **예산이 찼으므로 새 런타임은 `viz/src/runtime/term-graph.ts` 번들에 합쳐야 한다** (`report build` 가 초과 시 exit 1)
+  없으면 0개. **예산이 찼으므로 새 런타임은 `viz/src/runtime/term-graph.ts` 번들에 합쳐야 한다** (`report-spec build` 가 초과 시 exit 1)
 - 외부 리소스 0건 — `theme.css` 가 `<style>` 로 통째 삽입된다. 폰트·CDN 로드 경로 자체가 없다
 - 라이트 단일 테마 — `theme.css` 가 정본. **다크모드를 만들지 않는다**
 
@@ -138,7 +150,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 - **산문 문단 금지.** 설명은 spec 본문에 이미 있다. 대시보드는 계기판이지 축약본이 아니다
 - **전체 1~2 스크린.** 스크롤 몇 번으로 끝나야 판정이 가능하다
 - **이모지는 확신도 앵커 3종(🔵🟡💭)만.** 장식 이모지 금지
-- **인라인 `style` · 신규 클래스 금지.** `theme.css` 에 정의된 47개 클래스 밖으로 나가지 않는다.
+- **인라인 `style` · 신규 클래스 금지.** `theme.css` 에 정의된 클래스 밖으로 나가지 않는다.
   유일한 예외가 `BeforeAfter` 의 `--svg-w` 주입이고 그건 컴포넌트가 이미 한다
 - **에이전트가 채운 항목에는 출처를 박는다.** 옵션표에 spec 원문에 없는 안을 넣었다면 판정·출처 열로
   `기각(정본 §N)` / `채택(D#)` / `미검토 — 이 보고서가 추가` 처럼 **행마다 구분한다.** 출처 열 없이
@@ -148,7 +160,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 ## Common pitfalls
 
 - **용어를 본문 여기저기서 즉석 정의** — 금지. `terms` 배열에만 쓴다. 본문에는 id 를 그대로 쓰면 빌드가 감싼다 — `<T id=…/>` 를 손으로 심지 않는다
-- **`report check` 의 용어집 경고를 무시** — 본문에 식별자 꼴 낱말(`C-19`·`*.json`·`calls[]`)이 있는데
+- **`report-spec check` 의 용어집 경고를 무시** — 본문에 식별자 꼴 낱말(`C-19`·`*.json`·`calls[]`)이 있는데
   `terms` 에 없으면 경고가 뜬다. 실패는 아니지만 **그 목록이 곧 빠진 정의 목록**이다. 자연어 용어(`WarmUp`)는
   기계가 못 잡으므로 저자가 직접 넣는다
 - **판정 푸터를 AI 가 채움** — 절대 금지. `VerdictFooter` 는 항상 빈 채로 산출한다
@@ -159,7 +171,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
   🔵 는 **이번 세션에서 읽은 file:line 또는 실제로 돌린 명령의 출력**만 인정한다
 - **`--svg-w` 를 끊음** — `inlineSvg` 를 거치지 않고 SVG 문자열을 직접 넣으면 `width`/`height` 가
   제거된 SVG 가 고유 크기를 잃어 브라우저가 300×150px 로 렌더한다. "실제 크기" 토글이 조용히 죽는다
-- **`Section title` 과 `data.ts` 의 `id` 불일치** — `report check` 가 잡지만, 잡히고 나서 고치면
+- **`Section title` 과 `data.ts` 의 `id` 불일치** — `report-spec check` 가 잡지만, 잡히고 나서 고치면
   이미 사용자에게 잘못된 표를 보인 뒤다
 - **보고서를 쓰다 컴포넌트를 즉석 신설** — 금지. 보고서 끝에 `## 컴포넌트 후보` 절로
   **반복 횟수와 함께** 보고만 하고 사후 일괄 처리한다. 컴포넌트는 **추가만** 한다(props 제거·의미 변경 금지)
@@ -169,9 +181,9 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 - **옛 산출물(2026-07-27 자 HTML 2건)은 기준이 아니다.** 출발점일 뿐이다. 새 출력을 거기에 맞추려는
   시도는 후퇴다 — 2026-08-28 에 그 방향의 Phase 셋이 취소됐다. 현재 컴포넌트 출력이 기준이다
-- **용어집이 실제 독자에게 읽히는지는 미검증이다.** Mode 1.5(용어 이해도 벤치마크)가 붙으면 `Term.mental`
-  필드로 실측이 들어온다. 그전까지 용어 선정은 저자의 감이다
+- **용어집이 실제 독자에게 읽히는지는 `Term.mental`(Mode 1.5 실측)이 붙은 용어만 안다.** 측정이 없는
+  용어의 선정은 저자의 감이다
 - **D축(결정 불확실성)은 도입 전이다.** `viz/src/types.ts` 에 필드가 없다. 소급 검증(A1)을 통과하기
   전까지 D축 컬럼·테두리색을 **만들지 않는다**
-- `.status-badge` / `.status-dot` 은 `theme.css:25-27` 에 정의돼 있으나 **쓰는 컴포넌트가 없다**
+- `.status-badge` / `.status-dot` 은 `viz/src/theme.css:25-27` 에 정의돼 있으나 **쓰는 컴포넌트가 없다**
   (헤더 전체 상태 배지 자리). 필요하면 컴포넌트 후보로 보고할 것 — 인라인으로 직접 쓰지 않는다
