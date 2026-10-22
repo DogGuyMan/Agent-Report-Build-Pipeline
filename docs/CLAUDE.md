@@ -40,6 +40,13 @@
 예외라도 **디렉토리 전체를 읽지 않는다.** `decisions/README.md` 와 `overturn/README.md` 가
 색인이니 거기서 필요한 것만 고른다.
 
+고르는 첫 동작은 grep 이다. 저장소 루트에서 돌린다.
+
+```bash
+grep -rn "<키워드>" docs/wiki/                                       # 코드를 뒤지기 전에 먼저
+grep -n "<키워드>" docs/decisions/README.md docs/overturn/README.md   # 걸린 번호의 기록 하나만 연다
+```
+
 ## 무엇이 어디 있나 — 목록이지 읽기 목록이 아니다
 
 | 자리 | 무엇 | 자동 열람 |

@@ -15,6 +15,8 @@
 
 ## 자주 쓰는 명령
 
+저장소 루트에서 돌린다. 새 기계라면 `npm run setup` 이 먼저다.
+
 ```bash
 npm run setup                                                         # .venv · node_modules 를 고정된 판으로 깔고 doctor
 npm run doctor                                                        # 필수 · 선택 · 골든 환경변수 한 화면

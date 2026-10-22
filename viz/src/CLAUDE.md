@@ -108,6 +108,8 @@
 
 ## 흔한 변경 패턴 (Common modification patterns)
 
+묶음마다 주석 한 줄이 상황이고 그 아래가 할 일이다. 첫 묶음은 저장소 루트에서, 둘째 묶음은 보고서 디렉토리에서 돈다.
+
 ```bash
 # 컴포넌트를 더한다 — 추가만 한다. props 제거·의미 변경 금지
 $EDITOR viz/src/components/<이름>.tsx && $EDITOR viz/src/index.ts   # export 를 더한다

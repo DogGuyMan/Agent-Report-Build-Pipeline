@@ -22,6 +22,8 @@
 
 ## 자주 쓰는 명령
 
+전부 저장소 루트에서 돌린다 — 설정 파일이 없어 pytest 가 루트에서 `test_*.py` 를 모은다(아래 Gotchas).
+
 ```bash
 cd $REPO_ROOT
 .venv/bin/python -m pytest -q                       # 전량 — machine/ runner/ tools/ test/ 를 pytest 가 알아서 모은다

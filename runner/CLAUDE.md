@@ -21,6 +21,9 @@
 
 ## 자주 쓰는 명령
 
+실행기 셋은 저장소 루트에서 돌리고 첫 인자로 대상을 받는다 — 저장소 · Plan · 프로젝트와 slug.
+`--dry-run` 은 자식 프로세스를 하나도 띄우지 않는다.
+
 ```bash
 cd $REPO_ROOT
 .venv/bin/python runner/run_mode1.py <저장소> --dry-run          # 자식 프로세스 0개. 폴백 간선까지 실제 흐름을 찍는다
@@ -37,10 +40,15 @@ cd $REPO_ROOT
 
 ## 두 방향의 자식 프로세스 — 순환이 아니다
 
-```
-bin/*  →  dispatch.py  →  viz/*.py · runner/wiki/*.py · runner/term/*.py
-run_mode*.py  →  python runner/wiki/*.py · python viz/*.py   (되돌아오는 방향)
-              →  python machine/*.py
+```mermaid
+flowchart LR
+  bin["bin/*"] --> dispatch["dispatch.py"]
+  dispatch --> viz["viz/*.py"]
+  dispatch --> wiki["runner/wiki/*.py"]
+  dispatch --> term["runner/term/*.py"]
+  run["run_mode*.py"] -->|python · 되돌아오는 방향| wiki
+  run -->|python · 되돌아오는 방향| viz
+  run -->|python| machine["machine/*.py"]
 ```
 
 **`dispatch.py` 는 확장자를 보고 해석기를 고른다** — `.py` 면 python, 아니면 node.

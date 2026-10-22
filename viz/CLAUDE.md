@@ -151,6 +151,8 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 
 ## 흔한 변경 패턴 (Common modification patterns)
 
+묶음마다 주석 한 줄이 상황이고 그 아래가 할 일이다. 저장소 루트에서 돌린다.
+
 ```bash
 # 새 스크립트를 더했다 — 직접 실행 가드부터 넣는다
 .venv/bin/python -m pytest test/test_<해당>.py   # 가드가 없으면 import 순간 CLI 가 돌아 러너가 죽는다

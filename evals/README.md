@@ -8,6 +8,8 @@
 
 ## 기록하는 법
 
+저장소 루트에서 실행기에 `--json <경로>` 를 붙이면 그 경로에 단계별 측정값이 JSON 으로 남는다.
+
 ```bash
 .venv/bin/python runner/run_mode1.py <저장소> --model opus \
   --json evals/runs/$(date +%F)-mode1-<대상>-<조건>.json
