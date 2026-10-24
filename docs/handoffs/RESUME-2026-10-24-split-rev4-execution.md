@@ -8,8 +8,8 @@
 ## 0. 한눈에 (TL;DR)
 
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · **R11 ⬜(사용자 결정) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
-- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 (2) R11 — 목록 밖 LLM 글 옮기기 (3) A2 · A3 (4) Phase K (5) M1 · M2.
+- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · **R12 ⬜(결정 0012 제안됨) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
+- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 (2) R12 — 프롬프트의 동적 부분을 Jinja2 로(R11 대체 · 결정 0012) (3) A2 · A3 (4) Phase K (5) M1 · M2.
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
@@ -100,7 +100,8 @@ Phase A
 | R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | 31 동일 |
 | R9 | 게이트 시험 + Phase R 문서 정리 + 보강 | ✅ `36fb98d` `83c22a1` `116bd73` + 보강 `0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · spec ✅ · 품질 With fixes → 보강 ✅(로컬 세션 2026-10-24) · 재검토 ✅ Ready: Yes(Important 0) · 문서 정리 `128c25b` · 사용자 승인(본체 셋) | I1 — 긴 글 게이트가 f-문자열을 한 덩어리로 잰다 · HTML 뼈대는 `viz/templates/report/page.html.tmpl`. I2 — 템플릿을 문자열 상수와 같은 값으로 찾고 basename 겹침을 본다. M2 확정 — 게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 의 `python -c` 스크립트는 `tools/doctor_packages.py`. 31 동일 · `doctor` 표 동일. "줄 번호 ≤ 파일 끝" 인용 검사는 넣지 않았다 — 루트 `CLAUDE.md` 의 `runner/run_mode1.py:414`(위키가 낡은 줄을 인용한다는 설명 문장)가 걸린다 |
 | R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · 품질 ✅(With fixes) → 보강 `6e9cc72` · 사용자 승인 | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일. 검토 보강 — 아래층 장 목록 절(`write-wiki#lower-page`)을 지나는 시험(그전에는 자리 이름이 어긋나도 통과 · 실제로는 둘째 층에서 러너가 죽는다) · `FIX` 가 빈 줄이 아닌 한 줄인지 · 심볼 줄 들여쓰기를 줄 경계로. 돌연변이 셋을 넣어 잡히는 것 확인. 독스트링 셋과 `wiki.py` 호출 꼴 |
-| R11 | 목록 밖 LLM 글 옮기기 | ⬜ **사용자 결정 — 옮긴다** | §5 (2) |
+| R11 | 목록 밖 LLM 글 옮기기 | **폐기 → R12** · 시험 커밋 `8d71d38` 만 들어감 | 후보(새 절 6 · 고정 28 동일 · `edge_dump` 209 동일)는 적용하지 않았다(`split-work/patches/R11/`, git 밖). §5 (2) |
+| R12 | 프롬프트의 동적 부분 → Jinja2 · 결함 문구 → TOML | ⬜ **결정 0012 제안됨** | §5 (2) |
 | A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
 | A2 | Mode 1.5 · 2 시험이 `measure` 를 import | ⬜ 시험만 남음 | 실행기 독스트링은 `5837c32` 에서 끝났다. §5 (3) |
 | A3 | 실행기 스크립트 실재 시험 셋 | ⬜ | 시험만. §5 (3) |
@@ -139,6 +140,7 @@ PY
 
 **사용자 결정** — 경계는 A3 데이터 계약(스키마 사본 + `docs/codegraph/manifest.json` 봉인) · Mode 1 은 **사람이 부를 때만** 돌고 **묻지 않는다**(예상 비용 한 줄만) · Mode 1.5 는 봉인 없으면 멈추고 낡음 · 미커밋은 경고 · Mode 2 는 Mode 1 과 독립(봉인 있으면 근거) · 프롬프트는 단계당 한 파일 + `<!-- section: 이름 -->` 절 · 소비자 형은 계약 JSON 에서 생성 · 손댄 위키 장은 `.bak` · 범위 R→A→K→M · 서브에이전트 주도 · **본체 .py 승인 규칙 유지**.
 2026-10-24 Mac 세션에서 더해진 결정 — 파이썬에 남은 LLM 글(빈 값 문구 · 목록 줄 꼴 · 고침 안내)도 리소스로(R10 끝) · 목록 밖에서 더 찾은 글도 같은 방식으로(R11) · R7 도움말은 실효값 · R6 `str(lang)`.
+2026-10-24 클라우드 세션에서 더해진 결정(결정 0012, 제안됨) — 프롬프트의 동적 부분(반복 · 빈 값 대체 · 조건부 절 · 잇기 · 들여쓰기)은 프롬프트 파일 안 **Jinja2**(명시 의존) · 파일은 **마크다운 그대로, 절 표식 유지** · YAML 은 쓰지 않는다 · **엄격 검사**(빠진 값 · 남는 값 둘 다 오류) · 공백 `trim_blocks` · `lstrip_blocks` · `keep_trailing_newline` · 결함 문구 9개는 **`runner/mode1/faults.toml`** · **프롬프트만**(파일 템플릿 일곱은 `tools/template.py` 그대로) · **템플릿은 꼴만, 데이터 결정은 단계** · 바이트 대조는 합격 기준이 아니다(바뀐 글은 diff 로 사람이 본다) · R11 후보 폐기.
 
 **정정표 — rev.4 를 코드 실물로 고친 것.** 해당 Task 를 시킬 때 반드시 brief 에 넣는다. ⑪ ⑫ 는 소진됐다.
 
@@ -247,13 +249,60 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - R10: 범위 `d6286be..5837c32`. 볼 것 — 새 절 15개와 `prompt_names` · `FIX` 의 모듈 수준 대입(`ClassVar` 선언 + 클래스 뒤 채움)의 위험(import 순서 · 하위 클래스) · 한 낱말 절 둘(`batch-symbol-no-deps` "없음" · `pass2-no-deps` "  (없음)")의 값(사용자가 남기기로 했다 — 결함이 아니면 지적만) · 바이트 보존(§6 의 `edge_dump.py` 로 `git archive d6286be` 대 HEAD) · B 의 독스트링 사실 대조.
 - Important 이상은 그 Task 안에서 고친다(본체면 승인). Minor 는 묶어 보강하거나 §4.2 로.
 
-**(2) R11 — 목록 밖 LLM 글 옮기기(사용자 결정 2026-10-24: "같은 방식으로 옮긴다")** — 구현자 `opus`. 대상(`runner/mode1/survey.py`, 줄은 내용으로 찾는다):
-- `pending_excerpt` 의 줄 꼴 `"  - %s (%s) %s:%s"`(미조사 의존 절에 실린다).
-- `fault_line` 의 `"[%s] %s — %s\n    → %s"`(stderr · 재조사 절 · `runner/check_shard.py` 출력에 함께 나온다).
-- 결함 설명 문구 넷 — "샤드 없음" · "계획에 있는데 샤드에 없다" · "샤드에 있는데 계획에 없다" · "where 없음 (kind %s)"(재조사 절에 실린다). **이 넷은 `.bad.why` JSON 에도 기록되는 데이터다** — 기록 바이트도 같아야 한다.
-- R10 과 같은 제약: 기존 절 표식만 · 새 서식 · 파서 · 렌더러 기능 금지 · 빈 값 고르기는 파이썬에 · 새 절은 `AnnotateSymbolsStage.prompt_names` 에. 절 수를 보고하고, 옮길 가치가 약한 것은 사용자에게 보이게 한다.
-- 합격: 고정 31 동일 + `edge_dump.py` 로 옛 트리(`git archive HEAD`) 대 후보 트리 JSON 동일(필요하면 `pending_excerpt` 경계 입력을 더한다) + 전량 pytest(알려진 둘) + 게이트 3 + pyright 0.
-- 커밋 제안: `[refactor] : mode 1 의 미조사 의존 줄, 결함 줄, 결함 설명을 프롬프트 리소스로`. 그 뒤 품질 검토(`opus`).
+**(2) R12 — 프롬프트의 동적 부분을 Jinja2 로(결정 0012 · R11 을 대체)** — 구현자 `opus`(여러 파일 · 설계 판단).
+
+*R11 경과(2026-10-24 클라우드).* 구현자가 목록 밖 글 여섯(미조사 의존 줄 · 결함 줄 · 결함 설명 넷)을 새 절 6개로 옮긴 후보를 냈다 — 고정 28 동일 · `edge_dump` 경계 입력 209 동일. 사용자가 그 구조를 되묻는 과정에서 방향이 바뀌었고 후보는 **적용하지 않고 버렸다**(`split-work/patches/R11/`, git 밖). 들어간 것은 커밋 1 `8d71d38` 뿐이다 — `runner/test_mode1.py` 의 바이트 고정 시험 넷(미조사 의존 줄 · 결함 줄 · 결함 설명이 `check_shards` 와 `.bad.why` 에 실리는지 · `check_shard.py` 출력)과 `split-work/edge_dump.py` 경계 입력 128 → 209.
+
+*판단 근거.*
+- 동적 프롬프트 해부 페이지(claude.ai artifact `XWA74HNoJpkWuo4EWb2hYq`, 생성기는 클라우드 scratch — 사라진다). 실제 리소스 · 저장소 데이터로 렌더한 다섯 장면이다. 실제 출력에서 본 것:
+  - 조건부 절 셋(미조사 · 범위 · 재조사)이 마무리 줄 "보고:" **뒤에** 붙는다. Mode 2 의 용어집 절은 본문 자리에 들어간다.
+  - 미조사 의존 이름이 심볼 줄의 `의존 ->` 와 미조사 절에 두 번 나온다.
+  - 프롬프트가 이미 데이터를 경로로 넘기는 꼴을 쓴다(`record-schema.json` · `file_cache.py` · `check_shard.py`).
+  - 재조사 절은 `.bad.why` 를 산문으로 옮겨 싣는다.
+- 라이브러리 조사(deep-research, 검증 단계에서 멈춤 — 주장 84개 중 통과 19 · 정정 2 · 나머지 검증 전). 출처 20곳.
+  - 이 분야의 주류는 **파일에 기존 엔진의 문법을 둔다**: banks · promptly · Prompty · LangChain 은 Jinja2, Dotprompt 는 Handlebars, POML 은 자체 문법.
+  - 코드 조합기 쪽은 목적이 다르다: priompt 계열은 토큰 예산(낮은 우선순위를 조용히 떼어 냄), Guidance 는 생성 제약.
+  - POML 은 Node 를, promptl-py 는 WebAssembly 를 쓰고, LangChain 은 프레임워크 부품이다.
+  - 엄격 검사와 바이트 안정을 기본으로 주는 기성 라이브러리는 그 범위에서 못 찾았다 — Jinja2 를 엄격하게 설정해 직접 쓰는 것이 가장 가깝다.
+  - YAML 안의 Jinja2 는 Ansible 이 대표 사례다(일반 지식).
+
+*이행 단계(Task 마다 한 커밋 · 본체 `.py` 는 승인).*
+- **R12a 의존과 렌더.**
+  - `requirements.txt` 에 `jinja2` 를 더한다. 판은 설치되는 판으로 고정한다(2026-10-24 실측 — `.venv` 에 Jinja2 · MarkupSafe · PyYAML 모두 없다).
+  - `PromptResource.load_prompt` 가 절 글을 Jinja2 로 렌더한다. 설정: `StrictUndefined`, 남는 값은 `meta.find_undeclared_variables` 로 대조해 오류, `trim_blocks` · `lstrip_blocks` · `keep_trailing_newline`, `autoescape` 끔.
+  - 값 형을 `str` 에서 목록 · 사전까지 넓힌다.
+  - **이 단계는 글을 고치지 않는다.** 지금의 `{{이름}}` 은 Jinja 문법과 같고, 리소스의 Jinja 특수 글자(`{%` `{#` 자리 아닌 `{{…}}`)는 0건이다(실측). 그래서 고정 28 과 `edge_dump` 가 같게 나와야 한다 — 이것만은 바이트로 본다.
+- **R12b 결함 표.**
+  - `runner/mode1/faults.toml` 에 갈래마다 `detail` · `fix` 를 둔다. 결함 설명 중 `where` 는 `{{ kind }}` 를 가진다.
+  - `FIX` 표와 결함 설명 네 자리가 이 표를 읽는다.
+  - `annotate-symbols.md` 의 `fix-*` 절 다섯을 지운다.
+  - 시험: 표의 키 = `FaultKind` 값.
+- **R12c Mode 1 `annotate-symbols`.**
+  - 한 줄 절 일곱(`batch-symbol` · `batch-symbol-no-deps` · `batch-dep` · `batch-dep-no-means` · `batch-no-deps` · `pass2-dep` · `pass2-no-deps`)을 본문 절 안 `{% for %}…{% else %}` 로 합친다.
+  - 범위 · 미조사 · 재조사 절을 `{% if %}` 로 `batch` 본문의 자리에 둔다.
+  - `survey.py` 는 조립한 문자열 대신 **행(사전 목록)** 을 넘긴다 — 데이터 결정(무엇이 미조사인가 · 어느 결함인가)만 남는다.
+  - `8d71d38` 시험의 기대값을 새 꼴로 바꾼다.
+- **R12d `write-wiki`.** `lower-page` · `no-lower-pages` · `page-no-symbols` 를 `main` 안으로 합친다.
+- **R12e Mode 2 `agent`.** `terms` 절을 `{% if terms_json %}` 로 `main` 안에 둔다. `ask` 는 그대로다.
+- **R12f 게이트와 문서.**
+  - `test/test_prompt_resources.py` 에 "모든 절이 Jinja2 로 컴파일된다" 를 더한다. 절이 줄어 게이트 2 의 1:1 은 그대로 통한다.
+  - 루트 `CLAUDE.md` 최우선 규약("자리표시는 `{{이름}}` 하나" → 프롬프트는 Jinja2, 파일 템플릿은 `{{이름}}`)과 `runner/` · `test/` · `tools/` 의 `CLAUDE.md` 를 고친다.
+  - 끝나면 0012 를 **확정**으로 올린다.
+
+*구현 전에 사용자에게 보일 설계 판단.*
+- (가) 조건부 절 셋의 새 자리. 제안: `## 끝내기 전에` 앞의 "이번 배치의 사정" 절 하나로 모은다.
+- (나) `fault_line` 의 자리. 재조사 절 말고도 stderr 로그와 `check_shard.py` 출력(배치 세션이 읽는다)이 같은 줄 꼴을 쓴다. 결함 표의 문구와 별개로, 줄 꼴을 프롬프트 절에 둘지 파이썬에 둘지 정해야 한다.
+
+*검토 장치.*
+- 옮기기 전후를 `split-work/capture.sh` 로 찍어 diff 를 사람이 본다. 같을 필요는 없다(R12a 만 예외).
+- `edge_dump.py` 는 함수 인자가 문자열에서 행으로 바뀌면 맞춰 고치거나 이 Task 에서 은퇴한다.
+
+커밋 제목 제안(ASCII 구두점):
+- `[update] : prompt 렌더를 jinja2 로 - 엄격 검사와 공백 규칙`
+- `[refactor] : 결함 문구를 faults.toml 결함 표로`
+- `[refactor] : mode 1 프롬프트의 반복, 빈 값, 조건부 절을 jinja2 로`
+- `[refactor] : write-wiki 와 agent 프롬프트를 jinja2 로`
+- `[docs] : 결정 0012 확정과 규약 문장`
 
 **(3) A2 · A3** — 시험 파일만이라 승인 없이 구현자가 커밋해도 된다(`sonnet`, 둘을 한 구현자에게 차례로).
 - A2: `runner/test_run_mode1_5.py:23` · `runner/test_run_mode2.py:20` 의 `import run_mode1 as M  # noqa: E402` → `import measure as M  # noqa: E402`. 두 시험이 쓰는 `M.` 이름 여섯(`StageRow` `agent_verdict` `claude_argv` `format_report` `normalize_usage` `sum_usage`)은 모두 `runner/measure.py` 에 있다(실측). 실행기 쪽 독스트링은 `5837c32` 에서 끝났다. **확인 grep 은 주석 줄을 뺀다** — `# <include …/>` 잔재의 `# 쓰는 것: run_mode1` 줄은 고치지 않는다:
@@ -348,3 +397,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 로컬 세션 질의 결과 — M2 확정(게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 스크립트를 파일로 · 본체 승인 · 3단계에서 I1 과 함께), R9 보강과 R10 검토는 로컬 세션에서 다시 띄움, 낡은 원격 가지 `claude/lucid-goodall-xdoeou` 삭제(그 가지에만 있던 커밋 0) |
 | 2026-10-24 | 로컬 세션 — R9 보강 끝(1단계 `0ba79a3` `a7a66c4` `3c4c4e8` · 본체 `bae47de` `44b55c5` 사용자 승인, 31 동일 · `doctor` 표 동일) · R10 품질 검토 With fixes → `6e9cc72`(시험 셋 · 독스트링 셋 · 호출 꼴, 사용자 승인) · R9 재검토(opus) 띄움 |
 | 2026-10-24 | 로컬 세션 — R9 재검토 Ready: Yes · 문서 정리 `128c25b`. 사용자 지시로 여기서 멈추고 클라우드로 넘긴다. 다음은 §5 (2) R11 부터 |
+| 2026-10-24 | 클라우드 세션 — R11 커밋 1 `8d71d38`(바이트 고정 시험 넷 · `edge_dump` 경계 입력 209). 커밋 2 후보는 동적 프롬프트 해부와 라이브러리 조사를 거쳐 **버렸다**. 사용자 판단으로 결정 0012 [제안됨] — 프롬프트의 동적 부분을 프롬프트 파일 안 Jinja2 로. §5 (2) 를 R12(R12a~f)로 바꿨다. 구현 전에 (가) 조건부 절의 새 자리 · (나) `fault_line` 의 자리를 사용자에게 보인다 |
