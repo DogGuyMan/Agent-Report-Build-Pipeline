@@ -6,7 +6,7 @@
 # 쓰는 것: run_mode1 · 쓰이는 곳: 없음
 """Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
-재는 코드는 `run_mode1.py` 의 것을 그대로 import 해 쓴다 — 여기에 사본이 없다.
+재는 코드는 `measure.py` 의 것을 그대로 import 해 쓴다 — 여기에 사본이 없다.
 
 ## 네 단계 — LLM 은 그중 **하나**뿐이다
 
@@ -32,8 +32,8 @@
   뿌리에서, `build` 와 `check` 는 보고서 폴더(`<자리>/<slug>/`)에서 돈다. 여기서 틀리면
   오류 없이 **조용히 엉뚱한 곳에 파일이 생긴다**(`stage_cwd`).
 - **`claude` 는 막혀도 종료 코드 0 을 낼 수 있다.** `is_error` 와 `subtype` 을 봐야 한다.
-  판정 코드는 `run_mode1.agent_verdict` 를 그대로 쓴다.
-- **재는 코드를 새로 짜지 않는다.** 토큰 세기·합계·표 그리기는 `run_mode1` 에 있다.
+  판정 코드는 `measure.agent_verdict` 를 그대로 쓴다.
+- **재는 코드를 새로 짜지 않는다.** 토큰 세기·합계·표 그리기는 `measure` 에 있다.
   각자 세면 같은 이름의 숫자가 두 실행기에서 서로 다른 뜻을 갖는다.
 - **Mode 1.5 의 `terms.json` 을 기계로 병합하지 않는다.** 있으면 프롬프트에 **알려 주기만**
   하고, 옮겨 적는 것은 LLM Model의 일이다.
@@ -89,11 +89,13 @@ PROJECT_STAGES = {"init", "agent"}
 
 
 class DocDirConfig(TypedDict):
+    """`[[doc_dirs]]` 하나 — 원본 문서가 사는 폴더와 그 파일명 꼴."""
     dir: str
     pattern: str
 
 
 class ModelsConfig(TypedDict):
+    """`[models]` — `agent` 세션의 Model."""
     mode2_agent: str
 
 
@@ -232,12 +234,13 @@ def script_argv(root: str, stage: str, slug: str) -> list[str]:
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.agent_prompt']"/>
 # 설계 검토 보고서를 쓰는 LLM 에이전트에게 줄 지시문 전체를 만드는 함수다.
 # 쓰는 것: runner.run_mode2.report_dir · 쓰이는 곳: runner.run_mode2.run_agent, runner.test_run_mode2._prompt
-# ── 4. 에이전트 프롬프트 — 검사가 잡아주지 않는 규율을 여기서 말한다 ──────
+# ── 4. 에이전트 프롬프트 — 검사가 잡아주지 않는 규율은 `runner/prompts/agent.md` 에 있다 ──
 def agent_prompt(project: str, slug: str, spec_file: str, root: str,
                  terms_json: str | None = None, doc_dir: str = "specs") -> str:
     """원고를 쓰는 한 세션이 할 일 전부.
 
-    **기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
+    글은 `runner/prompts/agent.md` 의 `main` 절이고, `terms_json` 이 있으면 `terms` 절을 붙인다.
+    **그 글이 기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
     무결성은 `check` 가 잡지만, 판정을 LLM Model이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.
 

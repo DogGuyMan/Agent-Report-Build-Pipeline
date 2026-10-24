@@ -103,8 +103,8 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`ModelsConfig`** | *class* |  |
-| **`EstimateConfig`** | *class* |  |
+| **`ModelsConfig`** | *class* | `[models]` — 배치·장 세션의 Model 과 `lang-hint` 의 Model. |
+| **`EstimateConfig`** | *class* | `[estimate]` — 진입 알림이 찍는 배치당 비용 어림(USD)의 하한과 상한. |
 | **`Mode1Config`** | *class* | `config/mode1.toml`. |
 | `load_config` | `(path: str = CONFIG_PATH) -> Mode1Config` | 설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다. |
 | **`ShardUse`** | *class* |  |
@@ -465,7 +465,7 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `ask_argv` | `(root: str, plan: str, workdir: str, python: str) -> list[str]` | 대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다. |
 | `run_interactive` | `(argv: Sequence[str], cwd: str) -> int` | 터미널을 그대로 넘겨 자식을 띄우고 끝날 때까지 기다린다. 출력을 가로채지 않는다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
-| `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
+| `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `measure.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다. |
 | **`Mode15Context`** | *class* | Mode 1.5 의 단계 사이를 건너다니는 값. 산출 파일 자리는 `workdir` 이 정한다. |
 | `Mode15Context.p_cand` | `(self) -> str` |  |
@@ -501,8 +501,8 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`DocDirConfig`** | *class* |  |
-| **`ModelsConfig`** | *class* |  |
+| **`DocDirConfig`** | *class* | `[[doc_dirs]]` 하나 — 원본 문서가 사는 폴더와 그 파일명 꼴. |
+| **`ModelsConfig`** | *class* | `[models]` — `agent` 세션의 Model. |
 | **`ReportConfig`** | *class* | `config/report.toml`. 원본 문서 자리 규칙은 `viz/init.py` 도 같은 파일에서 읽는다. |
 | `report_dir` | `(project: str, slug: str, doc_dir: str = 'specs') -> str` | 보고서가 사는 폴더. **원본 문서 옆**이다 — `specs/<slug>/` 또는 `plans/<slug>/`. |
 | `stage_cwd` | `(stage: str, project: str, report_dir: str) -> str` | 단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.** |

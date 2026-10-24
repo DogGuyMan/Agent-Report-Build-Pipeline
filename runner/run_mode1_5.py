@@ -6,7 +6,7 @@
 # 쓰는 것: run_mode1 · 쓰이는 곳: 없음
 """Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 멈춘다.**
 
-재는 코드는 `run_mode1.py` 의 것을 그대로 import 해 쓴다 — 여기에 사본이 없다.
+재는 코드는 `measure.py` 의 것을 그대로 import 해 쓴다 — 여기에 사본이 없다.
 
 ## 네 단계와 그 사이의 사람 차례
 
@@ -508,14 +508,14 @@ def ask_argv(root: str, plan: str, workdir: str, python: str) -> list[str]:
     """대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다.
 
     `-p` 를 쓰지 않는다 — 스킬은 `AskUserQuestion` 으로 사람에게 묻고, 헤드리스는 되물을 수 없다.
-    작업 폴더가 저장소 밖일 수 있어 `--add-dir` 로 열어 준다. 채점은 세션이 끝난 뒤 실행기 몫이라
-    프롬프트에 "하지 마라" 를 박는다.
+    작업 폴더가 저장소 밖일 수 있어 `--add-dir` 로 열어 준다. 프롬프트 글은 `runner/prompts/ask.md` 다.
+    채점은 세션이 끝난 뒤 실행기 몫이라 그 글에 "하지 마라" 가 있다.
     """
     prompt = AskStage.load_prompt(
         "ask", skill=SKILL, plan=plan, workdir=workdir,
         candidates=os.path.join(workdir, CANDIDATES), questions=os.path.join(workdir, QUESTIONS),
         python=python, runner=os.path.join(root, "runner", "run_mode1_5.py"),
-        sheet=os.path.join(workdir, SHEET), answers=os.path.join(workdir, ANSWERS)).rstrip("\n")
+        sheet=os.path.join(workdir, SHEET), answers=os.path.join(workdir, ANSWERS)).removesuffix("\n")
     return ["claude", "--add-dir", workdir, prompt]
 
 
@@ -570,7 +570,7 @@ def gate_notice(questions: str, sheet: str, answers: str, held: Sequence[str],
 # 쓰는 것: runner.run_mode1.format_report · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_a_stage_skipped_on_resume_is_marked_as_skipped_not_failed, runner.test_run_mode1_5.test_the_gate_is_appended_to_the_report_and_is_not_a_failure, runner.test_run_mode1_5.test_the_report_reuses_the_mode_1_table
 def format_run(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] | None,
                gate: str | None) -> str:
-    """`run_mode1.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다.
+    """`measure.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다.
 
     그 표는 단계를 **성공/실패** 둘로만 그린다. 건너뛴 단계와 사람 차례는 실패가 아니므로
     표에는 **실제로 돌린 단계만** 담고, 나머지는 표 밖에 글로 적는다.

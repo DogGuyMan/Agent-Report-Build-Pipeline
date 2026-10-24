@@ -49,10 +49,10 @@
 
 ## Model을 정하는 자리는 하나뿐이다
 
-`main` 의 `--model` 기본값 하나가 `Mode1Context.model` 로 들어가 `LlmStage.perform` ->
-`run_layer` -> `run_agent_with` -> `claude_argv` 사슬을 그대로 타고 내려간다. **중간에서 Model을
-바꾸지 않는다.** `lang-hint` 만 가장 싼 Model 을 따로 고정한다. 별명이 아니라 정확한 ID 를 쓴다 —
-별명은 최신판을 따라 움직여 측정이 흔들린다.
+`config/mode1.toml` 의 `[models] sessions` 가 `mode1.context.load_config` 를 거쳐 `main` 의 `--model`
+기본값이 되고, `Mode1Context.model` 로 들어가 `LlmStage.perform` -> `run_layer` -> `run_agent_with`
+-> `claude_argv` 사슬을 그대로 타고 내려간다. **중간에서 Model을 바꾸지 않는다.** `lang-hint` 만
+같은 파일의 `[models] lang_hint` 로 가장 싼 Model 을 따로 쓴다.
 
 이 파일 자신은 Model이 아니다. 층 순서 · 배치 묶기 · 샤드 병합 · 키 충돌 해소를 전부
 결정론으로 하고, Model을 부르는 자리는 자식 세션뿐이다. 그래서 **이 스크립트를 실행하는
@@ -197,7 +197,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Mode 1 파이프라인을 돌리고 단계별 시간·토큰을 잰다.",
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("repo", help="대상 저장소 경로")
-    # 별명이 아니라 정확한 ID 를 적는다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
     ap.add_argument("--model", default=X.load_config()["models"]["sessions"], help="배치·장 세션이 쓸 Model")
     ap.add_argument("--concurrency", type=int, default=8, help="한 층에서 동시에 띄울 세션 수")
     ap.add_argument("--target", type=int, default=8, help="배치당 목표 심볼 수")

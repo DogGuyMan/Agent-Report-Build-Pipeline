@@ -20,7 +20,7 @@ from typing import Any
 with open(os.path.join(ROOT, "config", "report.toml"), "rb") as _f:
     _CONFIG = tomllib.load(_f)
 
-DOC_DIRS: list[dict[str, Any]] = [{"dir": str(d["dir"]), "re": re.compile(str(d["pattern"]))}
+DOC_DIRS: list[dict[str, Any]] = [{"dir": d["dir"], "re": re.compile(d["pattern"])}
                                   for d in _CONFIG["doc_dirs"]]
 
 from typing import Optional
@@ -89,7 +89,7 @@ def listDocs(cwd: str) -> list[dict[str, str]]:
 def writeSkeleton(dir: str, slug: str, date: str, specName: str, branch: str, version: str) -> None:
     os.makedirs(dir, exist_ok=True)
 
-    # 주입하는 네 값은 json.dumps 로 이스케이프한다 — 실제 spec 제목에 백틱과 따옴표가 있어
+    # 주입하는 다섯 값은 json.dumps 로 이스케이프한다 — 실제 spec 제목에 백틱과 따옴표가 있어
     # 템플릿에 그대로 꽂으면 data.ts 가 문법 오류가 된다. repr 은 파이썬 표기라 계약이 아니다.
     def q(v: str) -> str:
         return json.dumps(v, ensure_ascii=False)
