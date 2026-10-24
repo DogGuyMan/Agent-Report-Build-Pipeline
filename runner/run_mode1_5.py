@@ -511,13 +511,11 @@ def ask_argv(root: str, plan: str, workdir: str, python: str) -> list[str]:
     작업 폴더가 저장소 밖일 수 있어 `--add-dir` 로 열어 준다. 채점은 세션이 끝난 뒤 실행기 몫이라
     프롬프트에 "하지 마라" 를 박는다.
     """
-    prompt = ("/%s 계획서 %s · 작업 폴더 %s · 후보는 %s 에 이미 있다. "
-              "문항지는 %s 에 쓰고, 기입란은 `%s %s %s --workdir %s` 를 돌려 %s 로 깔고, "
-              "사용자에게 한 용어씩 물어 UserAns 를 채운 것을 %s 으로 둔 뒤 세션을 끝낸다. "
-              "채점(grade · emit)은 이 세션이 끝나면 실행기가 이어서 한다 — 여기서 하지 마라."
-              % (SKILL, plan, workdir, os.path.join(workdir, CANDIDATES),
-                 os.path.join(workdir, QUESTIONS), python, os.path.join(root, "runner", "run_mode1_5.py"),
-                 plan, workdir, os.path.join(workdir, SHEET), os.path.join(workdir, ANSWERS)))
+    prompt = AskStage.load_prompt(
+        "ask", skill=SKILL, plan=plan, workdir=workdir,
+        candidates=os.path.join(workdir, CANDIDATES), questions=os.path.join(workdir, QUESTIONS),
+        python=python, runner=os.path.join(root, "runner", "run_mode1_5.py"),
+        sheet=os.path.join(workdir, SHEET), answers=os.path.join(workdir, ANSWERS)).rstrip("\n")
     return ["claude", "--add-dir", workdir, prompt]
 
 
@@ -715,7 +713,7 @@ class GateStage(P.Stage[Mode15Context]):
         return P.Outcome(P.GATE, "사람 차례")
 
 
-class AskStage(P.Stage[Mode15Context]):
+class AskStage(P.PromptResource, P.Stage[Mode15Context]):
     """`--ask` 의 사람 차례. 대화형 `claude` 세션을 띄워 `term-benchmark` 스킬이 출제하고 묻게 한다.
 
     세션이 답안을 남기면 `OK` 로 채점에 넘기고, 남기지 않았으면 관문과 같은 일(기입란 · 안내)을
@@ -724,6 +722,8 @@ class AskStage(P.Stage[Mode15Context]):
     """
     name = ASK
     emits = P.OK | P.FAIL | P.GATE
+    prompt_dir = os.path.join(ROOT, "runner", "prompts")
+    prompt_names = ("ask",)
 
     def perform(self, ctx: Mode15Context) -> P.Outcome:
         t0 = time.monotonic()
