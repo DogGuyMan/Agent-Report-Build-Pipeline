@@ -16,7 +16,7 @@
 | `test_wiki.py` | `report-wiki prep · build · check` 가 실제로 돈다. `check` 는 `docs/wiki/` 를 이 저장소 기준으로 검사한다 |
 | `test_components.py` · `test_graph_math.py` | React 컴포넌트와 용어 그래프 수학을 **Node 자식 프로세스**로 렌더해 본다. `.tmp/lib.mjs` 와 esbuild 가 필요하다 |
 | `test_check.py` · `test_init.py` · `test_link_paths.py` · `test_wrap_terms.py` | Mode 2 의 `viz/*.py` 순수 함수 — `<script>` 상한 · slug 검증 · 경로 링크 · 용어 감싸기 |
-| `test_dispatch.py` · `test_portability.py` | `bin/` 의 명령 갈림길과 `tools/python.py` 의 해석기 탐색 |
+| `test_dispatch.py` · `test_portability.py` | `bin/` 의 명령 갈림길과 `tools/python.py` 의 해석기 탐색 · `tools/doctor.py` 와 `tools/doctor_packages.py` 의 점검 출력 |
 | `test_prompt_resources.py` | 리소스와 코드를 가르는 게이트 — 코드 안에 리소스로 뺄 긴 글이 없다 · 단계의 `prompt_names` 선언과 `prompts/*.md` 의 파일 · 절이 1:1 이고 파일 이름이 단계 이름이다 · 템플릿마다 그 파일 이름과 같은 값의 문자열 상수가 코드에 있고 템플릿 파일 이름은 겹치지 않는다 |
 | `test_config.py` | `config/report.toml` 을 직접 읽어 코드가 같은 값을 쓰는지 대조한다 — 원본 문서 자리 규칙(`DOC_DIRS`) 두 곳 · Mode 2 모델 기본값 배선 |
 | `test_templates.py` | 템플릿에서 짓는 파일 꼴 — 보고서 뼈대 `data.ts` 의 값 주입, 모듈 DOT 의 머리 · 범례 |

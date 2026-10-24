@@ -45,6 +45,6 @@ npm run doctor                                                        # 필수 �
 | 방향 | 무엇 |
 |---|---|
 | `../runner/dispatch.py` · `../runner/wiki/*.py` · `../runner/run_mode1_5.py` → 여기 | `pythonPath()` 로 해석기를 찾는다 |
-| `../viz/*.py` · `../runner/pipeline.py` · `../runner/wiki/build.py` → 여기 | `template.py` 의 `render_file` 로 리소스 파일의 `{{이름}}` 자리를 채운다 — 보고서 뼈대 · DOT 머리 · 프롬프트 · 위키 사이트 설정 |
+| `../viz/*.py` · `../runner/pipeline.py` · `../runner/wiki/build.py` → 여기 | `template.py` 의 `render` · `render_file` 로 리소스 파일의 `{{이름}}` 자리를 채운다 — 보고서 뼈대 · DOT 머리 · 프롬프트 · 위키 사이트 설정 |
 | 여기 → `../machine/pycalls.py` | `gen_readme.py` 가 `signature_of` 를 import 한다. 셋 축 중 기계축으로 가는 유일한 화살표다 |
 | 여기 → 바깥 | `git` · `dot` · `dotnet` · `clangd` 를 PATH 로 찾는다. **경로를 박지 않는다** |

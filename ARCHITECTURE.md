@@ -59,7 +59,7 @@ flowchart LR
 | report-builder  | `runner/`, `viz/`, `tools/` `.py` 스크립트, `machine/` 등 `.py` 계층            | 도구 본체                                            |
 | 대상 저장소 (git 추적) | `specs/<slug>/data.ts` · `report.tsx`                                     | **원고**다. `.md` 와 같은 자격으로 그 저장소에 산다               |
 | 대상 저장소 (git 추적) | `docs/wiki/*.md`                                                          | LLM 이 쓴 산문. 역시 원고다 (`runner/wiki/paths.py:22`) |
-| 대상 저장소 (추적 안 함) | `out/codegraph-raw/` · `out/report.html` · `out/codegraph-raw/wiki-site/` | 결정론으로 재생성된다 (`runner/wiki/paths.py:18,23-25`)  |
+| 대상 저장소 (추적 안 함) | `out/codegraph-raw/` · `out/report.html` · `out/codegraph-raw/wiki-site/` | 결정론으로 재생성된다 (`runner/wiki/paths.py` 의 `wikiPaths`)  |
 
 
 ### 이 갈림에서 나온 비직관적 결정 셋
@@ -71,7 +71,7 @@ flowchart LR
 
 |       | 담당                                                   | 가리키는 곳                                              |
 | ----- | ---------------------------------------------------- | --------------------------------------------------- |
-| 런타임   | `viz/build.py:54` 의 esbuild `alias`             | `viz/src/index.ts` · `viz/src/types.ts` · `viz/svg.mjs` |
+| 런타임   | `viz/build.py` `main` 이 넘기는 esbuild `alias` | `viz/src/index.ts` · `viz/src/types.ts` · `viz/svg.mjs` |
 | 타입 검사 | `viz/check.py:124` 가 임시 생성하는 tsconfig 의 `paths` | 같음. 단 svg 는 선언 파일 `viz/svg.d.mts`               |
 
 
@@ -408,7 +408,7 @@ sequenceDiagram
 
 
 판정은 통과 / 실패 / **근거 없음** 3값이다. "근거 없음" 은 L1·L2 는 통과했으나 코드 지도에 그 위치의
-선언이 없는 경우이고, 종료 코드는 L1·L2 실패가 있을 때만 1 이다 (`machine/verify_citations.py:22`).
+선언이 없는 경우이고, 종료 코드는 L1·L2 실패가 있을 때만 1 이다 (`machine/verify_citations.py` 의 `main`).
 
 💭 왜 3값인가 — 함수 본문 줄처럼 코드 지도가 원래 담지 않는 자리가 있다. 그것을 통과로 세면 검사가
 무의미해지고 실패로 세면 정상 인용이 전부 실패한다.
@@ -421,7 +421,7 @@ sequenceDiagram
 | `npm test`                              | Node 쪽 순수 함수와 컴포넌트                                      | 160 통과 · 0 실패   |
 | `.venv/bin/python -m pytest machine/ runner/ viz/ tools/` | 파이썬 쪽                                                   | 374 통과 · 19 건너뜀 |
 | `npm run typecheck`                     | 이 저장소 `viz/src/` 의 `tsc --noEmit`                           | —               |
-| `npm run doctor`                        | 이 컴퓨터에 무엇이 있나. 필수가 없으면 exit 1 (`tools/doctor.py:51`) | —               |
+| `npm run doctor`                        | 이 컴퓨터에 무엇이 있나. 필수가 없으면 exit 1 (`tools/doctor.py` 의 `main`) | —               |
 
 
 **건너뛴 19개는 골든 시험이다.** 합성 데이터만으로 검증하지 않으려고 실제 저장소의 산출물을 읽는데,
@@ -478,8 +478,8 @@ sequenceDiagram
 `viz/src/runtime/term-graph.ts` 하나뿐이며 React 훅은 쓰지 않는다.
 
 다이어그램 확대는 자바스크립트 0줄로 되어 있다 — 체크박스 하나와 형제 결합자다
-(`viz/src/theme.css:77-79`). 그 복구의 급소는 `--svg-w` 로, `viz/svg.mjs:18` 이 원본 크기를 px 로 환산해
-돌려주고 `viz/src/components/BeforeAfter.tsx:14` 가 인라인 style 로 주입한다. 연결고리 하나만 끊겨도
+(`viz/src/theme.css:77-79`). 그 복구의 급소는 `--svg-w` 로, `viz/svg.mjs` 의 `inlineSvg` 가 원본 크기(`width` pt)를 px 로 환산해
+돌려주고 `viz/src/components/BeforeAfter.tsx` 가 인라인 style 로 주입한다. 연결고리 하나만 끊겨도
 "실제 크기" 모드가 조용히 죽는다.
 
 ---
