@@ -5,7 +5,7 @@ import stat
 import sys
 import time
 from collections.abc import Collection, Mapping, Sequence
-from typing import Literal, cast
+from typing import ClassVar, Literal, cast
 
 import msgspec
 
@@ -23,8 +23,14 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     name = "annotate-symbols"
     emits = P.OK | P.FAIL | P.SKIP
     prompt_dir = X.PROMPT_DIR
-    prompt_names = ("annotate-symbols#batch", "annotate-symbols#scope", "annotate-symbols#pending",
-                    "annotate-symbols#retry", "annotate-symbols#nonnode", "annotate-symbols#pass2")
+    prompt_names = ("annotate-symbols#batch", "annotate-symbols#batch-symbol",
+                    "annotate-symbols#batch-symbol-no-deps", "annotate-symbols#batch-dep",
+                    "annotate-symbols#batch-dep-no-means", "annotate-symbols#batch-no-deps",
+                    "annotate-symbols#scope", "annotate-symbols#pending",
+                    "annotate-symbols#retry", "annotate-symbols#nonnode",
+                    "annotate-symbols#pass2", "annotate-symbols#pass2-dep", "annotate-symbols#pass2-no-deps",
+                    "annotate-symbols#fix-missing", "annotate-symbols#fix-malformed",
+                    "annotate-symbols#fix-schema", "annotate-symbols#fix-where", "annotate-symbols#fix-coverage")
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -78,8 +84,12 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         `dict[str, dict[str, str]]` 같은 더 좁은 사전을 그대로 넘길 수 없다.
         """
         want = sorted({name_of.get(d, "") for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
-        return "\n".join("  - %s — %s" % (k, (merged[k] or {}).get("means") or "(뜻 없음)")
-                         for k in want if k and k in merged)
+        no_means = AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-dep-no-means").removesuffix("\n")
+        return "\n".join(
+            AnnotateSymbolsStage.load_prompt(
+                "annotate-symbols#batch-dep", name=k,
+                means=str((merged[k] or {}).get("means") or no_means)).removesuffix("\n")
+            for k in want if k and k in merged)
 
     @staticmethod
     def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
@@ -97,14 +107,18 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
         """
         names = name_of or {}
+        no_deps = AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-symbol-no-deps").removesuffix("\n")
         syms = "\n".join(
-            "  - %s (%s) %s:%s   의존 -> %s"
-            % (s["name"], s["kind"], s["file"], s["line"],
-               ", ".join(names.get(d, d) for d in (s.get("depends_on") or [])) or "없음")
+            AnnotateSymbolsStage.load_prompt(
+                "annotate-symbols#batch-symbol", name=str(s["name"]), kind=str(s["kind"]),
+                file=str(s["file"]), line=str(s["line"]),
+                deps=", ".join(names.get(d, d) for d in (s.get("depends_on") or [])) or no_deps
+            ).removesuffix("\n")
             for s in batch["symbols"])
         return AnnotateSymbolsStage.load_prompt(
             "annotate-symbols#batch", repo=repo, root=root, bid=batch["id"], n=str(len(batch["symbols"])),
-            syms=syms, deps=dep_records or "  (없음 — 너는 최하층이다)") \
+            syms=syms, deps=dep_records
+            or AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-no-deps").removesuffix("\n")) \
             + AnnotateSymbolsStage.pending_section(pending) \
             + AnnotateSymbolsStage.warmup_section(targets, total, repo)
 
@@ -147,13 +161,8 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 
     WHERE_OPTIONAL = ("module", "external")
     # 결함 갈래마다 고치는 법 한 줄. 재조사 프롬프트와 check_shard 명령이 그대로 찍는다.
-    FIX: Mapping[FaultKind, str] = {
-        "missing": "샤드 파일이 없다. 지정된 자리에 {\"키\": 레코드} 꼴로 하나 만든다.",
-        "malformed": "JSON 문법이 깨졌다. 그 바이트 자리를 연다 — 문자열 안 따옴표는 \\\" 로, 줄바꿈은 \\n 으로 쓴다.",
-        "schema": "필수 칸이 빠졌거나 어휘 밖의 값이다. record-schema.json 의 required 와 enum 에 맞춘다.",
-        "where": "where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수 있다.",
-        "coverage": "네 배치의 심볼 목록과 샤드의 키를 하나씩 대조한다. 빠진 것은 읽어 넣고, 목록 밖의 것은 뺀다.",
-    }
+    # 글은 `annotate-symbols#fix-<갈래>` 절이다. 클래스 몸 안에서는 `load_prompt` 를 못 불러 클래스 정의 바로 뒤에서 채운다.
+    FIX: ClassVar[Mapping[FaultKind, str]]
     SHARD_EXAMPLE: ShardRecords = {"build_terms": {
         "kind": "function", "module": "machine", "where": "machine/terms_db.py:82",
         "means": "코드 지도에서 용어 사전을 만드는 함수.",
@@ -340,11 +349,15 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                      deps: Mapping[str, Mapping[str, object]]) -> str:
         """2패스 — 파일을 다시 읽지 않는다. 얕게 쓴 레코드와, 이제 조사된 의존 대상의 뜻만 받아 다듬는다."""
         mine = json.dumps({k: dict(v) for k, v in shallow.items()}, ensure_ascii=False, indent=1)
-        theirs = "\n".join("  - %s — %s / %s" % (k, r.get("means") or "", r.get("does") or "")
-                           for k, r in sorted(deps.items()))
+        theirs = "\n".join(
+            AnnotateSymbolsStage.load_prompt(
+                "annotate-symbols#pass2-dep", name=k, means=str(r.get("means") or ""),
+                does=str(r.get("does") or "")).removesuffix("\n")
+            for k, r in sorted(deps.items()))
         return AnnotateSymbolsStage.load_prompt(
             "annotate-symbols#pass2", repo=repo, root=root, bid=bid, file=file, mine=mine,
-            theirs=theirs or "  (없음)")
+            theirs=theirs
+            or AnnotateSymbolsStage.load_prompt("annotate-symbols#pass2-no-deps").removesuffix("\n"))
 
     @staticmethod
     def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:
@@ -602,3 +615,8 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         dropped = self.refresh_merged(ctx)
         print("  층 끝 — 레코드 %d개 · 떼어 낸 간선 %d개" % (len(ctx.merged), len(dropped)), flush=True)
         return out
+
+
+AnnotateSymbolsStage.FIX = {
+    kind: AnnotateSymbolsStage.load_prompt("annotate-symbols#fix-" + kind).removesuffix("\n")
+    for kind in ("missing", "malformed", "schema", "where", "coverage")}

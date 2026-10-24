@@ -67,6 +67,21 @@
 
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
 
+<!-- section: batch-symbol -->
+  - {{name}} ({{kind}}) {{file}}:{{line}}   의존 -> {{deps}}
+
+<!-- section: batch-symbol-no-deps -->
+없음
+
+<!-- section: batch-dep -->
+  - {{name}} — {{means}}
+
+<!-- section: batch-dep-no-means -->
+(뜻 없음)
+
+<!-- section: batch-no-deps -->
+  (없음 — 너는 최하층이다)
+
 <!-- section: scope -->
 ## 범위 — 증분 조사다. 저장소 전량을 읽지 마라
 
@@ -177,3 +192,24 @@
 
 정확한 꼴은 {{repo}}/out/codegraph-raw/record-schema.json 이다. 끝내기 전에 검문한다:
   {{root}}/.venv/bin/python {{root}}/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json
+
+<!-- section: pass2-dep -->
+  - {{name}} — {{means}} / {{does}}
+
+<!-- section: pass2-no-deps -->
+  (없음)
+
+<!-- section: fix-missing -->
+샤드 파일이 없다. 지정된 자리에 {"키": 레코드} 꼴로 하나 만든다.
+
+<!-- section: fix-malformed -->
+JSON 문법이 깨졌다. 그 바이트 자리를 연다 — 문자열 안 따옴표는 \" 로, 줄바꿈은 \n 으로 쓴다.
+
+<!-- section: fix-schema -->
+필수 칸이 빠졌거나 어휘 밖의 값이다. record-schema.json 의 required 와 enum 에 맞춘다.
+
+<!-- section: fix-where -->
+where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수 있다.
+
+<!-- section: fix-coverage -->
+네 배치의 심볼 목록과 샤드의 키를 하나씩 대조한다. 빠진 것은 읽어 넣고, 목록 밖의 것은 뺀다.

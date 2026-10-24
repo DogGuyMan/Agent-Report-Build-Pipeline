@@ -52,7 +52,8 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
     """장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛴다."""
     name = "write-wiki"
     prompt_dir = X.PROMPT_DIR
-    prompt_names = ("write-wiki",)
+    prompt_names = ("write-wiki#main", "write-wiki#page-no-symbols", "write-wiki#lower-page",
+                    "write-wiki#no-lower-pages")
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -94,10 +95,11 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
     def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> str:
         """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다."""
         return WriteWikiStage.load_prompt(
-            "write-wiki", repo=repo, root=root, fname=page["file"],
+            "write-wiki#main", repo=repo, root=root, fname=page["file"],
             title=page.get("title") or page["file"],
-            syms=", ".join(page.get("symbols") or []) or "(개괄 — 특정 심볼 없음)",
-            lower=lower_pages or "  (없음 — 네가 첫 장이다)")
+            syms=", ".join(page.get("symbols") or [])
+            or WriteWikiStage.load_prompt("write-wiki#page-no-symbols").removesuffix("\n"),
+            lower=lower_pages or WriteWikiStage.load_prompt("write-wiki#no-lower-pages").removesuffix("\n"))
 
     def prepare(self, ctx: Mode1Context) -> None:
         ctx.wiki_pages = P.load(X.OUTLINE.locate(ctx), X.Outline)["pages"]
@@ -120,7 +122,9 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         k = ctx.wiki_levels[rnd]
         here = [pg for pg in ctx.wiki_pages if ctx.wiki_level_of[pg["file"]] == k
                 and not os.path.exists(os.path.join(ctx.repo, "docs", "wiki", pg["file"]))]
-        lower = "\n".join("  - %s — %s" % (pg["file"], pg.get("title") or pg["file"]) for pg in ctx.wiki_done)
+        lower = "\n".join(self.load_prompt("write-wiki#lower-page", fname=pg["file"],
+                                           title=pg.get("title") or pg["file"]).removesuffix("\n")
+                          for pg in ctx.wiki_done)
         ctx.wiki_done = ctx.wiki_done + here
         return [(pg["file"], self.wiki_page_prompt(ctx.repo, ctx.root, pg, lower)) for pg in here]
 
