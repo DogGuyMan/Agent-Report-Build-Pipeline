@@ -93,18 +93,7 @@ def line(name: str, version: str | None, required: bool, minimum: tuple[int, ...
 
 def main() -> int:
     py = pythonPath(ROOT, sys.platform, dict(os.environ))
-    py_mods = probe(py, [
-        "-c",
-        "import importlib.metadata as md, sys\n"
-        "m = []\n"
-        "for n in sys.argv[1:]:\n"
-        "    try:\n"
-        "        md.version(n)\n"
-        "    except md.PackageNotFoundError:\n"
-        "        m.append(n)\n"
-        "print('전부 있다' if not m else '빠짐: ' + ', '.join(m))",
-        *requirement_names(ROOT),
-    ])
+    py_mods = probe(py, [os.path.join(ROOT, "tools", "doctor_packages.py"), *requirement_names(ROOT)])
 
     node_modules = os.path.join(ROOT, "node_modules", "esbuild")
     checks: list[tuple[str, str, str | None, bool, tuple[int, ...] | None]] = [

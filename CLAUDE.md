@@ -317,7 +317,8 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
   단계 이름이고, 안은 `<!-- section: 이름 -->` 으로 가른다), 코드가 쓰는 파일 템플릿은 `runner/**/templates/` ·
   `viz/templates/`, 설정값은 `config/*.toml`. 파이썬은 읽기만 한다 — 프롬프트는 단계가 `prompt_names` 에 선언한
   이름으로 `PromptResource.load_prompt("<파일>#<절>")`(절이 없는 파일은 `"<파일>"`), 템플릿은
-  `tools.template.render_file`. 자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다.
+  `tools.template.render_file`. 자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다 — 긴 글(문자열
+  상수 · f-문자열)은 `runner` · `viz` · `machine` · `tools` 의 파이썬(시험 파일 제외)에서 찾는다.
 - 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.

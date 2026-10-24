@@ -11,7 +11,7 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "runner"), os.path.join(ROOT, "machine"
 
 LONG_LINES = 6     # 줄바꿈이 이만큼 이상인 글(문자열 상수 · f-문자열)은 리소스로 뺀다
 LONG_CHARS = 200   # 한 줄이라도 이 길이 이상이면 리소스로 뺀다
-CODE_TOPS = ("runner", "viz")       # 긴 글을 찾는 폴더 — 시험 파일은 뺀다
+CODE_TOPS = ("runner", "viz", "machine", "tools")   # 긴 글을 찾는 폴더 — 시험 파일은 뺀다
 TEMPLATE_TOPS = ("runner", "viz")   # 코드가 쓰는 템플릿이 사는 폴더 — `<폴더>/**/templates/**`
 RUNNERS = ("run_mode1", "run_mode1_5", "run_mode2")   # 이 저장소에 있는 것만 import 해 단계 클래스를 모은다
 

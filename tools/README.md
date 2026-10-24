@@ -9,6 +9,7 @@
 |---|---|
 | [`__init__.py`](__init__.py) | — |
 | [`doctor.py`](doctor.py) | — |
+| [`doctor_packages.py`](doctor_packages.py) | `doctor.py` 가 고른 파이썬으로 띄우는 패키지 확인 — 인자로 받은 배포 이름 중 깔리지 않은 것을 한 줄로 낸다. |
 | [`gen_readme.py`](gen_readme.py) | 소스에서 디렉토리별 README.md 를 생성한다. |
 | [`python.py`](python.py) | — |
 | [`template.py`](template.py) | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 하나라도 어긋나면 예외다. |
@@ -31,6 +32,17 @@
 | `probe` | `(cmd: str \| None, args: list[str]) -> str \| None` | 명령 하나를 돌려 첫 줄을 돌려준다. 못 돌리면 None. |
 | `line` | `(name: str, version: str \| None, required: bool, minimum: tuple[int, ...] \| None = None) -> str` | 결과 줄 하나를 글자로. 하한보다 낮으면 낮음, 필수인데 없으면 없음, 선택이면 선택. |
 | `main` | `() -> int` |  |
+
+---
+
+## `doctor_packages.py`
+
+`doctor.py` 가 고른 파이썬으로 띄우는 패키지 확인 — 인자로 받은 배포 이름 중 깔리지 않은 것을 한 줄로 낸다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `missing` | `(names: list[str]) -> list[str]` | 깔리지 않은 배포 이름들. 순서는 받은 그대로. |
+| `main` | `() -> int` | `전부 있다` 또는 `빠짐: <이름>, …` 한 줄을 낸다. 빠진 것이 있어도 exit 0 — 판정은 `doctor.py` 가 그 줄로 한다. |
 
 ---
 

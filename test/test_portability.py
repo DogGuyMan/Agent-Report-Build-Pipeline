@@ -1,5 +1,7 @@
 import pytest
 import os
+import subprocess
+import sys
 from pathlib import Path
 from tools.python import pythonCandidates, pythonPath
 from tools.doctor import line, meets, requirement_names, version_of
@@ -54,3 +56,13 @@ def test_requirement_names_는_주석과_판_조건을_뗀다(tmp_path: Path):
 def test_requirement_names_는_이_저장소의_목록을_읽는다():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     assert "griffe" in requirement_names(root)
+
+def test_doctor_packages_는_빠진_배포_이름을_한_줄로_낸다():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    script = os.path.join(root, "tools", "doctor_packages.py")
+
+    def run(*names: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([sys.executable, script, *names], capture_output=True, text=True)
+    assert run("pytest").stdout == "전부 있다\n"
+    got = run("pytest", "없는-배포-하나", "없는-배포-둘")
+    assert (got.returncode, got.stdout) == (0, "빠짐: 없는-배포-하나, 없는-배포-둘\n")
