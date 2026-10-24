@@ -1020,7 +1020,6 @@ Mode 2 실행기의 회귀 시험.
 | `test_find_spec_returns_the_date_from_the_filename` | `()` |  |
 | `test_find_spec_returns_nothing_for_an_unknown_slug` | `()` |  |
 | `test_find_spec_does_not_match_a_partial_slug` | `()` | 부분 문자열로 걸리면 엉뚱한 문서를 원본으로 삼는다. |
-| `test_doc_dirs_are_specs_then_plans` | `()` | 원본 문서 자리는 `config/report.toml` 에서 오며 `specs`, `plans` 순이다. `viz/init.py` 와의 일치는 `test/test_config.py` 가 본다. |
 | `test_find_spec_reads_plans_without_the_design_suffix` | `()` | plans/ 는 `-design` 접미사가 없다. 계획서만 사는 자리라 가드가 필요 없다. |
 | `test_find_spec_keeps_the_suffix_guard_for_specs` | `()` | specs/ 에서는 접미사가 없으면 안 잡힌다 — 같은 폴더에 다른 산출물이 함께 산다. |
 | `test_find_spec_defaults_to_specs` | `()` | 자리를 안 주면 specs 다 — 옛 호출을 깨지 않는다. |

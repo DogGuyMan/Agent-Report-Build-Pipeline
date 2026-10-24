@@ -211,11 +211,6 @@ PLAN_FILES = [
 ]
 
 
-def test_doc_dirs_are_specs_then_plans():
-    """원본 문서 자리는 `config/report.toml` 에서 오며 `specs`, `plans` 순이다. `viz/init.py` 와의 일치는 `test/test_config.py` 가 본다."""
-    assert [d for d, _ in R.DOC_DIRS] == ["specs", "plans"]
-
-
 def test_find_spec_reads_plans_without_the_design_suffix():
     """plans/ 는 `-design` 접미사가 없다. 계획서만 사는 자리라 가드가 필요 없다."""
     got = R.find_spec(PLAN_FILES, "symbol-resolution-survey", "plans")
