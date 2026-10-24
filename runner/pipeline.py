@@ -8,6 +8,7 @@
 `load` 에서 검증한다. 안 맞으면 예외이고, `Pipeline.run` 이 그것을 `FAIL` 로 바꾼다.
 """
 import os
+import re
 import subprocess
 import sys
 import time
@@ -15,11 +16,15 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
+from typing import ClassVar, Generic, TypeVar
 
 import msgspec
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+from tools.template import render  # noqa: E402
 import measure as M  # noqa: E402
 from measure import AgentResult, StageRow  # noqa: E402
 
@@ -466,7 +471,50 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
     return sorted(rows, key=lambda r: r[0])
 
 
-class LlmStage(Stage[C]):
+SECTION = re.compile(r"^<!-- section: ([a-z0-9-]+) -->\n", re.MULTILINE)
+
+
+class PromptResource:
+    """프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`.
+
+    파일 안은 `<!-- section: 이름 -->` 줄로 절을 가를 수 있다. 단계는 읽는 이름을 `prompt_names` 에
+    `"<파일>"` 또는 `"<파일>#<절>"` 로 선언한다. 선언 밖은 읽지 않는다 — `test/test_prompt_resources.py` 가
+    선언과 디스크의 파일 · 절을 1:1 로 대조한다.
+    """
+    prompt_dir: ClassVar[str] = ""
+    prompt_names: ClassVar[tuple[str, ...]] = ()
+
+    @staticmethod
+    def sections(text: str) -> dict[str, str]:
+        """절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다."""
+        marks = list(SECTION.finditer(text))
+        if not marks:
+            return {"": text.strip("\n") + "\n"}
+        if text[:marks[0].start()].strip():
+            raise ValueError("첫 절 표식 앞에 글이 있다")
+        out: dict[str, str] = {}
+        for i, m in enumerate(marks):
+            if m.group(1) in out:
+                raise ValueError("절 %r 이 두 번 나온다" % m.group(1))
+            end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+            out[m.group(1)] = text[m.end():end].strip("\n") + "\n"
+        return out
+
+    @classmethod
+    def load_prompt(cls, name: str, **values: str) -> str:
+        """`"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다. 어긋나면 `TemplateError`."""
+        if name not in cls.prompt_names:
+            raise KeyError("%s 는 프롬프트 %r 를 선언하지 않았다 (선언: %s)"
+                           % (cls.__name__, name, ", ".join(cls.prompt_names) or "없음"))
+        file, _, section = name.partition("#")
+        with open(os.path.join(cls.prompt_dir, file + ".md"), encoding="utf-8") as f:
+            parts = cls.sections(f.read())
+        if section not in parts:
+            raise KeyError("%s.md 에 절 %r 이 없다" % (file, section))
+        return render(parts[section], values)
+
+
+class LlmStage(PromptResource, Stage[C]):
     """LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다.
 
     팬아웃은 단일 호출의 일반화다 — 세션 하나짜리 단계는 `jobs` 의 기본값이

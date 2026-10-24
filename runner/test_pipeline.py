@@ -434,3 +434,45 @@ def test_LLM_단계는_층이_실패하면_다음_층을_돌지_않는다(tmp_pa
     out = 두층부르는단계().perform(P.RunContext(root=str(tmp_path), model="opus"))
     assert out.kind == P.FAIL
     assert [r["stage"] for r in out.rows] == ["L0-B0", "L0-B1"]
+
+
+def test_prompt_resource_는_절_없는_파일을_통째로_읽는다(tmp_path: Path):
+    (tmp_path / "hello.md").write_text("\n안녕 {{who}}\n\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("hello",)
+
+    assert S.load_prompt("hello", who="세계") == "안녕 세계\n"
+
+
+def test_prompt_resource_는_절을_이름으로_꺼낸다(tmp_path: Path):
+    (tmp_path / "s.md").write_text(
+        "<!-- section: a -->\n가 {{x}}\n\n<!-- section: b -->\n나\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("s#a", "s#b")
+
+    assert S.load_prompt("s#a", x="1") == "가 1\n"
+    assert S.load_prompt("s#b") == "나\n"
+
+
+def test_prompt_resource_는_선언_밖의_이름을_거부한다(tmp_path: Path):
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ()
+
+    with pytest.raises(KeyError, match="hello"):
+        S.load_prompt("hello")
+
+
+def test_sections_는_첫_표식_앞의_글과_겹친_절을_거부한다():
+    with pytest.raises(ValueError, match="앞에"):
+        P.PromptResource.sections("머리\n<!-- section: a -->\n가\n")
+    with pytest.raises(ValueError, match="두 번"):
+        P.PromptResource.sections("<!-- section: a -->\n가\n<!-- section: a -->\n나\n")
+
+
+def test_llm_stage_는_prompt_resource_다():
+    assert issubclass(P.LlmStage, P.PromptResource)

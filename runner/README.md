@@ -394,6 +394,9 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `MachineStage.perform` | `(self, ctx: C) -> Outcome` |  |
 | `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
 | `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
+| **`PromptResource`** | *class* | 프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`. |
+| `PromptResource.sections` | `(text: str) -> dict[str, str]` | 절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다. |
+| `PromptResource.load_prompt` | `(cls, name: str, **values) -> str` | `"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다. 어긋나면 `TemplateError`. |
 | **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다. |
 | `LlmStage.prompt` | `(self, ctx: C) -> str` |  |
 | `LlmStage.repo` | `(self, ctx: C) -> str` | `claude -p` 가 열 저장소이자 자식 프로세스의 작업 폴더. |
@@ -791,6 +794,11 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_LLM_단계는_기본_LLM_Model이_ctx_의_것이다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_LLM_단계는_층마다_세션마다_행을_낸다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_LLM_단계는_층이_실패하면_다음_층을_돌지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_prompt_resource_는_절_없는_파일을_통째로_읽는다` | `(tmp_path: Path)` |  |
+| `test_prompt_resource_는_절을_이름으로_꺼낸다` | `(tmp_path: Path)` |  |
+| `test_prompt_resource_는_선언_밖의_이름을_거부한다` | `(tmp_path: Path)` |  |
+| `test_sections_는_첫_표식_앞의_글과_겹친_절을_거부한다` | `()` |  |
+| `test_llm_stage_는_prompt_resource_다` | `()` |  |
 
 ---
 
