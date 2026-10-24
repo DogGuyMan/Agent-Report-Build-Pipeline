@@ -281,7 +281,7 @@ $GRAPHICS_REPO/doc/
 
 | 자리 | 무엇 | git |
 |---|---|---|
-| `<repo>/.claude/skills/` | 항목 20개 — **심볼릭 링크 13개**(`../../.agents/skills/<이름>`) + 실제 디렉토리 7개 — 홈 원본을 깊은 복사로 맞춰 넣은 사본: `spec-review-dashboard` · `term-benchmark` 와, 원격(클라우드) 세션에도 있게 넣은 `personal-commit-messages` · `design-decision-discipline` · `lossless-handoff` · `confidence-and-sourcing` · `response-quality-calibration`. 링크 자체가 추적된다 | 추적됨(🔵 2026-10-24) |
+| `<repo>/.claude/skills/` | 항목 20개 — **심볼릭 링크 13개**(`../../.agents/skills/<이름>`) + 실제 디렉토리 7개 — 홈 원본을 깊은 복사로 맞춰 넣은 사본: `spec-review-dashboard` · `term-benchmark` 와, 클라우드 세션(저장소 하나를 여는 claude.ai/code 세션 — 프로젝트 스레드는 저장소 스킬을 안 읽는다)에도 있게 넣은 `personal-commit-messages` · `design-decision-discipline` · `lossless-handoff` · `confidence-and-sourcing` · `response-quality-calibration`. 링크 자체가 추적된다 | 추적됨(🔵 2026-10-24) |
 | `~/.claude/skills/` | 위 실제 디렉토리 7개의 **원본**, 그리고 `codebase-terms-survey` 의 사본(원본은 저장소 `.agents/skills/`). 저장소 밖이라 어느 저장소도 추적하지 않는다 | 밖 |
 
 `.gitignore` 에 `.claude` 는 없다 — 저장소 안 것이 git 밖인 이유는 무시라서가 아니라
