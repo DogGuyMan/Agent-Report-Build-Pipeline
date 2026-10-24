@@ -822,6 +822,49 @@ def test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_�
     assert r.returncode == 1 and "[coverage]" in r.stdout and "f" in r.stdout
 
 
+# ── 결함 줄과 결함 설명의 바이트 ─────────────────────────────────────────────
+
+def test_결함_줄은_갈래_자리_설명_한_줄과_들여쓴_고치는_법_한_줄이다():
+    f = _fault("where", at="a.{{x}}")
+    f["detail"] = "%s 설명"
+    f["fix"] = "고친다 {0}"
+    assert SV.AnnotateSymbolsStage.fault_line(f) == "[where] a.{{x}} — %s 설명\n    → 고친다 {0}"
+
+
+def test_결함_설명_넷은_검문_결과와_격리_사유에_글자_그대로_실린다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("WHE")
+    plan["layers"][0]["batches"].append({"id": "MISS", "files": ["n.py"], "symbols": []})
+    plan["layers"][0]["batches"].append({"id": "COV", "files": ["o.py"], "symbols": [
+        {"id": "w", "name": "want", "kind": "function", "file": "o.py", "line": 1, "in_cycle": False,
+         "depends_on": []}]})
+    nowhere = _good_record(); del nowhere["where"]
+    (d / "WHE.json").write_text(json.dumps({"f": nowhere, "g": {**nowhere, "kind": "class"}}), encoding="utf-8")
+    (d / "COV.json").write_text(json.dumps({"other": _good_record()}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    got = {bid: [(f["kind"], f["at"], f["detail"]) for f in faults] for bid, faults in bad.items()}
+    assert got == {"MISS": [("missing", "-", "샤드 없음")],
+                   "COV": [("coverage", "want", "계획에 있는데 샤드에 없다"),
+                           ("coverage", "other", "샤드에 있는데 계획에 없다")],
+                   "WHE": [("where", "f", "where 없음 (kind function)"), ("where", "g", "where 없음 (kind class)")]}
+    for bid, faults in bad.items():
+        SV.AnnotateSymbolsStage.quarantine(str(d), bid, faults)
+        raw = (d / (bid + ".json.bad.why")).read_bytes()
+        assert json.loads(raw) == faults
+        assert all(f["detail"].encode("utf-8") in raw for f in faults)
+
+
+def test_check_shard_명령은_결함_줄과_불평_수를_그대로_찍는다(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runner", "check_shard.py")
+    nowhere = _good_record(); del nowhere["where"]
+    p = tmp_path / "s.json"; p.write_text(json.dumps({"f": nowhere}), encoding="utf-8")
+    r = subprocess.run([sys.executable, tool, str(p)], capture_output=True, text=True)
+    assert r.returncode == 1
+    assert r.stdout == ("✗ [where] f — where 없음 (kind function)\n    → " + SV.AnnotateSymbolsStage.FIX["where"]
+                        + "\n불평 1 — 고치고 다시 돌린다\n")
+
+
 # ── dep_excerpt — depends_on 은 id, 레코드 키는 이름 ─────────────────────────
 
 def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
@@ -882,6 +925,16 @@ def test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다():
     nodes = {"C3": {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "module": "."},
              "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
     assert SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes) == "  - c.h (class) c.py:3"
+
+
+def test_미조사_의존_줄은_id_순의_두_칸_들여쓴_줄이고_값을_다시_펴지_않는다():
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C9", "C8"]}]}
+    nodes = {"C8": {"id": "C8", "name": "b.{{x}}", "kind": "function", "file": "b%s.py", "line": 12, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    got = SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes)
+    assert got == "  - b.{{x}} (function) b%s.py:12\n  - c.h (class) c.py:3"
 
 
 def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다():

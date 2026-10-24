@@ -163,4 +163,99 @@ with tempfile.TemporaryDirectory() as d:
     os.remove(os.path.join(sh, "COV.json"))
     out["shards_missing2"] = json.dumps(A.check_shards(sh, plan), ensure_ascii=False).replace(d, "<D>")
 
+
+# ── R11 확장 — 미조사 의존 줄 · 결함 줄 · 결함 설명 · 격리 사유 바이트 ─────────
+pend_nodes = {
+    "N1": {"id": "N1", "name": "a.f", "kind": "function", "file": "a.py", "line": 3},
+    "N2": {"id": "N2", "name": "done", "kind": "class", "file": "b.py", "line": 1},
+    "N3": {"id": "N3", "kind": "function", "file": "c.py", "line": 2},
+    "N4": {"id": "N4", "name": None, "kind": None, "file": None, "line": None},
+    "N5": {"id": "N5", "name": "{{x}}", "kind": "%s", "file": "{0}.py", "line": "7"},
+    "N6": {"id": "N6", "name": "", "kind": "k", "file": "f", "line": 0},
+    "N7": {"id": "N7", "name": "mine", "kind": "function", "file": "a.py", "line": 9},
+    "N8": {"id": "N8", "name": "x\ny", "kind": "k\n", "file": "f\n", "line": 1.5},
+    "N9": {"id": "N9"},
+    "NA": {"id": "NA", "name": "a %s b", "kind": "{{kind}}", "file": "}} {{", "line": True},
+}
+pend_merged_sets = [{}, {"done": {"means": "m"}}, {"done": {"means": "m"}, "": {"means": "빈 이름"}},
+                    {"a.f": {}, "{{x}}": None, "mine": {"means": "m"}}]
+pend_batches = [
+    {"id": "P0", "files": [], "symbols": []},
+    {"id": "P1", "files": [], "symbols": [{"id": "S"}]},
+    {"id": "P2", "files": [], "symbols": [{"id": "S", "depends_on": [
+        "N1", "N2", "N3", "N4", "N5", "N6", "N8", "N9", "NA", "NX"]}]},
+    {"id": "P3", "files": [], "symbols": [{"id": "N7", "depends_on": ["N1"]}, {"id": "S", "depends_on": ["N7", "N1"]}]},
+    {"id": "P4", "files": [], "symbols": [{"id": "S", "depends_on": ["NX", "NY"]}]},
+    {"id": "P5", "files": [], "symbols": [{"id": "N1", "depends_on": ["N1"]}]},
+    {"id": "P6", "files": [], "symbols": [{"id": "S", "depends_on": ["N5", "N5", "N1"]},
+                                         {"id": "T", "depends_on": ["N1", "NA"]}]},
+]
+for i, b in enumerate(pend_batches):
+    for j, m in enumerate(pend_merged_sets):
+        got = A.pending_excerpt(m, b, pend_nodes)
+        out["pex%d_%d" % (i, j)] = got
+        out["psec%d_%d" % (i, j)] = A.pending_section(got)
+out["pex_nodes_empty"] = A.pending_excerpt({}, pend_batches[2], {})
+pend_full = {"id": "PF", "files": ["s.py"], "symbols": [
+    {"id": "S", "name": "s", "kind": "function", "file": "s.py", "line": 1, "in_cycle": False,
+     "depends_on": ["N1", "N4", "N5", "NA"]}]}
+out["pbatch_full"] = A.survey_batch_prompt("/r", "/root", pend_full, "", pending=A.pending_excerpt(
+    {}, pend_full, pend_nodes), name_of={"N1": "a.f"})
+
+line_faults = [
+    {"kind": "where", "batch": "B", "path": "p", "at": "", "detail": "", "fix": ""},
+    {"kind": "coverage", "batch": "B", "path": "p", "at": "a.{{x}}", "detail": "%s {0}", "fix": "{{fix}}"},
+    {"kind": "missing", "batch": "B", "path": "p", "at": "x\ny", "detail": "d\n", "fix": "f\n"},
+    {"kind": "schema", "batch": "B", "path": "p", "at": "$[0].kind", "detail": "a — b", "fix": "  → c"},
+]
+for i, f in enumerate(line_faults):
+    out["fline_r11_%d" % i] = A.fault_line(f)
+
+with tempfile.TemporaryDirectory() as d:
+    sh = os.path.join(d, "_shards")
+    os.makedirs(sh)
+    good = {"kind": "function", "module": "m", "where": "x.py:1", "means": "m", "does": "d", "uses": [],
+            "confidence": "HIGH", "source": "reading"}
+    sym = {"kind": "function", "file": "x.py", "line": 1, "in_cycle": False, "depends_on": []}
+    plan = {"target": 8, "totals": {"symbols": 4, "edges": 0, "levels": 1, "cyclic_symbols": 0},
+            "layers": [{"level": 0, "symbol_count": 4, "file_count": 4, "batches": [
+                {"id": "MISS", "files": ["m.py"], "symbols": [{**sym, "id": "s", "name": "want"}]},
+                {"id": "COV", "files": ["c.py"], "symbols": [{**sym, "id": "a", "name": "want"},
+                                                             {**sym, "id": "b", "name": "{{also}}"},
+                                                             {**sym, "id": "c", "name": "here"}]},
+                {"id": "WHE", "files": ["w.py"], "symbols": [{**sym, "id": "w", "name": "f"}]},
+                {"id": "OK", "files": ["o.py"], "symbols": [{**sym, "id": "o", "name": "f"}]}]},
+                {"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []}]}
+    with open(os.path.join(d, "batches.json"), "w", encoding="utf-8") as fh:
+        json.dump(plan, fh)
+    nowhere = {k: v for k, v in good.items() if k != "where"}
+    shards = {
+        "COV": {"here": good, "other %s": good, "z{{y}}": good},
+        "WHE": {"f": nowhere, "g": {**nowhere, "kind": "class"}, "h": {**nowhere, "kind": "module"},
+                "i": {**nowhere, "kind": "external"}, "j": {**nowhere, "kind": "concept"},
+                "k": {**nowhere, "kind": "artifact"}, "l": good},
+        "OK": {"f": good},
+        "NONNODE": {"m.py": {**nowhere, "kind": "file"}},
+    }
+    for bid, recs in shards.items():
+        with open(os.path.join(sh, bid + ".json"), "w", encoding="utf-8") as fh:
+            json.dump(recs, fh, ensure_ascii=False)
+    out["r11_where_direct"] = json.dumps(A.check_shard(json.dumps(shards["WHE"]).encode()), ensure_ascii=False)
+    out["r11_cov_direct"] = json.dumps(A.check_coverage(json.dumps(shards["COV"]).encode(),
+                                                        plan["layers"][0]["batches"][1], "/p"), ensure_ascii=False)
+    for bid in ("COV", "WHE", "NONNODE"):
+        p = os.path.join(sh, bid + ".json")
+        r = subprocess.run([sys.executable, os.path.join(tree, "runner", "check_shard.py"), p],
+                           capture_output=True, text=True)
+        out["r11_cmd_" + bid] = ("%d\n%s\n%s" % (r.returncode, r.stdout, r.stderr)).replace(d, "<D>")
+    bad = A.check_shards(sh, plan)
+    out["r11_shards"] = json.dumps(bad, ensure_ascii=False).replace(d, "<D>")
+    for bid, faults in sorted(bad.items()):
+        out["r11_fline_" + bid] = "\n".join(A.fault_line(f) for f in faults).replace(d, "<D>")
+        A.quarantine(sh, bid, faults)
+        with open(os.path.join(sh, bid + ".json.bad.why"), "rb") as fh:
+            out["r11_why_" + bid] = fh.read().decode("utf-8").replace(d, "<D>")
+        out["r11_retry_" + bid] = A.retry_section(sh, bid).replace(d, "<D>")
+    out["r11_listing"] = json.dumps(sorted(os.listdir(sh)), ensure_ascii=False)
+
 json.dump(out, sys.stdout, ensure_ascii=False, indent=0, sort_keys=True)
