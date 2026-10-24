@@ -16,8 +16,9 @@
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
 | `pipeline.py` | 세 실행기가 함께 쓰는 **단계 기계** — 갈래 넷 · `Stage` · `Artifact(schema · check)` · `load` · 전이표 · `StageDagGraph` · 시뮬레이터 · 드라이버 한 벌 · 팬아웃 호출 · `PromptResource`(프롬프트 파일을 읽는 믹스인). `measure.py` 와 같이 **`machine/` 을 import 하지 않는다** |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
-| `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths`. 전부 `.py` |
+| `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths` (`.py`). `templates/vitepress.config.mts.tmpl` 은 위키 사이트 설정의 템플릿이다 |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
+| `prompts/` · `mode1/prompts/` | LLM 프롬프트 글. `prompts/` 는 Mode 1.5 · 2 의 `ask.md` · `agent.md`, `mode1/prompts/` 는 Mode 1 의 네 단계(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). 단계당 파일 하나, 안은 `<!-- section: 이름 -->` 로 가른다 |
 
 ## 자주 쓰는 명령
 
@@ -115,6 +116,8 @@ if __name__ == "__main__":
 | 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
+| 여기 → `../tools/template.py` | `pipeline.py`(프롬프트) · `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다 |
+| 여기 → `../config/*.toml` | `mode1/context.py` 의 `load_config` 가 `mode1.toml` 을, `run_mode2.py` 가 `report.toml` 을 읽는다 |
 
 ## 흔한 변경 패턴 (Common modification patterns)
 
@@ -140,8 +143,8 @@ $EDITOR bin/report-<mode>                     # table={"<명령>": "viz/….py" 
   `node_modules` 가 없어 `Cannot find package 'vitepress'` 로 죽는다. 산출물만 되돌아간다.
 - **주의 — 대상 저장소의 전수조사 원본은 `<repo>/docs/codegraph/terms-reading.json` 이다.**
   이 저장소 자신의 것만 `../machine/terms-reading.json` 으로 옮겨져 있어 두 경로가 다르다.
-  `mode1/survey.py` 의 프롬프트 문자열은 **대상 저장소 쪽**을 말하고, 산출물 `READING` 의 자리는
-  `context.reading_path` 가 둘을 가른다 — 고칠 때 헷갈리지 말 것.
+  `mode1/prompts/annotate-symbols.md` 의 `{{reading}}` 자리는 `context.reading_path` 가 채우며, 산출물 `READING` 의 자리도
+  그 함수가 둘을 가른다 — 고칠 때 헷갈리지 말 것.
 - **Gotcha — `run_mode1.py` 를 import 하면 해석기가 바뀐다.** 파일 머리의 `_bootstrap_venv()` 가
   `.venv` 밖 해석기를 `os.execv` 로 갈아치우고, `import survey_plan` 이 networkx 를 문다.
   **재는 코드가 필요할 뿐이면 `measure.py` 를 import 한다.** `run_mode1.py` 는 옛 이름을

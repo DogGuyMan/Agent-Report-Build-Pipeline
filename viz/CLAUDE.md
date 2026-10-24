@@ -17,7 +17,8 @@
 | `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
 | `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
 | `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
-| `templates/report/` · `templates/dot/` | 보고서 뼈대 · 렌더 스크립트 / DOT 머리 · 범례 |
+| `templates/report/` | Mode 2 의 보고서 뼈대(`data.ts` · `report.tsx`)와 빌드가 쓰는 렌더 스크립트 |
+| `templates/dot/` | Mode 1 의 DOT 머리 · 범례 (`render_modules.py` · `render_classes.py`) |
 
 **Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를
 불러 **그림을 굽는 것**이다. 코드 지도를 계산하지 않고 이미 계산된 것을 그린다.
@@ -122,7 +123,7 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 
 원본 문서 자리 규칙은 `config/report.toml` 한 곳이다. `test/test_config.py` 가 두 읽는 쪽이 같은 것을 보는지 고정한다.
 
-**주입하는 네 값은 전부 `json.dumps` 로 이스케이프한다.** 실제 spec 제목에 백틱이 있어
+**주입하는 다섯 값(version · slug · specName · date · branch)은 전부 `json.dumps` 로 이스케이프한다.** 실제 spec 제목에 백틱이 있어
 (`` # `back_face` → `flip_faces` ``) 템플릿 리터럴에 그대로 꽂으면 `data.ts` 가 문법 오류가 된다.
 
 ### `report-spec check` 의 용어 대조 — 경고이지 실패가 아니다
@@ -144,9 +145,11 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 | `../runner/*` → 여기 | `runner/wiki/build.py` 가 `demermaid.py` 를, `runner/wiki/prep.py` 가 `render_modules.py` 를 자식 프로세스로 부른다 |
 | `../runner/dispatch.py` → 여기 | `report-spec` 의 명령표가 `viz/init.py` · `viz/build.py` · `viz/check.py` 를 가리킨다 |
 | 여기 → `src/` | `build.py` 의 esbuild `alias`, `check.py` 의 임시 tsconfig `paths` |
+| 여기 → `../tools/template.py` | `init.py` · `build.py` · `render_classes.py` · `render_modules.py` 가 `templates/` 의 파일을 `render_file` 로 채운다 |
+| 여기 → `../config/report.toml` | `init.py` 가 원본 문서 자리 규칙을 읽는다 |
 | 여기 → 바깥 명령 | `dot`(Graphviz) · `npx mmdc`(Mermaid) 를 PATH 로 부른다 |
 
-**여기서 나가는 화살표는 없다시피 하다** — 시각축은 잎이다. 부르는 쪽은 언제나 러너다.
+**러너축 · 기계축으로 나가는 화살표는 없다** — 시각축은 잎이다. 나가는 것은 `tools/template.py` 와 읽기 전용 설정뿐이고, 부르는 쪽은 언제나 러너다.
 
 ## 흔한 변경 패턴 (Common modification patterns)
 

@@ -132,9 +132,9 @@ flowchart LR
 (`run_mode1.py` 의 `AGENT_STAGES = {"survey", "wiki"}` — 2026-08-30 에 `agent` 한 칸이 갈렸다).
 
 Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
-**그 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 두 칸에 있고**, 실제 경로는 `run_mode1.py` 의
-`--model` 기본값 하나다(`main` → `run_survey`/`run_wiki` → `run_layer` → `run_agent_with`
-→ `claude_argv`). 사슬 중간에서 LLM Model을 바꾸지 않는다.
+**그 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 두 칸에 있고**, 값은 `config/mode1.toml` 의 `[models] sessions` 하나다.
+`runner/mode1/context.py` 의 `load_config` 가 읽어 `run_mode1.py` 의 `--model` 기본값이 된다.
+그 값이 `Mode1Context.model` 로 들어가 `LlmStage.perform` → `run_layer` → `run_agent_with` → `claude_argv` 로 내려간다. 사슬 중간에서 LLM Model을 바꾸지 않는다.
 
 **Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
 

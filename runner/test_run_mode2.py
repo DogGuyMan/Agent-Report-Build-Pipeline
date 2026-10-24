@@ -211,8 +211,8 @@ PLAN_FILES = [
 ]
 
 
-def test_doc_dirs_matches_the_javascript_side():
-    """`viz/init.py` 의 `DOC_DIRS` 와 순서·이름이 같아야 한다. 어긋나면 조용히 깨진다."""
+def test_doc_dirs_are_specs_then_plans():
+    """원본 문서 자리는 `config/report.toml` 에서 오며 `specs`, `plans` 순이다. `viz/init.py` 와의 일치는 `test/test_config.py` 가 본다."""
     assert [d for d, _ in R.DOC_DIRS] == ["specs", "plans"]
 
 

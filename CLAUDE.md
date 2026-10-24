@@ -10,6 +10,7 @@
 | [`viz/CLAUDE.md`](viz/CLAUDE.md) | **시각축** — 렌더 경로 · 다이어그램 · 직접 실행 가드 |
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
 | [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 · README 생성 |
+| [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 · Mode 2 의 Model id · 원본 문서 자리 규칙 · 비용 어림. 코드는 읽기만 한다 |
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 축을 가로지르는 시험 — 문서 게이트 · Node 렌더 시험 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | [`docs/wiki/`](docs/wiki/index.md) | **이 저장소의 RAG.** 자기 자신에게 Mode 1 을 돌려 구운 위키 21쪽. 코드를 뒤지기 전에 여기를 먼저 grep 한다 |
@@ -228,7 +229,7 @@ $REPO_ROOT                  <프로젝트>/specs/<slug>/
 
 **옛 경계(`scripts/`=Node · `codegraph/`=Python)는 성격과 어긋나 있었다.** Graphviz 를 부르는
 파이썬 셋이 기계축에, 결정론적 채점 `.mjs` 가 Node 축에 섞여 있었다. `tools/` 는 셋 어디에도
-속하지 않는 것만 받는다.
+속하지 않는 것만 받는다. `config/` 는 축이 아니라 설정값이 사는 자리이고, 코드는 읽기만 한다.
 
 ## 확정된 스택 (변경 금지)
 

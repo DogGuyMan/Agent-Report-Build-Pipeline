@@ -37,8 +37,7 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 
 `specs/` 만 접미사를 요구하는 이유는 그 폴더에 `-before.svg` · `-design-review.html` 같은 다른
 산출물이 함께 살아 접미사가 **오타 가드** 노릇을 하기 때문이다. `plans/` 는 계획서만 있어 필요 없다.
-이 규칙은 `viz/init.py` 의 `DOC_DIRS` 와 `runner/run_mode2.py` 의 `DOC_DIRS` 두 곳에 같은 값으로
-산다 — 언어가 달라 한 곳에 못 모은다.
+이 규칙은 `config/report.toml` 한 곳에 있고, `viz/init.py` 와 `runner/run_mode2.py` 가 함께 읽는다.
 
 ## Workflow
 
