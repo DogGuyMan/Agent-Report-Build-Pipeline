@@ -48,8 +48,10 @@ Uncommitted: 없음 (이 문서 커밋 뒤)
 | R3 | 옮기기 전을 찍는다 | ✅ 커밋 없음 · **Mac 에 다시 만듦(2026-10-24)** | `$HOME/LLM-Tools/split-work/before/` 31개, 두 번 찍어 같음. 보강 셋째 — `capture.sh` 가 `TOOLS_ROOT` 없을 때 자기 자리에서 기본값을 잡는다 |
 | R4 | Mode 1 프롬프트 넷 → `runner/mode1/prompts/` | ✅ `f87e877` + `eeb4976`(시험) · spec ✅(기계 대조 + `e9ddfc3` worktree 대 HEAD 28 동일) · 품질 ✅(Ready: Yes) | 검토 처리: Important — `pipeline.py` 독스트링이 아직 없는 `test/test_prompt_resources.py` 를 가리킨다 → R9 가 만든다(고아 절은 R9 전까지 안 잡힌다). Minor — `hint_prompt` docs 끝 줄바꿈 시험 `eeb4976`. 나머지는 §4.2 | 바이트 대조 `.txt` 14 + `.raw` 14 = **28 동일**(R2 보강 뒤 본 저장소에서 다시 잼). 계획서 편차 하나: `hint_prompt` 는 `load_prompt("lang-hint", docs=docs)[:-1]`(절이 줄바꿈 하나로 끝나 docs 뒤에 1바이트가 붙는다). `annotate-symbols.md` 끝 빈 줄 하나 뗌(출력 같음) |
 | R5 | Mode 1.5 · 2 프롬프트 → `runner/prompts/` | ✅ `b627831` + `95f9758`(시험) · spec ✅(기계 대조) · 품질 ✅(With fixes → 시험 셋) · 사용자 승인 | 28 동일. ⑤ 는 K6 으로. 검토: 옮긴 글의 배치 · 줄바꿈 · 명령줄을 바꾸는 돌연변이 9개가 기존 시험을 다 통과 → 시험 셋 `95f9758`(돌연변이 셋을 다시 넣어 잡히는 것 확인). Minor 는 R10 묶음 |
-| R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ `283aec3` · spec ✅ · 품질 ⬜ · 사용자 승인 | 본 저장소 31 동일(글 28 · DOT 2 · report.html). 편차: 범례 `"\n" + render_file(…).removesuffix("\n")` · `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(임시 파일 바이트만 다르고 HTML 은 같다) · `entry.ts` 끝 줄바꿈 |
-| R7 → R10 | config toml · after 대조 · 게이트 시험 · 남은 문구 옮기기 | ⬜ | rev.4 :1008-1283 · §4.2 · R10 은 §4.2 의 사용자 결정 |
+| R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ `283aec3` + `a3ac974`(수정 · 시험) · spec ✅ · 품질 ✅(With fixes → I1 시험 `test/test_templates.py` · I2 `str(lang)` 사용자 승인) · 사용자 승인 | 본 저장소 31 동일(글 28 · DOT 2 · report.html). 편차: 범례 `"\n" + render_file(…).removesuffix("\n")` · `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(임시 파일 바이트만 다르고 HTML 은 같다) · `entry.ts` 끝 줄바꿈 |
+| R7 | 모델 id · 비용 어림 · 원본 문서 자리 규칙 → `config/{mode1,report}.toml` | ✅ `3665cc5` + `850a6a0`(시험 강화 · 패턴 계약 주석) · spec ✅ · 품질 ✅(Ready: Yes) · 사용자 승인 | 편차 하나(사용자 결정): `run_mode2.py --model` 도움말은 `(기본: %(default)s)` — `--help` 가 실효값을 보인다 |
+| R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | R7 적용 뒤 본 저장소 `capture.sh` 31 = `before/` 31 (`diff -r` 같음). `a3ac974` 뒤에도 31 같음 |
+| R9 → R10 | 게이트 시험 + Phase R 문서 정리 · 남은 문구 옮기기 | ⬜ | rev.4 :1159-1283 · §4.2. R9 는 본체 .py 없음(게이트 셋이 HEAD 에서 이미 통과 — scratch 실측). R10 은 §4.2 의 사용자 결정 + 본체 Minor 묶음 |
 | A1 → A4 | 결정 0011 · 시험 결합 끊기 둘 · 레코드 분리 스크립트 | ⬜ | rev.4 :1284-1472 |
 | K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 생성 · 형 생성 · 판정+collect · run_mode2 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** |
 | M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 `split-base-2026-10-24` | ⬜ | rev.4 :3235-3259. `main` 에 미는 것은 사용자에게 먼저 묻는다 |
@@ -122,6 +124,14 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - `runner/CLAUDE.md:11-20` "무엇이 여기 있나" 표에 `prompts/` · `mode1/prompts/` 행이 없다 — Phase R 끝 문서 정리.
 - `docs/wiki/runner-mode2-spec.md:116` 이 옮겨 간 문구의 자리로 `agent_prompt` 를 인용 — Phase E 재굽기(L2 실패 수는 늘지 않음).
 - **R9 게이트 주의**: `prompt_names` 는 상속된다 — `AnnotateFilesStage` 가 `AnnotateSymbolsStage` 의 선언을 물려받아 "중복 선언" 오탐이 난다. 클래스마다 `vars(cls)` 에 직접 선언된 것만 세거나 `(prompt_dir, 이름)` 으로 중복을 없앤다.
+
+**R6 · R7 품질 검토에서 넘어온 것**
+- **R10 승인 묶음(본체 .py)**: `viz/init.py:23-24` 의 `str(d["dir"])` · `str(d["pattern"])` 를 뺀다 — 잘못된 설정에서 `run_mode2` 는 ValidationError 인데 `report-spec init` 은 조용히 받아들인다(R7 M1). `runner/run_mode1.py:50-55` 독스트링 · `:200` 주석이 Model ID 자리를 `config/mode1.toml` 로 말하게(R7 M5). TypedDict 넷(`context.py` `ModelsConfig` · `EstimateConfig`, `run_mode2.py` `DocDirConfig` · `ModelsConfig`)에 한 줄 독스트링(R7 M9 — README 설명 칸이 비었다).
+- **R9 문서 정리에 넣는다**: `viz/CLAUDE.md:12-19` 표에 `templates/` 행 · `:143-150` 의존 표에 `여기 → ../tools/template.py`(그리고 "시각축은 잎" 문장 고침) · `runner/CLAUDE.md:19` `wiki/` 행 "전부 .py" · `:117` 에 `tools/template.py`(pipeline · wiki/build) · `tools/CLAUDE.md:7-14` 표에 `template.py` 행 · `viz/init.py:89` 주석과 `viz/CLAUDE.md:126` "네 값" → 다섯(주석은 본체라 R10) · `machine/CLAUDE.md:152-154` · `ARCHITECTURE.md:135-137` "`--model` 기본값 하나" → `config/mode1.toml` · `.claude/skills/spec-review-dashboard/SKILL.md:40-41` 과 홈 원본 `~/.claude/skills/spec-review-dashboard/SKILL.md:40` "DOC_DIRS 두 곳"(원본 먼저) · `remain-process-merged.md:133-136` 체크박스 · `runner/test_run_mode2.py:214-216` `test_doc_dirs_matches_the_javascript_side` 이름 · 독스트링(README 도) · `test/CLAUDE.md:12-21` 표에 `test_config.py` · `test_templates.py` · `test_prompt_resources.py` · 루트 `CLAUDE.md` 에 새 최상위 `config/`(나침반 · 성격축 · 소유).
+- **Phase E 로**: `machine/terms-reading.json` 이 R6 다섯 파일을 인용하는 레코드 43건이 줄이 밀려 낡았다(terms_db L2 가 잡는다 · Mode 1 증분으로 갱신). `ARCHITECTURE.md` 의 줄 인용 몇은 EOF 를 넘는다(`test_docs_citations` 는 파일 존재만 본다).
+- **Phase B 로**: `tools/template.py` 는 **두 저장소 모두에 필요하다** — Mode 1 쪽 `viz/render_*.py` · `runner/wiki/build.py` 와 Mode 2 쪽 `viz/init.py` · `viz/build.py` 가 함께 import 한다. B1 경로 목록 양쪽에 넣는다.
+- **사용자 판단 거리(급하지 않음)**: ① `config/report.toml` 을 두 파서(msgspec · tomllib)가 읽는다 — `tools/` 에 읽기 함수 하나를 두고 둘이 함께 쓰면 모양 · 검증이 하나가 된다(소비자 2 → 공유). 지금 판도 시험으로 지켜져 합리적이다. ② `mode2_agent = "opus"` 는 별명이다 — 옆의 `config/mode1.toml` 은 "별명이 아니라 정확한 ID" 원칙을 적었다. 값은 옛것을 보존한 것.
+- 기록만: `lang.py` 가 import 때 설정을 읽어 `config/mode1.toml` 이 깨지면 러너 시험 네 파일이 수집 단계에서 죽는다(메시지는 정확하다). `viz/init.py` 의 `tomllib` 으로 3.11 미만 해석기에서 안 돈다 — `doctor` 가 3.12 미만을 이미 막는다.
 
 **기록만 — 범위 밖, 사용자 몫**
 - 프롬프트 예외(`KeyError` · `ValueError` · `TemplateError` · `FileNotFoundError`)는 `Pipeline.run` 이 `FAIL` 행으로 바꾸지 않는다 — 지금 `msgspec.DecodeError` 만 잡는다(`pipeline.py:363` 근처). 단계 도중 터지면 프로세스가 죽고, `survey_files.py` 의 풀에 줄 선 세션은 프로세스 끝까지 돈다. 정책 변경이다.
