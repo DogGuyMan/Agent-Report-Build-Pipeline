@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
+from tools.template import TemplateError  # noqa: E402
 
 
 class Terms(TypedDict):
@@ -476,3 +477,71 @@ def test_sections_는_첫_표식_앞의_글과_겹친_절을_거부한다():
 
 def test_llm_stage_는_prompt_resource_다():
     assert issubclass(P.LlmStage, P.PromptResource)
+
+
+@pytest.mark.parametrize("text", [
+    "<!-- section: a -->\n가\n<!-- section: B -->\n나\n",
+    "<!-- section: a -->\n가\n<!-- section: b_c -->\n나\n",
+    "<!-- section: a -->\n가\n <!-- section: b -->\n나\n",
+    "<!-- section: a -->\n가\n<!-- section: b --> \n나\n",
+    "<!-- section: a -->\n가\n<!-- section: b -->",
+    "<!-- section: a -->\n가\n<!--section: b-->\n나\n",
+], ids=["upper", "underscore", "leading-space", "trailing-space", "no-final-newline", "no-space"])
+def test_sections_는_꼴이_틀린_표식을_거부한다(text: str):
+    with pytest.raises(ValueError, match="꼴이 틀렸다"):
+        P.PromptResource.sections(text)
+
+
+def test_sections_는_본문_속_낱말_section_을_통과시킨다():
+    assert P.PromptResource.sections("<!-- section: a -->\n이 section 은 본문이다\n") == {"a": "이 section 은 본문이다\n"}
+
+
+def test_load_prompt_는_name_과_cls_자리도_채운다(tmp_path: Path):
+    (tmp_path / "f.md").write_text("{{name}} {{cls}}\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("f",)
+
+    assert S.load_prompt("f", name="n", cls="c") == "n c\n"
+
+
+def test_load_prompt_는_절대_경로가_아닌_prompt_dir_을_거부한다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "prompts" / "hello.md").write_text("안녕\n", encoding="utf-8")
+    (tmp_path / "hello.md").write_text("안녕\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    class Relative(P.PromptResource):
+        prompt_dir = "prompts"
+        prompt_names = ("hello",)
+
+    class Undeclared(P.PromptResource):
+        prompt_names = ("hello",)
+
+    with pytest.raises(ValueError, match="절대 경로"):
+        Relative.load_prompt("hello")
+    with pytest.raises(ValueError, match="절대 경로"):
+        Undeclared.load_prompt("hello")
+
+
+def test_load_prompt_는_없는_절을_KeyError_로_낸다(tmp_path: Path):
+    (tmp_path / "s.md").write_text("<!-- section: a -->\n가\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("s#z",)
+
+    with pytest.raises(KeyError, match="절 'z'"):
+        S.load_prompt("s#z")
+
+
+def test_load_prompt_는_자리_어긋남을_TemplateError_로_낸다(tmp_path: Path):
+    (tmp_path / "hello.md").write_text("안녕 {{who}}\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("hello",)
+
+    with pytest.raises(TemplateError):
+        S.load_prompt("hello")

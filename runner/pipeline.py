@@ -472,6 +472,7 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
 
 
 SECTION = re.compile(r"^<!-- section: ([a-z0-9-]+) -->\n", re.MULTILINE)
+SECTION_LIKE = re.compile(r"^[ \t]*<!--\s*section\b.*$", re.MULTILINE | re.IGNORECASE)
 
 
 class PromptResource:
@@ -486,7 +487,13 @@ class PromptResource:
 
     @staticmethod
     def sections(text: str) -> dict[str, str]:
-        """절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다."""
+        """절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다.
+
+        표식처럼 보이는 줄(`<!-- section` 으로 시작)이 `SECTION` 꼴이 아니면 `ValueError` 다.
+        """
+        bad = [m.group(0) for m in SECTION_LIKE.finditer(text) if not SECTION.match(text, m.start())]
+        if bad:
+            raise ValueError("절 표식 꼴이 틀렸다: %r" % bad[0])
         marks = list(SECTION.finditer(text))
         if not marks:
             return {"": text.strip("\n") + "\n"}
@@ -501,11 +508,17 @@ class PromptResource:
         return out
 
     @classmethod
-    def load_prompt(cls, name: str, **values: str) -> str:
-        """`"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다. 어긋나면 `TemplateError`."""
+    def load_prompt(cls, name: str, /, **values: str) -> str:
+        """`"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다.
+
+        선언 밖 이름 · 없는 절은 `KeyError`, 절대 경로가 아닌 `prompt_dir` · 틀린 절 표식은 `ValueError`,
+        자리 어긋남은 `TemplateError` 다. 이름 인자가 위치 전용이라 자리 이름이 `name` 이어도 채워진다.
+        """
         if name not in cls.prompt_names:
             raise KeyError("%s 는 프롬프트 %r 를 선언하지 않았다 (선언: %s)"
                            % (cls.__name__, name, ", ".join(cls.prompt_names) or "없음"))
+        if not os.path.isabs(cls.prompt_dir):
+            raise ValueError("%s.prompt_dir 은 절대 경로여야 한다: %r" % (cls.__name__, cls.prompt_dir))
         file, _, section = name.partition("#")
         with open(os.path.join(cls.prompt_dir, file + ".md"), encoding="utf-8") as f:
             parts = cls.sections(f.read())
