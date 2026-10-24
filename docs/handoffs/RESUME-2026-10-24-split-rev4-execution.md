@@ -3,7 +3,7 @@
 > **이 문서가 다음 세션의 유일한 진입점이다.** Mode 1 / Mode 1.5+2 두 저장소 분리 계획 rev.4 를 서브에이전트 주도로 실행하는 중이다. **Phase R 은 끝났다**(R1~R10). Phase A 는 A1 · A4 가 끝났고 A2 · A3 가 남았다. 그 뒤가 Phase K · M 이다.
 > **작성**: 2026-10-24 Mac 세션(R1) → 클라우드(R1 검토 ~ R4) → **Mac 세션(R4 검토 ~ R10 · A1 · A4)** → 사용자 지시로 **클라우드에서 다시 시작**한다. 브랜치 `survey-per-file-2pass` · HEAD `5837c32`(이 문서 커밋 직전).
 > **대체하는 것**: 같은 파일의 이전 판. 이전 판의 §5 "바로 다음"(R4 검토 · R5 구현자)은 끝났다.
-> ⚠ 시작할 때 `git pull origin survey-per-file-2pass` → `git log --oneline -8` · `git status --short` 를 다시 잰다.
+> ⚠ 시작할 때 `git fetch origin && git checkout survey-per-file-2pass && git pull origin survey-per-file-2pass` → `git log --oneline -8` · `git status --short` 를 다시 잰다. **claude.ai 프로젝트 스레드로 이어가면 §0.1 부터.**
 
 ## 0. 한눈에 (TL;DR)
 
@@ -13,6 +13,30 @@
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
+
+## 0.1 claude.ai 프로젝트 스레드로 이어갈 때 (사용자 결정 2026-10-24)
+
+공식 문서(code.claude.com — claude-projects · cloud-environments)에 따르면 **프로젝트 스레드는 일반 클라우드 세션과 다르다.** 다음은 확인된 차이와 대응이다.
+
+| 스레드에서 | 대응 |
+|---|---|
+| 기본 브랜치(`main`)에서 **새 브랜치를 딴다**(따로 말하지 않으면) | 지금까지의 작업은 전부 `survey-per-file-2pass` 에 있다 — 시작하자마자 `git fetch origin && git checkout survey-per-file-2pass && git pull origin survey-per-file-2pass`. 새 브랜치를 따지 않고 여기에 커밋 · push 한다 |
+| 저장소 `.claude/settings.json` 의 **훅이 돌지 않는다** — `tools/setup.sh`(`.venv` · `node_modules` · `.tmp/lib.mjs` · doctor)가 자동으로 안 돈다 | 시작할 때 `bash tools/setup.sh` 를 직접 돌린다. Graphviz 는 프로젝트의 Cloud environment 설정 스크립트(`tools/cloud_env.sh` 를 붙여 넣은 것)가 깐다 |
+| 루트 `CLAUDE.md` · `.claude/CLAUDE.md` 만 읽힌다 — **하위 폴더 `CLAUDE.md` 는 안 읽힌다** | `runner/` · `viz/` · `machine/` · `tools/` · `test/` · `docs/` 를 고치기 전에 그 폴더의 `CLAUDE.md` 를 직접 읽는다. 서브에이전트 brief 에도 "해당 폴더의 CLAUDE.md 를 먼저 읽어라" 를 넣는다 |
+| 저장소 `.claude/skills/` · `.claude/agents/` · 플러그인 설정이 **안 읽힌다** | superpowers 는 Project settings > Plugins 에서 켠다(사용자). 스킬 사본 다섯(`personal-commit-messages` 등)은 claude.ai 계정의 스킬로 켜야 보인다 — 안 켜도 커밋 형식은 루트 `CLAUDE.md` 와 §7 에 글자로 있다 |
+| 저장소 권한 규칙이 적용되지 않는다 · 스레드는 auto mode | 승인 창은 **그 스레드 안에** 뜨고 스레드는 거기서 기다린다. 프로젝트 대화에서 "진행해" 라고 해도 스레드에 닿지 않는다. 본체 `.py` 승인(§7)도 스레드 안의 질문 창으로 받는다 — `AskUserQuestion` 이 스레드에서 뜨는지는 문서로 확인하지 못했다. 안 뜨면 diff 경로와 요약을 남기고 멈춰 사용자 답을 기다린다 |
+| `env` 가 적용되지 않는다 | 이 작업에 필요한 환경변수는 없다(`TOOLS_ROOT` 는 `split-work/capture.sh` 가 스스로 잡는다) |
+
+**프로젝트 지시문(Project settings > Memory > Project instructions 에 붙여 넣는다 — 새 스레드마다 받는다):**
+```text
+이 프로젝트의 작업은 저장소 report-builder 의 브랜치 survey-per-file-2pass 에서 이어간다.
+- main 에서 새 브랜치를 따지 않는다. 시작하면 git fetch origin && git checkout survey-per-file-2pass && git pull origin survey-per-file-2pass 를 하고 거기에 커밋 · push 한다.
+- 저장소 훅이 돌지 않는다. 시작하면 bash tools/setup.sh 를 먼저 돌린다.
+- 재개 진입점은 docs/handoffs/RESUME-2026-10-24-split-rev4-execution.md 하나다. §0 → §0.1 → §1 → §6 → §5 순서로 간다.
+- 하위 폴더의 CLAUDE.md 는 자동으로 읽히지 않는다. 그 폴더를 고치기 전에 직접 읽는다.
+- 커밋은 [tag] : 한국어 제목 한 줄, 본문 · 트레일러 없음, 파일을 이름으로 git add 한다(루트 CLAUDE.md).
+- 본체 .py 는 diff 를 보여 승인받은 뒤 적용한다(재개 문서 §7). main 에 push 하기 전에는 묻는다.
+```
 
 ## 1. 상태 (Mac 실측 2026-10-24 — 다시 잰다)
 
@@ -282,3 +306,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 사용자 지시로 남은 일을 Claude Cloud 로 넘김. 이 판으로 문서를 다시 짰다 — 해결된 이월은 걷어내고 §5 에 Task 별 brief 요지, 저장소 밖 도구 다섯을 `docs/handoffs/split-work-2026-10-24/` 로. R9 품질 검토 결과(With fixes · I1 f-문자열 · I2 부분 문자열 · Minor 열하나)를 §5 (1) 에 그대로 넣었다 — 고치지 않았다 |
 | 2026-10-24 | 사용자 지시로 `$HOME/LLM-Tools/split-work/` 를 저장소 뿌리 `split-work/` 로 옮겼다(report-builder 에만 매인 도구 · 바깥 폴더 지움 · 산출물은 `.gitignore`). `capture.sh` 가 인자를 절대 경로로 바꾸게 고쳤다(상대 출력 경로에서 `report.html` 복사가 실패했다). `before/` 를 새 자리에서 다시 찍었다(옛 기준과 차이는 재조사 절의 샤드 경로뿐). R9 검토 원형 셋을 `split-work/r9-gate-proto/` 로. 홈 전용 스킬 다섯을 `.claude/skills/` 에 깊은 복사 |
 | 2026-10-24 | 사용자 결정으로 superpowers 를 프로젝트 설정 `.claude/settings.json` 의 `enabledPlugins` 로 켰다(그전에는 git 밖 `.claude/settings.local.json` 에만 있었다). 문서 확인 결과 클라우드 세션에는 닿지 않는다 — §3 에 대안 셋 |
+| 2026-10-24 | 사용자 결정 — superpowers 는 claude.ai Project settings > Plugins 에서 켠다(프로젝트 스레드로 진행). §0.1 을 더했다 — 스레드는 `main` 에서 새 브랜치를 따고 · 훅 · 하위 CLAUDE.md · 저장소 스킬을 안 읽는다는 문서 확인과 대응, 붙여 넣을 프로젝트 지시문 |
