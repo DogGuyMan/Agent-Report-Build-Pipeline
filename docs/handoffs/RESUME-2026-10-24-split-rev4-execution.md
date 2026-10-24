@@ -111,9 +111,9 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - 게이트도 `load_prompt` 와 같이 텍스트 모드 `open` 으로 읽는다(rev.4 코드가 이미 그렇다).
 
 **R4 품질 검토에서 넘어온 것**
-- `hint_prompt` 의 `[:-1]` → `.removesuffix("\n")` 이 뜻을 더 드러낸다(지금 불변식에서는 같다 · `rstrip` 은 바이트를 깬다). 본체 `.py` 라 다른 승인 묶음에 끼워 보인다.
+- ~~`hint_prompt` 의 `[:-1]` → `.removesuffix("\n")`~~ **사용자 승인 · `d00388a`**(28 동일).
 - `runner/CLAUDE.md:13` "계산과 **프롬프트는** 단계 클래스의 `@staticmethod`" · `:142` "`mode1/survey.py` 의 **프롬프트 문자열은**…" 이 낡았다 — 산문은 이제 `runner/mode1/prompts/*.md`. Phase R 끝 문서 정리에서 한 줄씩.
-- **사용자 판단 대기** — 빈 값 대체 문구가 파이썬에 남았다: `survey.py:81` `"(뜻 없음)"` · `:103` · `:107` `"  (없음 — 너는 최하층이다)"` · `:347` `"  (없음)"` · `wiki.py:99` `"(개괄 — 특정 심볼 없음)"` · `:100` `"  (없음 — 네가 첫 장이다)"`, 목록 줄 꼴(`survey.py:101` · `:343` · `wiki.py:123`), retry 에 실리는 `FIX` 표(`survey.py:150-156`). rev.4 가 그대로 두라고 적었다. 옮기면 작은 절 4~6개가 생긴다(거울 함정 위험). "의식적 예외" 로 기록할지, 옮길지.
+- **사용자 결정(2026-10-24): Phase R 끝에 리소스로 옮긴다 — R9 뒤 Task 「R10」.** 옮긴 뒤 R8 대조(28 + DOT · HTML)와 R9 게이트를 다시 돌린다. 대상 — 빈 값 대체 문구가 파이썬에 남았다: `survey.py:81` `"(뜻 없음)"` · `:103` · `:107` `"  (없음 — 너는 최하층이다)"` · `:347` `"  (없음)"` · `wiki.py:99` `"(개괄 — 특정 심볼 없음)"` · `:100` `"  (없음 — 네가 첫 장이다)"`, 목록 줄 꼴(`survey.py:101` · `:343` · `wiki.py:123`), retry 에 실리는 `FIX` 표(`survey.py:150-156`). rev.4 가 그대로 두라고 적었다. 옮기면 작은 절 4~6개가 생긴다(거울 함정 위험). 절 이름은 `[a-z0-9-]`(예: `annotate-symbols#no-deps`). 렌더러에 조건문이 없으니 "값이 비면 이 절" 의 고르기는 파이썬에 남고 글만 리소스로 간다.
 
 **기록만 — 범위 밖, 사용자 몫**
 - 프롬프트 예외(`KeyError` · `ValueError` · `TemplateError` · `FileNotFoundError`)는 `Pipeline.run` 이 `FAIL` 행으로 바꾸지 않는다 — 지금 `msgspec.DecodeError` 만 잡는다(`pipeline.py:363` 근처). 단계 도중 터지면 프로세스가 죽고, `survey_files.py` 의 풀에 줄 선 세션은 프로세스 끝까지 돈다. 정책 변경이다.
@@ -162,7 +162,8 @@ R3 의 스크립트와 `before/` 는 클라우드 scratch 에 있었고 사라�
    "$SW/capture.sh" "$PWD" "$SW/before" && ls "$SW/before" | wc -l    # 31 = .txt 14 · .raw 14 · modules.dot · classes.dot · report.html
    "$SW/capture.sh" "$PWD" "$SW/before-again" && diff -r "$SW/before" "$SW/before-again" && rm -rf "$SW/before-again"   # 결정적인지
    ```
-5. 구현자의 worktree 검증 꼴(R4 에서 썼다): `git worktree add --detach $S/wt HEAD` → `.venv` · `node_modules` 를 심볼릭 링크 → 리소스와 후보를 복사 → `pytest runner/` · `typecheck:py` → `.venv/bin/python $SW/capture.py $S/wt $S/after $SW/fixture-shards` → `before/*.txt` · `before/*.raw` 를 `cmp` → `git worktree remove --force` · `prune`. worktree 에는 `out/` 이 없으니 `capture.py` 만 돌린다(DOT · HTML 은 R6 · R8 에서 본 저장소로).
+5. ⚠ **worktree 에서 `pytest` 를 돌릴 때 `.venv` 를 통째로 심볼릭 링크하지 않는다**(R5 구현자 실측). `runner/run_mode1.py` 의 `_bootstrap_venv()` 가 `sys.prefix` 를 `<wt>/.venv` 와 견주는데 링크를 풀면 본 저장소 `.venv` 라 어긋나 `os.execv` 를 끝없이 되풀이한다 — 수집 단계에서 출력 없이 멈춘다. 꼴: `mkdir <wt>/.venv <wt>/.venv/bin` · `cp .venv/pyvenv.cfg <wt>/.venv/` · `bin/` 안은 파일마다 링크 · `lib` 은 폴더 링크. `capture.py` 만 돌릴 때(본 저장소 `.venv/bin/python` 으로 부른다)는 통째 링크로 된다.
+   구현자의 worktree 검증 꼴(R4 에서 썼다): `git worktree add --detach $S/wt HEAD` → `.venv`(위 꼴) · `node_modules` 를 심볼릭 링크 → 리소스와 후보를 복사 → `pytest runner/` · `typecheck:py` → `.venv/bin/python $SW/capture.py $S/wt $S/after $SW/fixture-shards` → `before/*.txt` · `before/*.raw` 를 `cmp` → `git worktree remove --force` · `prune`. worktree 에는 `out/` 이 없으니 `capture.py` 만 돌린다(DOT · HTML 은 R6 · R8 에서 본 저장소로).
 
 ## 7. 가드레일 · 규약
 
