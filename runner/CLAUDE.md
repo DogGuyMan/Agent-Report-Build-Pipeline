@@ -162,8 +162,4 @@ $EDITOR bin/report-<mode>                     # table={"<명령>": "viz/….py" 
 - **Gotcha — 기계축 선언이 실물과 어긋난다.** `codegraph.json` 은 `survey_plan.CodeGraph` 로 strict 검증에
   실패하고(`GraphNode.file` 에 `null`), `warmup.json` 은 `warmup.Manifest` 로 실패한다(`Entry.mtime` 없음).
   러너는 `CodeGraphDoc`(최상위만)으로 보고 `cast` 로 넘긴다. 지문은 존재만 본다. 기계축 소유자 몫이다.
-- **Gotcha — Mode 2 의 원본 문서 자리 규칙이 두 곳에 중복돼 산다.** `run_mode2.py` 의
-  `DOC_DIRS` 와 `../viz/init.py` 의 `DOC_DIRS` 가 같은 값이어야 한다(`specs/` 는
-  `-design.md`, `plans/` 는 접미사 없음). 둘 다 파이썬이 된 뒤로 모을 수는 있지만 아직 합치지 않았다 —
-  러너가 `viz/` 를 import 하지 않는 축 경계 때문이고, 합칠지는 결정 대상이다. 한쪽만 고치면
-  `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다. 전체 표는 `../viz/CLAUDE.md` 에 있다.
+- 원본 문서 자리 규칙은 `config/report.toml` 한 곳이다. `test/test_config.py` 가 두 읽는 쪽이 같은 것을 보는지 고정한다.

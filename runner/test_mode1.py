@@ -1097,3 +1097,11 @@ def test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_�
     c.strategy = "layer"
     g = E.build_mode1_graph(c, only=None, skip=None)
     assert type(g.stages["annotate-symbols"]) is SV.AnnotateSymbolsStage and g.name == "mode1-cold"
+
+
+def test_설정이_정확한_모델_ID_를_준다():
+    cfg = X.load_config()
+    assert cfg["models"]["sessions"].startswith("claude-")
+    assert cfg["models"]["lang_hint"].startswith("claude-")
+    assert LG.LANG_SELECT_MODEL == cfg["models"]["lang_hint"]
+    assert 0 < cfg["estimate"]["usd_per_batch_min"] < cfg["estimate"]["usd_per_batch_max"]

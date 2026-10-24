@@ -103,6 +103,10 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`ModelsConfig`** | *class* |  |
+| **`EstimateConfig`** | *class* |  |
+| **`Mode1Config`** | *class* | `config/mode1.toml`. |
+| `load_config` | `(path: str = CONFIG_PATH) -> Mode1Config` | 설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다. |
 | **`ShardUse`** | *class* |  |
 | **`ShardRecord`** | *class* | `where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다. |
 | **`ShardFault`** | *class* | `at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키. |
@@ -497,6 +501,9 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`DocDirConfig`** | *class* |  |
+| **`ModelsConfig`** | *class* |  |
+| **`ReportConfig`** | *class* | `config/report.toml`. 원본 문서 자리 규칙은 `viz/init.py` 도 같은 파일에서 읽는다. |
 | `report_dir` | `(project: str, slug: str, doc_dir: str = 'specs') -> str` | 보고서가 사는 폴더. **원본 문서 옆**이다 — `specs/<slug>/` 또는 `plans/<slug>/`. |
 | `stage_cwd` | `(stage: str, project: str, report_dir: str) -> str` | 단계 하나를 어느 폴더에서 돌릴지 답한다. **여기서 틀리면 오류 없이 엉뚱한 곳에 쓴다.** |
 | `is_agent_stage` | `(stage: str) -> bool` | 이 단계가 큰 언어 LLM Model을 부르는 자리인지 답한다. 토큰이 잡히는 자리는 여기뿐이다. |
@@ -725,6 +732,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면_2패스를_넣는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_이름이_갈린다` | `(tmp_path: Path)` |  |
+| `test_설정이_정확한_모델_ID_를_준다` | `()` |  |
 
 ---
 

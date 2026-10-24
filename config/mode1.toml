@@ -1,0 +1,9 @@
+# Mode 1 이 부르는 Model. 별명이 아니라 정확한 ID 를 쓴다 — 별명은 최신판을 따라 움직여 측정이 흔들린다.
+[models]
+sessions = "claude-sonnet-5-5"           # annotate-symbols · outline-wiki · write-wiki 의 세션. --model 의 기본값
+lang_hint = "claude-haiku-4-5-20251001"  # lang-hint. 낱말 하나를 내는 것이 전부라 가장 싼 것
+
+# 진입 알림의 어림 — 배치 수 × 배치당 비용(USD). evals/runs 의 실측 범위. 찍기만 하고 묻지 않는다.
+[estimate]
+usd_per_batch_min = 0.4
+usd_per_batch_max = 1.4

@@ -56,6 +56,7 @@ import sys
 import time
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import TypedDict
 
 # 이 파일은 <ROOT>/runner/ 에 있다. 저장소 뿌리는 그 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -86,18 +87,27 @@ AGENT_STAGES = {"agent"}
 # 엉뚱한 곳에 파일이 생기므로 상수로 드러내 둔다.
 PROJECT_STAGES = {"init", "agent"}
 
-# 원본 문서가 사는 두 자리와 자리마다 다른 파일명 관례.
-#
-# `specs/` 는 `-design.md` 접미사를 요구한다 — 같은 폴더에 `-before.svg` 와
-# `-design-review.html` 이 함께 살아 접미사가 오타 가드 노릇을 한다.
-# `plans/` 는 계획서만 있어 접미사가 없다.
-#
-# ⚠ **`viz/init.py` 의 `DOC_DIRS` 와 같은 값이어야 한다.** 언어가 달라 한 곳에 모을 수
-# 없다 — 한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다.
-DOC_DIRS = [
-    ("specs", re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")),
-    ("plans", re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)\.md$")),
-]
+
+class DocDirConfig(TypedDict):
+    dir: str
+    pattern: str
+
+
+class ModelsConfig(TypedDict):
+    mode2_agent: str
+
+
+class ReportConfig(TypedDict):
+    """`config/report.toml`. 원본 문서 자리 규칙은 `viz/init.py` 도 같은 파일에서 읽는다."""
+    models: ModelsConfig
+    doc_dirs: list[DocDirConfig]
+
+
+with open(os.path.join(ROOT, "config", "report.toml"), "rb") as _f:
+    CONFIG = msgspec.toml.decode(_f.read(), type=ReportConfig)
+
+# 원본 문서가 사는 자리와 자리마다 다른 파일명 관례. 값은 `config/report.toml` 의 `doc_dirs` 다.
+DOC_DIRS = [(d["dir"], re.compile(d["pattern"])) for d in CONFIG["doc_dirs"]]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.report_dir']"/>
@@ -402,7 +412,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("slug",
                     help="보고서 slug. specs/YYYY-MM-DD-<slug>-design.md 또는 "
                          "plans/YYYY-MM-DD-<slug>.md 가 있어야 한다")
-    ap.add_argument("--model", default="opus", help="에이전트가 쓸 LLM Model (기본: opus)")
+    ap.add_argument("--model", default=CONFIG["models"]["mode2_agent"],
+                    help="에이전트가 쓸 LLM Model (기본: %(default)s)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")

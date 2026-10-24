@@ -119,9 +119,7 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 `-before.svg` · `-design-review.html` 이 함께 살아 접미사가 오타 가드 노릇을 하기 때문이다.
 `plans/` 는 계획서만 있어 가드가 필요 없다.
 
-⚠ **관례가 `viz/init.py` 의 `DOC_DIRS` 와 `../runner/run_mode2.py` 의 `DOC_DIRS` 두 곳에 산다.**
-한쪽만 고치면 `init` 은 찾는데 러너는 못 찾는 어긋남이 조용히 생긴다. 고칠 때 반드시 둘 다 본다.
-**둘이 같은 언어가 된 뒤로 한 곳에 모을 수 있게 됐지만 아직 합치지 않았다** — 합칠지는 결정 대상이다.
+원본 문서 자리 규칙은 `config/report.toml` 한 곳이다. `test/test_config.py` 가 두 읽는 쪽이 같은 것을 보는지 고정한다.
 
 **주입하는 네 값은 전부 `json.dumps` 로 이스케이프한다.** 실제 spec 제목에 백틱이 있어
 (`` # `back_face` → `flip_faces` ``) 템플릿 리터럴에 그대로 꽂으면 `data.ts` 가 문법 오류가 된다.

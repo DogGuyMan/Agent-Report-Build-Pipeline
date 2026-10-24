@@ -11,9 +11,9 @@ from mode1.context import Mode1Context
 from mode1.machine_stage import Mode1Machine
 from mode1.measured import Measured
 
-# 언어 판별에 쓸 Model. 문서를 읽고 `cpp|cs|py|ts` 중 하나를 내는 것이 전부라 가장 싼 것을 쓴다.
-# `--model` 은 annotate-symbols · write-wiki 몫이라 여기에 쓰지 않는다.
-LANG_SELECT_MODEL = "claude-haiku-4-5-20251001"
+# 언어 판별에 쓸 Model. `--model` 은 annotate-symbols · write-wiki 몫이라 여기에 쓰지 않는다.
+# 값은 `config/mode1.toml` 의 `[models] lang_hint` 다.
+LANG_SELECT_MODEL = X.load_config()["models"]["lang_hint"]
 LANG_WORDS = ("cpp", "cs", "py", "ts")
 
 

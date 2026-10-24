@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import subprocess
+import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -15,10 +16,12 @@ from tools.template import render_file  # noqa: E402
 TEMPLATES = os.path.join(ROOT, "viz", "templates", "report")
 
 from typing import Any
-DOC_DIRS: list[dict[str, Any]] = [
-    {"dir": "specs", "re": re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")},
-    {"dir": "plans", "re": re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)\.md$")}
-]
+
+with open(os.path.join(ROOT, "config", "report.toml"), "rb") as _f:
+    _CONFIG = tomllib.load(_f)
+
+DOC_DIRS: list[dict[str, Any]] = [{"dir": str(d["dir"]), "re": re.compile(str(d["pattern"]))}
+                                  for d in _CONFIG["doc_dirs"]]
 
 from typing import Optional
 

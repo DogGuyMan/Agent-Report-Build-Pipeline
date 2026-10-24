@@ -3,6 +3,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal, NotRequired, TypedDict
 
+import msgspec
 import pipeline as P
 import survey_plan
 import warmup
@@ -14,6 +15,32 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 # Mode 1 LLM 단계의 프롬프트 리소스. 단계마다 `prompt_names` 로 자기 것을 선언한다.
 PROMPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
+
+
+class ModelsConfig(TypedDict):
+    sessions: str
+    lang_hint: str
+
+
+class EstimateConfig(TypedDict):
+    usd_per_batch_min: float
+    usd_per_batch_max: float
+
+
+class Mode1Config(TypedDict):
+    """`config/mode1.toml`."""
+    models: ModelsConfig
+    estimate: EstimateConfig
+
+
+CONFIG_PATH = os.path.join(ROOT, "config", "mode1.toml")
+
+
+def load_config(path: str = CONFIG_PATH) -> Mode1Config:
+    """설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다."""
+    with open(path, "rb") as f:
+        return msgspec.toml.decode(f.read(), type=Mode1Config)
+
 
 # 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
 Record = dict[str, object]
