@@ -719,6 +719,15 @@ def test_ask_명령줄은_대화형_claude_에_스킬_호출을_첫_프롬프트
     assert "--add-dir" in argv and str(tmp_path) in argv
 
 
+def test_ask_첫_프롬프트는_한_줄이고_기입란_명령과_산출물_자리를_그대로_싣는다(tmp_path: Path):
+    w = str(tmp_path)
+    prompt = R.ask_argv("/root", "/plans/p.md", w, "/py")[-1]
+    assert "\n" not in prompt
+    assert "`/py /root/runner/run_mode1_5.py /plans/p.md --workdir %s` 를 돌려 %s 로 깔고" % (w, os.path.join(w, R.SHEET)) in prompt
+    assert "후보는 %s 에 이미 있다" % os.path.join(w, R.CANDIDATES) in prompt
+    assert "채운 것을 %s 으로 둔 뒤" % os.path.join(w, R.ANSWERS) in prompt
+
+
 def test_ask_그래프는_답안이_남지_않으면_GATE_로_끝나고_남으면_채점으로_간다(tmp_path: Path):
     g = R.build_mode1_5_graph(_m15(tmp_path), has_candidates=True, has_answers=False,
                               only=None, skip=None, ask=True)

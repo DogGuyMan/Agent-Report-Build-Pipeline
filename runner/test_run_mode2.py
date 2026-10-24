@@ -341,6 +341,21 @@ def test_the_prompt_mentions_the_glossary_source_only_when_it_exists():
     assert "terms.json" not in _prompt(terms_json=None)
 
 
+@pytest.mark.parametrize("tj", ["/t/terms.json", "/t/terms.json\n"])
+def test_용어집_절은_금지_목록과_규율_사이에_빈_줄을_두고_들어간다(tj: str):
+    p = _prompt(terms_json=tj)
+    assert '이라고 쓰지 마라.**\n\n## 용어집 재료가 이미 있다' in p
+    assert '그대로 실린다.\n\n## 규율\n' in p
+    assert '\n\n  ' + tj + '\n\nMode 1.5(' in p
+
+
+def test_용어집이_없으면_금지_목록_뒤에_빈_줄_하나로_규율이_온다():
+    p = _prompt()
+    assert '이라고 쓰지 마라.**\n\n## 규율\n' in p and p.endswith('한 표로 보고한다.\n')
+    assert "원본 문서    /프로젝트/specs/2026-08-28-붙임-design.md" in p
+    assert "보고서 폴더  %s " % R.report_dir("/프로젝트", "붙임", "specs") in p
+
+
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode2.test_the_prompt_is_not_passed_on_the_command_line']"/>
 # LLM Model에게 줄 프롬프트를 명령줄 인자로 싣지 않는다는 것을 확인하는 시험이다.
 # 쓰는 것: runner.run_mode1.claude_argv · 쓰이는 곳: 없음

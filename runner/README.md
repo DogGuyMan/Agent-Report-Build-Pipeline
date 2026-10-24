@@ -979,6 +979,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_ask_를_주면_사람_차례_자리에_ask_가_서고_채점이_뒤따른다` | `()` | 답안이 없을 때만 `ask` 가 들어가고, 그 뒤에 `grade` `emit` 이 이어진다. |
 | `test_ask_는_LLM_을_부르는_유일한_단계다` | `()` |  |
 | `test_ask_명령줄은_대화형_claude_에_스킬_호출을_첫_프롬프트로_준다` | `(tmp_path: Path)` |  |
+| `test_ask_첫_프롬프트는_한_줄이고_기입란_명령과_산출물_자리를_그대로_싣는다` | `(tmp_path: Path)` |  |
 | `test_ask_그래프는_답안이_남지_않으면_GATE_로_끝나고_남으면_채점으로_간다` | `(tmp_path: Path)` |  |
 | `test_ask_는_터미널이_아니면_세션을_띄우지_않고_실패한다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_ask_뒤에_답안이_없으면_기입란을_깔고_GATE_로_멈춘다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
@@ -1027,6 +1028,8 @@ Mode 2 실행기의 회귀 시험.
 | `test_the_prompt_names_the_paths_the_model_must_touch` | `()` |  |
 | `test_the_prompt_forbids_committing` | `()` |  |
 | `test_the_prompt_mentions_the_glossary_source_only_when_it_exists` | `()` | Mode 1.5 의 terms.json 은 **알려 주기만** 한다. 기계로 병합하면 뜻을 다듬는 단계가 사라진다. |
+| `test_용어집_절은_금지_목록과_규율_사이에_빈_줄을_두고_들어간다` | `(tj: str)` |  |
+| `test_용어집이_없으면_금지_목록_뒤에_빈_줄_하나로_규율이_온다` | `()` |  |
 | `test_the_prompt_is_not_passed_on_the_command_line` | `()` | 프롬프트는 표준 입력으로 준다 — 명령줄에 실으면 길이 한계와 따옴표 지옥에 걸린다. |
 | `test_the_measuring_code_is_reused_not_reimplemented` | `()` | 두 실행기가 각자 세면 같은 이름의 숫자가 서로 다른 뜻을 갖는다. |
 | `test_a_machine_stage_row_is_all_zero_tokens` | `()` |  |
