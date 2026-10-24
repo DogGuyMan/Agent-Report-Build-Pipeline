@@ -8,7 +8,7 @@
 ## 0. 한눈에 (TL;DR)
 
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1~R10 ✅ · A1 ✅ · A4 ✅ · **R9 보강 ⬜(검토 Important 둘) · R10 품질 검토 ⬜ · R11 ⬜(사용자 결정) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
+- **진척**: R1~R10 ✅ · A1 ✅ · A4 ✅ · **R9 보강 ⬜(검토 Important 둘 · 착수 전 그대로) · R10 품질 검토 ⬜ · R11 ⬜(사용자 결정) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**. 2026-10-24 클라우드 스레드는 진척이 없다 — R9 보강 구현자는 사용자 중단(변경 0), R10 검토자는 결과 미도착(`docs/handoffs/HANDOFF-2026-10-24-cloud-thread-to-local.md`).
 - **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) R9 보강(게이트 둘 조이기 + HTML 뼈대 옮기기 — 본체 승인) · R10 품질 검토 (2) R11 — 목록 밖 LLM 글 옮기기 (3) A2 · A3 (4) Phase K (5) M1 · M2.
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
@@ -24,8 +24,20 @@
 | 저장소 `.claude/settings.json` 의 **훅이 돌지 않는다** — `tools/setup.sh`(`.venv` · `node_modules` · `.tmp/lib.mjs` · doctor)가 자동으로 안 돈다 | 시작할 때 `bash tools/setup.sh` 를 직접 돌린다. Graphviz 는 프로젝트의 Cloud environment 설정 스크립트(`tools/cloud_env.sh` 를 붙여 넣은 것)가 깐다 |
 | 루트 `CLAUDE.md` · `.claude/CLAUDE.md` 만 읽힌다 — **하위 폴더 `CLAUDE.md` 는 안 읽힌다** | `runner/` · `viz/` · `machine/` · `tools/` · `test/` · `docs/` 를 고치기 전에 그 폴더의 `CLAUDE.md` 를 직접 읽는다. 서브에이전트 brief 에도 "해당 폴더의 CLAUDE.md 를 먼저 읽어라" 를 넣는다 |
 | 저장소 `.claude/skills/` · `.claude/agents/` · 플러그인 설정이 **안 읽힌다** | superpowers 는 Project settings > Plugins 에서 켠다(사용자). 스킬 사본 다섯(`personal-commit-messages` 등)은 claude.ai 계정의 스킬로 켜야 보인다 — 안 켜도 커밋 형식은 루트 `CLAUDE.md` 와 §7 에 글자로 있다 |
-| 저장소 권한 규칙이 적용되지 않는다 · 스레드는 auto mode | 승인 창은 **그 스레드 안에** 뜨고 스레드는 거기서 기다린다. 프로젝트 대화에서 "진행해" 라고 해도 스레드에 닿지 않는다. 본체 `.py` 승인(§7)도 스레드 안의 질문 창으로 받는다 — `AskUserQuestion` 이 스레드에서 뜨는지는 문서로 확인하지 못했다. 안 뜨면 diff 경로와 요약을 남기고 멈춰 사용자 답을 기다린다 |
+| 저장소 권한 규칙이 적용되지 않는다 · 스레드는 auto mode | 승인 창은 **그 스레드 안에** 뜨고 스레드는 거기서 기다린다. 프로젝트 대화에서 "진행해" 라고 해도 스레드에 닿지 않는다. 본체 `.py` 승인(§7)도 스레드 안의 질문 창으로 받는다 — `AskUserQuestion` 은 **이 claude.ai/code 원격 세션에서는 떴다(5회 — R2 · R1 수정 · R2 보강 · R4 승인, M2)**. 프로젝트 스레드에서 뜨는지는 문서로 확인하지 못했다. 안 뜨면 diff 경로와 요약을 남기고 멈춰 사용자 답을 기다린다 |
 | `env` 가 적용되지 않는다 | 이 작업에 필요한 환경변수는 없다(`TOOLS_ROOT` 는 `split-work/capture.sh` 가 스스로 잡는다) |
+
+**클라우드 세션 실측(2026-10-24 13:40 UTC, 넘김 문서 `HANDOFF-2026-10-24-cloud-thread-to-local.md` §3).** ⚠ 이 세션이 프로젝트 스레드인지는 확인하지 못했다 — R1 검토 ~ R4 를 한 **같은 claude.ai/code 원격 세션**이 컨테이너 재시작으로 이어진 것이고, 프로젝트 지시문은 자동으로 들어오지 않아 사용자가 대화에 붙여 넣었다. 그래서 아래는 위 표가 틀렸다는 뜻이 아니라 "이 종류의 세션에서는 이렇다" 는 기록이다.
+
+| 위 표의 주장(프로젝트 스레드) | 이 원격 세션에서 본 것 |
+|---|---|
+| 저장소 훅이 돌지 않는다 | SessionStart 훅이 **돌았다** — 시작(`startup`)과 재시작(`resume`) 둘 다 `tools/setup.sh` 출력이 떴다 |
+| 하위 폴더 `CLAUDE.md` 는 안 읽힌다 | 그 폴더의 파일을 읽거나 고칠 때 하네스가 그 폴더의 `CLAUDE.md` 를 **끼워 넣었다**(`runner/` · `tools/` · `docs/`). 미리 읽히지는 않는다 |
+| 저장소 `.claude/skills/` 가 안 읽힌다 | `git pull` 뒤 저장소 사본 다섯이 스킬 목록에 **나타났고** 실제로 불러 썼다(`lossless-handoff`) |
+| `AskUserQuestion` 이 뜨는지 모른다 | **떴다**(5회) |
+| 스레드는 auto mode | 이 세션도 auto mode — `Edit` 에 권한 창이 없어 본체 승인은 질문 창으로 받았다 |
+
+**결론**: 훅 · 저장소 스킬 · 하위 `CLAUDE.md` 는 **세션 종류에 따라 다르다.** 시작 절차(브랜치 체크아웃 · `bash tools/setup.sh` · 하위 `CLAUDE.md` 직접 읽기)는 어느 쪽이든 해가 없으니 그대로 지킨다. 시작 때 `git fetch origin` 은 **인자 없이 전체**로 받고 `git branch -r` 로 원격 가지를 한 번 본다(클라우드 스레드가 처음에 한 가지만 받았다가 사용자가 짚었다).
 
 **프로젝트 지시문(Project settings > Memory > Project instructions 에 붙여 넣는다 — 새 스레드마다 받는다):**
 ```text
@@ -86,8 +98,8 @@ Phase A
 | R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ spec ✅ 품질 ✅(시험 + `str(lang)` 사용자 승인) · 사용자 승인 | 범례는 `"\n" + render_file(…).removesuffix("\n")`. `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(빌드 중 지워지는 임시 파일 바이트만 다르고 HTML 은 같다) |
 | R7 | 설정값 → `config/*.toml` | ✅ spec ✅ 품질 ✅ · 사용자 승인 | `run_mode2.py --model` 도움말은 `(기본: %(default)s)`(사용자 결정) |
 | R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | 31 동일 |
-| R9 | 게이트 시험 + Phase R 문서 정리 | ✅ spec ✅ · 품질 **With fixes(미처리)** | Important 둘 · Minor 열하나 — §5 (1) 에 전문. 사용자 지시로 이 세션에서 고치지 않고 넘김 |
-| R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · **품질 ⬜** | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일 |
+| R9 | 게이트 시험 + Phase R 문서 정리 | ✅ spec ✅ · 품질 **With fixes(미처리)** | Important 둘 · Minor 열하나 — §5 (1) 에 전문. **보강은 착수 전 그대로** — Mac 세션은 사용자 지시로 넘겼고, 클라우드 스레드가 띄운 보강 구현자(opus)는 사용자 중단(커밋 · 변경 · worktree 0). M2 는 잠정 결정(§5 (1)) |
+| R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · **품질 ⬜**(클라우드 검토자 결과 미도착 — 다시 돌린다) | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일 |
 | R11 | 목록 밖 LLM 글 옮기기 | ⬜ **사용자 결정 — 옮긴다** | §5 (2) |
 | A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
 | A2 | Mode 1.5 · 2 시험이 `measure` 를 import | ⬜ 시험만 남음 | 실행기 독스트링은 `5837c32` 에서 끝났다. §5 (3) |
@@ -189,6 +201,23 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 **(1) R9 보강 · R10 품질 검토**
 
+*상태(2026-10-24 클라우드 스레드 뒤)*: R9 보강은 착수 전 그대로다 — 클라우드 구현자 사용자 중단, 변경 0. **클라우드에서 다시 띄우려면 사용자가 명시해야 한다**(그 세션의 하네스가 막았다). R10 품질 검토는 결과가 오지 않았다 — 다시 돌린다.
+*M2 잠정 결정(2026-10-24 — 사용자 "선호 없음" → 권장안 · 확정 대기)*: 루트 `CLAUDE.md` "리소스와 코드를 가른다" 문단이 적용 범위를 "`runner/` · `viz/` 의 파이썬" 으로 밝히게 고친다. 게이트 1 의 탐색 폴더(`runner` · `viz`)와 `tools/doctor.py` 는 그대로다. 문서만 바뀌어 본체 승인이 없고 아래 커밋 3 에 넣는다.
+
+*R9 보강을 다시 띄울 때 brief 에 더할 것(클라우드 스레드가 쓴 brief, 넘김 문서 §6)* — 아래 R9 검토 결과를 글자 그대로 붙이고 이것을 더한다.
+- 1단계는 시험 · 문서라 승인 없이 커밋한다. 커밋 셋, 제목은 ASCII 구두점만:
+  1. `[test] : 리소스 게이트 - 템플릿을 문자열 상수와 같은 값으로 찾고 단계당 한 파일을 본다` — I2, M1, M3(게이트 2 줄), M4. **I1 의 f-문자열 갈래는 아직 넣지 않는다**(넣으면 `viz/build.py:125` 때문에 게이트가 빨개진다).
+  2. `[test] : run_mode2 시험 - test_config 와 겹치는 DOC_DIRS 시험을 지운다` — M11. 먼저 `test/test_config.py` 가 같은 것을 단언하는지 확인한다.
+  3. `[docs] : phase R 문서 - 규약 범위, 산출물 수, 모델 사슬, tools 의존, 낡은 줄 인용` — M3 문장, M5, M6, M7, M8, M10, 권고, **M2**. "줄 번호 ≤ 파일 끝" 검사는 HEAD 의 모든 컨텍스트 문서가 통과할 때만 넣고, 걸리면 목록만 보고한다.
+- 3단계(I1, 본체 승인): 게이트의 f-문자열 갈래와 `viz/templates/report/page.html.tmpl` 은 저장소에 직접 쓰고 커밋하지 않는다. `viz/build.py` 후보는 `split-work/patches/R9b/viz__build.py` + `R9b.diff`. `render_file` 은 글을 정규화하지 않으니 `.tmpl` 은 f-문자열이 내던 바이트 그대로(끝 줄바꿈 하나까지). 커밋 제목 `[refactor] : 보고서 HTML 뼈대를 templates 로 - 긴 글 게이트가 f-문자열을 한 덩어리로 잰다` — 게이트 조이기, `.tmpl`, `viz/build.py`, 바뀐 README 를 한 커밋에.
+- `report.html` 미리 대조(§6-3 의 worktree 꼴로 후보를 얹은 뒤, `$PWD` 는 본 저장소 뿌리):
+  ```bash
+  ( cd docs/superpowers/specs/runner-stage-machine && "$S/wt/bin/report-spec" build >/dev/null \
+      && sed "s#$S/wt#$PWD#g" out/report.html > "$S/report.html.wt" )
+  cmp "$S/report.html.wt" split-work/before/report.html && echo "report.html 동일"
+  ```
+  진짜 대조는 적용 뒤 본 저장소에서 `split-work/capture.sh` 로 한다.
+
 *R9 품질 검토 결과(opus, 범위 `4d7c70d..116bd73`, 2026-10-24) — "With fixes". 아직 고치지 않았다.* 줄 번호는 `116bd73` 기준이고 그 뒤 커밋은 `test/test_prompt_resources.py` · `viz/build.py` 를 건드리지 않았다.
 - **I1 — 게이트 1 이 f-문자열을 못 본다.** `ast.JoinedStr` 안의 글자 조각이 따로 `Constant` 로 잡혀 조각별로만 잰다(`test/test_prompt_resources.py:52-58`). 그래서 `viz/build.py:125` 의 **15줄 HTML 문서 뼈대**(조각마다 최대 5줄 · 139자)가 통과한다 — 루트 `CLAUDE.md` 의 "파일 템플릿은 `**/templates/*` … 게이트가 막는다" 와 어긋난다. 고치는 법: ① 게이트에 `JoinedStr` 이면 안의 `Constant` 조각을 합쳐 한 덩어리로 재는 갈래(몇 줄) — HEAD 에서 걸리는 것은 `viz/build.py:125` 하나 ② 그 뼈대를 `viz/templates/report/page.html.tmpl` 로 옮기고 `render_file` 로 채운다(조립은 여전히 파이썬 — 루트 CLAUDE.md "단일 파일화 = 파이썬 문자열 조립" 과 부딪히지 않는다) ③ **본체 `.py` 라 승인** ④ 옮기기와 게이트 조이기는 한 커밋(아니면 게이트가 빨개진다). 합격: `report.html` 바이트 동일(§6 `capture.sh`).
 - **I2 — 게이트 3 이 소스 글자의 부분 문자열로만 찾는다**(`:88`). 거짓 통과 셋을 확인했다: 호출을 지우고 주석에만 이름이 남음 · 다른 자리의 같은 basename(`viz/templates/dot/entry.ts` 가 `report/entry.ts` 덕에 통과) · 부분 문자열(`try.ts` 가 `"entry.ts"` 안에). 고치는 법(시험만): 게이트 1 의 AST 순회로 독스트링을 뺀 문자열 상수 집합을 모으고 템플릿 basename 이 그 집합에 **같은 값으로** 있는지 본다 + "템플릿 basename 은 저장소에서 유일하다" 단언 한 줄. HEAD 는 통과, 셋 다 잡힌다.
@@ -205,7 +234,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
   - M11 `runner/test_run_mode2.py` 의 `test_doc_dirs_are_specs_then_plans` 는 `test/test_config.py` 와 완전히 겹친다 — 지워도 된다.
   - 권고: `ARCHITECTURE.md` 의 줄 인용이 낡았다 — `:360` `viz/init.py:107-110` 의 글은 `viz/templates/report/data.ts.tmpl:10-13` 으로 옮겨졌다 · `:379-380` `viz/build.py:80` / `:99` 는 지금 `:74` / `:97` · `:86-87` `runner/wiki/build.py:98` / `:109` 는 파일 끝(80줄)을 넘는다. `test/test_docs_citations.py` 는 파일 존재만 본다 → 함수 이름으로 인용하거나 "줄 번호 ≤ 파일 끝" 검사를 몇 줄 더한다.
 - **원형이 저장소에 있다**: `split-work/r9-gate-proto/stricter.py` 가 I1 · I2 를 고친 게이트를 미리 돌린다(HEAD 기대 출력 `gate1+fstr: ['viz/build.py:125']` · 중복 basename 없음 · 고아 없음). `scan_evasion.py` · `scan_long.py` 는 비켜 가는 꼴과 범위(M2) 판단용 — 기대 출력은 `split-work/README.md`.
-- 처리 순서 제안: I2 + M1 · M3(게이트 2 줄) · M4 (시험) → 문서 M3 · M5 · M6 · M7 · M8 · M10 · 권고 → I1 (본체 · 승인, 게이트 조이기와 한 커밋) → M2 는 사용자에게 물어 정한다. 끝나면 같은 꼴로 재검토(opus).
+- 처리 순서 제안: I2 + M1 · M3(게이트 2 줄) · M4 (시험) → 문서 M3 · M5 · M6 · M7 · M8 · M10 · 권고 → I1 (본체 · 승인, 게이트 조이기와 한 커밋) → M2 는 잠정 결정(위)대로 문서만. 끝나면 같은 꼴로 재검토(opus).
 
 *R10 품질 검토* — `opus` · 읽기 전용. 위 R9 보강의 구현자와 같이 돌려도 된다(R10 검토는 `runner/mode1/` 을 읽고, R9 보강은 `test/` · `viz/build.py` · 문서를 고친다).
 - R10: 범위 `d6286be..5837c32`. 볼 것 — 새 절 15개와 `prompt_names` · `FIX` 의 모듈 수준 대입(`ClassVar` 선언 + 클래스 뒤 채움)의 위험(import 순서 · 하위 클래스) · 한 낱말 절 둘(`batch-symbol-no-deps` "없음" · `pass2-no-deps` "  (없음)")의 값(사용자가 남기기로 했다 — 결함이 아니면 지적만) · 바이트 보존(§6 의 `edge_dump.py` 로 `git archive d6286be` 대 HEAD) · B 의 독스트링 사실 대조.
@@ -217,7 +246,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - 결함 설명 문구 넷 — "샤드 없음" · "계획에 있는데 샤드에 없다" · "샤드에 있는데 계획에 없다" · "where 없음 (kind %s)"(재조사 절에 실린다). **이 넷은 `.bad.why` JSON 에도 기록되는 데이터다** — 기록 바이트도 같아야 한다.
 - R10 과 같은 제약: 기존 절 표식만 · 새 서식 · 파서 · 렌더러 기능 금지 · 빈 값 고르기는 파이썬에 · 새 절은 `AnnotateSymbolsStage.prompt_names` 에. 절 수를 보고하고, 옮길 가치가 약한 것은 사용자에게 보이게 한다.
 - 합격: 고정 31 동일 + `edge_dump.py` 로 옛 트리(`git archive HEAD`) 대 후보 트리 JSON 동일(필요하면 `pending_excerpt` 경계 입력을 더한다) + 전량 pytest(알려진 둘) + 게이트 3 + pyright 0.
-- 커밋 제안: `[refactor] : mode 1 의 미조사 의존 줄 · 결함 줄 · 결함 설명을 프롬프트 리소스로`. 그 뒤 품질 검토(`opus`).
+- 커밋 제안: `[refactor] : mode 1 의 미조사 의존 줄, 결함 줄, 결함 설명을 프롬프트 리소스로`. 그 뒤 품질 검토(`opus`).
 
 **(3) A2 · A3** — 시험 파일만이라 승인 없이 구현자가 커밋해도 된다(`sonnet`, 둘을 한 구현자에게 차례로).
 - A2: `runner/test_run_mode1_5.py:23` · `runner/test_run_mode2.py:20` 의 `import run_mode1 as M  # noqa: E402` → `import measure as M  # noqa: E402`. 두 시험이 쓰는 `M.` 이름 여섯(`StageRow` `agent_verdict` `claude_argv` `format_report` `normalize_usage` `sum_usage`)은 모두 `runner/measure.py` 에 있다(실측). 실행기 쪽 독스트링은 `5837c32` 에서 끝났다. **확인 grep 은 주석 줄을 뺀다** — `# <include …/>` 잔재의 `# 쓰는 것: run_mode1` 줄은 고치지 않는다:
@@ -269,7 +298,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
    ```
    worktree 에는 `out/` 이 없다 — 층 분포 시험은 건너뛰고 위키 시험은 실패한다(정상). 글 28개는 `.venv/bin/python split-work/capture.py "$S/wt" "$S/after" "$PWD/split-work/fixture-shards"` 로, DOT 는 worktree 의 `viz/render_*.py` 를 **본 저장소의** `out/codegraph-raw/codegraph.json` 경로로 돌려 대조한다(DOT 머리 주석에 그 경로가 찍힌다). `report.html` 은 파일 링크에 저장소 경로가 실려 본 저장소에서 적용 뒤 대조한다.
 4. 경계 입력 대조: `split-work/edge_dump.py <트리>` 가 Mode 1 프롬프트 함수 · `FIX` · 재조사 절 · `check_shard` 출력 128개를 JSON 으로 stdout 에 낸다. `git archive <기준> | tar -x -C <옛트리>` 와 후보 트리를 각각 `python -I` 로 돌려 `cmp`.
-5. R9 보강용 원형: `split-work/r9-gate-proto/`(`stricter.py` · `scan_evasion.py` · `scan_long.py`) — HEAD 기대 출력과 고치는 순서는 `split-work/README.md` 에 있다.
+5. R9 보강용 원형: `split-work/r9-gate-proto/`(`stricter.py` · `scan_evasion.py` · `scan_long.py`) — HEAD 기대 출력과 고치는 순서는 `split-work/README.md` 에 있다. ⚠ 셋 다 **첫 인자로 저장소 뿌리를 받는다**(`.venv/bin/python split-work/r9-gate-proto/stricter.py "$PWD"`) — 인자 없이 돌리면 `IndexError`.
 6. 그 밖: `split-work/extract.py <파일.py> <줄> <출력>`(파이썬 문자열 → `{{이름}}` 리소스 글) · `split-work/split_reading.py`(A4 — 끝났다).
 
 ## 7. 가드레일 · 규약
@@ -279,6 +308,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
   - Mac(권한 창이 뜨는 세션)이면 `Edit`/`Write` 로 적용해 권한 창에 diff 를 띄운다.
   - 적용 뒤 마무리(전량 pytest · pyright · README 재생성 · 이름으로 `git add` · 커밋 · push)는 오케스트레이터가 직접 해도 된다.
 - **커밋**: `[tag] : 한국어 제목` 한 줄. **본문 · 트레일러 없음**(루트 `CLAUDE.md` · `personal-commit-messages` 가 하네스의 `Co-Authored-By` 안내를 이긴다). 파일을 **이름으로** `git add`. `git add -A` 금지. 커밋마다 `git push -u origin survey-per-file-2pass`.
+- **커밋 제목은 ASCII 구두점만**(`personal-commit-messages` 의 "제목에는 ASCII 구두점만" 절). 가운뎃점 `·` 는 두 항목이면 `&`, 셋 이상이면 `,` 로 쓰고 `—` · `→` 도 쓰지 않는다. 문서 본문은 이 규칙 밖이다. 분리 작업(`fdb1c3a..`)에서 이 규칙을 어긴 커밋이 **16개**다 — 클라우드 세션 둘(`83eb828` · `b6bd0a4`), 로컬 Mac 세션 열넷(`082d3a9` ~ `04796fe`). 넘김 문서는 "둘뿐" 이라 적었지만 로컬 쪽을 세지 않았다. 이미 push 된 이력이라 고치지 않는다. 서브에이전트에게 주는 제안 커밋 제목도 이 규칙으로 쓴다.
 - **검증 명령**: `.venv/bin/python -m pytest -q`(저장소 루트에서) · `npm run typecheck:py` · `npm test` · `npm run typecheck` · `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` · `.venv/bin/python -m pytest test/test_prompt_resources.py -q`.
 - **TDD**: rev.4 Task 마다 "실패하는 시험 → 구현 → 통과". 옮기기 Task 는 바이트 대조가 합격 기준.
 - **코드 규약**: 주석 · 독스트링 한국어 · 지금 무엇인지만(날짜 · 확신도 · 설계 서사 금지) · `# <include …/>` 블록은 새로 심지도 고치지도 않는다 · `Any` 금지(`test/test_no_any.py`) · 자유 함수 모음 금지(계산은 단계의 `@staticmethod`, 둘 이상이면 믹스인) · LLM 이 읽는 글은 리소스로.
@@ -307,3 +337,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 사용자 지시로 `$HOME/LLM-Tools/split-work/` 를 저장소 뿌리 `split-work/` 로 옮겼다(report-builder 에만 매인 도구 · 바깥 폴더 지움 · 산출물은 `.gitignore`). `capture.sh` 가 인자를 절대 경로로 바꾸게 고쳤다(상대 출력 경로에서 `report.html` 복사가 실패했다). `before/` 를 새 자리에서 다시 찍었다(옛 기준과 차이는 재조사 절의 샤드 경로뿐). R9 검토 원형 셋을 `split-work/r9-gate-proto/` 로. 홈 전용 스킬 다섯을 `.claude/skills/` 에 깊은 복사 |
 | 2026-10-24 | 사용자 결정으로 superpowers 를 프로젝트 설정 `.claude/settings.json` 의 `enabledPlugins` 로 켰다(그전에는 git 밖 `.claude/settings.local.json` 에만 있었다). 문서 확인 결과 클라우드 세션에는 닿지 않는다 — §3 에 대안 셋 |
 | 2026-10-24 | 사용자 결정 — superpowers 는 claude.ai Project settings > Plugins 에서 켠다(프로젝트 스레드로 진행). §0.1 을 더했다 — 스레드는 `main` 에서 새 브랜치를 따고 · 훅 · 하위 CLAUDE.md · 저장소 스킬을 안 읽는다는 문서 확인과 대응, 붙여 넣을 프로젝트 지시문 |
+| 2026-10-24 | 클라우드 스레드 — 시작 절차 · 게이트 재측정(Mac 과 같음) · `before/` 31 · R9 보강 구현자 사용자 중단(변경 0) · R10 검토 결과 미도착 · M2 잠정 결정 · 환경 실측은 `HANDOFF-2026-10-24-cloud-thread-to-local.md`. 로컬 세션이 반영 — §0.1 실측 표와 결론 · `AskUserQuestion` 줄 · §2 · §5 (1) 상태, M2, 재기동 brief 보강 · R11 제안 제목 ASCII · §6 원형 인자 · §7 ASCII 구두점 규칙(어긴 커밋 실제 16개) |
