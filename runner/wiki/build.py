@@ -17,36 +17,23 @@ if _ROOT not in sys.path:
 
 from runner.wiki.paths import wikiPaths as _wikiPaths  # noqa: E402
 from tools.python import pythonPath as _pythonPath  # noqa: E402
+from tools.template import render_file  # noqa: E402
 
 wikiPaths = cast(Any, _wikiPaths)
 pythonPath = cast(Any, _pythonPath)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TEMPLATES = os.path.join(ROOT, "runner", "wiki", "templates")
 
 def sidebarFrom(files: list[str]) -> list[dict[str, str]]:
     return sorted([{"text": f[:-3], "link": f"/{f[:-3]}"} for f in files if f.endswith(".md") and f != "index.md"], key=lambda x: x["text"])
 
 def vitepressConfig(repoName: str, sidebar: list[dict[str, str]], outDir: str) -> str:
     items = [f'      {{ text: {json.dumps(s["text"], ensure_ascii=False)}, link: {json.dumps(s["link"], ensure_ascii=False)} }}' for s in sidebar]
-    items_str = ",\n".join(items)
-    return f"""// report-wiki build 가 생성한다. 손으로 고치지 말 것 — 다음 빌드에서 덮어쓴다.
-// defineConfig 를 쓰지 않는 이유는 runner/wiki/build.mjs 의 주석을 보라.
-export default ({{
-  title: {json.dumps(repoName + ' 코드베이스 위키', ensure_ascii=False)},
-  description: "codegraph 정적 계층 + deep-wiki 산문",
-  srcDir: ".",
-  outDir: {json.dumps(outDir, ensure_ascii=False)},
-  // 위키 페이지는 하위 폴더 없는 평평한 이름이라 `../` 가 있는 링크는 위키 밖이다.
-  // 죽은 링크 검사는 그 바깥을 확인할 수 없어 전부 죽은 것으로 본다. 위키 안의 깨진
-  // 링크는 계속 잡아야 하므로 검사를 통째로 끄지 않고 이 꼴만 뺀다.
-  ignoreDeadLinks: [/\\.\\.\\//],
-  themeConfig: {{
-    sidebar: [
-{items_str}
-    ],
-  }},
-}});
-"""
+    return render_file(os.path.join(TEMPLATES, "vitepress.config.mts.tmpl"), {
+        "title": json.dumps(repoName + ' 코드베이스 위키', ensure_ascii=False),
+        "out_dir": json.dumps(outDir, ensure_ascii=False),
+        "items": ",\n".join(items)})
 
 def run(cmd: str, args: list[str], cwd: str | None = None) -> None:
     r = subprocess.run([cmd] + args, cwd=cwd)

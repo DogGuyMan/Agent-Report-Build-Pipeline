@@ -23,6 +23,13 @@ from typing import NotRequired, TypedDict, cast
 
 import networkx as nx
 
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+from tools.template import render_file  # noqa: E402
+
+TEMPLATES = os.path.join(_ROOT, "viz", "templates", "dot")
+
 
 # <include file="machine/comments.xml" path="//term[@id='viz.render_classes.CodeNode']"/>
 # codegraph.json 파일 안의 nodes 목록에서 항목(클래스나 함수 하나) 하나가 어떤 모양인지 정해두는 타입 틀이다.
@@ -376,27 +383,9 @@ def main() -> int:
 
     out: list[str] = []
     w = out.append
-    w(f"""/* 클래스 층 — 모듈 '{focus}' ↔ 그 이웃  ({g.get('language')}, {g.get('repo_commit')})
- *
- * 목표 : 모듈 층에서 빨갛게 뜬 순환이 **어느 클래스 때문인지** 를 본다.
- * 범위 : '{focus}' 의 클래스 전부 + 그와 직접 연결된 클래스만. 전이 확장 없음(C-9 R1 과 같은 정신).
- *        구조 {cg_path}
- *        살   {detail_path or '(없음 — 3분할 미적용)'}
- * 엣지 : 상속 남색 / 실현 검정점선 / 합성 보라다이아 / 집약 파랑빈다이아 / 의존 회색점선
- *        + 모듈 순환에 기여하는 간선은 굵은 빨강(P6)
- * 제외 : 초점 모듈과 연결되지 않은 클래스, 접근자 계열 메서드, 특수멤버.
- * 렌더 : dot -Tsvg X.dot -o X.svg
- */
-digraph classes {{
-  rankdir=BT;
-  splines=spline;
-  ranksep=0.9;
-  nodesep=0.4;
-  compound=true;
-  bgcolor="white";
-  node [shape=plaintext, fontname="Helvetica"];
-  edge [fontname="Helvetica", fontsize=8];
-""")
+    w(render_file(os.path.join(TEMPLATES, "classes-head.dot.tmpl"), {
+        "focus": focus, "language": str(g.get('language')), "repo_commit": str(g.get('repo_commit')),
+        "cg_path": cg_path, "detail_path": detail_path or '(없음 — 3분할 미적용)'}))
 
     for mod in sorted(by_mod, key=lambda m: (m != focus, m)):
         is_focus = mod == focus

@@ -11,6 +11,9 @@ sys.path.insert(0, ROOT)
 
 from viz.wrap_terms import wrapTerms
 from viz.link_paths import makeResolver, buildIndex, linkPaths
+from tools.template import render_file
+
+TEMPLATES = os.path.join(ROOT, "viz", "templates", "report")
 
 def currentBuilderVersion() -> str:
     try:
@@ -37,28 +40,14 @@ def main() -> None:
         # 파이썬으로 옮기면 esbuild 가 파싱하지 못한다 — 여기는 JavaScript 로 남는다.
         f"--alias:report-builder/svg={os.path.join(ROOT, 'viz/svg.mjs')}",
         f"--outfile={tmp_mjs}",
-    ], cwd=cwd, input='export { default, data } from "./report.tsx";\nexport { defineTerms } from "report-builder";', text=True)
+    ], cwd=cwd, input=render_file(os.path.join(TEMPLATES, "entry.ts"), {}), text=True)
     
     if esbuild_res.returncode != 0:
         print("esbuild failed", file=sys.stderr)
         sys.exit(esbuild_res.returncode)
         
     # 2. Run Node to render to static markup
-    render_script = f"""
-    import * as mod from 'file://{tmp_mjs}';
-    import {{ renderToStaticMarkup }} from 'react-dom/server';
-    import {{ createElement }} from 'react';
-    
-    const html = renderToStaticMarkup(mod.default());
-    let refs = {{}};
-    if (Array.isArray(mod.data.terms) && mod.data.terms.length > 0 && typeof mod.defineTerms === 'function') {{
-        const T = mod.defineTerms(mod.data.terms);
-        for (const t of mod.data.terms) {{
-            refs[t.id] = renderToStaticMarkup(createElement(T, {{ id: t.id }}, t.id));
-        }}
-    }}
-    console.log(JSON.stringify({{ body: html, data: mod.data, refs }}));
-    """
+    render_script = render_file(os.path.join(TEMPLATES, "render.mjs.tmpl"), {"bundle": tmp_mjs})
     tmp_render = os.path.join(ROOT, ".tmp-render.mjs")
     with open(tmp_render, "w", encoding="utf-8") as f:
         f.write(render_script)

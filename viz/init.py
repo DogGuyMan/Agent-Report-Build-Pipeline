@@ -7,6 +7,13 @@ import re
 import sys
 import subprocess
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from tools.template import render_file  # noqa: E402
+
+TEMPLATES = os.path.join(ROOT, "viz", "templates", "report")
+
 from typing import Any
 DOC_DIRS: list[dict[str, Any]] = [
     {"dir": "specs", "re": re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$")},
@@ -84,43 +91,13 @@ def writeSkeleton(dir: str, slug: str, date: str, specName: str, branch: str, ve
     def q(v: str) -> str:
         return json.dumps(v, ensure_ascii=False)
     
-    data_ts = f"""import type {{ ReportData }} from "report-builder/types";
-
-export const data: ReportData = {{
-  builderVersion: {q(version)},
-  slug: {q(slug)},
-  specName: {q(specName)},
-  date: {q(date)},
-  branch: {q(branch)},
-  decisions: [],
-  // 용어집 — Mode 1.5 가 낸 terms.json 을 여기에 옮겨 적는다.
-  //   report-term collect <plan.md> <terms-db.json>  →  (스킬이 묻는다)  →  report-term grade  →  report-term emit
-  // terms.json 의 {{ "용어": {{ TermMeans, UserMentalValue }} }} 를
-  // {{ id, label, short, kind, mental }} 로 옮긴다. 자동 import 하지 않는다 — 이 파일은 사람이 읽는 파일이다.
-  terms: [],
-}};
-"""
+    data_ts = render_file(os.path.join(TEMPLATES, "data.ts.tmpl"), {
+        "version": q(version), "slug": q(slug), "specName": q(specName),
+        "date": q(date), "branch": q(branch)})
     with open(os.path.join(dir, "data.ts"), "w", encoding="utf-8") as f:
         f.write(data_ts)
         
-    report_tsx = """import { Page, Section, DecisionTable, VerdictFooter } from "report-builder";
-import { data } from "./data.js";
-
-export { data };
-
-export default function Report() {
-  return (
-    <Page data={data}>
-      <Section title="결정 요약">
-        <DecisionTable decisions={data.decisions} />
-      </Section>
-      <Section title="수용 판정 — 사용자 기입란">
-        <VerdictFooter />
-      </Section>
-    </Page>
-  );
-}
-"""
+    report_tsx = render_file(os.path.join(TEMPLATES, "report.tsx.tmpl"), {})
     with open(os.path.join(dir, "report.tsx"), "w", encoding="utf-8") as f:
         f.write(report_tsx)
 
@@ -128,7 +105,6 @@ def main() -> None:
     slug = sys.argv[1] if len(sys.argv) > 1 else ""
     
     cwd = os.getcwd()
-    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     docs = listDocs(cwd)
     version = currentBuilderVersion(ROOT)

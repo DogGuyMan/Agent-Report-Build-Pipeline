@@ -23,6 +23,13 @@ from typing import NotRequired, TypedDict, cast
 
 import networkx as nx
 
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+from tools.template import render_file  # noqa: E402
+
+TEMPLATES = os.path.join(_ROOT, "viz", "templates", "dot")
+
 
 # <include file="machine/comments.xml" path="//term[@id='viz.render_modules.CodeNode']"/>
 # codegraph.json 파일 안의 nodes 배열에 들어 있는 항목(클래스나 함수 같은 코드 조각) 하나가 어떤 모양인지를 미리 적어 둔 설계도다. 이것도 실제로 동작하는 클래스가 아니라 타입 검사용 표시다.
@@ -194,35 +201,9 @@ def emit_dot(g: CodeGraph, path_in: str, G: "nx.DiGraph[str]",
     w = out.append
 
     # ── DOT 헤더 주석
-    w(f"""/* 모듈 의존 그래프 — {lang} ({g.get('repo_commit', '?')})
- *
- * 목표 : 어느 모듈이 어느 모듈에 의존하는가, 그리고 순환이 어디 있는가.
- * 범위 : codegraph.json (schema v2) 의 modules[] + __external__ 접촉.
- *        출처 {path_in}
- *        도구 {g.get('source_tool', '?')}
- *
- * 엣지 3종
- *   파랑 실선  비순환 의존 — 레이아웃 뼈대 (constraint=true)
- *   빨강 굵게  순환에 참여하는 의존 — P6 게이트 (constraint=false)
- *   회색 점선  외부 패키지 접촉 — C-9 R3 섬으로 (constraint=false, R6){ext_note}
- *
- * ⚠ 이것은 링크 의존이 아니라 **타입 의존**이다 (C-15). 클래스 간선에서 유도했다.
- * ⚠ 순환 판정은 기계가 하지 않는다 — 빨강은 "사람이 볼 곳" 표시이고,
- *   허용/위반/오탐 판정은 codegraph-rules.toml 에 사람이 적는다.
- *
- * 렌더: dot -Tsvg X.dot -o X.svg && dot -Tpng -Gdpi=140 X.dot -o X.png
- */
-digraph modules {{
-  // P4 + P5 + A1 — 셋은 함께 다닌다
-  rankdir=BT;
-  splines=spline;
-  ranksep=1.0;
-  nodesep=0.55;
-  bgcolor="white";
-  node [shape=box, style="rounded,filled", fillcolor="#f7f9fc",
-        color="{C_BORDER}", fontname="Helvetica", fontsize=11];
-  edge [fontname="Helvetica", fontsize=9];
-""")
+    w(render_file(os.path.join(TEMPLATES, "modules-head.dot.tmpl"), {
+        "lang": lang, "repo_commit": str(g.get('repo_commit', '?')), "path_in": path_in,
+        "source_tool": str(g.get('source_tool', '?')), "ext_note": ext_note, "C_BORDER": C_BORDER}))
 
     # ── 1차 모듈 밴드
     w('  subgraph cluster_first {')
@@ -281,14 +262,7 @@ digraph modules {{
             w(f'  "{esc(m)}" -> "{esc(x)}"{lab};')
 
     # ── 범례 — 실제로 그린 예시 엣지
-    w("""
-  subgraph cluster_legend {
-    label="범례"; labeljust="l"; fontname="Helvetica"; fontsize=10;
-    color="#cccccc"; style="rounded";
-    node [shape=plaintext, style="", fillcolor="none", fontsize=9, height=0.2];
-    La [label="A"]; Lb [label="B"];
-    Lc [label="C"]; Ld [label="D"];
-    Le [label="E"]; Lf [label="외부"];""")
+    w("\n" + render_file(os.path.join(TEMPLATES, "modules-legend.dot.tmpl"), {}).removesuffix("\n"))
     w(f'    La -> Lb [color="{C_BACKBONE}", arrowhead=vee, penwidth=1.2, '
       'label="의존 (비순환)", constraint=false];')
     w(f'    Lc -> Ld [color="{C_CYCLE}", arrowhead=vee, penwidth=2.6, '

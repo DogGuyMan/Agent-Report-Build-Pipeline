@@ -1,0 +1,13 @@
+import * as mod from 'file://{{bundle}}';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+
+const html = renderToStaticMarkup(mod.default());
+let refs = {};
+if (Array.isArray(mod.data.terms) && mod.data.terms.length > 0 && typeof mod.defineTerms === 'function') {
+    const T = mod.defineTerms(mod.data.terms);
+    for (const t of mod.data.terms) {
+        refs[t.id] = renderToStaticMarkup(createElement(T, { id: t.id }, t.id));
+    }
+}
+console.log(JSON.stringify({ body: html, data: mod.data, refs }));

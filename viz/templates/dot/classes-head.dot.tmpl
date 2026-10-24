@@ -1,0 +1,20 @@
+/* 클래스 층 — 모듈 '{{focus}}' ↔ 그 이웃  ({{language}}, {{repo_commit}})
+ *
+ * 목표 : 모듈 층에서 빨갛게 뜬 순환이 **어느 클래스 때문인지** 를 본다.
+ * 범위 : '{{focus}}' 의 클래스 전부 + 그와 직접 연결된 클래스만. 전이 확장 없음(C-9 R1 과 같은 정신).
+ *        구조 {{cg_path}}
+ *        살   {{detail_path}}
+ * 엣지 : 상속 남색 / 실현 검정점선 / 합성 보라다이아 / 집약 파랑빈다이아 / 의존 회색점선
+ *        + 모듈 순환에 기여하는 간선은 굵은 빨강(P6)
+ * 제외 : 초점 모듈과 연결되지 않은 클래스, 접근자 계열 메서드, 특수멤버.
+ * 렌더 : dot -Tsvg X.dot -o X.svg
+ */
+digraph classes {
+  rankdir=BT;
+  splines=spline;
+  ranksep=0.9;
+  nodesep=0.4;
+  compound=true;
+  bgcolor="white";
+  node [shape=plaintext, fontname="Helvetica"];
+  edge [fontname="Helvetica", fontsize=8];

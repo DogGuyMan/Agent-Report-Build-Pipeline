@@ -1,0 +1,17 @@
+import { Page, Section, DecisionTable, VerdictFooter } from "report-builder";
+import { data } from "./data.js";
+
+export { data };
+
+export default function Report() {
+  return (
+    <Page data={data}>
+      <Section title="결정 요약">
+        <DecisionTable decisions={data.decisions} />
+      </Section>
+      <Section title="수용 판정 — 사용자 기입란">
+        <VerdictFooter />
+      </Section>
+    </Page>
+  );
+}

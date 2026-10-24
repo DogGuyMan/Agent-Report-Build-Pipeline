@@ -1,0 +1,28 @@
+/* 모듈 의존 그래프 — {{lang}} ({{repo_commit}})
+ *
+ * 목표 : 어느 모듈이 어느 모듈에 의존하는가, 그리고 순환이 어디 있는가.
+ * 범위 : codegraph.json (schema v2) 의 modules[] + __external__ 접촉.
+ *        출처 {{path_in}}
+ *        도구 {{source_tool}}
+ *
+ * 엣지 3종
+ *   파랑 실선  비순환 의존 — 레이아웃 뼈대 (constraint=true)
+ *   빨강 굵게  순환에 참여하는 의존 — P6 게이트 (constraint=false)
+ *   회색 점선  외부 패키지 접촉 — C-9 R3 섬으로 (constraint=false, R6){{ext_note}}
+ *
+ * ⚠ 이것은 링크 의존이 아니라 **타입 의존**이다 (C-15). 클래스 간선에서 유도했다.
+ * ⚠ 순환 판정은 기계가 하지 않는다 — 빨강은 "사람이 볼 곳" 표시이고,
+ *   허용/위반/오탐 판정은 codegraph-rules.toml 에 사람이 적는다.
+ *
+ * 렌더: dot -Tsvg X.dot -o X.svg && dot -Tpng -Gdpi=140 X.dot -o X.png
+ */
+digraph modules {
+  // P4 + P5 + A1 — 셋은 함께 다닌다
+  rankdir=BT;
+  splines=spline;
+  ranksep=1.0;
+  nodesep=0.55;
+  bgcolor="white";
+  node [shape=box, style="rounded,filled", fillcolor="#f7f9fc",
+        color="{{C_BORDER}}", fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=9];
