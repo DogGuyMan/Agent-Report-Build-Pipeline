@@ -629,3 +629,27 @@ def test_render_text_는_값에_없는_열쇠를_TemplateError_로_낸다():
 def test_render_text_는_값_안의_틀_문법을_다시_펴지_않는다():
     value = "{{x}} {% if %} {# 주석 #} }} {{ <b> & \"q\""
     assert P.PromptResource.render_text("[{{ v }}]\n", v=value) == "[" + value + "]\n"
+
+
+def test_render_text_는_사전_열쇠를_dict_메서드보다_먼저_찾는다():
+    f = {"items": "A", "values": ["1", "2"]}
+    assert P.PromptResource.render_text("{{ f.items }} {{ f.values | join(',') }}\n", f=f) == "A 1,2\n"
+
+
+@pytest.mark.parametrize("value", [None, {}.items], ids=["none", "method"])
+def test_render_text_는_글이_될_수_없는_값을_TemplateError_로_낸다(value: object):
+    with pytest.raises(TemplateError, match="찍을 수 없는 값"):
+        P.PromptResource.render_text("[{{ x }}]\n", x=value)
+
+
+@pytest.mark.parametrize("text", ["{% if on %}{{ on | nofilter }}{% endif %}끝\n",
+                                  "{% if on %}{% if on is notest %}끝{% endif %}{% endif %}\n"],
+                         ids=["filter", "test"])
+def test_render_text_는_타지_않는_갈래의_없는_필터와_검사도_막는다(text: str):
+    with pytest.raises(TemplateError, match="없는 필터 · 검사"):
+        P.PromptResource.render_text(text, on=False)
+
+
+def test_render_text_는_렌더_중_형_오류를_TemplateError_로_낸다():
+    with pytest.raises(TemplateError, match="TypeError"):
+        P.PromptResource.render_text("{{ n + 1 }}\n", n="1")

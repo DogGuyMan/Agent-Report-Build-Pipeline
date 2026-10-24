@@ -398,6 +398,9 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `MachineStage.perform` | `(self, ctx: C) -> Outcome` |  |
 | `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
 | `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
+| **`PromptEnvironment`** | *class* | 프롬프트 글의 Jinja2 환경. 사전 값의 `.이름` 은 열쇠를 먼저 찾는다 — `items` · `values` 열쇠가 dict 메서드에 가리지 않는다. |
+| `PromptEnvironment.getattr` | `(self, obj: object, attribute: str) -> object` |  |
+| `_printable` | `(value: object) -> object` | `{{ }}` 로 찍히는 값. `None` 과 호출 가능한 것(메서드 · 함수)은 글이 될 수 없어 `TemplateError` 다. |
 | **`PromptResource`** | *class* | 프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`. |
 | `PromptResource.sections` | `(text: str) -> dict[str, str]` | 절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다. |
 | `PromptResource.render_text` | `(text: str, **values) -> str` | Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`). |
@@ -830,6 +833,10 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_render_text_는_사전_목록_값을_렌더한다` | `()` |  |
 | `test_render_text_는_값에_없는_열쇠를_TemplateError_로_낸다` | `()` |  |
 | `test_render_text_는_값_안의_틀_문법을_다시_펴지_않는다` | `()` |  |
+| `test_render_text_는_사전_열쇠를_dict_메서드보다_먼저_찾는다` | `()` |  |
+| `test_render_text_는_글이_될_수_없는_값을_TemplateError_로_낸다` | `(value: object)` |  |
+| `test_render_text_는_타지_않는_갈래의_없는_필터와_검사도_막는다` | `(text: str)` |  |
+| `test_render_text_는_렌더_중_형_오류를_TemplateError_로_낸다` | `()` |  |
 
 ---
 

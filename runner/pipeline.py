@@ -16,10 +16,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import ClassVar, Generic, TypeVar
+from typing import ClassVar, Generic, TypeVar, cast
 
 import jinja2
 import jinja2.meta
+import jinja2.nodes
 import msgspec
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -476,9 +477,27 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
 SECTION = re.compile(r"^<!-- section: ([a-z0-9-]+) -->\n", re.MULTILINE)
 SECTION_LIKE = re.compile(r"^[ \t]*<!--\s*section\b.*$", re.MULTILINE | re.IGNORECASE)
 
-# 프롬프트 글의 Jinja2 환경. 블록 태그 줄은 빈 줄을 남기지 않고, 글 끝 줄바꿈은 그대로 둔다. 값은 이스케이프하지 않는다.
-PROMPT_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True,
-                                keep_trailing_newline=True, autoescape=False)
+class PromptEnvironment(jinja2.Environment):
+    """프롬프트 글의 Jinja2 환경. 사전 값의 `.이름` 은 열쇠를 먼저 찾는다 — `items` · `values` 열쇠가 dict 메서드에 가리지 않는다."""
+
+    def getattr(self, obj: object, attribute: str) -> object:
+        if isinstance(obj, Mapping) and attribute in obj:
+            return cast(Mapping[str, object], obj)[attribute]
+        return super().getattr(obj, attribute)
+
+
+def _printable(value: object) -> object:
+    """`{{ }}` 로 찍히는 값. `None` 과 호출 가능한 것(메서드 · 함수)은 글이 될 수 없어 `TemplateError` 다."""
+    if isinstance(value, jinja2.Undefined):
+        return value
+    if value is None or callable(value):
+        raise TemplateError("찍을 수 없는 값 %r" % (value,))
+    return value
+
+
+# 블록 태그만 있는 줄은 빈 줄을 남기지 않는다(태그 뒤에 공백이 없을 때). 글 끝 줄바꿈은 그대로 둔다. 값은 이스케이프하지 않는다.
+PROMPT_ENV = PromptEnvironment(undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True,
+                               keep_trailing_newline=True, autoescape=False, finalize=_printable)
 
 
 class PromptResource:
@@ -517,20 +536,31 @@ class PromptResource:
     def render_text(text: str, /, **values: object) -> str:
         """Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`).
 
-        글이 쓰는 자유 변수와 넘긴 값의 이름이 같아야 한다 — 타지 않는 `{% if %}` 갈래 안의 이름도 센다.
-        값이 없는 이름 · 글이 쓰지 않는 값 · Jinja2 문법 오류 · 렌더 중 오류(없는 속성 · 열쇠)는 모두 `TemplateError` 다.
+        글이 쓰는 자유 변수와 넘긴 값의 이름이 같아야 하고, 글이 쓰는 필터 · 검사는 환경에 있어야 한다 —
+        타지 않는 `{% if %}` 갈래 안의 것도 센다. 그래서 `default` 는 이름이 없을 때 쓰이지 않는다 — 빈 값 대체는
+        `{{ x or "대체" }}` 로 쓴다. 이 둘의 어긋남 · Jinja2 문법 오류 · 렌더 중 오류(없는 속성 · 열쇠 · `None` ·
+        형이 안 맞는 연산)는 모두 `TemplateError` 다.
         """
         try:
             ast = PROMPT_ENV.parse(text)
-            free = jinja2.meta.find_undeclared_variables(ast)
-            missing, unused = sorted(free - set(values)), sorted(set(values) - free)
-            if missing or unused:
-                raise TemplateError("값이 없는 자리 %s · 자리가 없는 값 %s" % (missing, unused))
-            return PROMPT_ENV.from_string(ast).render(values)
+            free = jinja2.meta.find_undeclared_variables(ast)    # 컴파일을 거쳐 타는 갈래의 없는 필터도 여기서 난다
         except jinja2.TemplateSyntaxError as e:
             raise TemplateError("Jinja2 문법 — 글의 %d 줄: %s" % (e.lineno, e.message)) from e
-        except jinja2.TemplateError as e:
-            raise TemplateError("Jinja2 — %s" % e) from e
+        missing, unused = sorted(free - set(values)), sorted(set(values) - free)
+        if missing or unused:
+            raise TemplateError("값이 없는 자리 %s · 자리가 없는 값 %s" % (missing, unused))
+        unknown = sorted({n.name for n in ast.find_all(jinja2.nodes.Filter) if n.name not in PROMPT_ENV.filters}
+                         | {n.name for n in ast.find_all(jinja2.nodes.Test) if n.name not in PROMPT_ENV.tests})
+        if unknown:
+            raise TemplateError("Jinja2 문법 — 없는 필터 · 검사 %s" % unknown)
+        try:
+            return PROMPT_ENV.from_string(ast).render(values)
+        except TemplateError:
+            raise
+        except jinja2.TemplateSyntaxError as e:
+            raise TemplateError("Jinja2 문법 — 글의 %d 줄: %s" % (e.lineno, e.message)) from e
+        except Exception as e:
+            raise TemplateError("Jinja2 렌더 — %s: %s" % (type(e).__name__, e)) from e
 
     @classmethod
     def load_prompt(cls, name: str, /, **values: object) -> str:
