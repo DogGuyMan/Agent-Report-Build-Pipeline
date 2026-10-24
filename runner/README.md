@@ -638,6 +638,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_lang_hint_는_실패해도_SKIP_이지_FAIL_이_아니다` | `(tmp_path: Path)` |  |
 | `test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한다` | `()` |  |
+| `test_lang_hint_프롬프트는_docs_를_바이트_그대로_끝에_싣는다` | `(docs: str)` |  |
 | `test_lang_decide_는_제안이_있으면_넘긴다` | `(tmp_path: Path)` |  |
 | `_no_change` | `() -> dict[str, list[str]]` |  |
 | `test_lang_for_는_lang_select_을_먼저_보고_코드_지도로_폴백한다` | `(tmp_path: Path)` |  |

@@ -243,6 +243,11 @@ def test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한�
     assert "cpp" in p and "unknown" in p and p.endswith("이 저장소는 …")
 
 
+@pytest.mark.parametrize("docs", ["A", "A\n", "A\n\n"])
+def test_lang_hint_프롬프트는_docs_를_바이트_그대로_끝에_싣는다(docs: str):
+    assert LG.LangHintStage.hint_prompt(docs).endswith("`unknown` 이라고 답해라.\n\n" + docs)
+
+
 def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path: Path):
     c = _ctx(tmp_path)
     assert "--propose" not in LG.LangDecideStage().argv(c)
