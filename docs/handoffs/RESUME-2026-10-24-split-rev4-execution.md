@@ -98,7 +98,7 @@ Phase A
 | R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ spec ✅ 품질 ✅(시험 + `str(lang)` 사용자 승인) · 사용자 승인 | 범례는 `"\n" + render_file(…).removesuffix("\n")`. `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(빌드 중 지워지는 임시 파일 바이트만 다르고 HTML 은 같다) |
 | R7 | 설정값 → `config/*.toml` | ✅ spec ✅ 품질 ✅ · 사용자 승인 | `run_mode2.py --model` 도움말은 `(기본: %(default)s)`(사용자 결정) |
 | R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | 31 동일 |
-| R9 | 게이트 시험 + Phase R 문서 정리 | ✅ spec ✅ · 품질 **With fixes(미처리)** | Important 둘 · Minor 열하나 — §5 (1) 에 전문. **보강은 착수 전 그대로** — Mac 세션은 사용자 지시로 넘겼고, 클라우드 스레드가 띄운 보강 구현자(opus)는 사용자 중단(커밋 · 변경 · worktree 0). M2 는 잠정 결정(§5 (1)) |
+| R9 | 게이트 시험 + Phase R 문서 정리 | ✅ spec ✅ · 품질 **With fixes(미처리)** | Important 둘 · Minor 열하나 — §5 (1) 에 전문. **보강은 착수 전 그대로** — Mac 세션은 사용자 지시로 넘겼고, 클라우드 스레드가 띄운 보강 구현자(opus)는 사용자 중단(커밋 · 변경 · worktree 0). 2026-10-24 사용자 결정: **로컬 세션에서 다시 띄운다** · M2 는 tools 까지 넓힌다(§5 (1)) |
 | R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · **품질 ⬜**(클라우드 검토자 결과 미도착 — 다시 돌린다) | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일 |
 | R11 | 목록 밖 LLM 글 옮기기 | ⬜ **사용자 결정 — 옮긴다** | §5 (2) |
 | A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
@@ -202,13 +202,13 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 **(1) R9 보강 · R10 품질 검토**
 
 *상태(2026-10-24 클라우드 스레드 뒤)*: R9 보강은 착수 전 그대로다 — 클라우드 구현자 사용자 중단, 변경 0. **클라우드에서 다시 띄우려면 사용자가 명시해야 한다**(그 세션의 하네스가 막았다). R10 품질 검토는 결과가 오지 않았다 — 다시 돌린다.
-*M2 잠정 결정(2026-10-24 — 사용자 "선호 없음" → 권장안 · 확정 대기)*: 루트 `CLAUDE.md` "리소스와 코드를 가른다" 문단이 적용 범위를 "`runner/` · `viz/` 의 파이썬" 으로 밝히게 고친다. 게이트 1 의 탐색 폴더(`runner` · `viz`)와 `tools/doctor.py` 는 그대로다. 문서만 바뀌어 본체 승인이 없고 아래 커밋 3 에 넣는다.
+*M2 확정(2026-10-24 로컬 세션 질의 — 클라우드의 잠정안은 버렸다)*: 긴 글 게이트(게이트 1)의 탐색 폴더를 `runner` · `viz` · `machine` · `tools` 로 넓힌다. 걸리는 유일한 것 `tools/doctor.py:98`(패키지 확인용 `python -c` 7줄)은 파일로 빼 자식 프로세스로 부른다 — **본체 승인**이고 게이트 넓히기 · 루트 `CLAUDE.md` 의 규약 범위 문장과 **한 커밋**이다(따로 넣으면 게이트가 빨개지거나 문서가 앞서간다). 그래서 아래 커밋 3 에서는 M2 를 빼고 3단계로 옮긴다.
 
 *R9 보강을 다시 띄울 때 brief 에 더할 것(클라우드 스레드가 쓴 brief, 넘김 문서 §6)* — 아래 R9 검토 결과를 글자 그대로 붙이고 이것을 더한다.
 - 1단계는 시험 · 문서라 승인 없이 커밋한다. 커밋 셋, 제목은 ASCII 구두점만:
   1. `[test] : 리소스 게이트 - 템플릿을 문자열 상수와 같은 값으로 찾고 단계당 한 파일을 본다` — I2, M1, M3(게이트 2 줄), M4. **I1 의 f-문자열 갈래는 아직 넣지 않는다**(넣으면 `viz/build.py:125` 때문에 게이트가 빨개진다).
   2. `[test] : run_mode2 시험 - test_config 와 겹치는 DOC_DIRS 시험을 지운다` — M11. 먼저 `test/test_config.py` 가 같은 것을 단언하는지 확인한다.
-  3. `[docs] : phase R 문서 - 규약 범위, 산출물 수, 모델 사슬, tools 의존, 낡은 줄 인용` — M3 문장, M5, M6, M7, M8, M10, 권고, **M2**. "줄 번호 ≤ 파일 끝" 검사는 HEAD 의 모든 컨텍스트 문서가 통과할 때만 넣고, 걸리면 목록만 보고한다.
+  3. `[docs] : phase R 문서 - 규약 범위, 산출물 수, 모델 사슬, tools 의존, 낡은 줄 인용` — M3 문장(규약 범위 문장은 빼고), M5, M6, M7, M8, M10, 권고. "줄 번호 ≤ 파일 끝" 검사는 HEAD 의 모든 컨텍스트 문서가 통과할 때만 넣고, 걸리면 목록만 보고한다.
 - 3단계(I1, 본체 승인): 게이트의 f-문자열 갈래와 `viz/templates/report/page.html.tmpl` 은 저장소에 직접 쓰고 커밋하지 않는다. `viz/build.py` 후보는 `split-work/patches/R9b/viz__build.py` + `R9b.diff`. `render_file` 은 글을 정규화하지 않으니 `.tmpl` 은 f-문자열이 내던 바이트 그대로(끝 줄바꿈 하나까지). 커밋 제목 `[refactor] : 보고서 HTML 뼈대를 templates 로 - 긴 글 게이트가 f-문자열을 한 덩어리로 잰다` — 게이트 조이기, `.tmpl`, `viz/build.py`, 바뀐 README 를 한 커밋에.
 - `report.html` 미리 대조(§6-3 의 worktree 꼴로 후보를 얹은 뒤, `$PWD` 는 본 저장소 뿌리):
   ```bash
@@ -234,7 +234,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
   - M11 `runner/test_run_mode2.py` 의 `test_doc_dirs_are_specs_then_plans` 는 `test/test_config.py` 와 완전히 겹친다 — 지워도 된다.
   - 권고: `ARCHITECTURE.md` 의 줄 인용이 낡았다 — `:360` `viz/init.py:107-110` 의 글은 `viz/templates/report/data.ts.tmpl:10-13` 으로 옮겨졌다 · `:379-380` `viz/build.py:80` / `:99` 는 지금 `:74` / `:97` · `:86-87` `runner/wiki/build.py:98` / `:109` 는 파일 끝(80줄)을 넘는다. `test/test_docs_citations.py` 는 파일 존재만 본다 → 함수 이름으로 인용하거나 "줄 번호 ≤ 파일 끝" 검사를 몇 줄 더한다.
 - **원형이 저장소에 있다**: `split-work/r9-gate-proto/stricter.py` 가 I1 · I2 를 고친 게이트를 미리 돌린다(HEAD 기대 출력 `gate1+fstr: ['viz/build.py:125']` · 중복 basename 없음 · 고아 없음). `scan_evasion.py` · `scan_long.py` 는 비켜 가는 꼴과 범위(M2) 판단용 — 기대 출력은 `split-work/README.md`.
-- 처리 순서 제안: I2 + M1 · M3(게이트 2 줄) · M4 (시험) → 문서 M3 · M5 · M6 · M7 · M8 · M10 · 권고 → I1 (본체 · 승인, 게이트 조이기와 한 커밋) → M2 는 잠정 결정(위)대로 문서만. 끝나면 같은 꼴로 재검토(opus).
+- 처리 순서 제안: I2 + M1 · M3(게이트 2 줄) · M4 (시험) → 문서 M3 · M5 · M6 · M7 · M8 · M10 · 권고 → I1 (본체 · 승인, 게이트 조이기와 한 커밋) → M2 는 확정(위)대로 3단계에서 I1 과 함께. 끝나면 같은 꼴로 재검토(opus).
 
 *R10 품질 검토* — `opus` · 읽기 전용. 위 R9 보강의 구현자와 같이 돌려도 된다(R10 검토는 `runner/mode1/` 을 읽고, R9 보강은 `test/` · `viz/build.py` · 문서를 고친다).
 - R10: 범위 `d6286be..5837c32`. 볼 것 — 새 절 15개와 `prompt_names` · `FIX` 의 모듈 수준 대입(`ClassVar` 선언 + 클래스 뒤 채움)의 위험(import 순서 · 하위 클래스) · 한 낱말 절 둘(`batch-symbol-no-deps` "없음" · `pass2-no-deps` "  (없음)")의 값(사용자가 남기기로 했다 — 결함이 아니면 지적만) · 바이트 보존(§6 의 `edge_dump.py` 로 `git archive d6286be` 대 HEAD) · B 의 독스트링 사실 대조.
@@ -338,3 +338,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 사용자 결정으로 superpowers 를 프로젝트 설정 `.claude/settings.json` 의 `enabledPlugins` 로 켰다(그전에는 git 밖 `.claude/settings.local.json` 에만 있었다). 문서 확인 결과 클라우드 세션에는 닿지 않는다 — §3 에 대안 셋 |
 | 2026-10-24 | 사용자 결정 — superpowers 는 claude.ai Project settings > Plugins 에서 켠다(프로젝트 스레드로 진행). §0.1 을 더했다 — 스레드는 `main` 에서 새 브랜치를 따고 · 훅 · 하위 CLAUDE.md · 저장소 스킬을 안 읽는다는 문서 확인과 대응, 붙여 넣을 프로젝트 지시문 |
 | 2026-10-24 | 클라우드 스레드 — 시작 절차 · 게이트 재측정(Mac 과 같음) · `before/` 31 · R9 보강 구현자 사용자 중단(변경 0) · R10 검토 결과 미도착 · M2 잠정 결정 · 환경 실측은 `HANDOFF-2026-10-24-cloud-thread-to-local.md`. 로컬 세션이 반영 — §0.1 실측 표와 결론 · `AskUserQuestion` 줄 · §2 · §5 (1) 상태, M2, 재기동 brief 보강 · R11 제안 제목 ASCII · §6 원형 인자 · §7 ASCII 구두점 규칙(어긴 커밋 실제 16개) |
+| 2026-10-24 | 로컬 세션 질의 결과 — M2 확정(게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 스크립트를 파일로 · 본체 승인 · 3단계에서 I1 과 함께), R9 보강과 R10 검토는 로컬 세션에서 다시 띄움, 낡은 원격 가지 `claude/lucid-goodall-xdoeou` 삭제(그 가지에만 있던 커밋 0) |
