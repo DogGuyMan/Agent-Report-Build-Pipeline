@@ -51,8 +51,12 @@ Uncommitted: 없음 (이 문서 커밋 뒤)
 | R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ `283aec3` + `a3ac974`(수정 · 시험) · spec ✅ · 품질 ✅(With fixes → I1 시험 `test/test_templates.py` · I2 `str(lang)` 사용자 승인) · 사용자 승인 | 본 저장소 31 동일(글 28 · DOT 2 · report.html). 편차: 범례 `"\n" + render_file(…).removesuffix("\n")` · `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(임시 파일 바이트만 다르고 HTML 은 같다) · `entry.ts` 끝 줄바꿈 |
 | R7 | 모델 id · 비용 어림 · 원본 문서 자리 규칙 → `config/{mode1,report}.toml` | ✅ `3665cc5` + `850a6a0`(시험 강화 · 패턴 계약 주석) · spec ✅ · 품질 ✅(Ready: Yes) · 사용자 승인 | 편차 하나(사용자 결정): `run_mode2.py --model` 도움말은 `(기본: %(default)s)` — `--help` 가 실효값을 보인다 |
 | R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | R7 적용 뒤 본 저장소 `capture.sh` 31 = `before/` 31 (`diff -r` 같음). `a3ac974` 뒤에도 31 같음 |
-| R9 → R10 | 게이트 시험 + Phase R 문서 정리 · 남은 문구 옮기기 | ⬜ | rev.4 :1159-1283 · §4.2. R9 는 본체 .py 없음(게이트 셋이 HEAD 에서 이미 통과 — scratch 실측). R10 은 §4.2 의 사용자 결정 + 본체 Minor 묶음 |
-| A1 → A4 | 결정 0011 · 시험 결합 끊기 둘 · 레코드 분리 스크립트 | ⬜ | rev.4 :1284-1472 |
+| R9 | 게이트 시험 + Phase R 문서 정리 | ✅ `36fb98d` + `83c22a1` + `116bd73`(ARCHITECTURE) · spec ✅ · 품질 ⬜ | 전량 두 번 같음(1:1 게이트 안 흔들림). 일부러 깨기는 scratch worktree 에서 — 각 게이트가 실패. 계획의 `ask.md` 깨기 예시는 게이트보다 먼저 `sections()` 의 `ValueError` 로 죽는다 |
+| R10 | 남은 문구 옮기기 + 본체 Minor 묶음 | ⬜ (opus 구현 중) | rev.4 :1159-1283 · §4.2. R9 는 본체 .py 없음(게이트 셋이 HEAD 에서 이미 통과 — scratch 실측). R10 은 §4.2 의 사용자 결정 + 본체 Minor 묶음 |
+| A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
+| A2 | Mode 1.5 · 2 시험이 `run_mode1` 대신 `measure` 를 import | ⬜ (R10 커밋 뒤) | **편차**: 두 실행기 머리의 `# 쓰는 것: run_mode1` 줄은 `# <include …/>` 잔재라 고치지 않는다(루트 CLAUDE.md). 그래서 계획의 grep 확인은 주석 줄을 뺀다(`grep -v ':#'` 꼴). 모듈 독스트링 "재는 코드는 `run_mode1.py` 의…" 수정은 본체라 R10 B 승인 묶음에 넣었다 |
+| A3 | 실행기 스크립트 실재 시험 셋 | ⬜ (R10 커밋 뒤) | 시험만 |
+| A4 | `split-work/split_reading.py` | ✅ 커밋 없음 | 1,318 = mode1 1,025 + mode2 463 − 둘 다 176 + 버림 6. 어림(960 · 500)보다 갈림이 크다 — 경로별 분포를 보니 분류는 계획 목록대로다(시험 파일 · `machine/` 이 mode1 쪽을 키운다) |
 | K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 생성 · 형 생성 · 판정+collect · run_mode2 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** |
 | M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 `split-base-2026-10-24` | ⬜ | rev.4 :3235-3259. `main` 에 미는 것은 사용자에게 먼저 묻는다 |
 
