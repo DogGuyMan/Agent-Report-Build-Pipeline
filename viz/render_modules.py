@@ -202,7 +202,7 @@ def emit_dot(g: CodeGraph, path_in: str, G: "nx.DiGraph[str]",
 
     # ── DOT 헤더 주석
     w(render_file(os.path.join(TEMPLATES, "modules-head.dot.tmpl"), {
-        "lang": lang, "repo_commit": str(g.get('repo_commit', '?')), "path_in": path_in,
+        "lang": str(lang), "repo_commit": str(g.get('repo_commit', '?')), "path_in": path_in,
         "source_tool": str(g.get('source_tool', '?')), "ext_note": ext_note, "C_BORDER": C_BORDER}))
 
     # ── 1차 모듈 밴드
