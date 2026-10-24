@@ -40,6 +40,7 @@ def test_render_file_은_UTF8_파일을_읽어_채운다(tmp_path: Path):
     [
         ("{{repo}}/out · {{repo}/bin", {"repo": "/a"}, "{{repo}/bin"),
         ("{{n}}개 · {{n.}}개", {"n": "3"}, "{{n.}}"),
+        ("{{repo}} {{to, kind, label, where}}", {"repo": "/a"}, "{{to, kind"),
     ],
 )
 def test_자리가_못_된_꼴은_예외다(text: str, values: dict[str, str], 꼴: str):
