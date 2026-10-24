@@ -311,6 +311,10 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
 
 `.claude/CLAUDE.md` 의 13개 체크포인트가 이 저장소에도 그대로 적용된다. 그 위에 추가되는 것:
 
+- **리소스와 코드를 가른다 (최우선).** LLM 프롬프트는 단계당 한 파일 `runner/**/prompts/<단계>.md`(안은
+  `<!-- section: 이름 -->` 으로 가른다), 파일 템플릿은 `**/templates/*`, 설정값은 `config/*.toml`. 파이썬은 읽기만
+  한다 — 프롬프트는 단계의 `PromptResource.load_prompt("<파일>#<절>")`, 템플릿은 `tools.template.render_file`.
+  자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다.
 - 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.

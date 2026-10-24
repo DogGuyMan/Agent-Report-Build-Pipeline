@@ -1,7 +1,7 @@
 # test/ — 축을 가로지르는 시험만 여기 둔다
 
 > 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 축 안의 시험은 그 축 옆에 산다 —
-> [`../machine/`](../machine/CLAUDE.md) `test_*.py` 11개 · [`../runner/`](../runner/CLAUDE.md) `test_*.py` 8개 · [`../tools/`](../tools/CLAUDE.md) 1개.
+> [`../machine/`](../machine/CLAUDE.md) `test_*.py` 11개 · [`../runner/`](../runner/CLAUDE.md) `test_*.py` 8개 · [`../tools/`](../tools/CLAUDE.md) 2개.
 
 **여기 있는 시험은 한 축에 속하지 않는다.** 문서 게이트, Node 를 자식으로 띄우는 렌더 시험,
 `bin/` 진입점, 이식성 검사처럼 **두 축 이상을 함께 물거나 저장소 전체를 보는 것**만 온다.
@@ -17,6 +17,9 @@
 | `test_components.py` · `test_graph_math.py` | React 컴포넌트와 용어 그래프 수학을 **Node 자식 프로세스**로 렌더해 본다. `.tmp/lib.mjs` 와 esbuild 가 필요하다 |
 | `test_check.py` · `test_init.py` · `test_link_paths.py` · `test_wrap_terms.py` | Mode 2 의 `viz/*.py` 순수 함수 — `<script>` 상한 · slug 검증 · 경로 링크 · 용어 감싸기 |
 | `test_dispatch.py` · `test_portability.py` | `bin/` 의 명령 갈림길과 `tools/python.py` 의 해석기 탐색 |
+| `test_prompt_resources.py` | 리소스와 코드를 가르는 게이트 — 코드 안에 리소스로 뺄 긴 글이 없다 · 단계의 `prompt_names` 선언과 `prompts/*.md` 의 파일 · 절이 1:1 이다 · 아무도 안 부르는 템플릿이 없다 |
+| `test_config.py` | `config/report.toml` 을 직접 읽어 코드가 같은 값을 쓰는지 대조한다 — 원본 문서 자리 규칙(`DOC_DIRS`) 두 곳 · Mode 2 모델 기본값 배선 |
+| `test_templates.py` | 템플릿에서 짓는 파일 꼴 — 보고서 뼈대 `data.ts` 의 값 주입, 모듈 DOT 의 머리 · 범례 |
 | `test_term.py` | Mode 1.5 얼갈이 `runner/term/*` |
 | `svg.test.mjs` | **유일한 Node 시험.** `viz/svg.mjs` 의 id 접두사 · `viewBox` 규칙. `npm test` 가 돌린다 |
 

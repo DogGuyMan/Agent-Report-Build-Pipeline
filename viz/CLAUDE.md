@@ -17,6 +17,7 @@
 | `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
 | `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
 | `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
+| `templates/report/` · `templates/dot/` | 보고서 뼈대 · 렌더 스크립트 / DOT 머리 · 범례 |
 
 **Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를
 불러 **그림을 굽는 것**이다. 코드 지도를 계산하지 않고 이미 계산된 것을 그린다.
