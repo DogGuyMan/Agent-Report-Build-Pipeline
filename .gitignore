@@ -29,3 +29,11 @@ tools/scrub_local_paths.py
 
 # ai-readiness-cartography 출력 - report.json 에 로컬 경로가 들어간다
 .claude/readiness/
+
+# 분리 작업 대조 도구(split-work/)의 산출물 — 기준 출력 · 후보 diff 에 이 기계의 절대 경로가 실린다
+split-work/before*/
+split-work/after*/
+split-work/fixture-shards/
+split-work/patches/
+split-work/frag/
+split-work/reading-mode*.json

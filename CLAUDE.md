@@ -11,6 +11,7 @@
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
 | [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 · README 생성 |
 | [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 · Mode 2 의 Model id · 원본 문서 자리 규칙 · 비용 어림. 코드는 읽기만 한다 |
+| [`split-work/`](split-work/README.md) | **두 저장소 분리 작업 동안만** 쓰는 바이트 대조 도구. 제품 코드가 아니고 산출물은 git 밖이다. 분리가 끝나면 지운다 |
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 축을 가로지르는 시험 — 문서 게이트 · Node 렌더 시험 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | [`docs/wiki/`](docs/wiki/index.md) | **이 저장소의 RAG.** 자기 자신에게 Mode 1 을 돌려 구운 위키 21쪽. 코드를 뒤지기 전에 여기를 먼저 grep 한다 |
@@ -280,8 +281,8 @@ $GRAPHICS_REPO/doc/
 
 | 자리 | 무엇 | git |
 |---|---|---|
-| `<repo>/.claude/skills/` | 항목 16개 — **심볼릭 링크 14개**(`../../.agents/skills/<이름>`) + 실제 디렉토리 2개(`spec-review-dashboard` · `term-benchmark` — 홈 원본을 맞춰 넣은 사본). 링크 자체가 추적된다 | 추적됨(16개, 🔵 2026-09-13) |
-| `~/.claude/skills/` | `spec-review-dashboard` · `term-benchmark` 의 **원본**, 그리고 `codebase-terms-survey` 의 사본(원본은 저장소 `.agents/skills/`). 저장소 밖이라 어느 저장소도 추적하지 않는다 | 밖 |
+| `<repo>/.claude/skills/` | 항목 20개 — **심볼릭 링크 13개**(`../../.agents/skills/<이름>`) + 실제 디렉토리 7개 — 홈 원본을 깊은 복사로 맞춰 넣은 사본: `spec-review-dashboard` · `term-benchmark` 와, 원격(클라우드) 세션에도 있게 넣은 `personal-commit-messages` · `design-decision-discipline` · `lossless-handoff` · `confidence-and-sourcing` · `response-quality-calibration`. 링크 자체가 추적된다 | 추적됨(🔵 2026-10-24) |
+| `~/.claude/skills/` | 위 실제 디렉토리 7개의 **원본**, 그리고 `codebase-terms-survey` 의 사본(원본은 저장소 `.agents/skills/`). 저장소 밖이라 어느 저장소도 추적하지 않는다 | 밖 |
 
 `.gitignore` 에 `.claude` 는 없다 — 저장소 안 것이 git 밖인 이유는 무시라서가 아니라
 **홈 경로가 애초에 워킹 트리 밖**이기 때문이다. 사본은 어느 쪽이든 조용히 표류한다 — 원본을 고치면 같은 변경에서 사본도 맞춘다(🔵 2026-08-31 —
