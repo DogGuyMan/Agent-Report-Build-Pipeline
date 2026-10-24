@@ -47,8 +47,9 @@ Uncommitted: 없음 (이 문서 커밋 뒤)
 | R2 | `PromptResource` 믹스인 | ✅ `22c80a3` + `83eb828` · spec ✅(기계 대조) · 품질 ✅ | 보강 셋 — 틀린 절 표식(대문자 · 밑줄 · 앞뒤 공백 · 끝 줄바꿈 없음) `ValueError` · `load_prompt(cls, name, /, **values)` · 절대 경로 아닌 `prompt_dir` `ValueError`. 380 통과 |
 | R3 | 옮기기 전을 찍는다 | ✅ 커밋 없음 · **Mac 에 다시 만듦(2026-10-24)** | `$HOME/LLM-Tools/split-work/before/` 31개, 두 번 찍어 같음. 보강 셋째 — `capture.sh` 가 `TOOLS_ROOT` 없을 때 자기 자리에서 기본값을 잡는다 |
 | R4 | Mode 1 프롬프트 넷 → `runner/mode1/prompts/` | ✅ `f87e877` + `eeb4976`(시험) · spec ✅(기계 대조 + `e9ddfc3` worktree 대 HEAD 28 동일) · 품질 ✅(Ready: Yes) | 검토 처리: Important — `pipeline.py` 독스트링이 아직 없는 `test/test_prompt_resources.py` 를 가리킨다 → R9 가 만든다(고아 절은 R9 전까지 안 잡힌다). Minor — `hint_prompt` docs 끝 줄바꿈 시험 `eeb4976`. 나머지는 §4.2 | 바이트 대조 `.txt` 14 + `.raw` 14 = **28 동일**(R2 보강 뒤 본 저장소에서 다시 잼). 계획서 편차 하나: `hint_prompt` 는 `load_prompt("lang-hint", docs=docs)[:-1]`(절이 줄바꿈 하나로 끝나 docs 뒤에 1바이트가 붙는다). `annotate-symbols.md` 끝 빈 줄 하나 뗌(출력 같음) |
-| R5 | Mode 1.5 · 2 프롬프트 → `runner/prompts/` | ⬜ | rev.4 :806-852 · 정정 ⑤ ⑫ · §4.2 |
-| R6 → R9 | 템플릿 일곱 · config toml · after 대조 · 게이트 시험 | ⬜ | rev.4 :853-1283 · §4.2 |
+| R5 | Mode 1.5 · 2 프롬프트 → `runner/prompts/` | ✅ `b627831` + `95f9758`(시험) · spec ✅(기계 대조) · 품질 ✅(With fixes → 시험 셋) · 사용자 승인 | 28 동일. ⑤ 는 K6 으로. 검토: 옮긴 글의 배치 · 줄바꿈 · 명령줄을 바꾸는 돌연변이 9개가 기존 시험을 다 통과 → 시험 셋 `95f9758`(돌연변이 셋을 다시 넣어 잡히는 것 확인). Minor 는 R10 묶음 |
+| R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ `283aec3` · spec ✅ · 품질 ⬜ · 사용자 승인 | 본 저장소 31 동일(글 28 · DOT 2 · report.html). 편차: 범례 `"\n" + render_file(…).removesuffix("\n")` · `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(임시 파일 바이트만 다르고 HTML 은 같다) · `entry.ts` 끝 줄바꿈 |
+| R7 → R10 | config toml · after 대조 · 게이트 시험 · 남은 문구 옮기기 | ⬜ | rev.4 :1008-1283 · §4.2 · R10 은 §4.2 의 사용자 결정 |
 | A1 → A4 | 결정 0011 · 시험 결합 끊기 둘 · 레코드 분리 스크립트 | ⬜ | rev.4 :1284-1472 |
 | K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 생성 · 형 생성 · 판정+collect · run_mode2 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** |
 | M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 `split-base-2026-10-24` | ⬜ | rev.4 :3235-3259. `main` 에 미는 것은 사용자에게 먼저 묻는다 |
@@ -114,6 +115,13 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - ~~`hint_prompt` 의 `[:-1]` → `.removesuffix("\n")`~~ **사용자 승인 · `d00388a`**(28 동일).
 - `runner/CLAUDE.md:13` "계산과 **프롬프트는** 단계 클래스의 `@staticmethod`" · `:142` "`mode1/survey.py` 의 **프롬프트 문자열은**…" 이 낡았다 — 산문은 이제 `runner/mode1/prompts/*.md`. Phase R 끝 문서 정리에서 한 줄씩.
 - **사용자 결정(2026-10-24): Phase R 끝에 리소스로 옮긴다 — R9 뒤 Task 「R10」.** 옮긴 뒤 R8 대조(28 + DOT · HTML)와 R9 게이트를 다시 돌린다. 대상 — 빈 값 대체 문구가 파이썬에 남았다: `survey.py:81` `"(뜻 없음)"` · `:103` · `:107` `"  (없음 — 너는 최하층이다)"` · `:347` `"  (없음)"` · `wiki.py:99` `"(개괄 — 특정 심볼 없음)"` · `:100` `"  (없음 — 네가 첫 장이다)"`, 목록 줄 꼴(`survey.py:101` · `:343` · `wiki.py:123`), retry 에 실리는 `FIX` 표(`survey.py:150-156`). rev.4 가 그대로 두라고 적었다. 옮기면 작은 절 4~6개가 생긴다(거울 함정 위험). 절 이름은 `[a-z0-9-]`(예: `annotate-symbols#no-deps`). 렌더러에 조건문이 없으니 "값이 비면 이 절" 의 고르기는 파이썬에 남고 글만 리소스로 간다.
+
+**R5 품질 검토에서 넘어온 것 (R10 승인 묶음 · R9)**
+- 본체 `.py` — R10 에 함께 보인다: `runner/run_mode2.py:225` 절 머리 주석과 `:229-231` 독스트링("규율을 여기서 말한다" · "나눠 적는다")이 글이 옮겨 가 낡았다 → `runner/prompts/agent.md` 의 절을 가리키게. `runner/run_mode1_5.py:510-512` 도 `runner/prompts/ask.md` 를 가리키게. `runner/run_mode1_5.py:518` `.rstrip("\n")` → `.removesuffix("\n")`(형제 `lang.py` 와 맞춘다 · 템플릿이 자리로 끝나면 `rstrip` 이 값의 줄바꿈을 먹는다).
+- 기록만: `agent_prompt` · `ask_argv` 는 모듈 함수가 `AgentStage.load_prompt` · `AskStage.load_prompt` 를 부른다(클래스 → 함수 → 클래스, `cls` 가 아니라 이름에 묶임). 단계 소유 `@staticmethod` 꼴과 다르다. 범위 밖.
+- `runner/CLAUDE.md:11-20` "무엇이 여기 있나" 표에 `prompts/` · `mode1/prompts/` 행이 없다 — Phase R 끝 문서 정리.
+- `docs/wiki/runner-mode2-spec.md:116` 이 옮겨 간 문구의 자리로 `agent_prompt` 를 인용 — Phase E 재굽기(L2 실패 수는 늘지 않음).
+- **R9 게이트 주의**: `prompt_names` 는 상속된다 — `AnnotateFilesStage` 가 `AnnotateSymbolsStage` 의 선언을 물려받아 "중복 선언" 오탐이 난다. 클래스마다 `vars(cls)` 에 직접 선언된 것만 세거나 `(prompt_dir, 이름)` 으로 중복을 없앤다.
 
 **기록만 — 범위 밖, 사용자 몫**
 - 프롬프트 예외(`KeyError` · `ValueError` · `TemplateError` · `FileNotFoundError`)는 `Pipeline.run` 이 `FAIL` 행으로 바꾸지 않는다 — 지금 `msgspec.DecodeError` 만 잡는다(`pipeline.py:363` 근처). 단계 도중 터지면 프로세스가 죽고, `survey_files.py` 의 풀에 줄 선 세션은 프로세스 끝까지 돈다. 정책 변경이다.
