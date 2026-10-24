@@ -1,5 +1,6 @@
 """Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다."""
 import os
+import tomllib
 from dataclasses import dataclass, field
 from typing import Literal, NotRequired, TypedDict
 
@@ -92,6 +93,22 @@ class ShardFault(TypedDict):
     at: str
     detail: str
     fix: str
+
+
+# 결함 표 — 결함 줄 꼴과, 결함 갈래마다 고치는 법 · 늘 같은 결함 설명. 글은 모두 Jinja2 꼴이다.
+FAULTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "faults.toml")
+
+
+class FaultTable(TypedDict):
+    """`faults.toml` — `line` 은 결함 하나를 찍는 꼴, `kind` 는 갈래마다 `fix` 와 `detail…` 글."""
+    line: str
+    kind: dict[FaultKind, dict[str, str]]
+
+
+def load_fault_table(path: str = FAULTS_PATH) -> FaultTable:
+    """결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외."""
+    with open(path, "rb") as f:
+        return msgspec.convert(tomllib.load(f), FaultTable)
 
 
 class UnresolvedRow(TypedDict):

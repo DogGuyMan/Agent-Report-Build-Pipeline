@@ -110,6 +110,8 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`ShardUse`** | *class* |  |
 | **`ShardRecord`** | *class* | `where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다. |
 | **`ShardFault`** | *class* | `at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키. |
+| **`FaultTable`** | *class* | `faults.toml` — `line` 은 결함 하나를 찍는 꼴, `kind` 는 갈래마다 `fix` 와 `detail…` 글. |
+| `load_fault_table` | `(path: str = FAULTS_PATH) -> FaultTable` | 결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외. |
 | **`UnresolvedRow`** | *class* | `unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나. |
 | **`DroppedUse`** | *class* | `dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
@@ -270,8 +272,9 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
 | `AnnotateSymbolsStage.fault` | `(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault` |  |
+| `AnnotateSymbolsStage.fault_detail` | `(kind: FaultKind, name: str = 'detail', **values) -> str` | 결함 표의 결함 설명 `kind.<갈래>.<name>` 을 `values` 로 렌더한다. 인자가 위치 전용이라 값 이름이 `kind` 여도 된다. |
 | `AnnotateSymbolsStage.check_shard` | `(raw: bytes, batch: str = '', path: str = '') -> list[ShardFault]` | 샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다. |
-| `AnnotateSymbolsStage.fault_line` | `(f: ShardFault) -> str` | 결함 하나를 사람이 읽을 한 줄로. |
+| `AnnotateSymbolsStage.fault_line` | `(f: ShardFault) -> str` | 결함 하나를 사람이 읽을 줄로 — 결함 표의 `line` 꼴. 재조사 절 · stderr · check_shard 명령이 이 줄을 찍는다. |
 | `AnnotateSymbolsStage.plan_ids` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 계획이 띄우는 세션의 이름 전부 — 배치 id 들과, 비노드 층이 있으면 `NONNODE`. |
 | `AnnotateSymbolsStage.check_coverage` | `(raw: bytes, batch: survey_plan.PlanBatch, path: str) -> list[ShardFault]` | 계획의 심볼 이름과 샤드의 키를 양방향으로 대조한다. 문법·꼴이 맞은 뒤에만 부른다. |
 | `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]` | 계획의 배치마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{배치: 결함들}`. |
@@ -715,6 +718,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_결함_줄은_갈래_자리_설명_한_줄과_들여쓴_고치는_법_한_줄이다` | `()` |  |
 | `test_결함_설명_넷은_검문_결과와_격리_사유에_글자_그대로_실린다` | `(tmp_path: Path)` |  |
 | `test_check_shard_명령은_결함_줄과_불평_수를_그대로_찍는다` | `(tmp_path: Path)` |  |
+| `test_결함_표의_갈래는_FaultKind_와_같고_갈래마다_고치는_법이_있다` | `() -> None` |  |
 | `test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다` | `()` |  |
 | `test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인다` | `()` |  |
 | `test_배치_프롬프트는_이름표_없이도_돈다` | `()` |  |

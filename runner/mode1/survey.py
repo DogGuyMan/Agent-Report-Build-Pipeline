@@ -28,9 +28,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                     "annotate-symbols#batch-dep-no-means", "annotate-symbols#batch-no-deps",
                     "annotate-symbols#scope", "annotate-symbols#pending",
                     "annotate-symbols#retry", "annotate-symbols#nonnode",
-                    "annotate-symbols#pass2", "annotate-symbols#pass2-dep", "annotate-symbols#pass2-no-deps",
-                    "annotate-symbols#fix-missing", "annotate-symbols#fix-malformed",
-                    "annotate-symbols#fix-schema", "annotate-symbols#fix-where", "annotate-symbols#fix-coverage")
+                    "annotate-symbols#pass2", "annotate-symbols#pass2-dep", "annotate-symbols#pass2-no-deps")
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -160,9 +158,11 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     # ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────
 
     WHERE_OPTIONAL = ("module", "external")
-    # 결함 갈래마다 고치는 법 한 줄. 재조사 프롬프트와 check_shard 명령이 그대로 찍는다.
-    # 글은 `annotate-symbols#fix-<갈래>` 절이다. 클래스 몸 안에서는 `load_prompt` 를 못 불러 클래스 정의 바로 뒤에서 채운다.
-    FIX: ClassVar[Mapping[FaultKind, str]]
+    # 결함 표 `faults.toml` — 결함 줄 꼴(`fault_line`) · 갈래마다 고치는 법(`FIX`) · 늘 같은 결함 설명(`fault_detail`).
+    FAULTS: ClassVar[X.FaultTable] = X.load_fault_table()
+    # 결함 갈래마다 고치는 법 한 줄 — 표의 `fix` 를 렌더한 글. 재조사 프롬프트와 check_shard 명령이 그대로 찍는다.
+    FIX: ClassVar[Mapping[FaultKind, str]] = {k: P.PromptResource.render_text(t["fix"])
+                                              for k, t in FAULTS["kind"].items()}
     SHARD_EXAMPLE: ShardRecords = {"build_terms": {
         "kind": "function", "module": "machine", "where": "machine/terms_db.py:82",
         "means": "코드 지도에서 용어 사전을 만드는 함수.",
@@ -190,6 +190,11 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 "fix": AnnotateSymbolsStage.FIX[kind]}
 
     @staticmethod
+    def fault_detail(kind: FaultKind, name: str = "detail", /, **values: object) -> str:
+        """결함 표의 결함 설명 `kind.<갈래>.<name>` 을 `values` 로 렌더한다. 인자가 위치 전용이라 값 이름이 `kind` 여도 된다."""
+        return AnnotateSymbolsStage.render_text(AnnotateSymbolsStage.FAULTS["kind"][kind][name], **values)
+
+    @staticmethod
     def check_shard(raw: bytes, batch: str = "", path: str = "") -> list[ShardFault]:
         """샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다.
 
@@ -204,14 +209,14 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         except msgspec.DecodeError as e:
             detail, _, at = str(e).rpartition(" (")
             return [F("malformed", batch, path, at.rstrip(")"), detail or str(e))]
-        return [F("where", batch, path, k, "where 없음 (kind %s)" % r["kind"])
+        return [F("where", batch, path, k, AnnotateSymbolsStage.fault_detail("where", kind=r["kind"]))
                 for k, r in recs.items()
                 if "where" not in r and r["kind"] not in AnnotateSymbolsStage.WHERE_OPTIONAL]
 
     @staticmethod
     def fault_line(f: ShardFault) -> str:
-        """결함 하나를 사람이 읽을 한 줄로."""
-        return "[%s] %s — %s\n    → %s" % (f["kind"], f["at"], f["detail"], f["fix"])
+        """결함 하나를 사람이 읽을 줄로 — 결함 표의 `line` 꼴. 재조사 절 · stderr · check_shard 명령이 이 줄을 찍는다."""
+        return AnnotateSymbolsStage.render_text(AnnotateSymbolsStage.FAULTS["line"], f=f)
 
     @staticmethod
     def plan_ids(plan: survey_plan.SurveyPlan) -> list[str]:
@@ -225,8 +230,10 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         keys = set(msgspec.json.decode(raw, type=ShardRecords))
         want = {s["name"] or "" for s in batch["symbols"]}
         F = AnnotateSymbolsStage.fault
-        return ([F("coverage", batch["id"], path, n, "계획에 있는데 샤드에 없다") for n in sorted(want - keys)]
-                + [F("coverage", batch["id"], path, k, "샤드에 있는데 계획에 없다") for k in sorted(keys - want)])
+        not_in_shard = AnnotateSymbolsStage.fault_detail("coverage", "detail-not-in-shard")
+        not_in_plan = AnnotateSymbolsStage.fault_detail("coverage", "detail-not-in-plan")
+        return ([F("coverage", batch["id"], path, n, not_in_shard) for n in sorted(want - keys)]
+                + [F("coverage", batch["id"], path, k, not_in_plan) for k in sorted(keys - want)])
 
     @staticmethod
     def check_shards(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]:
@@ -236,7 +243,8 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         for bid in AnnotateSymbolsStage.plan_ids(plan):
             path = os.path.join(shard_dir, bid + ".json")
             if not os.path.exists(path):
-                bad[bid] = [AnnotateSymbolsStage.fault("missing", bid, path, "-", "샤드 없음")]
+                bad[bid] = [AnnotateSymbolsStage.fault("missing", bid, path, "-",
+                                                       AnnotateSymbolsStage.fault_detail("missing"))]
                 continue
             with open(path, "rb") as f:
                 raw = f.read()
@@ -615,8 +623,3 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         dropped = self.refresh_merged(ctx)
         print("  층 끝 — 레코드 %d개 · 떼어 낸 간선 %d개" % (len(ctx.merged), len(dropped)), flush=True)
         return out
-
-
-AnnotateSymbolsStage.FIX = {
-    kind: AnnotateSymbolsStage.load_prompt("annotate-symbols#fix-" + kind).removesuffix("\n")
-    for kind in ("missing", "malformed", "schema", "where", "coverage")}

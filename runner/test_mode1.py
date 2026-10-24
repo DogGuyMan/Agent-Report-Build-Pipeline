@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+import tomllib
 from pathlib import Path
 from typing import cast, get_args
 
@@ -863,6 +864,13 @@ def test_check_shard_명령은_결함_줄과_불평_수를_그대로_찍는다(t
     assert r.returncode == 1
     assert r.stdout == ("✗ [where] f — where 없음 (kind function)\n    → " + SV.AnnotateSymbolsStage.FIX["where"]
                         + "\n불평 1 — 고치고 다시 돌린다\n")
+
+
+def test_결함_표의_갈래는_FaultKind_와_같고_갈래마다_고치는_법이_있다() -> None:
+    with open(X.FAULTS_PATH, "rb") as f:
+        doc = tomllib.load(f)
+    assert set(doc["kind"]) == set(get_args(X.FaultKind))
+    assert [k for k, t in doc["kind"].items() if not (isinstance(t.get("fix"), str) and t["fix"].strip())] == []
 
 
 # ── dep_excerpt — depends_on 은 id, 레코드 키는 이름 ─────────────────────────

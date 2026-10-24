@@ -10,7 +10,7 @@
 | 자리 | 하는 일 |
 |---|---|
 | `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열두 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
-| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 14개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 일곱 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에 산다 |
+| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 14개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 일곱 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에, 샤드 검문의 결함 문구(결함 줄 꼴 · 고치는 법 · 결함 설명)는 결함 표 `mode1/faults.toml` 에 산다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
