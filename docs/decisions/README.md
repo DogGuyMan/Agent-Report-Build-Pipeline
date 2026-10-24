@@ -15,6 +15,7 @@
 | [0008](0008-old-output-is-origin-not-target.md) | 옛 산출물은 출발점이지 기준이 아니다 | 확정 | 0001~0003 의 공통 원인. Track A/B 순서와 2026-08-28 해소 항목도 여기 |
 | [0009](0009-second-report-genre-deferred.md) | 두 번째 보고서 장르(`번복기록`) mode | 보류 | 소비자 0 인 동안 mode 축을 파지 않는다. `plans/` 입력은 열렸다 |
 | [0010](0010-xmldoc-retired.md) | `xmldoc` 주석 주입을 쓰지 않는다 | **폐지** | 게이트에서 뺐다. `emit`·`inject` 안 돌린다. 남은 블록은 잔재 — 지우는 건 별개 작업 |
+| [0011](0011-split-mode1-and-report.md) | Mode 1 / Mode 1.5+2 두 저장소 · 데이터 계약 경계 | 확정 | Mode 1 은 사람이 부를 때만 · 1.5 는 봉인 필수 · 2 는 독립 · 리소스와 코드 분리 |
 
 ## 새 기록을 더하는 법
 
