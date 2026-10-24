@@ -17,7 +17,7 @@
 | `lib.mjs` | `src/` 를 `.tmp/lib.mjs` 로 번들 (테스트용) |
 | `render_classes.py` · `render_modules.py` | DOT → `dot -Tsvg/-Tpng` 로 다이어그램 |
 | `demermaid.py` | 위키 산문의 Mermaid 를 사전 렌더 SVG 로 치환 |
-| `templates/report/` | Mode 2 의 보고서 뼈대(`data.ts` · `report.tsx`)와 빌드가 쓰는 렌더 스크립트 |
+| `templates/report/` | Mode 2 의 보고서 뼈대(`data.ts` · `report.tsx`), 빌드가 쓰는 렌더 스크립트와 HTML 문서 뼈대(`page.html.tmpl`) |
 | `templates/dot/` | Mode 1 의 DOT 머리 · 범례 (`render_modules.py` · `render_classes.py`) |
 
 **Why — 파이썬 셋이 왜 기계축이 아닌가.** 셋 다 하는 일이 `subprocess` 로 `dot` 또는 `mmdc` 를

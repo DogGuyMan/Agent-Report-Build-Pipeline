@@ -122,22 +122,8 @@ def main() -> None:
             print(f"용어 그래프 런타임 {len(code)} 자 삽입 (용어 {len(data['terms'])}개)")
             
     # 8. HTML output
-    html = f"""<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{data.get("specName", "")} — 설계 검토</title>
-<style>
-{css}
-</style>
-</head>
-<body>
-{body}
-{runtime}
-</body>
-</html>
-"""
+    html = render_file(os.path.join(TEMPLATES, "page.html.tmpl"), {
+        "spec_name": str(data.get("specName", "")), "css": css, "body": body, "runtime": runtime})
     out_dir = os.path.join(cwd, "out")
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "report.html"), "w", encoding="utf-8") as f:

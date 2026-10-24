@@ -9,7 +9,7 @@ from collections.abc import Iterator
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "runner"), os.path.join(ROOT, "machine")]
 
-LONG_LINES = 6     # 줄바꿈이 이만큼 이상인 글 상수는 리소스로 뺀다
+LONG_LINES = 6     # 줄바꿈이 이만큼 이상인 글(문자열 상수 · f-문자열)은 리소스로 뺀다
 LONG_CHARS = 200   # 한 줄이라도 이 길이 이상이면 리소스로 뺀다
 CODE_TOPS = ("runner", "viz")       # 긴 글을 찾는 폴더 — 시험 파일은 뺀다
 TEMPLATE_TOPS = ("runner", "viz")   # 코드가 쓰는 템플릿이 사는 폴더 — `<폴더>/**/templates/**`
@@ -48,6 +48,15 @@ def string_constants(tree: ast.AST) -> Iterator[ast.Constant]:
             yield n
 
 
+def texts(tree: ast.AST) -> Iterator[tuple[int, str]]:
+    """잴 글을 (줄, 글) 로 — 독스트링을 뺀 문자열 상수 하나하나, 그리고 f-문자열은 글자 조각을 이은 한 덩어리."""
+    for n in string_constants(tree):
+        yield n.lineno, n.value
+    for n in ast.walk(tree):
+        if isinstance(n, ast.JoinedStr):
+            yield n.lineno, "".join(v.value for v in n.values if isinstance(v, ast.Constant) and isinstance(v.value, str))
+
+
 def is_long(text: str) -> bool:
     return text.count("\n") >= LONG_LINES or len(text) >= LONG_CHARS
 
@@ -71,8 +80,8 @@ def is_production_class(c: type) -> bool:
 
 
 def test_파이썬에_리소스로_뺄_긴_글이_없다() -> None:
-    hits = ["%s:%d" % (os.path.relpath(p, ROOT), n.lineno)
-            for p in code_files(CODE_TOPS) for n in string_constants(parse(p)) if is_long(n.value)]
+    hits = sorted({"%s:%d" % (os.path.relpath(p, ROOT), line)
+                   for p in code_files(CODE_TOPS) for line, text in texts(parse(p)) if is_long(text)})
     assert hits == [], "리소스 파일로 옮길 글이 코드에 있다:\n" + "\n".join(hits)
 
 
