@@ -8,8 +8,8 @@
 ## 0. 한눈에 (TL;DR)
 
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 진행) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · **R11 ⬜(사용자 결정) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
-- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) R9 보강(게이트 둘 조이기 + HTML 뼈대 옮기기 — 본체 승인) · R10 품질 검토 (2) R11 — 목록 밖 LLM 글 옮기기 (3) A2 · A3 (4) Phase K (5) M1 · M2.
+- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · **R11 ⬜(사용자 결정) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
+- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 (2) R11 — 목록 밖 LLM 글 옮기기 (3) A2 · A3 (4) Phase K (5) M1 · M2.
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
@@ -98,7 +98,7 @@ Phase A
 | R6 | 템플릿 일곱 → `viz/templates/{report,dot}/` · `runner/wiki/templates/` | ✅ spec ✅ 품질 ✅(시험 + `str(lang)` 사용자 승인) · 사용자 승인 | 범례는 `"\n" + render_file(…).removesuffix("\n")`. `render.mjs.tmpl` 은 계획대로 들여쓰기를 뗐다(빌드 중 지워지는 임시 파일 바이트만 다르고 HTML 은 같다) |
 | R7 | 설정값 → `config/*.toml` | ✅ spec ✅ 품질 ✅ · 사용자 승인 | `run_mode2.py --model` 도움말은 `(기본: %(default)s)`(사용자 결정) |
 | R8 | 옮긴 뒤 대조 | ✅ 커밋 없음 | 31 동일 |
-| R9 | 게이트 시험 + Phase R 문서 정리 + 보강 | ✅ `36fb98d` `83c22a1` `116bd73` + 보강 `0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · spec ✅ · 품질 With fixes → 보강 ✅(로컬 세션 2026-10-24) · 재검토 ⬜(opus 진행) · 사용자 승인(본체 셋) | I1 — 긴 글 게이트가 f-문자열을 한 덩어리로 잰다 · HTML 뼈대는 `viz/templates/report/page.html.tmpl`. I2 — 템플릿을 문자열 상수와 같은 값으로 찾고 basename 겹침을 본다. M2 확정 — 게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 의 `python -c` 스크립트는 `tools/doctor_packages.py`. 31 동일 · `doctor` 표 동일. "줄 번호 ≤ 파일 끝" 인용 검사는 넣지 않았다 — 루트 `CLAUDE.md` 의 `runner/run_mode1.py:414`(위키가 낡은 줄을 인용한다는 설명 문장)가 걸린다 |
+| R9 | 게이트 시험 + Phase R 문서 정리 + 보강 | ✅ `36fb98d` `83c22a1` `116bd73` + 보강 `0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · spec ✅ · 품질 With fixes → 보강 ✅(로컬 세션 2026-10-24) · 재검토 ✅ Ready: Yes(Important 0) · 문서 정리 `128c25b` · 사용자 승인(본체 셋) | I1 — 긴 글 게이트가 f-문자열을 한 덩어리로 잰다 · HTML 뼈대는 `viz/templates/report/page.html.tmpl`. I2 — 템플릿을 문자열 상수와 같은 값으로 찾고 basename 겹침을 본다. M2 확정 — 게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 의 `python -c` 스크립트는 `tools/doctor_packages.py`. 31 동일 · `doctor` 표 동일. "줄 번호 ≤ 파일 끝" 인용 검사는 넣지 않았다 — 루트 `CLAUDE.md` 의 `runner/run_mode1.py:414`(위키가 낡은 줄을 인용한다는 설명 문장)가 걸린다 |
 | R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · 품질 ✅(With fixes) → 보강 `6e9cc72` · 사용자 승인 | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일. 검토 보강 — 아래층 장 목록 절(`write-wiki#lower-page`)을 지나는 시험(그전에는 자리 이름이 어긋나도 통과 · 실제로는 둘째 층에서 러너가 죽는다) · `FIX` 가 빈 줄이 아닌 한 줄인지 · 심볼 줄 들여쓰기를 줄 경계로. 돌연변이 셋을 넣어 잡히는 것 확인. 독스트링 셋과 `wiki.py` 호출 꼴 |
 | R11 | 목록 밖 LLM 글 옮기기 | ⬜ **사용자 결정 — 옮긴다** | §5 (2) |
 | A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
@@ -192,7 +192,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - 루트 `CLAUDE.md` "현재 상태" 표의 `660 통과` 는 2026-10-21 측정 행이라 낡았다(지금 711). 측정 행을 다시 잴 때 고친다.
 - `.tmpl` 은 인용 검사기의 `PATH_REF` 가 확장자를 몰라 폴더째 인용하지 못한다 — 문서에 "`viz/templates/report/` 의 `data.ts.tmpl`" 꼴로 적는다.
 - `WriteWikiStage.jobs` 의 `wiki_done` 은 이번 실행에서 쓴 장만 담는다 — `--resume` 으로 첫 층이 이미 있으면 둘째 층 프롬프트가 "(없음 — 네가 첫 장이다)" 라고 말한다(R10 이전부터).
-- 게이트가 아직 못 보는 꼴은 R9 재검토가 판정한다(`+` 이어붙이기 · `"\n".join` 목록 · 동적으로 만든 템플릿 이름).
+- 게이트가 아직 못 보는 꼴은 R9 재검토가 판정했다 — 닫지 않는다(위 *상태*).
 
 **기록만**
 - `agent_prompt` · `ask_argv` 는 모듈 함수가 `AgentStage.load_prompt` · `AskStage.load_prompt` 를 부른다(단계 소유 `@staticmethod` 꼴과 다르다). 범위 밖.
@@ -208,7 +208,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 **(1) R9 보강 · R10 품질 검토**
 
-*상태(2026-10-24 로컬 세션)*: **R9 보강 끝** — 1단계 시험 · 문서 커밋 셋(`0ba79a3` `a7a66c4` `3c4c4e8`) + 3단계 본체 커밋 둘(`bae47de` I1 · `44b55c5` M2, 사용자 승인). 같은 꼴의 재검토(opus)를 띄웠다 — 결과가 이 문서에 없으면 다시 돌린다(범위 `88c8123..44b55c5`). **R10 품질 검토 끝** — With fixes → `6e9cc72`. 아래는 기록으로 남긴다.
+*상태(2026-10-24 로컬 세션)*: **R9 보강 끝** — 1단계 시험 · 문서 커밋 셋(`0ba79a3` `a7a66c4` `3c4c4e8`) + 3단계 본체 커밋 둘(`bae47de` I1 · `44b55c5` M2, 사용자 승인). 재검토(opus, 범위 `88c8123..44b55c5`) **Ready: Yes** — I1 · I2 를 다시 넣어도 잡히고 다섯 커밋이 각각 초록. 남긴 Minor 는 기록만: 게이트 1 을 아직 비켜 가는 꼴(중첩 f-문자열 · `+` 이어붙이기 · `"\n".join` 목록)은 "걸림줄이지 벽이 아니다 — 더 쫓으면 거울 함정" 판정, 200자를 넘는 정규식이 처음 걸리면 그때 `re.compile` 첫 인자만 빼는 몇 줄을 검토. **R10 품질 검토 끝** — With fixes → `6e9cc72`. 아래는 기록으로 남긴다.
 *M2 확정(2026-10-24 로컬 세션 질의 — 클라우드의 잠정안은 버렸다)*: 긴 글 게이트(게이트 1)의 탐색 폴더를 `runner` · `viz` · `machine` · `tools` 로 넓힌다. 걸리는 유일한 것 `tools/doctor.py:98`(패키지 확인용 `python -c` 7줄)은 파일로 빼 자식 프로세스로 부른다 — **본체 승인**이고 게이트 넓히기 · 루트 `CLAUDE.md` 의 규약 범위 문장과 **한 커밋**이다(따로 넣으면 게이트가 빨개지거나 문서가 앞서간다). 그래서 아래 커밋 3 에서는 M2 를 빼고 3단계로 옮긴다.
 
 *R9 보강을 다시 띄울 때 brief 에 더할 것(클라우드 스레드가 쓴 brief, 넘김 문서 §6)* — 아래 R9 검토 결과를 글자 그대로 붙이고 이것을 더한다.
@@ -347,3 +347,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 클라우드 스레드 — 시작 절차 · 게이트 재측정(Mac 과 같음) · `before/` 31 · R9 보강 구현자 사용자 중단(변경 0) · R10 검토 결과 미도착 · M2 잠정 결정 · 환경 실측은 `HANDOFF-2026-10-24-cloud-thread-to-local.md`. 로컬 세션이 반영 — §0.1 실측 표와 결론 · `AskUserQuestion` 줄 · §2 · §5 (1) 상태, M2, 재기동 brief 보강 · R11 제안 제목 ASCII · §6 원형 인자 · §7 ASCII 구두점 규칙(어긴 커밋 실제 16개) |
 | 2026-10-24 | 로컬 세션 질의 결과 — M2 확정(게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 스크립트를 파일로 · 본체 승인 · 3단계에서 I1 과 함께), R9 보강과 R10 검토는 로컬 세션에서 다시 띄움, 낡은 원격 가지 `claude/lucid-goodall-xdoeou` 삭제(그 가지에만 있던 커밋 0) |
 | 2026-10-24 | 로컬 세션 — R9 보강 끝(1단계 `0ba79a3` `a7a66c4` `3c4c4e8` · 본체 `bae47de` `44b55c5` 사용자 승인, 31 동일 · `doctor` 표 동일) · R10 품질 검토 With fixes → `6e9cc72`(시험 셋 · 독스트링 셋 · 호출 꼴, 사용자 승인) · R9 재검토(opus) 띄움 |
+| 2026-10-24 | 로컬 세션 — R9 재검토 Ready: Yes · 문서 정리 `128c25b`. 사용자 지시로 여기서 멈추고 클라우드로 넘긴다. 다음은 §5 (2) R11 부터 |
