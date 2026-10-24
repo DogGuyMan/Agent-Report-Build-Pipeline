@@ -10,7 +10,7 @@
 | 자리 | 하는 일 |
 |---|---|
 | `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열두 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
-| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 10개) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 여섯 `lang` · `scan` · `graph` · `survey` · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에 산다 |
+| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 14개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 일곱 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에 산다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
@@ -18,7 +18,7 @@
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths` (`.py`). `templates/vitepress.config.mts.tmpl` 은 위키 사이트 설정의 템플릿이다 |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
-| `prompts/` · `mode1/prompts/` | LLM 프롬프트 글. `prompts/` 는 Mode 1.5 · 2 의 `ask.md` · `agent.md`, `mode1/prompts/` 는 Mode 1 의 네 단계(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). 단계당 파일 하나, 안은 `<!-- section: 이름 -->` 로 가른다 |
+| `prompts/` · `mode1/prompts/` | LLM 프롬프트 글. `prompts/` 는 Mode 1.5 · 2 의 `ask.md` · `agent.md`, `mode1/prompts/` 는 Mode 1 의 네 단계(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). 단계당 파일 하나(파일 이름이 단계 이름), 안은 `<!-- section: 이름 -->` 로 가른다 |
 
 ## 자주 쓰는 명령
 
@@ -122,9 +122,9 @@ if __name__ == "__main__":
 ## 흔한 변경 패턴 (Common modification patterns)
 
 ```bash
-# Mode 1 에 단계를 더한다 — 넷을 한꺼번에 고친다. 하나라도 빠지면 시작 전에 GraphError 로 죽는다
+# Mode 1 에 단계를 더한다 — 넷을 한꺼번에 고친다. 하나라도 빠지면 시작 전에 GraphError 로 죽는다(프롬프트는 test/test_prompt_resources.py 가 잡는다)
 #   runner/mode1/<모듈>.py   Stage 하위 클래스 — name · emits · reads · writes · perform. 계산은 @staticmethod
-#   runner/mode1/prompts/<단계>.md  LLM 단계면 프롬프트 리소스 · 클래스에 prompt_names 선언("<파일>#<절>")
+#   runner/mode1/prompts/<단계>.md  LLM 단계면 프롬프트 리소스(파일 이름 = 단계 이름) · 클래스에 prompt_names 선언("<파일>#<절>", 절이 없으면 "<파일>")
 #   runner/mode1/context.py  새 산출물이면 Artifact(schema · check) 를 만들고 ARTIFACTS 에 넣는다
 #   runner/mode1/edges.py    ORDER 에 자리 · STAGES 에 인스턴스 · SKIP 을 내면 EDGES 에 그 갈래 · 옛 이름은 ALIASES
 .venv/bin/python runner/run_mode1.py <저장소> --dry-run    # 시뮬레이터의 다섯 검사가 여기서 돈다

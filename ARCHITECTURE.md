@@ -83,8 +83,8 @@ flowchart LR
 `ROOT` 에 만들었다 지운다 (`viz/check.py:119`).
 
 **(다) 위키 정적 사이트도 이 저장소 안에서 짓는다.**
-`runner/wiki/build.py:98` 이 산문을 `.tmp/wiki/<저장소이름>/` 으로 복사한 뒤 거기서 VitePress 를 돌리고,
-산출물만 절대경로 `outDir` 로 대상 저장소에 되돌려 보낸다 (`runner/wiki/build.py:109`).
+`runner/wiki/build.py:65-69` 가 산문을 `.tmp/wiki/<저장소이름>/` 으로 복사한 뒤 거기서 VitePress 를 돌리고,
+산출물만 절대경로 `outDir` 로 대상 저장소에 되돌려 보낸다 (`vitepressConfig` 의 `out_dir` 자리, `runner/wiki/build.py:75`).
 같은 사정 — 대상 저장소에는 `node_modules` 가 없다.
 
 ---
@@ -131,11 +131,13 @@ flowchart LR
 (세 실행기의 `STAGES`). LLM 칸은 Mode 1.5 와 Mode 2 가 하나씩이고(각 실행기의 `AGENT_STAGES`),
 **Mode 1 은 넷**이다 — `P.LlmStage` 하위 클래스 `lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`.
 
-Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 세션을 띄운다.**
-**그 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 칸들에 있고**, 값은 `config/mode1.toml` 의 `[models] sessions` 하나다
+Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 세션을 띄우고**, `outline-wiki` 는 세션 하나다.
+**세 칸의 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 칸들에 있고**, 값은 `config/mode1.toml` 의 `[models] sessions` 하나다
 (`lang-hint` 만 `[models] lang_hint`).
 `runner/mode1/context.py` 의 `load_config` 가 읽어 `run_mode1.py` 의 `--model` 기본값이 된다.
-그 값이 `Mode1Context.model` 로 들어가 `LlmStage.perform` → `run_layer` → `run_agent_with` → `claude_argv` 로 내려간다. 사슬 중간에서 LLM Model을 바꾸지 않는다.
+그 값이 `Mode1Context.model` 로 들어가 `LlmStage.perform` → `run_layer` → `run_agent_with` → `claude_argv` 로 내려간다.
+`--strategy file` 이면 `annotate-symbols` 자리의 `AnnotateFilesStage.perform`(`runner/mode1/survey_files.py`)이
+`run_layer` 를 건너뛰고 `run_agent_with` 를 직접 부른다. 어느 길이든 사슬 중간에서 LLM Model을 바꾸지 않는다.
 
 **Mode 1 단계별로 무엇을 읽고 무엇을 쓰는가**
 
@@ -321,7 +323,7 @@ Node·TypeScript 쪽도 같은 모양이다 — `bin/*` → `runner/dispatch.py`
 | ----------------------------------- | -------------------------------------------- |
 | 접기 규칙과 kind 대응표 (언어 도구의 낱말 → 공통 낱말) | `machine/normalize.py` 만                   |
 | 위키 경로 규약                            | `runner/wiki/paths.py:17` 의 `wikiPaths` 만  |
-| 파이썬 해석기 찾기                          | `tools/python.py:43` 의 `pythonPath` 만     |
+| 파이썬 해석기 찾기                          | `tools/python.py` 의 `pythonPath` 만        |
 | 측정 코드 (토큰 세기·합계·표 그리기)              | `runner/run_mode1.py` 만. 1.5 와 2 는 가져다 쓴다 |
 
 
@@ -348,16 +350,16 @@ graph LR
 | `machine/terms-reading.json`             | LLM (`agent` 단계)                                       | `machine/terms_db.py`                                                  |
 | `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `runner/term/collect.py`                                               |
 | `term-candidates.json`                          | `runner/term/collect.py:26` · `:45`                  | 사람 / 출제 LLM Model                                                               |
-| `answers.json`                                  | **사람**                                                 | `runner/term/quiz.py:1742`                                               |
+| `answers.json`                                  | **사람**                                                 | `runner/term/quiz.py` (`report-term grade`)                              |
 | `term-grades.json`                              | `runner/term/quiz.py`                                | `runner/term/emit.py`                                                  |
 | `terms.json` · `term-study-note.md`             | `runner/term/emit.py:18` · `:33`                     | 사람. Mode 2 의 `data.ts` 로 **손으로** 옮긴다                                     |
 | `specs/<slug>/data.ts`                          | `viz/init.py` 가 뼈대, LLM 이 본문                      | `viz/build.py` · `viz/check.py`                                |
-| `specs/<slug>/out/report.html`                  | `viz/build.py:152`                                | 사람                                                                       |
+| `specs/<slug>/out/report.html`                  | `viz/build.py` 의 `main`                          | 사람                                                                       |
 
 
 **`terms.json` → `data.ts` 사이만 자동이 아니다.** 기계로 병합하지 않는 것이 의도다 —
 `data.ts` 는 사람이 읽는 원고이고, 옮기면서 뜻을 다듬는 것이 그 단계의 일이라고 못 박아 뒀다
-(`runner/run_mode2.py` 머리 주석 · `viz/init.py:107-110`).
+(`runner/run_mode2.py` 머리 주석 · `viz/templates/report/` 의 `data.ts.tmpl` 이 `terms` 위에 다는 주석).
 
 ### 보고서 굽기 — 문자열 조립까지
 
@@ -376,8 +378,8 @@ sequenceDiagram
   B->>F: 문자열 조립해 저장
 ```
 
-5번의 후처리 둘 — `viz/build.py:80` 의 `wrapTerms` 가 본문 용어를 설명 카드 마크업으로 감싸고,
-`viz/build.py:99` 의 `linkPaths` 가 경로 꼴 낱말을 실제 로컬 파일 링크로 바꾼다.
+5번의 후처리 둘 — `viz/build.py:74` 의 `wrapTerms` 가 본문 용어를 설명 카드 마크업으로 감싸고,
+`viz/build.py:97` 의 `linkPaths` 가 경로 꼴 낱말을 실제 로컬 파일 링크로 바꾼다.
 **React 는 빌드 시점 Node 에만 있고, 산출물은 순수 HTML + CSS 다.**
 
 ---
@@ -387,7 +389,7 @@ sequenceDiagram
 
 | 불변식                  | 뜻                                                      | 어느 명령이 검사하나                                                                                              |
 | -------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `<script>` **1개 이하** | 결과물은 정적 HTML 이다. 예산 1칸은 용어 그래프 런타임이 쓴다                 | `report-spec build` 가 굽는 즉시 (`viz/build.py:156`) **와** `report-spec check` (`viz/check.py:17`) |
+| `<script>` **1개 이하** | 결과물은 정적 HTML 이다. 예산 1칸은 용어 그래프 런타임이 쓴다                 | `report-spec build` 가 굽는 즉시 (`viz/build.py` 의 `main` 끝) **와** `report-spec check` (`viz/check.py` 의 `countScripts`) |
 | 타입이 맞는다              | 원고의 `data.ts`·`report.tsx` 가 `viz/src/types.ts` 와 어긋나지 않는다 | `report-spec check` 가 임시 tsconfig 로 `tsc --noEmit` (`viz/check.py:136`)                             |
 | 링크 무결성               | `data.ts` 의 결정 id 와 `report.tsx` 의 절이 1:1              | `report-spec check` (`viz/check.py:29`)                                                             |
 | 용어집 대조               | 본문의 식별자 꼴 낱말에 정의가 있나                                   | `report-spec check` — **경고이지 실패가 아니다** (`viz/check.py:50`)                                          |
@@ -464,9 +466,9 @@ sequenceDiagram
 | 산출물에 `<script>` 를 하나 더 넣기        | 예산이 다 찼다. 새 런타임 코드는 기존 번들 안에 합쳐야 한다 (`viz/build.py:117`)               |
 | 도구가 수용/보류/번복을 판정하기               | 판정은 사람 몫이다. `VerdictFooter` 는 비워서 낸다 (`viz/src/components/VerdictFooter.tsx:9`) |
 | CLI 가 사람에게 되묻기                   | 묻는 절차는 스킬의 일이다 (`runner/term/quiz.py:174`)                                  |
-| `terms.json` 을 `data.ts` 로 자동 병합 | 옮기면서 뜻을 다듬는 것이 그 단계의 일 (`viz/init.py:107`)                             |
+| `terms.json` 을 `data.ts` 로 자동 병합 | 옮기면서 뜻을 다듬는 것이 그 단계의 일 (`viz/templates/report/` 의 `data.ts.tmpl` 이 `terms` 위에 다는 주석)                             |
 | 컴포넌트의 props 를 없애거나 뜻을 바꾸기        | 추가만 한다. API 가 바뀌면 태그를 올린다                                                   |
-| 코드에 절대경로를 박기                     | 파이썬은 `tools/python.py:43`, 바깥 명령은 PATH 로 찾는다                             |
+| 코드에 절대경로를 박기                     | 파이썬은 `tools/python.py` 의 `pythonPath`, 바깥 명령은 PATH 로 찾는다                             |
 
 
 ### 컴포넌트 층

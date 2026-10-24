@@ -9,8 +9,8 @@
 | [`machine/CLAUDE.md`](machine/CLAUDE.md) | **기계축** — 정적 수집 · 정규화 · 전수조사 레코드 · warmup |
 | [`viz/CLAUDE.md`](viz/CLAUDE.md) | **시각축** — 렌더 경로 · 다이어그램 · 직접 실행 가드 |
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
-| [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 환경 점검 · 경로 세척 · README 생성 |
-| [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 · Mode 2 의 Model id · 원본 문서 자리 규칙 · 비용 어림. 코드는 읽기만 한다 |
+| [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 템플릿 채우기 · 환경 점검 · 경로 세척 · README 생성 |
+| [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 의 Model id · Mode 2 의 Model 별명(`opus`) · 원본 문서 자리 규칙 · 비용 어림(`[estimate]` — 형만 있고 읽는 운영 코드는 아직 없다). 코드는 읽기만 한다 |
 | [`split-work/`](split-work/README.md) | **두 저장소 분리 작업 동안만** 쓰는 바이트 대조 도구. 제품 코드가 아니고 산출물은 git 밖이다. 분리가 끝나면 지운다 |
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 축을 가로지르는 시험 — 문서 게이트 · Node 렌더 시험 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
@@ -313,10 +313,11 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
 
 `.claude/CLAUDE.md` 의 13개 체크포인트가 이 저장소에도 그대로 적용된다. 그 위에 추가되는 것:
 
-- **리소스와 코드를 가른다 (최우선).** LLM 프롬프트는 단계당 한 파일 `runner/**/prompts/<단계>.md`(안은
-  `<!-- section: 이름 -->` 으로 가른다), 파일 템플릿은 `**/templates/*`, 설정값은 `config/*.toml`. 파이썬은 읽기만
-  한다 — 프롬프트는 단계의 `PromptResource.load_prompt("<파일>#<절>")`, 템플릿은 `tools.template.render_file`.
-  자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다.
+- **리소스와 코드를 가른다 (최우선).** LLM 프롬프트는 단계당 한 파일 `runner/**/prompts/<단계>.md`(파일 이름이
+  단계 이름이고, 안은 `<!-- section: 이름 -->` 으로 가른다), 코드가 쓰는 파일 템플릿은 `runner/**/templates/` ·
+  `viz/templates/`, 설정값은 `config/*.toml`. 파이썬은 읽기만 한다 — 프롬프트는 단계가 `prompt_names` 에 선언한
+  이름으로 `PromptResource.load_prompt("<파일>#<절>")`(절이 없는 파일은 `"<파일>"`), 템플릿은
+  `tools.template.render_file`. 자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다.
 - 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.
