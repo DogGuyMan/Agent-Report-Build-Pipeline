@@ -72,12 +72,6 @@
       "sourceType": "github",
       "skillPath": ".github/skills/podcast-generation/SKILL.md",
       "computedHash": "6248549130377ca9ea3f65764588a03b3d9970e267fc95d8c2babc6f25ddc973"
-    },
-    "skill-creator": {
-      "source": "microsoft/skills",
-      "sourceType": "github",
-      "skillPath": ".github/skills/skill-creator/SKILL.md",
-      "computedHash": "a63da88839005285b88ad3edc7568c5075782f4fdcb0956976161d251cc1213d"
     }
   }
 }
