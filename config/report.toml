@@ -4,6 +4,8 @@ mode2_agent = "opus"   # run_mode2.py --model 의 기본값
 
 # 원본 문서가 사는 자리와 파일명 관례. viz/init.py 와 runner/run_mode2.py 가 같이 읽는다.
 # specs/ 만 -design.md 를 요구한다 — 같은 폴더에 -before.svg · -design-review.html 이 함께 살아 오타 가드가 된다.
+# pattern 의 캡처 묶음은 둘이다 — 1 은 날짜(YYYY-MM-DD), 2 는 slug. 두 읽는 쪽이 번호로 꺼낸다.
+# dir 이름(specs · plans)은 코드의 기본 인자 · 안내 문구 · 시험도 함께 고정한다 — 여기만 바꾸면 어긋난다.
 [[doc_dirs]]
 dir = "specs"
 pattern = '^(\d{4}-\d{2}-\d{2})-(.+)-design\.md$'
