@@ -12,7 +12,7 @@
 - **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) R9 보강(게이트 둘 조이기 + HTML 뼈대 옮기기 — 본체 승인) · R10 품질 검토 (2) R11 — 목록 밖 LLM 글 옮기기 (3) A2 · A3 (4) Phase K (5) M1 · M2.
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
-- **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 저장소 밖 도구 사본(`docs/handoffs/split-work-2026-10-24/`, §6).
+- **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
 
 ## 1. 상태 (Mac 실측 2026-10-24 — 다시 잰다)
 
@@ -77,7 +77,8 @@ Phase A
 | 문서 | 경로 | git | 역할 |
 |---|---|---|---|
 | rev.4 계획(사양) | `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md` | 추적 | Task 본문 전부. 서브에이전트에게는 해당 Task 를 **떼어 scratch 파일로** 넘긴다(아래 §5 의 꼴) — 계획서 자체를 읽게 하지 않는다 |
-| 저장소 밖 도구 사본 | `docs/handoffs/split-work-2026-10-24/` | 추적 | `capture.py` · `capture.sh` · `extract.py` · `split_reading.py` · `edge_dump.py`. §6 |
+| 대조 도구 | `split-work/`(설명서 `split-work/README.md`) | 스크립트만 추적 · 산출물은 git 밖 | `capture.py` · `capture.sh` · `extract.py` · `split_reading.py` · `edge_dump.py` · `r9-gate-proto/`. §6 |
+| 스킬 사본(깊은 복사) | `.claude/skills/{personal-commit-messages,design-decision-discipline,lossless-handoff,confidence-and-sourcing,response-quality-calibration,spec-review-dashboard,term-benchmark}/` | 추적 | 원본은 Mac 의 `~/.claude/skills/` — 원격 세션은 프로젝트 스킬로 읽는다. **원본을 고치면 사본도** 같은 변경에서 맞춘다(루트 CLAUDE.md) |
 | 결정 기록 | `docs/decisions/0011-split-mode1-and-report.md` | 추적 | A1 |
 | 실행 계획(plan mode) | `~/.claude/plans/docs-superpowers-plans-2026-10-22-split-sprightly-codd.md` | Mac 만 | 내용은 §4 에 들어 있다 |
 | 메모리 | `~/.claude/projects/<이 저장소>/memory/` | Mac 만 | 사용자 결정 요약 · 승인 규칙 |
@@ -135,6 +136,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - `config/mode1.toml [estimate]` 는 지금 읽는 곳이 시험뿐이다 — K2b 가 첫 런타임 독자다.
 
 **Phase B 로**
+- `split-work/` 는 분리 작업 도구라 두 저장소 어느 쪽 제품도 아니다 — rev.4 B1 경로 목록에서 report-builder 쪽에 두고 분리가 끝나면 지운다. `.claude/skills/` 의 사본 다섯(`personal-commit-messages` 등)은 두 저장소 모두에서 쓰인다 — Mode 1 저장소에도 넣을지 B 에서 정한다.
 - `tools/template.py` 는 **두 저장소 모두에 필요하다** — Mode 1 쪽 `viz/render_*.py` · `runner/wiki/build.py` · `runner/pipeline.py` 와 Mode 2 쪽 `viz/init.py` · `viz/build.py` 가 함께 import 한다. rev.4 B1 경로 목록 양쪽에 넣는다. `config/mode1.toml` 은 Mode 1, `config/report.toml` 은 Mode 2 쪽.
 
 **Phase E 로**
@@ -177,6 +179,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
   - M10 루트 `CLAUDE.md:13` "Mode 1 · Mode 2 의 Model id" — Mode 2 값은 별명 `"opus"` · `[estimate]` 를 읽는 운영 코드는 아직 없다(K2b 가 첫 독자).
   - M11 `runner/test_run_mode2.py` 의 `test_doc_dirs_are_specs_then_plans` 는 `test/test_config.py` 와 완전히 겹친다 — 지워도 된다.
   - 권고: `ARCHITECTURE.md` 의 줄 인용이 낡았다 — `:360` `viz/init.py:107-110` 의 글은 `viz/templates/report/data.ts.tmpl:10-13` 으로 옮겨졌다 · `:379-380` `viz/build.py:80` / `:99` 는 지금 `:74` / `:97` · `:86-87` `runner/wiki/build.py:98` / `:109` 는 파일 끝(80줄)을 넘는다. `test/test_docs_citations.py` 는 파일 존재만 본다 → 함수 이름으로 인용하거나 "줄 번호 ≤ 파일 끝" 검사를 몇 줄 더한다.
+- **원형이 저장소에 있다**: `split-work/r9-gate-proto/stricter.py` 가 I1 · I2 를 고친 게이트를 미리 돌린다(HEAD 기대 출력 `gate1+fstr: ['viz/build.py:125']` · 중복 basename 없음 · 고아 없음). `scan_evasion.py` · `scan_long.py` 는 비켜 가는 꼴과 범위(M2) 판단용 — 기대 출력은 `split-work/README.md`.
 - 처리 순서 제안: I2 + M1 · M3(게이트 2 줄) · M4 (시험) → 문서 M3 · M5 · M6 · M7 · M8 · M10 · 권고 → I1 (본체 · 승인, 게이트 조이기와 한 커밋) → M2 는 사용자에게 물어 정한다. 끝나면 같은 꼴로 재검토(opus).
 
 *R10 품질 검토* — `opus` · 읽기 전용. 위 R9 보강의 구현자와 같이 돌려도 된다(R10 검토는 `runner/mode1/` 을 읽고, R9 보강은 `test/` · `viz/build.py` · 문서를 고친다).
@@ -219,22 +222,18 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 **(5) M1 · M2** — M1 은 rev.4 의 게이트 묶음(`gen_contract.py --check` · `gen_contract_types.py --check` · `npm run doctor` · `machine/evidence.py . --need terms-db,wiki --status` → `Mode 1 봉인 — 없음` 포함). M2 는 `main` fast-forward + 태그 `split-base-2026-10-24` — **push 전에 사용자에게 묻는다**. `Fast-forward` 가 아니면 멈추고 알린다.
 
-## 6. `split-work/` 준비 (저장소 밖 · 커밋하지 않는다)
+## 6. `split-work/` 준비 (저장소 안 · 산출물은 git 밖)
 
-도구 다섯은 `docs/handoffs/split-work-2026-10-24/` 에 사본이 있다(Mac 의 `$HOME/LLM-Tools/split-work/` 와 바이트로 같다 · 보강 셋이 들어 있다 — `.raw` 사본 · Graphviz 단언 우회 · `TOOLS_ROOT` 기본값).
+대조 도구는 저장소 뿌리의 **`split-work/`** 에 있다(설명서 `split-work/README.md`). 2026-10-24 Mac 의 `$HOME/LLM-Tools/split-work/` 를 통째로 옮겼고 바깥 폴더는 지웠다 — report-builder 에만 매인 도구였다(다른 프로젝트 참조 0). 산출물 `before*/` · `after*/` · `fixture-shards/` · `patches/` · `frag/` · `reading-mode*.json` 은 이 기계의 절대 경로가 실려 `.gitignore` 로 git 밖이다 — **클라우드에서는 `before/` 를 다시 찍는다.** rev.4 본문의 `$TOOLS_ROOT/split-work/…` 는 `TOOLS_ROOT=$PWD`(저장소 뿌리)로 읽는다 — `capture.sh` 가 자기 폴더의 부모를 기본값으로 잡는다.
 
-1. 저장소 **밖** 아무 곳에 `split-work/` 이름으로 복사한다 — `capture.sh` 는 자기 폴더의 부모를 `TOOLS_ROOT` 로 잡고 `$TOOLS_ROOT/split-work/capture.py` 를 부르므로 **폴더 이름이 `split-work` 여야 한다**:
+1. `out/codegraph-raw/codegraph.json` 이 없으면 `.venv/bin/python bin/report-wiki prep .`.
+2. `before/` 를 지금 HEAD 에서 찍고 결정적인지 본다(경로는 상대여도 된다 — `capture.sh` 가 절대 경로로 바꾼다):
    ```bash
-   SW="$(dirname "$PWD")/split-work"; mkdir -p "$SW" && cp docs/handoffs/split-work-2026-10-24/* "$SW/" && chmod +x "$SW/capture.sh"
+   split-work/capture.sh "$PWD" split-work/before && ls split-work/before | wc -l    # 31 = .txt 14 · .raw 14 · modules.dot · classes.dot · report.html
+   split-work/capture.sh "$PWD" split-work/before-again && diff -r split-work/before split-work/before-again && rm -r split-work/before-again
    ```
-2. `out/codegraph-raw/codegraph.json` 이 없으면 `.venv/bin/python bin/report-wiki prep .`.
-3. `before/` 를 지금 HEAD 에서 찍고 결정적인지 본다:
-   ```bash
-   "$SW/capture.sh" "$PWD" "$SW/before" && ls "$SW/before" | wc -l    # 31 = .txt 14 · .raw 14 · modules.dot · classes.dot · report.html
-   "$SW/capture.sh" "$PWD" "$SW/before-again" && diff -r "$SW/before" "$SW/before-again" && rm -rf "$SW/before-again"
-   ```
-   Phase R 전체가 이 31개를 바이트로 보존했으므로 HEAD 에서 찍어도 기준이 같다.
-4. **worktree 에서 `pytest` 를 돌릴 때 `.venv` 를 통째로 심볼릭 링크하지 않는다.** `runner/run_mode1.py` 의 `_bootstrap_venv()` 가 `sys.prefix` 를 `<wt>/.venv` 와 견주는데 링크를 풀면 본 저장소 `.venv` 라 어긋나 `os.execv` 를 끝없이 되풀이한다(수집 단계에서 출력 없이 멈춘다). 꼴:
+   Phase R 전체가 이 31개를 바이트로 보존했으므로 HEAD 에서 찍어도 기준이 같다. ⚠ 재조사 절(`annotate-retry`)은 샤드 폴더 `split-work/fixture-shards/` 의 **절대 경로**를 글에 싣는다 — 기준과 대조는 같은 자리에서 찍어야 한다(worktree 대조도 샤드 폴더는 본 저장소의 것을 넘긴다).
+3. **worktree 에서 `pytest` 를 돌릴 때 `.venv` 를 통째로 심볼릭 링크하지 않는다.** `runner/run_mode1.py` 의 `_bootstrap_venv()` 가 `sys.prefix` 를 `<wt>/.venv` 와 견주는데 링크를 풀면 본 저장소 `.venv` 라 어긋나 `os.execv` 를 끝없이 되풀이한다(수집 단계에서 출력 없이 멈춘다). 꼴:
    ```bash
    git worktree add --detach "$S/wt" HEAD
    mkdir -p "$S/wt/.venv/bin" && cp .venv/pyvenv.cfg "$S/wt/.venv/"
@@ -243,13 +242,14 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
    # worktree 에서: npm test 먼저(.tmp/lib.mjs 를 굽는다) → .venv/bin/python -m pytest -q → pyright
    git worktree remove --force "$S/wt"; git worktree prune
    ```
-   worktree 에는 `out/` 이 없다 — 층 분포 시험은 건너뛰고 위키 시험은 실패한다(정상). 글 28개는 `"$PWD/.venv/bin/python" "$SW/capture.py" "$S/wt" "$S/after" "$SW/fixture-shards"` 로, DOT 는 worktree 의 `viz/render_*.py` 를 **본 저장소의** `out/codegraph-raw/codegraph.json` 경로로 돌려 대조한다(DOT 머리 주석에 그 경로가 찍힌다). `report.html` 은 파일 링크에 저장소 경로가 실려 본 저장소에서 적용 뒤 대조한다.
-5. 경계 입력 대조: `edge_dump.py <트리>` 가 Mode 1 프롬프트 함수 · `FIX` · 재조사 절 · `check_shard` 출력 128개를 JSON 으로 stdout 에 낸다. `git archive <기준> | tar -x -C <옛트리>` 와 후보 트리를 각각 돌려 `cmp`. `python -I` 로 돌린다.
-6. 그 밖: `extract.py <파일.py> <줄> <출력>` — 파이썬 문자열 하나를 `{{이름}}` 리소스 글로 옮긴다(`.format` 이스케이프를 푼다 · f-문자열 식은 `slotN` 으로). `split_reading.py` — A4(끝났다).
+   worktree 에는 `out/` 이 없다 — 층 분포 시험은 건너뛰고 위키 시험은 실패한다(정상). 글 28개는 `.venv/bin/python split-work/capture.py "$S/wt" "$S/after" "$PWD/split-work/fixture-shards"` 로, DOT 는 worktree 의 `viz/render_*.py` 를 **본 저장소의** `out/codegraph-raw/codegraph.json` 경로로 돌려 대조한다(DOT 머리 주석에 그 경로가 찍힌다). `report.html` 은 파일 링크에 저장소 경로가 실려 본 저장소에서 적용 뒤 대조한다.
+4. 경계 입력 대조: `split-work/edge_dump.py <트리>` 가 Mode 1 프롬프트 함수 · `FIX` · 재조사 절 · `check_shard` 출력 128개를 JSON 으로 stdout 에 낸다. `git archive <기준> | tar -x -C <옛트리>` 와 후보 트리를 각각 `python -I` 로 돌려 `cmp`.
+5. R9 보강용 원형: `split-work/r9-gate-proto/`(`stricter.py` · `scan_evasion.py` · `scan_long.py`) — HEAD 기대 출력과 고치는 순서는 `split-work/README.md` 에 있다.
+6. 그 밖: `split-work/extract.py <파일.py> <줄> <출력>`(파이썬 문자열 → `{{이름}}` 리소스 글) · `split-work/split_reading.py`(A4 — 끝났다).
 
 ## 7. 가드레일 · 규약
 
-- **본체 `.py` 승인(사용자 규칙)**: 구현자는 시험 파일 · `.md` · `.toml` · `.tmpl` · 생성물(`contracts/*` · `machine/contract_types.py` · `*/README.md`)은 직접 쓴다. 본체 `.py`(새 파일 포함)는 **저장소에 쓰지 않고** `$SW/patches/<Task>/` 에 완성본(경로의 `/` → `__`)과 `diff -u`(묶음 diff 하나 포함)를 두고, 임시 worktree 에서 후보를 검증한 뒤 `DONE_WITH_CONCERNS — 본체 파일 적용 대기` 로 멈춘다.
+- **본체 `.py` 승인(사용자 규칙)**: 구현자는 시험 파일 · `.md` · `.toml` · `.tmpl` · 생성물(`contracts/*` · `machine/contract_types.py` · `*/README.md`)은 직접 쓴다. 본체 `.py`(새 파일 포함)는 **저장소에 쓰지 않고** `split-work/patches/<Task>/`(git 밖) 에 완성본(경로의 `/` → `__`)과 `diff -u`(묶음 diff 하나 포함)를 두고, 임시 worktree 에서 후보를 검증한 뒤 `DONE_WITH_CONCERNS — 본체 파일 적용 대기` 로 멈춘다.
   - **클라우드 · auto mode(권한 창이 안 뜬다)**: 오케스트레이터가 diff 를 직접 읽고 spec 대조를 한 뒤 `AskUserQuestion` 으로 승인을 받는다. **미리보기 꼴(사용자가 요구한 것)**: 무엇을 옮기거나 바꾸나(전 → 후 표) · 파이썬 쪽 대표 hunk · **"이전에는 안 되던 것 → 이제 되는 것"** · 확인한 것(시험 · 바이트 대조 수치) · 계획과 다른 점. 선택지는 적용(권장) · 보류 — diff 를 직접 본다 · 거부. 승인 뒤 `cp` + `cmp` 또는 `git apply` 로 적용하고 본 저장소에서 다시 검증한다.
   - Mac(권한 창이 뜨는 세션)이면 `Edit`/`Write` 로 적용해 권한 창에 diff 를 띄운다.
   - 적용 뒤 마무리(전량 pytest · pyright · README 재생성 · 이름으로 `git add` · 커밋 · push)는 오케스트레이터가 직접 해도 된다.
@@ -279,3 +279,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 클라우드 세션 갱신. R1 품질 검토(`9fa0f41` · `e9ddfc3`) · README `59a43fb` · R2 `22c80a3` + `83eb828` · R3(scratch) · R4 `f87e877`(28/28). 이월 사항 · split-work 재생성 · 클라우드 승인 꼴 추가 |
 | 2026-10-24 | Mac 세션(오케스트레이터 Fable 5.1 → Opus 5.5). split-work 재생성 · R4 검토 둘 + `eeb4976` · `d00388a` · R5 `b627831` + `95f9758` · R6 `283aec3` + `a3ac974` · R7 `3665cc5` + `850a6a0` · R8 · R9 `36fb98d` + `83c22a1` + `116bd73` · R10 `d598822` + `5837c32` · A1 `1325398` · A4. 정정 ⑤ 를 K6 으로 옮김 · A2 의 include 잔재 편차 · 사용자 결정(R10 · R11 · 도움말 · `str(lang)`) |
 | 2026-10-24 | 사용자 지시로 남은 일을 Claude Cloud 로 넘김. 이 판으로 문서를 다시 짰다 — 해결된 이월은 걷어내고 §5 에 Task 별 brief 요지, 저장소 밖 도구 다섯을 `docs/handoffs/split-work-2026-10-24/` 로. R9 품질 검토 결과(With fixes · I1 f-문자열 · I2 부분 문자열 · Minor 열하나)를 §5 (1) 에 그대로 넣었다 — 고치지 않았다 |
+| 2026-10-24 | 사용자 지시로 `$HOME/LLM-Tools/split-work/` 를 저장소 뿌리 `split-work/` 로 옮겼다(report-builder 에만 매인 도구 · 바깥 폴더 지움 · 산출물은 `.gitignore`). `capture.sh` 가 인자를 절대 경로로 바꾸게 고쳤다(상대 출력 경로에서 `report.html` 복사가 실패했다). `before/` 를 새 자리에서 다시 찍었다(옛 기준과 차이는 재조사 절의 샤드 경로뿐). R9 검토 원형 셋을 `split-work/r9-gate-proto/` 로. 홈 전용 스킬 다섯을 `.claude/skills/` 에 깊은 복사 |
