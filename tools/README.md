@@ -11,7 +11,9 @@
 | [`doctor.py`](doctor.py) | — |
 | [`gen_readme.py`](gen_readme.py) | 소스에서 디렉토리별 README.md 를 생성한다. |
 | [`python.py`](python.py) | — |
+| [`template.py`](template.py) | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 하나라도 어긋나면 예외다. |
 | [`test_gen_readme.py`](test_gen_readme.py) | README 가 소스와 어긋나지 않는지 본다. |
+| [`test_template.py`](test_template.py) | — |
 
 ---
 
@@ -57,6 +59,18 @@
 
 ---
 
+## `template.py`
+
+리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 하나라도 어긋나면 예외다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`TemplateError`** | *class* | 템플릿의 자리와 넘긴 값이 맞지 않는다. |
+| `render` | `(text: str, values: Mapping[str, str]) -> str` | `{{이름}}` 을 값으로 바꾼다. 값이 없는 자리 · 자리가 없는 값은 둘 다 `TemplateError`. |
+| `render_file` | `(path: str, values: Mapping[str, str]) -> str` | 파일 하나를 UTF-8 로 읽어 `render` 한다. |
+
+---
+
 ## `test_gen_readme.py`
 
 README 가 소스와 어긋나지 않는지 본다.
@@ -69,4 +83,19 @@ README 가 소스와 어긋나지 않는지 본다.
 | `test_pipe_in_signature_is_escaped` | `(tmp_path: Path) -> None` | `str \| None` 의 파이프가 마크다운 표 칸을 깨뜨리지 않는다. |
 | `test_subdirectory_file_links_relative_to_its_readme` | `(tmp_path: Path) -> None` | 하위 폴더 파일의 링크는 README 자리 기준 상대 경로다. 파일 이름만 적으면 링크가 깨진다. |
 | `test_git_ignored_file_is_left_out` | `(tmp_path: Path) -> None` | git 이 무시하는 파일은 싣지 않는다. 기계마다 있고 없는 파일이 README 를 기계마다 다르게 만든다. |
+
+---
+
+## `test_template.py`
+
+
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `test_자리를_값으로_바꾼다` | `()` |  |
+| `test_값이_없는_자리는_예외다` | `()` |  |
+| `test_자리가_없는_값도_예외다` | `()` |  |
+| `test_한겹_중괄호와_달러는_건드리지_않는다` | `()` |  |
+| `test_값_안의_자리는_다시_펴지_않는다` | `()` |  |
+| `test_render_file_은_UTF8_파일을_읽어_채운다` | `(tmp_path: Path)` |  |
 
