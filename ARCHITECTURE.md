@@ -128,11 +128,12 @@ flowchart LR
 ```
 
 단계 목록은 상수로 못 박혀 있고 레지스트리나 플러그인 구조를 만들지 않는다
-(세 실행기의 `STAGES`). LLM 칸은 Mode 1.5 와 Mode 2 가 하나씩이고, **Mode 1 만 둘**이다
-(`run_mode1.py` 의 `AGENT_STAGES = {"survey", "wiki"}` — 2026-08-30 에 `agent` 한 칸이 갈렸다).
+(세 실행기의 `STAGES`). LLM 칸은 Mode 1.5 와 Mode 2 가 하나씩이고(각 실행기의 `AGENT_STAGES`),
+**Mode 1 은 넷**이다 — `P.LlmStage` 하위 클래스 `lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`.
 
-Mode 1 의 LLM 칸 둘(`survey` · `wiki`)은 **각각 여러 세션을 띄운다.** 그 세션을
-**그 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 두 칸에 있고**, 값은 `config/mode1.toml` 의 `[models] sessions` 하나다.
+Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 세션을 띄운다.**
+**그 세션을 `claude-sonnet-5-5` 로 띄울 책임은 이 칸들에 있고**, 값은 `config/mode1.toml` 의 `[models] sessions` 하나다
+(`lang-hint` 만 `[models] lang_hint`).
 `runner/mode1/context.py` 의 `load_config` 가 읽어 `run_mode1.py` 의 `--model` 기본값이 된다.
 그 값이 `Mode1Context.model` 로 들어가 `LlmStage.perform` → `run_layer` → `run_agent_with` → `claude_argv` 로 내려간다. 사슬 중간에서 LLM Model을 바꾸지 않는다.
 
