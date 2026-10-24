@@ -12,6 +12,9 @@ from mode1.resume import ResumeDoc
 # 이 파일은 <ROOT>/runner/mode1/ 에 있다. 저장소 뿌리는 그 셋 위다 — 박지 않고 계산한다.
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Mode 1 LLM 단계의 프롬프트 리소스. 단계마다 `prompt_names` 로 자기 것을 선언한다.
+PROMPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
+
 # 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
 Record = dict[str, object]
 Records = dict[str, Record]

@@ -21,6 +21,8 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
     """루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다 — 관문이 아니다."""
     name = "lang-hint"
     emits = P.OK | P.SKIP
+    prompt_dir = X.PROMPT_DIR
+    prompt_names = ("lang-hint",)
 
     def model(self, ctx: Mode1Context) -> str:
         return LANG_SELECT_MODEL
@@ -30,14 +32,8 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
 
     @staticmethod
     def hint_prompt(docs: str) -> str:
-        return (
-            "아래는 한 저장소의 최상위 문서다. 이 저장소에 **정적 분석기를 돌려 코드 지도를 만들려 한다.**\n"
-            "어느 언어를 대상으로 삼아야 가장 쓸모 있는 지도가 나오겠는지 판단해라.\n\n"
-            "고를 수 있는 것과 그 수집기:\n"
-            "  cpp -> clang-uml    cs -> roslyn-dump    py -> griffe+pycalls    ts -> (수집기 없음)\n\n"
-            "문서가 어떤 언어를 많이 이야기하는지가 아니라, **분석해서 얻을 것이 있는 코드**가\n"
-            "어느 언어인지를 본다. 넷 중 하나를 **낱말 하나로만** 답해라. 설명하지 마라.\n"
-            "판단이 안 서면 `unknown` 이라고 답해라.\n\n" + docs)
+        # 절은 줄바꿈 하나로 끝난다 — docs 뒤에 붙은 그 하나를 뗀다.
+        return LangHintStage.load_prompt("lang-hint", docs=docs)[:-1]
 
     def docs(self, ctx: Mode1Context) -> str:
         """루트 문서 묶음. `lang_select.py --print-docs` 가 고른다."""
