@@ -239,7 +239,7 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
                  terms_json: str | None = None, doc_dir: str = "specs") -> str:
     """원고를 쓰는 한 세션이 할 일 전부.
 
-    글은 `runner/prompts/agent.md` 의 `main` 절이고, `terms_json` 이 있으면 `terms` 절을 붙인다.
+    글은 `runner/prompts/agent.md` 의 `main` 절이고, `terms_json` 이 있으면 `terms` 절을 `main` 의 `{{terms_block}}` 자리에 넣는다.
     **그 글이 기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
     무결성은 `check` 가 잡지만, 판정을 LLM Model이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.

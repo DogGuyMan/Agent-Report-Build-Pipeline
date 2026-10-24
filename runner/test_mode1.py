@@ -4,7 +4,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import cast
+from typing import cast, get_args
 
 import pytest
 
@@ -837,7 +837,7 @@ def test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인�
         {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
          "depends_on": ["C1", "C9"]}]}
     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", name_of={"C1": "b.g"})
-    assert "의존 -> b.g, C9" in p                 # 이름표에 없는 id 는 그대로 둔다 — 지어내지 않는다
+    assert "\n  - a.f (function) a.py:1   의존 -> b.g, C9\n" in p   # 이름표에 없는 id 는 그대로 둔다 — 지어내지 않는다
     assert "의존 -> C1" not in p
     assert "uses[].to 는 이 저장소 안 심볼의 레코드 키" in p
     assert "subprocess.run" in p                  # 외부 의존은 적지 않는다는 예시가 계약에 있다
@@ -1105,3 +1105,21 @@ def test_설정이_정확한_모델_ID_를_준다():
     assert cfg["models"]["lang_hint"].startswith("claude-")
     assert LG.LANG_SELECT_MODEL == cfg["models"]["lang_hint"]
     assert 0 < cfg["estimate"]["usd_per_batch_min"] < cfg["estimate"]["usd_per_batch_max"]
+
+
+def test_write_wiki_는_다음_층_프롬프트에_아래층_장을_한_줄씩_싣는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    c.wiki_pages = [{"file": "a.md", "title": "에이"}, {"file": "b.md"}, {"file": "c.md", "title": ""}]
+    c.wiki_level_of = {"a.md": 0, "b.md": 0, "c.md": 1}
+    c.wiki_levels = [0, 1]
+    c.wiki_done = []
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["a.md", "b.md"]
+    [(label, prompt)] = W.WriteWikiStage().jobs(c, 1)
+    assert label == "c.md"
+    assert "\n  - a.md — 에이\n  - b.md — b.md\n" in prompt
+
+
+def test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다() -> None:
+    fix = SV.AnnotateSymbolsStage.FIX
+    assert set(fix) == set(get_args(X.FaultKind))
+    assert all(v.strip() and "\n" not in v for v in fix.values())

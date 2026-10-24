@@ -18,13 +18,13 @@ PROMPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
 
 
 class ModelsConfig(TypedDict):
-    """`[models]` — 배치·장 세션의 Model 과 `lang-hint` 의 Model."""
+    """`[models]` — 배치 · 목차 · 장 세션의 Model 과 `lang-hint` 의 Model."""
     sessions: str
     lang_hint: str
 
 
 class EstimateConfig(TypedDict):
-    """`[estimate]` — 진입 알림이 찍는 배치당 비용 어림(USD)의 하한과 상한."""
+    """`[estimate]` — 배치당 비용 어림(USD)의 하한과 상한."""
     usd_per_batch_min: float
     usd_per_batch_max: float
 

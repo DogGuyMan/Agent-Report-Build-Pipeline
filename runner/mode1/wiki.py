@@ -122,8 +122,8 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         k = ctx.wiki_levels[rnd]
         here = [pg for pg in ctx.wiki_pages if ctx.wiki_level_of[pg["file"]] == k
                 and not os.path.exists(os.path.join(ctx.repo, "docs", "wiki", pg["file"]))]
-        lower = "\n".join(self.load_prompt("write-wiki#lower-page", fname=pg["file"],
-                                           title=pg.get("title") or pg["file"]).removesuffix("\n")
+        lower = "\n".join(WriteWikiStage.load_prompt("write-wiki#lower-page", fname=pg["file"],
+                                                     title=pg.get("title") or pg["file"]).removesuffix("\n")
                           for pg in ctx.wiki_done)
         ctx.wiki_done = ctx.wiki_done + here
         return [(pg["file"], self.wiki_page_prompt(ctx.repo, ctx.root, pg, lower)) for pg in here]

@@ -103,8 +103,8 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`ModelsConfig`** | *class* | `[models]` — 배치·장 세션의 Model 과 `lang-hint` 의 Model. |
-| **`EstimateConfig`** | *class* | `[estimate]` — 진입 알림이 찍는 배치당 비용 어림(USD)의 하한과 상한. |
+| **`ModelsConfig`** | *class* | `[models]` — 배치 · 목차 · 장 세션의 Model 과 `lang-hint` 의 Model. |
+| **`EstimateConfig`** | *class* | `[estimate]` — 배치당 비용 어림(USD)의 하한과 상한. |
 | **`Mode1Config`** | *class* | `config/mode1.toml`. |
 | `load_config` | `(path: str = CONFIG_PATH) -> Mode1Config` | 설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다. |
 | **`ShardUse`** | *class* |  |
@@ -733,6 +733,8 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_이름이_갈린다` | `(tmp_path: Path)` |  |
 | `test_설정이_정확한_모델_ID_를_준다` | `()` |  |
+| `test_write_wiki_는_다음_층_프롬프트에_아래층_장을_한_줄씩_싣는다` | `(tmp_path: Path) -> None` |  |
+| `test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다` | `() -> None` |  |
 
 ---
 
