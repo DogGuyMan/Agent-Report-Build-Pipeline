@@ -13,7 +13,7 @@
 | [`python.py`](python.py) | — |
 | [`template.py`](template.py) | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 하나라도 어긋나면 예외다. |
 | [`test_gen_readme.py`](test_gen_readme.py) | README 가 소스와 어긋나지 않는지 본다. |
-| [`test_template.py`](test_template.py) | — |
+| [`test_template.py`](test_template.py) | 리소스 자리 채우기가 자리와 값의 어긋남을 예외로 막는지 본다. |
 
 ---
 
@@ -66,7 +66,7 @@
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | **`TemplateError`** | *class* | 템플릿의 자리와 넘긴 값이 맞지 않는다. |
-| `render` | `(text: str, values: Mapping[str, str]) -> str` | `{{이름}}` 을 값으로 바꾼다. 값이 없는 자리 · 자리가 없는 값은 둘 다 `TemplateError`. |
+| `render` | `(text: str, values: Mapping[str, str]) -> str` | `{{이름}}` 을 값으로 바꾼다. 값이 없는 자리 · 자리가 없는 값 · 자리가 못 된 `{{…` 는 모두 `TemplateError`. |
 | `render_file` | `(path: str, values: Mapping[str, str]) -> str` | 파일 하나를 UTF-8 로 읽어 `render` 한다. |
 
 ---
@@ -88,7 +88,7 @@ README 가 소스와 어긋나지 않는지 본다.
 
 ## `test_template.py`
 
-
+리소스 자리 채우기가 자리와 값의 어긋남을 예외로 막는지 본다.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
@@ -98,4 +98,8 @@ README 가 소스와 어긋나지 않는지 본다.
 | `test_한겹_중괄호와_달러는_건드리지_않는다` | `()` |  |
 | `test_값_안의_자리는_다시_펴지_않는다` | `()` |  |
 | `test_render_file_은_UTF8_파일을_읽어_채운다` | `(tmp_path: Path)` |  |
+| `test_자리가_못_된_꼴은_예외다` | `(text: str, values: dict[str, str], 꼴: str)` |  |
+| `test_자리를_지운_자리에서_새_꼴이_생기지_않는다` | `()` |  |
+| `test_값_안의_백슬래시는_그대로_들어간다` | `()` |  |
+| `test_같은_자리가_여러_번_나오면_모두_바꾼다` | `()` |  |
 
