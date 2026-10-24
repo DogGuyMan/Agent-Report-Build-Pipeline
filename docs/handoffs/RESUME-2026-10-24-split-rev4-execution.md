@@ -45,8 +45,8 @@ Uncommitted: 없음 (이 문서 커밋 뒤)
 |---|---|---|---|
 | R1 | `tools/template.py` 렌더러 | ✅ `53ddd2f` + `9fa0f41` + `e9ddfc3` · spec ✅ · 품질 ✅(재검토 승인) | Important 하나 — 이름 꼴로 시작했지만 자리가 못 된 `{{repo}/bin` · `{{n.}}` 가 조용히 남았다 → `STRAY` 검사. 따옴표로 시작하는 `{{"…` 는 사양 시험이 글자 그대로를 고정해 막지 않는다 |
 | R2 | `PromptResource` 믹스인 | ✅ `22c80a3` + `83eb828` · spec ✅(기계 대조) · 품질 ✅ | 보강 셋 — 틀린 절 표식(대문자 · 밑줄 · 앞뒤 공백 · 끝 줄바꿈 없음) `ValueError` · `load_prompt(cls, name, /, **values)` · 절대 경로 아닌 `prompt_dir` `ValueError`. 380 통과 |
-| R3 | 옮기기 전을 찍는다 | ✅ 커밋 없음 | **산출물은 클라우드 scratch 에만 있었다** — §6 으로 다시 만든다 |
-| R4 | Mode 1 프롬프트 넷 → `runner/mode1/prompts/` | ✅ `f87e877` · **spec ⬜ · 품질 ⬜** | 바이트 대조 `.txt` 14 + `.raw` 14 = **28 동일**(R2 보강 뒤 본 저장소에서 다시 잼). 계획서 편차 하나: `hint_prompt` 는 `load_prompt("lang-hint", docs=docs)[:-1]`(절이 줄바꿈 하나로 끝나 docs 뒤에 1바이트가 붙는다). `annotate-symbols.md` 끝 빈 줄 하나 뗌(출력 같음) |
+| R3 | 옮기기 전을 찍는다 | ✅ 커밋 없음 · **Mac 에 다시 만듦(2026-10-24)** | `$HOME/LLM-Tools/split-work/before/` 31개, 두 번 찍어 같음. 보강 셋째 — `capture.sh` 가 `TOOLS_ROOT` 없을 때 자기 자리에서 기본값을 잡는다 |
+| R4 | Mode 1 프롬프트 넷 → `runner/mode1/prompts/` | ✅ `f87e877` + `eeb4976`(시험) · spec ✅(기계 대조 + `e9ddfc3` worktree 대 HEAD 28 동일) · 품질 ✅(Ready: Yes) | 검토 처리: Important — `pipeline.py` 독스트링이 아직 없는 `test/test_prompt_resources.py` 를 가리킨다 → R9 가 만든다(고아 절은 R9 전까지 안 잡힌다). Minor — `hint_prompt` docs 끝 줄바꿈 시험 `eeb4976`. 나머지는 §4.2 | 바이트 대조 `.txt` 14 + `.raw` 14 = **28 동일**(R2 보강 뒤 본 저장소에서 다시 잼). 계획서 편차 하나: `hint_prompt` 는 `load_prompt("lang-hint", docs=docs)[:-1]`(절이 줄바꿈 하나로 끝나 docs 뒤에 1바이트가 붙는다). `annotate-symbols.md` 끝 빈 줄 하나 뗌(출력 같음) |
 | R5 | Mode 1.5 · 2 프롬프트 → `runner/prompts/` | ⬜ | rev.4 :806-852 · 정정 ⑤ ⑫ · §4.2 |
 | R6 → R9 | 템플릿 일곱 · config toml · after 대조 · 게이트 시험 | ⬜ | rev.4 :853-1283 · §4.2 |
 | A1 → A4 | 결정 0011 · 시험 결합 끊기 둘 · 레코드 분리 스크립트 | ⬜ | rev.4 :1284-1472 |
@@ -74,7 +74,7 @@ Uncommitted: 없음 (이 문서 커밋 뒤)
 | ② | K1 · K6 | 봉인의 소스 집합 = `declmap.tracked_files(repo, lang, [])` **그대로 호출**(`git ls-files` 추적 파일만 · `SKIP_DIRS` 성분 제외 · `docs` 제외 없음). `manifest.json` 의 `skip_dirs = sorted(declmap.SKIP_DIRS)`. `evidence.py` 사본은 `git ls-files`(`-co` 없이). 시험 "새 파일도 넣는다" → "미추적 파일은 넣지 않는다" |
 | ③ | K2 | `runner/test_mode1.py:475-479` `len(E.ORDER) == 12` → 13 / 12 |
 | ④ | K2 · K3 | `context.py` 새 칸은 형 붙은 공장 — `_no_strs() -> set[str]` · `_no_names() -> list[str]` |
-| ⑤ | R5 · K6 | `ask_argv(root, plan, workdir, python, terms_db)` 매개변수 추가, `runner/prompts/ask.md` 명령 자리에 `--terms-db {{terms_db}}`, `AskStage.perform`(`run_mode1_5.py:739`)이 `ctx.terms_db or ""` 전달. 시험 `:713-718` 에 `"--terms-db" in prompt` |
+| ⑤ | **K6**(R5 에서 옮김) | **K6 이 `--terms-db` 를 필수로 만드는 같은 커밋에서 한다** — R5 에서 넣으면 `--terms-db` 없이 부를 때(`run_mode1_5.py:791` 은 아직 선택 인자) 스킬이 받는 명령이 값 없는 `--terms-db` 로 깨진다. 할 것: `ask_argv(root, plan, workdir, python, terms_db)` 매개변수 추가, `runner/prompts/ask.md` 명령 자리에 `--terms-db {{terms_db}}`, `AskStage.perform`(`run_mode1_5.py:739`)이 `ctx.terms_db` 전달(K6 뒤로는 늘 값이 있다). 시험 `:713-718` 에 `"--terms-db" in prompt`. `split-work/capture.py` 의 `ask_argv(...)` 호출도 맞추고 그 차이는 의도된 차이로 기록 |
 | ⑥ | K2b | `estimate_line` 을 `ScheduleBatchesStage.perform` 끝 **과** `run_mode1.py` dry-run 블록(`:255` 근처) 둘에. 세션 수 `sum(len(L.get("batches", [])) or 1 …)` |
 | ⑦ | K2b | `DetectChangesStage.perform`: `not os.path.exists(X.snapshot_path(ctx))` 면 `⚠ 증분으로 불렸지만 전량이다 — 지난 지문(snapshot.json)이 없다`(stderr). `scan.py:101` 문구도 같은 꼴 |
 | ⑧ | K3 | `runner/wiki/build.py` **안 고친다**(demermaid · check · sidebar 전부 최상위 `*.md` 만 본다). 대신 `.gitignore` 에 `docs/wiki/.bak/` |
@@ -104,11 +104,16 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 **R8 (after 대조)**
 - `.txt` 는 끝 줄바꿈을 정규화하므로 **`.raw` 도 대조한다**(§6 의 `capture.py` 보강).
-- R5 가 ⑤ 로 `ask_argv` 에 `terms_db` 를 더하면 after 쪽 `capture.py` 의 `ask_argv(...)` 호출도 맞춰야 한다. 그 차이(`--terms-db` 줄)는 **의도된 차이**로 기록하고 나머지 27개가 같아야 한다.
+- ⑤ 는 K6 으로 옮겨 R8 대조에는 걸리지 않는다 — R8 은 28 전부 같아야 한다. K6 뒤에 다시 찍으면 `mode1_5-ask` 둘만 `--terms-db` 로 다른 것이 의도된 차이다.
 
 **R9 (게이트 시험)**
 - `all_subclasses(P.PromptResource)` 가 시험 함수 안 클래스(`runner/test_pipeline.py` 의 `<locals>.S` — `prompt_dir = tmp_path`)를 **GC 시점에 따라** 집는다 → 전량 `pytest` 에서만 "선언했는데 없는 프롬프트" 로 흔들린다. 거른다: `"<locals>" not in c.__qualname__` 그리고 `c.__module__` 이 `test_` 로 시작하지 않을 것.
 - 게이트도 `load_prompt` 와 같이 텍스트 모드 `open` 으로 읽는다(rev.4 코드가 이미 그렇다).
+
+**R4 품질 검토에서 넘어온 것**
+- `hint_prompt` 의 `[:-1]` → `.removesuffix("\n")` 이 뜻을 더 드러낸다(지금 불변식에서는 같다 · `rstrip` 은 바이트를 깬다). 본체 `.py` 라 다른 승인 묶음에 끼워 보인다.
+- `runner/CLAUDE.md:13` "계산과 **프롬프트는** 단계 클래스의 `@staticmethod`" · `:142` "`mode1/survey.py` 의 **프롬프트 문자열은**…" 이 낡았다 — 산문은 이제 `runner/mode1/prompts/*.md`. Phase R 끝 문서 정리에서 한 줄씩.
+- **사용자 판단 대기** — 빈 값 대체 문구가 파이썬에 남았다: `survey.py:81` `"(뜻 없음)"` · `:103` · `:107` `"  (없음 — 너는 최하층이다)"` · `:347` `"  (없음)"` · `wiki.py:99` `"(개괄 — 특정 심볼 없음)"` · `:100` `"  (없음 — 네가 첫 장이다)"`, 목록 줄 꼴(`survey.py:101` · `:343` · `wiki.py:123`), retry 에 실리는 `FIX` 표(`survey.py:150-156`). rev.4 가 그대로 두라고 적었다. 옮기면 작은 절 4~6개가 생긴다(거울 함정 위험). "의식적 예외" 로 기록할지, 옮길지.
 
 **기록만 — 범위 밖, 사용자 몫**
 - 프롬프트 예외(`KeyError` · `ValueError` · `TemplateError` · `FileNotFoundError`)는 `Pipeline.run` 이 `FAIL` 행으로 바꾸지 않는다 — 지금 `msgspec.DecodeError` 만 잡는다(`pipeline.py:363` 근처). 단계 도중 터지면 프로세스가 죽고, `survey_files.py` 의 풀에 줄 선 세션은 프로세스 끝까지 돈다. 정책 변경이다.
@@ -122,7 +127,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 **(2) R4 품질 검토** — `general-purpose` · `opus` · 읽기 전용 · 범위 `e9ddfc3..f87e877`. 볼 것: 리소스 넷의 절 표식과 `prompt_names` 1:1 · `hint_prompt[:-1]` 의 가정(절이 정확히 `\n` 하나로 끝난다)이 시험으로 고정됐는가(없으면 시험 하나 제안) · 남은 `# <include …/>` 블록이 옮겨 간 함수를 가리키지 않는가 · `runner/mode1/prompts/*.md` 가 위키 인용(`docs/wiki`)을 더 낡게 하는 것은 정상(Phase E). 실험 파일은 scratch 에만.
 
-**(3) R5 구현자** — rev.4 `:806-852` 전문을 붙인다. `sonnet`. 본체 `.py` = `runner/run_mode2.py` · `runner/run_mode1_5.py` → §7. 정정 ⑤ · ⑫ 와 §4.1 · §4.2 를 brief 에. 합격 기준 = worktree 에서 `capture.py` 를 돌려 `before/` 와 대조 — `mode1_5-ask` 둘(`.txt` · `.raw`)은 ⑤ 때문에 `--terms-db` 만 다르고 나머지 26 동일. 커밋 `[refactor] : mode 1.5 와 2 프롬프트를 runner/prompts 리소스로`.
+**(3) R5 구현자** — rev.4 `:806-852` 전문을 붙인다. `sonnet`. 본체 `.py` = `runner/run_mode2.py` · `runner/run_mode1_5.py` → §7. 정정 ⑫ 와 §4.1 · §4.2 를 brief 에(⑤ 는 K6 으로 옮겼다 — 정정표). 합격 기준 = worktree 에서 `capture.py` 를 돌려 `before/` 와 대조 — 28 전부 동일. 커밋 `[refactor] : mode 1.5 와 2 프롬프트를 runner/prompts 리소스로`.
 
 그 뒤는 rev.4 순서대로 R6 … K8 → M1 → M2. 각 Phase 끝 전량 게이트 — 기대값 "알려진 빨강 둘만 실패".
 
