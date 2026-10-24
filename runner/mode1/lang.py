@@ -33,7 +33,7 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
     @staticmethod
     def hint_prompt(docs: str) -> str:
         # 절은 줄바꿈 하나로 끝난다 — docs 뒤에 붙은 그 하나를 뗀다.
-        return LangHintStage.load_prompt("lang-hint", docs=docs)[:-1]
+        return LangHintStage.load_prompt("lang-hint", docs=docs).removesuffix("\n")
 
     def docs(self, ctx: Mode1Context) -> str:
         """루트 문서 묶음. `lang_select.py --print-docs` 가 고른다."""
