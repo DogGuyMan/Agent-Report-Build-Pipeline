@@ -7,7 +7,7 @@
 | 자리 | 하는 일 | 부르는 곳 |
 |---|---|---|
 | `python.py` | 파이썬 해석기를 찾는다 — `$REPORT_PYTHON` → `.venv` → PATH | `doctor.py` · `runner/dispatch.py` · `runner/wiki/*.py` · `runner/run_mode1_5.py` |
-| `template.py` | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 어긋나면 예외 | `runner/pipeline.py` · `viz/*.py` · `runner/wiki/build.py` |
+| `template.py` | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 어긋나면 예외 | `viz/*.py` · `runner/wiki/build.py`. `runner/pipeline.py` 는 `TemplateError` 만 쓴다 |
 | `doctor.py` | 이 컴퓨터에 무엇이 있고 없는지 한 화면. 필수가 없거나 하한보다 낮으면 exit 1. 하한은 `package.json` 의 `engines` · `PYTHON_MIN` · `DOT_MIN`, 파이썬 패키지 목록은 `requirements.txt` 에서 읽는다 | `npm run doctor` · `setup.sh` |
 | `doctor_packages.py` | 받은 배포 이름 중 깔리지 않은 것을 한 줄로(`전부 있다` · `빠짐: …`). 이 저장소의 어느 것도 import 하지 않는다 | `doctor.py` 가 고른 파이썬의 자식 프로세스로 |
 | `gen_readme.py` | 소스 독스트링에서 디렉토리별 `README.md` 를 생성한다. `--check` 면 낡았을 때 exit 1 | 게이트 "README 표류" · `test_gen_readme.py` |
@@ -45,6 +45,7 @@ npm run doctor                                                        # 필수 �
 | 방향 | 무엇 |
 |---|---|
 | `../runner/dispatch.py` · `../runner/wiki/*.py` · `../runner/run_mode1_5.py` → 여기 | `pythonPath()` 로 해석기를 찾는다 |
-| `../viz/*.py` · `../runner/pipeline.py` · `../runner/wiki/build.py` → 여기 | `template.py` 의 `render` · `render_file` 로 리소스 파일의 `{{이름}}` 자리를 채운다 — 보고서 뼈대 · DOT 머리 · 프롬프트 · 위키 사이트 설정 |
+| `../viz/*.py` · `../runner/wiki/build.py` → 여기 | `template.py` 의 `render_file` 로 리소스 파일의 `{{이름}}` 자리를 채운다 — 보고서 뼈대 · DOT 머리 · 위키 사이트 설정 |
+| `../runner/pipeline.py` → 여기 | 프롬프트 렌더 오류를 `template.py` 의 `TemplateError` 로 낸다. 프롬프트 글 자체는 Jinja2 가 렌더한다 |
 | 여기 → `../machine/pycalls.py` | `gen_readme.py` 가 `signature_of` 를 import 한다. 셋 축 중 기계축으로 가는 유일한 화살표다 |
 | 여기 → 바깥 | `git` · `dot` · `dotnet` · `clangd` 를 PATH 로 찾는다. **경로를 박지 않는다** |

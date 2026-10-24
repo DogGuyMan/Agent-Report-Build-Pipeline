@@ -116,7 +116,7 @@ if __name__ == "__main__":
 | 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
-| 여기 → `../tools/template.py` | `pipeline.py`(프롬프트) · `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다 |
+| 여기 → `../tools/template.py` | `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다. `pipeline.py` 는 예외 `TemplateError` 만 쓴다 — 프롬프트 글은 Jinja2 로 렌더한다 |
 | 여기 → `../config/*.toml` | `mode1/context.py` 의 `load_config` 가 `mode1.toml` 을, `run_mode2.py` 가 `report.toml` 을 읽는다 |
 
 ## 흔한 변경 패턴 (Common modification patterns)

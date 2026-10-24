@@ -10,3 +10,4 @@ scipy==1.18.1      # 같음 — 없으면 facts.py 가 ModuleNotFoundError 로 �
 pytest==9.1.1      # codegraph/test_*.py
 griffe==2.2.0      # normalize.py 의 Python 갈래 — griffe dump JSON 을 읽는다
 msgspec==0.21.1
+jinja2==3.1.6      # runner/pipeline.py 의 프롬프트 렌더. MarkupSafe 가 따라 깔린다

@@ -400,7 +400,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
 | **`PromptResource`** | *class* | 프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`. |
 | `PromptResource.sections` | `(text: str) -> dict[str, str]` | 절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다. |
-| `PromptResource.load_prompt` | `(cls, name: str, **values) -> str` | `"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다. |
+| `PromptResource.render_text` | `(text: str, **values) -> str` | Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`). |
+| `PromptResource.load_prompt` | `(cls, name: str, **values) -> str` | `"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 그 글을 `render_text` 로 렌더한다. |
 | **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다. |
 | `LlmStage.prompt` | `(self, ctx: C) -> str` |  |
 | `LlmStage.repo` | `(self, ctx: C) -> str` | `claude -p` 가 열 저장소이자 자식 프로세스의 작업 폴더. |
@@ -820,6 +821,15 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_load_prompt_는_절대_경로가_아닌_prompt_dir_을_거부한다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_load_prompt_는_없는_절을_KeyError_로_낸다` | `(tmp_path: Path)` |  |
 | `test_load_prompt_는_자리_어긋남을_TemplateError_로_낸다` | `(tmp_path: Path)` |  |
+| `test_load_prompt_는_글이_쓰지_않는_값을_TemplateError_로_낸다` | `(tmp_path: Path)` |  |
+| `test_load_prompt_는_빠진_값을_이름으로_말한다` | `(tmp_path: Path)` |  |
+| `test_render_text_는_타지_않는_갈래의_이름도_값으로_요구한다` | `()` |  |
+| `test_load_prompt_는_자리가_못_된_꼴을_TemplateError_로_낸다` | `(tmp_path: Path, text: str)` |  |
+| `test_render_text_는_블록_태그_줄을_남기지_않는다` | `()` |  |
+| `test_load_prompt_는_글_끝_줄바꿈을_지킨다` | `(tmp_path: Path)` |  |
+| `test_render_text_는_사전_목록_값을_렌더한다` | `()` |  |
+| `test_render_text_는_값에_없는_열쇠를_TemplateError_로_낸다` | `()` |  |
+| `test_render_text_는_값_안의_틀_문법을_다시_펴지_않는다` | `()` |  |
 
 ---
 

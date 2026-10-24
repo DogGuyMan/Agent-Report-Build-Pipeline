@@ -18,13 +18,15 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import ClassVar, Generic, TypeVar
 
+import jinja2
+import jinja2.meta
 import msgspec
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
-from tools.template import render  # noqa: E402
+from tools.template import TemplateError  # noqa: E402
 import measure as M  # noqa: E402
 from measure import AgentResult, StageRow  # noqa: E402
 
@@ -474,6 +476,10 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
 SECTION = re.compile(r"^<!-- section: ([a-z0-9-]+) -->\n", re.MULTILINE)
 SECTION_LIKE = re.compile(r"^[ \t]*<!--\s*section\b.*$", re.MULTILINE | re.IGNORECASE)
 
+# 프롬프트 글의 Jinja2 환경. 블록 태그 줄은 빈 줄을 남기지 않고, 글 끝 줄바꿈은 그대로 둔다. 값은 이스케이프하지 않는다.
+PROMPT_ENV = jinja2.Environment(undefined=jinja2.StrictUndefined, trim_blocks=True, lstrip_blocks=True,
+                                keep_trailing_newline=True, autoescape=False)
+
 
 class PromptResource:
     """프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`.
@@ -507,12 +513,31 @@ class PromptResource:
             out[m.group(1)] = text[m.end():end].strip("\n") + "\n"
         return out
 
+    @staticmethod
+    def render_text(text: str, /, **values: object) -> str:
+        """Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`).
+
+        글이 쓰는 자유 변수와 넘긴 값의 이름이 같아야 한다 — 타지 않는 `{% if %}` 갈래 안의 이름도 센다.
+        값이 없는 이름 · 글이 쓰지 않는 값 · Jinja2 문법 오류 · 렌더 중 오류(없는 속성 · 열쇠)는 모두 `TemplateError` 다.
+        """
+        try:
+            ast = PROMPT_ENV.parse(text)
+            free = jinja2.meta.find_undeclared_variables(ast)
+            missing, unused = sorted(free - set(values)), sorted(set(values) - free)
+            if missing or unused:
+                raise TemplateError("값이 없는 자리 %s · 자리가 없는 값 %s" % (missing, unused))
+            return PROMPT_ENV.from_string(ast).render(values)
+        except jinja2.TemplateSyntaxError as e:
+            raise TemplateError("Jinja2 문법 — 글의 %d 줄: %s" % (e.lineno, e.message)) from e
+        except jinja2.TemplateError as e:
+            raise TemplateError("Jinja2 — %s" % e) from e
+
     @classmethod
-    def load_prompt(cls, name: str, /, **values: str) -> str:
-        """`"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 `{{이름}}` 자리를 채운다.
+    def load_prompt(cls, name: str, /, **values: object) -> str:
+        """`"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 그 글을 `render_text` 로 렌더한다.
 
         선언 밖 이름 · 없는 절은 `KeyError`, 절대 경로가 아닌 `prompt_dir` · 틀린 절 표식은 `ValueError`,
-        자리 어긋남은 `TemplateError` 다. 이름 인자가 위치 전용이라 자리 이름이 `name` 이어도 채워진다.
+        자리와 값의 어긋남 · Jinja2 오류는 `TemplateError` 다. 이름 인자가 위치 전용이라 자리 이름이 `name` 이어도 채워진다.
         """
         if name not in cls.prompt_names:
             raise KeyError("%s 는 프롬프트 %r 를 선언하지 않았다 (선언: %s)"
@@ -524,7 +549,7 @@ class PromptResource:
             parts = cls.sections(f.read())
         if section not in parts:
             raise KeyError("%s.md 에 절 %r 이 없다" % (file, section))
-        return render(parts[section], values)
+        return cls.render_text(parts[section], **values)
 
 
 class LlmStage(PromptResource, Stage[C]):

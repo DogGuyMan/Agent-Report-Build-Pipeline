@@ -545,3 +545,87 @@ def test_load_prompt_는_자리_어긋남을_TemplateError_로_낸다(tmp_path: 
 
     with pytest.raises(TemplateError):
         S.load_prompt("hello")
+
+
+def test_load_prompt_는_글이_쓰지_않는_값을_TemplateError_로_낸다(tmp_path: Path):
+    (tmp_path / "hello.md").write_text("안녕 {{who}}\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("hello",)
+
+    with pytest.raises(TemplateError, match=r"자리가 없는 값 \['whom'\]"):
+        S.load_prompt("hello", who="세계", whom="오타")
+
+
+def test_load_prompt_는_빠진_값을_이름으로_말한다(tmp_path: Path):
+    (tmp_path / "hello.md").write_text("{{a}} {{b}}\n", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("hello",)
+
+    with pytest.raises(TemplateError, match=r"값이 없는 자리 \['b'\]"):
+        S.load_prompt("hello", a="1")
+
+
+def test_render_text_는_타지_않는_갈래의_이름도_값으로_요구한다():
+    text = "{% if on %}{{ extra }}{% endif %}끝\n"
+    with pytest.raises(TemplateError, match=r"값이 없는 자리 \['extra'\]"):
+        P.PromptResource.render_text(text, on=False)
+    assert P.PromptResource.render_text(text, on=False, extra="x") == "끝\n"
+
+
+@pytest.mark.parametrize("text", ["안녕 {{who", "안녕 {{who}", "{{n.}}\n", "{{ who | 없는필터 }}\n", "{% for %}\n"],
+                         ids=["unclosed", "one-brace", "dot", "unknown-filter", "bad-block"])
+def test_load_prompt_는_자리가_못_된_꼴을_TemplateError_로_낸다(tmp_path: Path, text: str):
+    (tmp_path / "hello.md").write_text(text, encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("hello",)
+
+    with pytest.raises(TemplateError, match="Jinja2 문법"):
+        S.load_prompt("hello", who="세계", n="1")
+
+
+def test_render_text_는_블록_태그_줄을_남기지_않는다():
+    text = ("목록:\n"
+            "  {% for x in xs %}\n"
+            "  - {{ x }}\n"
+            "  {% else %}\n"
+            "  (없음)\n"
+            "  {% endfor %}\n"
+            "끝\n")
+    assert P.PromptResource.render_text(text, xs=["a", "b"]) == "목록:\n  - a\n  - b\n끝\n"
+    assert P.PromptResource.render_text(text, xs=[]) == "목록:\n  (없음)\n끝\n"
+
+
+def test_load_prompt_는_글_끝_줄바꿈을_지킨다(tmp_path: Path):
+    (tmp_path / "s.md").write_text("<!-- section: a -->\n가 {{x}}\n\n\n<!-- section: b -->\n나", encoding="utf-8")
+
+    class S(P.PromptResource):
+        prompt_dir = str(tmp_path)
+        prompt_names = ("s#a", "s#b")
+
+    assert S.load_prompt("s#a", x="1") == "가 1\n"
+    assert S.load_prompt("s#b") == "나\n"
+    assert P.PromptResource.render_text("가\n\n") == "가\n\n"
+
+
+def test_render_text_는_사전_목록_값을_렌더한다():
+    text = "{% for f in faults %}\n[{{ f.kind }}] {{ f.where }} — {{ f.detail }}\n{% endfor %}\n"
+    faults = [{"kind": "shape", "where": "$[0]", "detail": "열쇠 없음"},
+              {"kind": "malformed", "where": "byte 7", "detail": "JSON 아님"}]
+    assert P.PromptResource.render_text(text, faults=faults) == (
+        "[shape] $[0] — 열쇠 없음\n[malformed] byte 7 — JSON 아님\n")
+
+
+def test_render_text_는_값에_없는_열쇠를_TemplateError_로_낸다():
+    with pytest.raises(TemplateError, match="no attribute 'where'"):
+        P.PromptResource.render_text("{{ f.where }}\n", f={"kind": "shape"})
+
+
+def test_render_text_는_값_안의_틀_문법을_다시_펴지_않는다():
+    value = "{{x}} {% if %} {# 주석 #} }} {{ <b> & \"q\""
+    assert P.PromptResource.render_text("[{{ v }}]\n", v=value) == "[" + value + "]\n"
