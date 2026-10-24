@@ -1,58 +1,72 @@
 # Handoff — rev.4 분리 계획 실행 재개 (2026-10-24, lossless)
 
-> **이 문서가 다음 세션의 유일한 진입점이다.** Mode 1 / Mode 1.5+2 두 저장소 분리 계획 rev.4 를 서브에이전트 주도로 실행하는 중이고, Task R1 이 커밋됐다(spec 검토 ✅ · 품질 검토는 사용량 한도로 **중단됨**).
-> **작성**: 2026-10-24 · 브랜치 `survey-per-file-2pass` · HEAD `53ddd2f`.
-> **대체하는 것**: 메모리 `resume-entry-point` 가 가리키던 `RESUME-2026-09-11-runner-stage-machine.md`(그쪽은 러너 단계 기계 갈래 — 이 작업과 다른 갈래라 배너는 달지 않는다).
-> ⚠ 시작할 때 `git log --oneline -5` · `git status --short` 를 다시 잰다.
+> **이 문서가 다음 세션의 유일한 진입점이다.** Mode 1 / Mode 1.5+2 두 저장소 분리 계획 rev.4 를 서브에이전트 주도로 실행하는 중이다. Phase R 의 R1 · R2 · R3 · R4 가 끝났다(R4 는 검토 둘이 남았다).
+> **작성**: 2026-10-24 Mac 세션(R1) → **2026-10-24 클라우드 세션에서 갱신**(R1 검토 · R2 · R3 · R4). 브랜치 `survey-per-file-2pass` · HEAD `f87e877`(이 문서 커밋 직전).
+> **대체하는 것**: 메모리 `resume-entry-point` 가 가리키던 `RESUME-2026-09-11-runner-stage-machine.md`(그쪽은 러너 단계 기계 갈래 — 이 작업과 다른 갈래라 배너는 달지 않는다). 파일 이름이 그대로라 포인터는 고치지 않아도 된다.
+> ⚠ 시작할 때 `git pull origin survey-per-file-2pass` → `git log --oneline -8` · `git status --short` 를 다시 잰다.
 
 ## 0. 한눈에 (TL;DR)
 
-- **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4, **아직 git 미추적 `??`**) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1 커밋 `53ddd2f` · R1 spec 검토 ✅ · **R1 품질 검토 ⬜(에이전트가 중단됨 — 다시 띄운다)** · R2~M 미착수.
-- **바로 다음 한 걸음**: R1 품질 검토 서브에이전트를 다시 띄운다(§5 의 brief). 승인(✅)이면 R2 구현자 dispatch.
-- **방법**: `superpowers:subagent-driven-development` — Task 마다 구현자 1(sonnet) → spec 검토 1(opus) → 품질 검토 1(opus). 한 Task 한 커밋. **본체 `.py` 는 사용자가 권한 창에서 diff 를 보고 승인한다**(§7 프로토콜).
-- **정본 문서**: rev.4(위) · 실행 계획 `~/.claude/plans/docs-superpowers-plans-2026-10-22-split-sprightly-codd.md`(**이 기계에만 있다** — 그 핵심인 정정표 14건은 §4 에 그대로 옮겼다).
+- **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4, `ddeef75` 로 커밋됨) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 재굽기 E 는 그 뒤 별 세션.
+- **진척**: R1 ✅ · R2 ✅ · R3 ✅(커밋 없음 — 산출물이 클라우드 scratch 에 있었다 → §6 으로 다시 만든다) · **R4 커밋 `f87e877`, spec 검토 ⬜ · 품질 검토 ⬜** · R5~M 미착수.
+- **바로 다음 세 걸음**: (1) §6 으로 `split-work/` 와 `before/` 를 다시 만든다 (2) R4 spec · 품질 검토 (3) R5 구현자 — §5.
+- **방법**: Task 마다 구현자 1(sonnet) → spec 검토 → 품질 검토 1(opus). 한 Task 한 커밋. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 뿐이면 오케스트레이터가 기계 대조로 한다(R2 가 그렇게 됐다).
+- **정본 문서**: rev.4(위) · 정정표 14건(§4) · 이 세션의 검토에서 나온 이월 사항(§4.2).
 
-## 1. 상태 (작성 시점 실측 — 다시 잰다)
+## 1. 상태 (클라우드 실측 2026-10-24 — 다시 잰다)
 
 ```
-HEAD:    53ddd2f [update] : tools/template - 리소스 파일의 {{이름}} 자리를 채운다   ← R1 (이 작업)
-         fdb1c3a [update] : doctor prompt-audit                                       ← 분리 전 마지막 (rev.4 기준 ref)
-Branch:  survey-per-file-2pass (main 보다 42 커밋 앞 · main 에만 있는 커밋 0)
-Uncommitted (이 작업 것):   ?? docs/superpowers/plans/2026-10-22-split-mode1-and-report.md   ← rev.4. A1 커밋에 함께 넣는다
-Uncommitted (내 것 아님):   D .agents/skills/skill-creator/** (8) · D .claude/skills/skill-creator · M skills-lock.json
-                           ← 사용자가 벤더 스킬을 지운 것으로 보인다. 절대 스테이징하지 않는다. git add -A 금지
-Scratch (저장소 밖):        $HOME/LLM-Tools/split-work/patches/R1/{tools__template.py, R1.diff}
+HEAD:    f87e877 [refactor] : mode 1 프롬프트를 단계당 한 파일 리소스로 - 죽은 사본 넷 삭제   ← R4
+         e9ddfc3 [update] : tools/template 시험 - 쉼표 목록 이스케이프 잔재 꼴도 고정            ← R1 검토 Minor
+         83eb828 [fix] : pipeline - PromptResource 가 틀린 절 표식 · 상대 prompt_dir 을 거부한다  ← R2 검토 보강
+         9fa0f41 [fix] : tools/template - 자리가 못 된 {{이름 꼴도 예외다                        ← R1 검토 Important
+         22c80a3 [update] : pipeline - PromptResource 믹스인, 단계당 한 파일과 절               ← R2
+         59a43fb [docs] : tools README 재생성 - template.py 행                                ← R1 이 남긴 README 표류
+         7dfc33a [update] : unused skill                                                    ← 사용자(skill-creator 삭제 — 이제 커밋됨)
+         ddeef75 [docs] : 두 저장소 분리 계획 rev.4 와 실행 재개 문서
+         53ddd2f [update] : tools/template - 리소스 파일의 {{이름}} 자리를 채운다               ← R1
+         fdb1c3a [update] : doctor prompt-audit                                              ← 분리 전 마지막 (rev.4 기준 ref)
+Uncommitted: 없음 (이 문서 커밋 뒤)
 ```
 
-게이트 실측(분리 전 · 지금도 같아야 한다): `pytest -q` → **665 통과 · 2 실패 · 19 건너뜀** + R1 의 6. 실패 둘은 알려진 빨강(`test/test_wiki.py::test_check_는_통과를_통과로_보고한다` · `machine/test_survey_plan.py::test_이_저장소_실측`). pyright `0 errors`.
+게이트(클라우드, `out/` 있음 · HEAD `f87e877`):
+
+| 게이트 | 값 |
+|---|---|
+| `pytest -q` | **693 통과 · 2 실패 · 19 건너뜀**. 실패 둘은 알려진 빨강(`machine/test_survey_plan.py::test_이_저장소_실측` — 지금 값 `[569, 349, …]` · `test/test_wiki.py::test_check_는_통과를_통과로_보고한다`) |
+| `npm run typecheck:py` | 0 errors |
+| `gen_readme.py --check machine runner viz tools` | 4개 일치 |
+
+`out/` 이 없는 새 클론이면 층 분포 시험은 건너뛰고(건너뜀 20) 위키 시험은 `codegraph.json 이 없다` 로 실패한다. `report-wiki prep .` 을 먼저 돌리면 위 표가 된다(2.6초).
 
 ## 2. Task 상태표
 
 | Task | 내용 | 상태 | 근거 |
 |---|---|---|---|
-| R1 | `tools/template.py` 렌더러 + `tools/test_template.py` + `test/test_no_any.py` COVERED | ✅ 커밋 `53ddd2f` · spec ✅ | 9 통과 · pyright 0. 유일한 편차: `tmp_path: Path` 주석(pyright strict 가 `tools/` 를 봄 — 정당) |
-| R1 품질 검토 | code-quality reviewer | ⬜ **중단됨** | 다시 띄운다 — §5 |
-| R2 | `PromptResource` 믹스인 in `runner/pipeline.py` | ⬜ | rev.4 :370-488 |
-| R3 → R9 | before 찍기 · 프롬프트 넷 · 프롬프트 둘 · 템플릿 일곱 · config toml · after 대조 · 게이트 시험 | ⬜ | rev.4 :489-1283 |
+| R1 | `tools/template.py` 렌더러 | ✅ `53ddd2f` + `9fa0f41` + `e9ddfc3` · spec ✅ · 품질 ✅(재검토 승인) | Important 하나 — 이름 꼴로 시작했지만 자리가 못 된 `{{repo}/bin` · `{{n.}}` 가 조용히 남았다 → `STRAY` 검사. 따옴표로 시작하는 `{{"…` 는 사양 시험이 글자 그대로를 고정해 막지 않는다 |
+| R2 | `PromptResource` 믹스인 | ✅ `22c80a3` + `83eb828` · spec ✅(기계 대조) · 품질 ✅ | 보강 셋 — 틀린 절 표식(대문자 · 밑줄 · 앞뒤 공백 · 끝 줄바꿈 없음) `ValueError` · `load_prompt(cls, name, /, **values)` · 절대 경로 아닌 `prompt_dir` `ValueError`. 380 통과 |
+| R3 | 옮기기 전을 찍는다 | ✅ 커밋 없음 | **산출물은 클라우드 scratch 에만 있었다** — §6 으로 다시 만든다 |
+| R4 | Mode 1 프롬프트 넷 → `runner/mode1/prompts/` | ✅ `f87e877` · **spec ⬜ · 품질 ⬜** | 바이트 대조 `.txt` 14 + `.raw` 14 = **28 동일**(R2 보강 뒤 본 저장소에서 다시 잼). 계획서 편차 하나: `hint_prompt` 는 `load_prompt("lang-hint", docs=docs)[:-1]`(절이 줄바꿈 하나로 끝나 docs 뒤에 1바이트가 붙는다). `annotate-symbols.md` 끝 빈 줄 하나 뗌(출력 같음) |
+| R5 | Mode 1.5 · 2 프롬프트 → `runner/prompts/` | ⬜ | rev.4 :806-852 · 정정 ⑤ ⑫ · §4.2 |
+| R6 → R9 | 템플릿 일곱 · config toml · after 대조 · 게이트 시험 | ⬜ | rev.4 :853-1283 · §4.2 |
 | A1 → A4 | 결정 0011 · 시험 결합 끊기 둘 · 레코드 분리 스크립트 | ⬜ | rev.4 :1284-1472 |
 | K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 생성 · 형 생성 · 판정+collect · run_mode2 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** |
-| M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 `split-base-2026-10-24` | ⬜ | rev.4 :3235-3259 |
+| M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 `split-base-2026-10-24` | ⬜ | rev.4 :3235-3259. `main` 에 미는 것은 사용자에게 먼저 묻는다 |
 
 ## 3. 문서 색인
 
 | 문서 | 경로 | git | 역할 |
 |---|---|---|---|
-| rev.4 계획(사양) | `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md` | **미추적** (디스크엔 있다) | Task 본문 전부. 서브에이전트에게 Task 텍스트를 **붙여 넣어** 준다(파일을 읽게 하지 않는다) |
-| 실행 계획(plan mode) | `~/.claude/plans/docs-superpowers-plans-2026-10-22-split-sprightly-codd.md` | 저장소 밖 · 이 기계만 | 순서 · 검문 · 정정표. 내용은 이 문서 §4 · §5 에 들어 있다 |
+| rev.4 계획(사양) | `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md` | 추적(`ddeef75`) | Task 본문 전부. 서브에이전트에게 Task 텍스트를 **붙여 넣어** 준다(파일을 읽게 하지 않는다). `grep -n "^#### Task" <rev.4>` 로 범위를 잡는다 |
+| 실행 계획(plan mode) | `~/.claude/plans/docs-superpowers-plans-2026-10-22-split-sprightly-codd.md` | 저장소 밖 · Mac 만 | 순서 · 검문 · 정정표. 내용은 이 문서 §4 에 들어 있다 |
 | 결정 기록 | `docs/decisions/0011-…`(A1 이 만든다) | 미작성 | rev.4 A1 에 전문 |
-| 메모리 | `~/.claude/projects/-Users-escatrgot-LLM-Tools-report-builder/memory/split-plan-2026-10-22.md` 등 | 저장소 밖 | 사용자 결정 요약 |
+| 메모리 | `~/.claude/projects/-Users-escatrgot-LLM-Tools-report-builder/memory/split-plan-2026-10-22.md` 등 | 저장소 밖 · Mac 만 | 사용자 결정 요약 |
 
 ## 4. 확정된 결정 (다시 논쟁하지 않는다) + 정정표
 
 **사용자 결정(2026-10-24)** — 경계는 A3 데이터 계약(스키마 사본 + `docs/codegraph/manifest.json` 봉인) · Mode 1 은 **사람이 부를 때만** 돌고 **묻지 않는다**(예상 비용 한 줄만) · Mode 1.5 는 봉인 없으면 멈추고 낡음·미커밋은 경고 · Mode 2 는 Mode 1 과 독립(봉인 있으면 근거) · 프롬프트는 단계당 한 파일 + `<!-- section: 이름 -->` 절 · 소비자 형은 계약 JSON 에서 생성 · 손댄 위키 장은 `.bak` · 범위 R→A→K→M · 서브에이전트 주도 · **본체 .py 승인 규칙 유지**.
 
-**정정표 — rev.4 를 코드 실물로 고친 열넷(🔵 2026-10-24 탐색).** 해당 Task 를 시킬 때 반드시 brief 에 넣는다.
+**정정표 — rev.4 를 코드 실물로 고친 열넷(🔵 2026-10-24 탐색).** 해당 Task 를 시킬 때 반드시 brief 에 넣는다. ⑪ 은 R4 에서 소진됐다.
 
 | # | Task | 고칠 것 |
 |---|---|---|
@@ -66,57 +80,112 @@ Scratch (저장소 밖):        $HOME/LLM-Tools/split-work/patches/R1/{tools__te
 | ⑧ | K3 | `runner/wiki/build.py` **안 고친다**(demermaid · check · sidebar 전부 최상위 `*.md` 만 본다). 대신 `.gitignore` 에 `docs/wiki/.bak/` |
 | ⑨ | K3 | `wiki.py` 에 `json` · `msgspec` · `from mode1 import diff as D` · `from mode1.scan import DetectChangesStage` import 추가(순환 아님) |
 | ⑩ | K3 | `test_write_wiki_는_이미_쓴_장을_건너뛴다`(`:453-464`)는 그대로 통과 — 고치지 않는다 |
-| ⑪ | R4 | `lang-hint` 는 이어붙임 문자열 — `extract.py` 쓰지 않고 손으로(rev.4 대로) |
+| ⑪ | R4 | ~~`lang-hint` 는 이어붙임 문자열 — 손으로~~ **소진(R4)** |
 | ⑫ | R5 · K7 | `agent_prompt` 의 `.format(slug=…)` 는 자리가 없다 — 새 호출에서 `slug` 를 뺀다 |
 | ⑬ | K7 | `test_run_mode2.py:339-341` — 새 절(`agent#evidence*`)에 `terms.json` 글자를 넣지 않는다 |
 | ⑭ | K7b | `viz/init.py` 상태 한 줄은 `docs = listDocs(cwd)` 바로 뒤(`:133` 다음) 한 번 — 세 종료 경로 모두 지난다 |
 
-**R1 에서 추가로 확정된 규칙** — pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래 시험 파일의 fixture 는 주석을 붙인다: `tmp_path: Path` · `monkeypatch: pytest.MonkeyPatch` · `capsys: pytest.CaptureFixture[str]`. `test/` 아래는 pyright 밖이라 불필요. rev.4 의 시험 코드에는 이 주석이 빠져 있다 — 구현자 brief 에 매번 적는다.
+### 4.1 R1 에서 확정된 규칙
+pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래 시험 파일의 fixture 는 주석을 붙인다: `tmp_path: Path` · `monkeypatch: pytest.MonkeyPatch` · `capsys: pytest.CaptureFixture[str]` · parametrize 인자도(`text: str`). `test/` 아래는 pyright 밖이라 불필요. rev.4 의 시험 코드에는 이 주석이 빠져 있다 — 구현자 brief 에 매번 적는다.
 
-## 5. 남은 일 — 바로 다음 두 dispatch
+### 4.2 이월 사항 — 이 세션의 검토에서 나왔다 (해당 Task brief 에 넣는다)
 
-**(1) R1 품질 검토 재실행** — `general-purpose` · model `opus` · 읽기 전용. 범위 `fdb1c3a..53ddd2f`. 템플릿은 `~/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/requesting-code-review/code-reviewer.md`. 검토 질문: `re.sub` 람다 치환에서 값 속 백슬래시 안전성 · `{{ name }}` 공백 · `{{{a}}}` 같은 비정상 괄호 · 빈 글 · 열두 프롬프트 + 일곱 템플릿이 쓰게 될 때 바뀔 것. 명령: `.venv/bin/python -m pytest tools/test_template.py test/test_no_any.py -q`(9 통과) · `/opt/homebrew/bin/pyright --project pyrightconfig.json | tail -1`(0 errors). 결과가 ✅ 면 (2). Important 이상이 있으면 R1 구현자(새로 띄움)가 고치고 다시 검토.
+**모든 Task**
+- **Step 3 에 README 재생성을 넣는다** — `.venv/bin/python tools/gen_readme.py machine runner viz tools` 뒤 `--check` 가 `README 4개 — 소스와 일치`, 바뀐 README 를 이름으로 `git add`. rev.4 Step 3 들에 빠져 있고 R1 이 실제로 README 표류를 남겼다(`59a43fb` 로 고침). 새 `.py` · 새 함수 · 새 시험 · 독스트링 변경이 모두 README 를 바꾼다.
+- 실험 파일은 scratch 에만. **저장소 뿌리에 임시 폴더를 만들지 않는다**(R2 검토자가 `tmpuoesb2kf/` 를 남겼다).
+- 병렬로 띄운 구현자가 같은 README 를 다시 구우면 남의 변경이 커밋에 섞인다 — README 를 건드리는 Task 둘은 커밋을 순서대로 한다.
 
-**(2) R2 구현자** — rev.4 `:370-488` 전문을 붙인다. `general-purpose` · model `sonnet`. 본체 `.py` = `runner/pipeline.py` 하나 → §7 프로토콜(scratch 에 완성본 + diff, 보고 후 멈춤). 시험 `runner/test_pipeline.py` 끝 다섯은 구현자가 직접 쓰고 실패를 본다(`import pytest` 는 이미 있다 🔵 `:9`). 추가 지시: 머리 import 에 `import re` · `from typing import ClassVar, Generic, TypeVar`; `sys.path.insert(0, runner dir)`(`:22`) 아래에 ROOT 삽입 + `from tools.template import render`. 커밋 `[update] : pipeline - PromptResource 믹스인, 단계당 한 파일과 절`. 검문: `pytest runner/ -q` 실패 0 · `runner/test_import_isolation.py` 초록 · pyright 0.
+**R5 · R6 (옮기기)**
+- `.format` 원문의 `{{`/`}}` 이스케이프는 한 겹으로 푼다(`extract.py` 가 푼다 — 손으로 쓰는 글은 원문과 대조). 렌더러는 이름 꼴로 시작하는 `{{x…` 만 예외로 막고 따옴표로 시작하는 `{{"…` 는 조용히 둔다.
+- 값은 전부 `str` — 정수는 `str()`.
+- 줄바꿈(R2 검토 N1, 실측): 끝에 이어붙는 조각(`terms_block`)은 앞 `\n` 1 · 뒤 `\n` 1 → 호출부 `"\n" + load_prompt(...)`. `ask_argv` 프롬프트는 앞 0 · 뒤 0 → `.rstrip("\n")`. rev.4 R5 본문이 이미 둘 다 그렇게 적었다. `agent` 본체는 앞 0 · 뒤 1 로 맞다.
+- 절 이름은 `[a-z0-9-]` 만(밑줄 금지). `prompt_dir` 는 절대 경로(`os.path.join(ROOT, "runner", "prompts")` — `ROOT` 가 abspath 기반인지 확인).
+- 템플릿 일곱의 호출자(`viz/*` · `runner/wiki/build.py`)는 `render_file` 을 쓴다 — R6 에서 오류 글에 파일 이름을 넣을지 판단(넣으면 그 일곱에는 효과가 있다. 지금 `TemplateError` 글에는 파일 이름이 없다).
 
-그 뒤는 rev.4 순서대로 R3 … K8 → M1 → M2. 각 Phase 끝 전량 게이트 — 기대값 "알려진 빨강 둘만 실패".
+**R8 (after 대조)**
+- `.txt` 는 끝 줄바꿈을 정규화하므로 **`.raw` 도 대조한다**(§6 의 `capture.py` 보강).
+- R5 가 ⑤ 로 `ask_argv` 에 `terms_db` 를 더하면 after 쪽 `capture.py` 의 `ask_argv(...)` 호출도 맞춰야 한다. 그 차이(`--terms-db` 줄)는 **의도된 차이**로 기록하고 나머지 27개가 같아야 한다.
 
-## 6. 병렬 트랙 / 충돌
+**R9 (게이트 시험)**
+- `all_subclasses(P.PromptResource)` 가 시험 함수 안 클래스(`runner/test_pipeline.py` 의 `<locals>.S` — `prompt_dir = tmp_path`)를 **GC 시점에 따라** 집는다 → 전량 `pytest` 에서만 "선언했는데 없는 프롬프트" 로 흔들린다. 거른다: `"<locals>" not in c.__qualname__` 그리고 `c.__module__` 이 `test_` 로 시작하지 않을 것.
+- 게이트도 `load_prompt` 와 같이 텍스트 모드 `open` 으로 읽는다(rev.4 코드가 이미 그렇다).
 
-단일 트랙이다. 이 세션이 띄운 백그라운드 에이전트는 세션과 함께 사라진다 — **에이전트 ID 로 재개하려 하지 말고 새로 띄운다.** 사용자가 만든 미추적 변경(§1 "내 것 아님")만 피한다.
+**기록만 — 범위 밖, 사용자 몫**
+- 프롬프트 예외(`KeyError` · `ValueError` · `TemplateError` · `FileNotFoundError`)는 `Pipeline.run` 이 `FAIL` 행으로 바꾸지 않는다 — 지금 `msgspec.DecodeError` 만 잡는다(`pipeline.py:363` 근처). 단계 도중 터지면 프로세스가 죽고, `survey_files.py` 의 풀에 줄 선 세션은 프로세스 끝까지 돈다. 정책 변경이다.
+- 템플릿 BOM: `utf-8-sig` 로 읽지 않는다 — `render_file` 과 `load_prompt` 를 함께 바꿔야 한다.
 
-| 파일 | 소유 |
-|---|---|
-| `.agents/skills/skill-creator/**` · `.claude/skills/skill-creator` · `skills-lock.json` | 사용자(이 작업 밖). 스테이징 금지 |
-| 그 밖 전부 | 이 작업 |
+## 5. 남은 일 — 바로 다음
+
+**(0) 준비** — §6 으로 `split-work/` 스크립트 셋과 `before/` 를 다시 만든다.
+
+**(1) R4 spec 검토** — 오케스트레이터가 직접: rev.4 R4 Step 3 의 코드 블록이 `runner/mode1/{context,lang,survey,wiki}.py` 에 들어 있는지 기계 대조(편차는 `hint_prompt` 의 `[:-1]` 과 그 위 주석 한 줄뿐이어야 한다) + §6 의 `before/` 를 HEAD 에서 다시 찍어 28 동일을 한 번 더 본다.
+
+**(2) R4 품질 검토** — `general-purpose` · `opus` · 읽기 전용 · 범위 `e9ddfc3..f87e877`. 볼 것: 리소스 넷의 절 표식과 `prompt_names` 1:1 · `hint_prompt[:-1]` 의 가정(절이 정확히 `\n` 하나로 끝난다)이 시험으로 고정됐는가(없으면 시험 하나 제안) · 남은 `# <include …/>` 블록이 옮겨 간 함수를 가리키지 않는가 · `runner/mode1/prompts/*.md` 가 위키 인용(`docs/wiki`)을 더 낡게 하는 것은 정상(Phase E). 실험 파일은 scratch 에만.
+
+**(3) R5 구현자** — rev.4 `:806-852` 전문을 붙인다. `sonnet`. 본체 `.py` = `runner/run_mode2.py` · `runner/run_mode1_5.py` → §7. 정정 ⑤ · ⑫ 와 §4.1 · §4.2 를 brief 에. 합격 기준 = worktree 에서 `capture.py` 를 돌려 `before/` 와 대조 — `mode1_5-ask` 둘(`.txt` · `.raw`)은 ⑤ 때문에 `--terms-db` 만 다르고 나머지 26 동일. 커밋 `[refactor] : mode 1.5 와 2 프롬프트를 runner/prompts 리소스로`.
+
+그 뒤는 rev.4 순서대로 R6 … K8 → M1 → M2. 각 Phase 끝 전량 게이트 — 기대값 "알려진 빨강 둘만 실패".
+
+## 6. `split-work/` 다시 만들기 (R3 산출물 — 커밋하지 않는다)
+
+R3 의 스크립트와 `before/` 는 클라우드 scratch 에 있었고 사라졌다. Mac 에서는 `$TOOLS_ROOT/split-work/`(= `$HOME/LLM-Tools/split-work/`)에 둔다.
+
+1. rev.4 R3 의 코드 블록 셋을 **글자 그대로** 뽑는다(손으로 옮기지 않는다):
+   ```bash
+   SW="$TOOLS_ROOT/split-work"; mkdir -p "$SW"
+   .venv/bin/python - "$SW" <<'EOF'
+   import re, sys
+   lines = open("docs/superpowers/plans/2026-10-22-split-mode1-and-report.md", encoding="utf-8").read().splitlines(keepends=True)
+   start = next(i for i, l in enumerate(lines) if l.startswith("#### Task R3"))
+   end = next(i for i, l in enumerate(lines) if l.startswith("#### Task R4"))
+   blocks = re.findall(r"```(?:python|bash)\n(.*?)```", "".join(lines[start:end]), re.S)
+   for body, name in zip(blocks[:3], ["capture.py", "capture.sh", "extract.py"]):
+       open(f"{sys.argv[1]}/{name}", "w", encoding="utf-8").write(body)
+   EOF
+   chmod +x "$SW/capture.sh"
+   ```
+2. **보강 둘**(이 세션에서 더했다):
+   - `capture.py` 의 `put()` 끝에 정규화 없는 사본을 더한다 — 끝 줄바꿈 표류를 보려고:
+     ```python
+         with open(os.path.join(OUT, name + ".raw"), "w", encoding="utf-8") as f:
+             f.write(text)
+     ```
+   - `capture.sh` 의 `render_classes.py` 줄 끝을 `>/dev/null 2>&1 || test -s "$OUT/classes.dot"` 로. Graphviz 15.1.1 이 `--module machine` 그림에서 `mincross.c:273: fixLabelOrder` 단언으로 죽는다(이 작업과 무관 · 분리 전부터). DOT 는 `dot` 을 부르기 전에 끝까지 써지므로(`viz/render_classes.py:465`) 대조에는 지장이 없다.
+3. `out/codegraph-raw/codegraph.json` 이 없으면 `.venv/bin/python bin/report-wiki prep .`.
+4. **`before/` 는 HEAD(`f87e877` 이후, R5 착수 전)에서 찍어도 된다** — R4 가 Mode 1 글 열넷을 바이트로 보존했음을 28/28 로 쟀고, 그 밖의 글을 내는 코드는 `9fa0f41` 이후 바뀌지 않았다(`git diff --stat 9fa0f41..f87e877 -- runner/run_mode2.py runner/run_mode1_5.py viz/ runner/wiki/` 가 비어야 한다 — 확인하고 찍는다):
+   ```bash
+   "$SW/capture.sh" "$PWD" "$SW/before" && ls "$SW/before" | wc -l    # 31 = .txt 14 · .raw 14 · modules.dot · classes.dot · report.html
+   "$SW/capture.sh" "$PWD" "$SW/before-again" && diff -r "$SW/before" "$SW/before-again" && rm -rf "$SW/before-again"   # 결정적인지
+   ```
+5. 구현자의 worktree 검증 꼴(R4 에서 썼다): `git worktree add --detach $S/wt HEAD` → `.venv` · `node_modules` 를 심볼릭 링크 → 리소스와 후보를 복사 → `pytest runner/` · `typecheck:py` → `.venv/bin/python $SW/capture.py $S/wt $S/after $SW/fixture-shards` → `before/*.txt` · `before/*.raw` 를 `cmp` → `git worktree remove --force` · `prune`. worktree 에는 `out/` 이 없으니 `capture.py` 만 돌린다(DOT · HTML 은 R6 · R8 에서 본 저장소로).
 
 ## 7. 가드레일 · 규약
 
-- **본체 `.py` 승인 프로토콜(사용자 규칙 유지)**: 구현자는 시험 파일 · `.md` · `.toml` · `.tmpl` · 생성물은 직접 쓴다. 본체 `.py`(새 파일 포함)는 **저장소에 쓰지 않고** `$HOME/LLM-Tools/split-work/patches/<Task>/` 에 완성본과 `diff -u` 를 두고 `DONE_WITH_CONCERNS — 본체 파일 적용 대기` 로 멈춘다. 오케스트레이터(나)가 그 내용을 `Write`/`Edit` 로 적용해 **권한 창에 diff 가 뜨게** 한다. 적용 뒤 `SendMessage` 로 같은 구현자에게 "Step 3(시험 · pyright · 이름 박아 `git add` · 커밋 · 자가 검토)" 를 시킨다. R1 이 이 꼴로 됐다.
-- **커밋**: `[tag] : 한국어 제목` 한 줄. 본문 · `Co-Authored-By` 없음(사용자 규칙이 하네스 안내를 이긴다). 파일을 **이름으로** `git add`. `git add -A` 금지.
-- **검증 명령**: `.venv/bin/python -m pytest …`(저장소 루트에서) · `npm run typecheck:py` 또는 `/opt/homebrew/bin/pyright --project pyrightconfig.json` · `npm test` · `npm run typecheck`.
-- **TDD**: rev.4 Task 마다 "실패하는 시험 → 구현 → 통과" 순서. 지킨다.
-- **코드 규약**: 주석 · 독스트링 한국어, 날짜 · 확신도 · 설계 서사 금지, `# <include …/>` 블록 새로 심지 않음, `Any` 금지(`test/test_no_any.py` COVERED), 자유 함수 모음 금지(계산은 단계의 `@staticmethod`, 둘 이상이면 믹스인).
+- **본체 `.py` 승인 프로토콜(사용자 규칙 유지)**: 구현자는 시험 파일 · `.md` · `.toml` · `.tmpl` · 생성물은 직접 쓴다. 본체 `.py`(새 파일 포함)는 **저장소에 쓰지 않고** `$HOME/LLM-Tools/split-work/patches/<Task>/` 에 완성본과 `diff -u` 를 두고, **임시 worktree 에서 후보를 검증한 뒤**(§6-5) `DONE_WITH_CONCERNS — 본체 파일 적용 대기` 로 멈춘다.
+  - **Mac(권한 창이 뜬다)**: 오케스트레이터가 `Write`/`Edit` 로 적용해 권한 창에 diff 가 뜨게 한다.
+  - **클라우드 auto mode(권한 창이 안 뜬다)**: 적용 전에 `AskUserQuestion` 으로 diff 를 보여 승인받고, 승인 뒤 `Edit`(또는 승인받은 후보를 `cp` 하고 `cmp` 로 바이트 확인)로 적용. 이 세션의 R2 · R1 수정 · R2 보강 · R4 가 이 꼴이다.
+  - 적용 뒤 같은 구현자에게 Step 3(시험 · pyright · README · 이름 박아 `git add` · 커밋 · 자가 검토)을 시킨다. 세션이 재시작돼 구현자에게 닿지 않으면 오케스트레이터가 직접 한다.
+- **커밋**: `[tag] : 한국어 제목` 한 줄. 본문 · 트레일러 없음(루트 `CLAUDE.md` 가 하네스 안내를 이긴다). 파일을 **이름으로** `git add`. `git add -A` 금지. 커밋마다 `git push -u origin survey-per-file-2pass`.
+- **검증 명령**: `.venv/bin/python -m pytest …`(저장소 루트에서) · `npm run typecheck:py`(Mac 은 `/opt/homebrew/bin/pyright --project pyrightconfig.json` 도 된다) · `npm test` · `npm run typecheck` · `gen_readme.py --check`.
+- **TDD**: rev.4 Task 마다 "실패하는 시험 → 구현 → 통과". 옮기기 Task(R4~R6)는 시험 대신 **바이트 대조가 합격 기준**이다.
+- **코드 규약**: 주석 · 독스트링 한국어, 날짜 · 확신도 · 설계 서사 금지, `# <include …/>` 블록 새로 심지 않음(있는 것도 고치지 않음), `Any` 금지(`test/test_no_any.py` COVERED), 자유 함수 모음 금지(계산은 단계의 `@staticmethod`, 둘 이상이면 믹스인).
 - **모델**: 구현자 `sonnet`(기계적 Task) · 검토자 `opus`. K3 · K6 처럼 여러 파일을 엮는 Task 는 구현자도 `opus`.
+- **검토 발견의 처리**: Important 이상은 그 Task 안에서 고친다(새 구현자 → 승인 → 같은 검토자에게 재검토). Minor 는 비용과 막는 것을 견줘 한 묶음 보강으로 하거나 §4.2 로 이월한다 — 이 세션은 R1 Minor 하나 · R2 Minor 셋을 고쳤고 나머지를 §4.2 로 넘겼다.
 - **멈추지 않는다**: Task 사이에 사용자에게 "계속할까요" 를 묻지 않는다. 멈추는 이유는 BLOCKED · 진짜 모호함 · 전부 완료 · 본체 `.py` 승인 대기 넷뿐.
 
-## 8. 유실 대비 — 커밋되지 않은 핵심
+## 8. 병렬 트랙 / 충돌
 
-rev.4 문서(`docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`, 3,913줄)는 디스크에 있고 미추적이다. 다른 기계로 가려면 먼저 커밋한다:
-```bash
-git add docs/superpowers/plans/2026-10-22-split-mode1-and-report.md docs/handoffs/RESUME-2026-10-24-split-rev4-execution.md
-git commit -m "[docs] : 두 저장소 분리 계획 rev.4 와 실행 재개 문서"
-```
-(A1 에서 결정 0011 과 함께 넣어도 된다 — 둘 중 하나만.)
+단일 트랙이다. 백그라운드 에이전트는 세션과 함께 사라진다 — **에이전트 ID 로 재개하려 하지 말고 새로 띄운다.** 사용자 소유의 미추적 변경은 지금 없다(`skill-creator` 삭제는 `7dfc33a` 로 커밋됐다).
 
 ## 9. 알려진 것 (이 작업과 무관 — 쫓지 말 것)
 
 - `pytest` 빨강 둘(§1)은 분리 전부터 있다. Phase E · B7 이 푼다.
-- `runner/mode1/prompt/*.md` 넷은 아무도 읽지 않는 죽은 사본 — R4 가 지운다.
-- `docs/wiki` 의 L2 인용 43건 낡음 — Phase R 이 줄을 더 밀어도 정상. Phase E 재굽기가 푼다.
+- `docs/wiki` 의 L2 인용 낡음 — Phase R 이 줄을 더 밀어도 정상. Phase E 재굽기가 푼다.
+- `viz/render_classes.py <codegraph> --module machine` 은 Graphviz 15.1.1 에서 `dot -Tsvg` 가 `mincross.c:273 fixLabelOrder` 단언으로 죽는다(클라우드 실측). DOT 는 정상으로 써진다.
 
 ## 10. 변경 기록 (append-only)
 
 | 날짜 | 변경 |
 |---|---|
-| 2026-10-24 | 첫 작성. R1 커밋 `53ddd2f` · spec ✅ · 품질 검토 중단. 정정표 14건과 승인 프로토콜 수록 |
+| 2026-10-24 | 첫 작성(Mac). R1 커밋 `53ddd2f` · spec ✅ · 품질 검토 중단. 정정표 14건과 승인 프로토콜 수록 |
+| 2026-10-24 | 클라우드 세션 갱신. R1 품질 검토(Important 1 → `9fa0f41` · Minor → `e9ddfc3`) · README 표류 `59a43fb` · R2 `22c80a3` + 보강 `83eb828` · R3(scratch) · R4 `f87e877`(28/28). §4.2 이월 사항 · §6 split-work 재생성 · §7 클라우드 승인 꼴 추가. 사용자 지시로 R4 검토부터는 다음 세션(Claude Code)에서 |
