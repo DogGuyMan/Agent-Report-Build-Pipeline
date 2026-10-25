@@ -315,10 +315,14 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
 
 - **리소스와 코드를 가른다 (최우선).** LLM 프롬프트는 단계당 한 파일 `runner/**/prompts/<단계>.md`(파일 이름이
   단계 이름이고, 안은 `<!-- section: 이름 -->` 으로 가른다), 코드가 쓰는 파일 템플릿은 `runner/**/templates/` ·
-  `viz/templates/`, 설정값은 `config/*.toml`. 파이썬은 읽기만 한다 — 프롬프트는 단계가 `prompt_names` 에 선언한
-  이름으로 `PromptResource.load_prompt("<파일>#<절>")`(절이 없는 파일은 `"<파일>"`), 템플릿은
-  `tools.template.render_file`. 자리표시는 `{{이름}}` 하나다. `test/test_prompt_resources.py` 가 막는다 — 긴 글(문자열
-  상수 · f-문자열)은 `runner` · `viz` · `machine` · `tools` 의 파이썬(시험 파일 제외)에서 찾는다.
+  `viz/templates/`, 설정값은 `config/*.toml`, 샤드 검문의 결함 문구는 결함 표 `runner/mode1/faults.toml`. 파이썬은 읽기만
+  한다 — 프롬프트는 단계가 `prompt_names` 에 선언한 이름으로 `PromptResource.load_prompt("<파일>#<절>")`(절이 없는 파일은
+  `"<파일>"`), 템플릿은 `tools.template.render_file`.
+  **프롬프트 글은 Jinja2 다**(`requirements.txt` 의 명시 의존) — 반복 · 빈 값 대체 · 조건부 절을 파일 안에 쓰고, 글이 쓰는
+  이름과 넘긴 값이 같아야 한다. **템플릿은 꼴만, 데이터 결정은 단계** — 무엇을 싣는가는 파이썬이 정해 행으로 넘긴다
+  ([`0012`](docs/decisions/0012-prompt-dynamics-in-jinja2.md)). 파일 템플릿의 자리표시는 `{{이름}}` 하나다.
+  `test/test_prompt_resources.py` 가 막는다 — 긴 글(문자열 상수 · f-문자열)은 `runner` · `viz` · `machine` · `tools` 의
+  파이썬(시험 파일 제외)에서 찾고, 프롬프트 글은 전부 Jinja2 로 컴파일되어야 하며 줄 끝 공백과 `{#` 를 두지 않는다.
 - 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.

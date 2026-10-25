@@ -18,7 +18,7 @@
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
 | `wiki/` | Mode 1 의 얼갈이 — `prep` · `build` · `check` · `compdb` · `clang_doc` · `paths` (`.py`). `templates/vitepress.config.mts.tmpl` 은 위키 사이트 설정의 템플릿이다 |
 | `term/` | Mode 1.5 의 얼갈이 — `collect` · `quiz` · `emit`. |
-| `prompts/` · `mode1/prompts/` | LLM 프롬프트 글. `prompts/` 는 Mode 1.5 · 2 의 `ask.md` · `agent.md`, `mode1/prompts/` 는 Mode 1 의 네 단계(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). 단계당 파일 하나(파일 이름이 단계 이름), 안은 `<!-- section: 이름 -->` 로 가른다 |
+| `prompts/` · `mode1/prompts/` | LLM 프롬프트 글. `prompts/` 는 Mode 1.5 · 2 의 `ask.md` · `agent.md`, `mode1/prompts/` 는 Mode 1 의 네 단계(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). 단계당 파일 하나(파일 이름이 단계 이름), 안은 `<!-- section: 이름 -->` 로 가른다. 절 글은 Jinja2 로 렌더한다(`PromptResource.render_text`) — 반복 · 빈 값 대체 · 조건부 절만 쓰고, 무엇을 싣는가는 단계가 정해 행으로 넘긴다 |
 
 ## 자주 쓰는 명령
 
