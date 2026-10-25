@@ -117,6 +117,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`PendingRow`** | *class* | 배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들. |
 | **`Pass2DepRow`** | *class* | 2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다. |
 | **`RetryInputs`** | *class* | 재조사 절의 값 — 지난 시도의 결함 줄들(`fault_line`)과 격리된 샤드 자리. `faults` 가 비면 절이 실리지 않는다. |
+| **`LowerPageRow`** | *class* | 위키 장 프롬프트의 이미 선 장 한 줄 — 파일명과 제목. |
 | **`UnresolvedRow`** | *class* | `unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나. |
 | **`DroppedUse`** | *class* | `dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
@@ -352,7 +353,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `WriteWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `WriteWikiStage.symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `batches.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
 | `WriteWikiStage.page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
-| `WriteWikiStage.wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: str) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
+| `WriteWikiStage.wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: Sequence[X.LowerPageRow]) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
 | `WriteWikiStage.prepare` | `(self, ctx: Mode1Context) -> None` |  |
 | `WriteWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `WriteWikiStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
@@ -933,6 +934,8 @@ Mode 1 실행기의 회귀 테스트.
 | `test_카탈로그_프롬프트는_계획_파일을_내라고_말한다` | `()` |  |
 | `test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한다` | `()` | 재설명 대신 링크하게 하는 것이 층 순서를 지키는 이유다. |
 | `test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다` | `()` |  |
+| `test_페이지_프롬프트는_심볼을_쉼표로_잇고_없으면_개괄이라고_적는다` | `()` |  |
+| `test_페이지_프롬프트는_이미_선_장을_줄마다_싣는다` | `()` |  |
 | `test_보고표는_진짜_벽시계를_따로_받는다` | `()` | `wall_seconds` 를 주면 합계 줄이 그 값을 쓰고, 안 주면 행의 초를 더한다 — |
 | `test_단계별_소계를_낸다` | `()` | 어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다. |
 | `test_같은_샤드를_두_번_합쳐도_개명하지_않는다` | `(tmp_path: Path)` | 층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다. `is not` 으로 충돌을 |

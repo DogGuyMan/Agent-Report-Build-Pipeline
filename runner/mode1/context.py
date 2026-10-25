@@ -147,6 +147,12 @@ class RetryInputs(TypedDict):
     bad: str
 
 
+class LowerPageRow(TypedDict):
+    """위키 장 프롬프트의 이미 선 장 한 줄 — 파일명과 제목."""
+    fname: str
+    title: str
+
+
 class UnresolvedRow(TypedDict):
     """`unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나.
 

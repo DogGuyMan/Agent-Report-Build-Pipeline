@@ -577,7 +577,7 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
     """재설명 대신 링크하게 하는 것이 층 순서를 지키는 이유다."""
     page: R.WikiPage = {"file": "net.md", "title": "네트워크", "symbols": ["send"]}
     p = R.wiki_page_prompt(repo="/어느/저장소", root="/도구/뿌리", page=page,
-                           lower_pages="  - protocol.md — 프로토콜")
+                           lower_pages=[{"fname": "protocol.md", "title": "프로토콜"}])
     assert "net.md" in p and "네트워크" in p
     assert "protocol.md — 프로토콜" in p
     assert "deep-wiki" in p
@@ -590,8 +590,20 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
 # 가장 아래층인 index.md 처럼 링크할 아래층 페이지가 없으면, 프롬프트가 그 사실을 '첫 장' 이라고 명시적으로 알려줘야 한다는 것을 보는 시험이다.
 # 쓰는 것: runner.run_mode1.wiki_page_prompt · 쓰이는 곳: 없음
 def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
-    p = R.wiki_page_prompt("/r", "/root", {"file": "index.md", "title": "머리", "symbols": []}, "")
+    p = R.wiki_page_prompt("/r", "/root", {"file": "index.md", "title": "머리", "symbols": []}, [])
     assert "첫 장" in p
+
+
+def test_페이지_프롬프트는_심볼을_쉼표로_잇고_없으면_개괄이라고_적는다():
+    page: R.WikiPage = {"file": "a.md", "title": "에이", "symbols": ["f", "g"]}
+    assert "  다룰 것 f, g\n" in R.wiki_page_prompt("/r", "/root", page, [])
+    assert "  다룰 것 (개괄 — 특정 심볼 없음)\n" in R.wiki_page_prompt("/r", "/root", {"file": "i.md"}, [])
+
+
+def test_페이지_프롬프트는_이미_선_장을_줄마다_싣는다():
+    p = R.wiki_page_prompt("/r", "/root", {"file": "a.md"},
+                           [{"fname": "x.md", "title": "엑스"}, {"fname": "y.md", "title": "와이"}])
+    assert "링크한다\n\n  - x.md — 엑스\n  - y.md — 와이\n\n" in p
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_보고표는_진짜_벽시계를_따로_받는다']"/>

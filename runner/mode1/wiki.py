@@ -52,8 +52,7 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
     """장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛴다."""
     name = "write-wiki"
     prompt_dir = X.PROMPT_DIR
-    prompt_names = ("write-wiki#main", "write-wiki#page-no-symbols", "write-wiki#lower-page",
-                    "write-wiki#no-lower-pages")
+    prompt_names = ("write-wiki#main",)
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -92,14 +91,11 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         return out
 
     @staticmethod
-    def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: str) -> str:
+    def wiki_page_prompt(repo: str, root: str, page: WikiPage, lower_pages: Sequence[X.LowerPageRow]) -> str:
         """장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다."""
         return WriteWikiStage.load_prompt(
             "write-wiki#main", repo=repo, root=root, fname=page["file"],
-            title=page.get("title") or page["file"],
-            syms=", ".join(page.get("symbols") or [])
-            or WriteWikiStage.load_prompt("write-wiki#page-no-symbols").removesuffix("\n"),
-            lower=lower_pages or WriteWikiStage.load_prompt("write-wiki#no-lower-pages").removesuffix("\n"))
+            title=page.get("title") or page["file"], syms=page.get("symbols") or [], lower=lower_pages)
 
     def prepare(self, ctx: Mode1Context) -> None:
         ctx.wiki_pages = P.load(X.OUTLINE.locate(ctx), X.Outline)["pages"]
@@ -122,9 +118,8 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         k = ctx.wiki_levels[rnd]
         here = [pg for pg in ctx.wiki_pages if ctx.wiki_level_of[pg["file"]] == k
                 and not os.path.exists(os.path.join(ctx.repo, "docs", "wiki", pg["file"]))]
-        lower = "\n".join(WriteWikiStage.load_prompt("write-wiki#lower-page", fname=pg["file"],
-                                                     title=pg.get("title") or pg["file"]).removesuffix("\n")
-                          for pg in ctx.wiki_done)
+        lower: list[X.LowerPageRow] = [{"fname": pg["file"], "title": pg.get("title") or pg["file"]}
+                                       for pg in ctx.wiki_done]
         ctx.wiki_done = ctx.wiki_done + here
         return [(pg["file"], self.wiki_page_prompt(ctx.repo, ctx.root, pg, lower)) for pg in here]
 

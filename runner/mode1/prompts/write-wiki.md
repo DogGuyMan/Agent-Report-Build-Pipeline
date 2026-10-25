@@ -6,13 +6,17 @@
 
   제목   {{title}}
   파일   {{repo}}/docs/wiki/{{fname}}
-  다룰 것 {{syms}}
+  다룰 것 {{ syms|join(", ") or "(개괄 — 특정 심볼 없음)" }}
 
 **이 한 장만 쓴다.** 다른 장을 만들지 않는다.
 
 ## 이미 선 장들 — 재설명하지 말고 링크한다
 
-{{lower}}
+{% for p in lower %}
+  - {{ p.fname }} — {{ p.title }}
+{% else %}
+  (없음 — 네가 첫 장이다)
+{% endfor %}
 
 ## 재료
 
@@ -35,12 +39,3 @@
 **대상 저장소의 소스는 읽기만 한다. 쓰는 곳은 위 파일 하나뿐이다. 커밋하지 마라.**
 
 보고: 줄 수 · 인용 수 · Mermaid 수 · Unknown 으로 남긴 자리.
-
-<!-- section: page-no-symbols -->
-(개괄 — 특정 심볼 없음)
-
-<!-- section: lower-page -->
-  - {{fname}} — {{title}}
-
-<!-- section: no-lower-pages -->
-  (없음 — 네가 첫 장이다)

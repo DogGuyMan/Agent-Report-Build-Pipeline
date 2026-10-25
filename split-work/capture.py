@@ -44,7 +44,7 @@ S.quarantine(SHARDS, "L0-B1", S.check_shard(b"{", "L0-B1", "/x.json"))
 put("annotate-retry", S.survey_batch_prompt("/대상", "/도구", batch, [], **S.retry_inputs(SHARDS, "L0-B1")))
 put("outline-wiki", OutlineWikiStage.wiki_catalogue_prompt("/대상", "/도구"))
 put("write-wiki", WriteWikiStage.wiki_page_prompt(
-    "/대상", "/도구", {"file": "index.md", "title": "개요", "symbols": ["f"]}, "  - a.md — A"))
+    "/대상", "/도구", {"file": "index.md", "title": "개요", "symbols": ["f"]}, [{"fname": "a.md", "title": "A"}]))
 put("mode2-agent.bare", run_mode2.agent_prompt("/프로젝트", "슬러그", "2026-01-01-슬러그-design.md", "/도구"))
 put("mode2-agent.terms", run_mode2.agent_prompt("/프로젝트", "슬러그", "2026-01-01-슬러그-design.md", "/도구",
                                                 terms_json="/프로젝트/specs/슬러그/terms.json"))
