@@ -20,7 +20,7 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import run_mode1 as M  # noqa: E402
+import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 import run_mode1_5 as R  # noqa: E402
 
