@@ -8,8 +8,8 @@
 ## 0. 한눈에 (TL;DR)
 
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · **R12 진행 중 — R12a ✅ `a6e484d` + 보강 `46b9f5b` · R12b ✅ `60c500c` · R12c~f ⬜(결정 0012 제안됨) · A2 · A3 ⬜ · K1~K8 ⬜ · M1 · M2 ⬜**.
-- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 (2) R12 — 프롬프트의 동적 부분을 Jinja2 로(R11 대체 · 결정 0012) (3) A2 · A3 (4) Phase K (5) M1 · M2.
+- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · R12 ✅(R12a `a6e484d` + 보강 `46b9f5b` · b `60c500c` · c `644f6f0` · d `aae87e4` · e `47b8f56` · f `22d67e0` `082a1d3` · 결정 0012 확정) · A2 ✅ `f1355c7` · A3 ✅ `77fe047` · **K1~K8 ⬜ · M1 · M2 ⬜**.
+- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 ~~(2) R12 · (3) A2 · A3~~ 끝 (4) Phase K (5) M1 · M2.
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
@@ -101,10 +101,10 @@ Phase A
 | R9 | 게이트 시험 + Phase R 문서 정리 + 보강 | ✅ `36fb98d` `83c22a1` `116bd73` + 보강 `0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · spec ✅ · 품질 With fixes → 보강 ✅(로컬 세션 2026-10-24) · 재검토 ✅ Ready: Yes(Important 0) · 문서 정리 `128c25b` · 사용자 승인(본체 셋) | I1 — 긴 글 게이트가 f-문자열을 한 덩어리로 잰다 · HTML 뼈대는 `viz/templates/report/page.html.tmpl`. I2 — 템플릿을 문자열 상수와 같은 값으로 찾고 basename 겹침을 본다. M2 확정 — 게이트를 `machine` · `tools` 까지 · `tools/doctor.py` 의 `python -c` 스크립트는 `tools/doctor_packages.py`. 31 동일 · `doctor` 표 동일. "줄 번호 ≤ 파일 끝" 인용 검사는 넣지 않았다 — 루트 `CLAUDE.md` 의 `runner/run_mode1.py:414`(위키가 낡은 줄을 인용한다는 설명 문장)가 걸린다 |
 | R10 | 남은 문구 → 리소스(A) · 검토 이월 본체 정리(B) | ✅ `d598822` · `5837c32` · 사용자 승인 · 품질 ✅(With fixes) → 보강 `6e9cc72` · 사용자 승인 | 새 절 — `annotate-symbols.md` 12(`batch-symbol` `batch-symbol-no-deps` `batch-dep` `batch-dep-no-means` `batch-no-deps` `pass2-dep` `pass2-no-deps` `fix-missing` `fix-malformed` `fix-schema` `fix-where` `fix-coverage`) · `write-wiki.md` 3(`page-no-symbols` `lower-page` `no-lower-pages`, 본문은 `main`). `FIX` 는 이름 · 형 그대로, 클래스 뒤 모듈 수준 대입 한 번(`survey.py` 끝). 고정 31 + 경계 입력 128 동일. 검토 보강 — 아래층 장 목록 절(`write-wiki#lower-page`)을 지나는 시험(그전에는 자리 이름이 어긋나도 통과 · 실제로는 둘째 층에서 러너가 죽는다) · `FIX` 가 빈 줄이 아닌 한 줄인지 · 심볼 줄 들여쓰기를 줄 경계로. 돌연변이 셋을 넣어 잡히는 것 확인. 독스트링 셋과 `wiki.py` 호출 꼴 |
 | R11 | 목록 밖 LLM 글 옮기기 | **폐기 → R12** · 시험 커밋 `8d71d38` 만 들어감 | 후보(새 절 6 · 고정 28 동일 · `edge_dump` 209 동일)는 적용하지 않았다(`split-work/patches/R11/`, git 밖). §5 (2) |
-| R12 | 프롬프트의 동적 부분 → Jinja2 · 결함 문구 → TOML | 🔶 R12a ✅ `a6e484d` `46b9f5b` · R12b ✅ `60c500c` · R12c~f ⬜ · **결정 0012 제안됨** | §5 (2) |
+| R12 | 프롬프트의 동적 부분 → Jinja2 · 결함 문구 → TOML | ✅ a `a6e484d` `46b9f5b` · b `60c500c` · c `644f6f0` · d `aae87e4` · e `47b8f56` · f `22d67e0` `082a1d3` · **결정 0012 확정** | §5 (2) |
 | A1 | 결정 0011 | ✅ `1325398` | 계획 문안 그대로 |
-| A2 | Mode 1.5 · 2 시험이 `measure` 를 import | ⬜ 시험만 남음 | 실행기 독스트링은 `5837c32` 에서 끝났다. §5 (3) |
-| A3 | 실행기 스크립트 실재 시험 셋 | ⬜ | 시험만. §5 (3) |
+| A2 | Mode 1.5 · 2 시험이 `measure` 를 import | ✅ `f1355c7` | 실행기 독스트링은 `5837c32` 에서 끝났다. §5 (3) |
+| A3 | 실행기 스크립트 실재 시험 셋 | ✅ `77fe047` | 시험만. §5 (3) |
 | A4 | `split_reading.py` | ✅ 커밋 없음 | 1,318 = mode1 1,025 + mode2 463 − 둘 다 176 + 버림 6. rev.4 어림(960 · 500)보다 갈림이 크지만 경로별 분류는 목록대로다 |
 | K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 · 형 생성 · 판정+collect · run_mode2 근거 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** · §5 (4) |
 | M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 | ⬜ | rev.4 :3235-3259. **`main` 에 미는 것은 사용자에게 먼저 묻는다** |
@@ -403,3 +403,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 클라우드 세션 — (가) 조건부 절은 각자 맞는 자리 · (나) 결함 줄 꼴은 `faults.toml` 의 `line` 으로 사용자 결정. 0012 에 적었다(아직 제안됨). 다음은 R12a |
 | 2026-10-24 | 클라우드 세션 — R12a ✅ `a6e484d`(`jinja2==3.1.6` · `PROMPT_ENV` · `PromptResource.render_text` · 엄격 검사는 자유 변수 = 넘긴 값 이름. capture 31 · edge_dump 209 바이트 동일 · pytest 728/2/19). MarkupSafe 는 고정하지 않았다(직접 의존만 고정하는 관례). R12a 품질 검토와 R12b 구현을 띄웠다 |
 | 2026-10-24 | 클라우드 세션 — R12a 품질 검토에서 결함 셋을 재현했다. 사전 열쇠가 dict 메서드에 가려졌고, `None` 이 "None" 으로 찍혔고, 안 타는 갈래의 없는 필터가 통과했다. 렌더 중 생 예외도 새어 나왔다. 보강 `46b9f5b` 으로 고쳤다(`PromptEnvironment.getattr` · `finalize` · AST 의 필터 · 검사 대조). R12b ✅ `60c500c` — `runner/mode1/faults.toml`(`line` + `[kind.<갈래>]`) · `context.load_fault_table` · `AnnotateSymbolsStage.FAULTS` · `fault_detail`. edge_dump 209 · 캡처 바이트 동일 · pytest 735/2/19. R12f 에 줄 끝 공백 · `{#` 게이트를 더했다. 다음은 R12c |
+| 2026-10-24~25 | 클라우드 세션 — R12 끝. R12c `644f6f0` 은 annotate-symbols 절을 13 → 3 으로 줄였다(batch · nonnode · pass2). 재조사 절은 역할 소개 아래에, 범위 · 미조사 절은 심볼 목록과 읽는 법 사이에 둔다. stage 가 행(TypedDict)을 넘긴다. 재조사 절은 batch 와 nonnode 에 복제하고 같음 시험을 둔다(사용자 결정). 개수는 파이썬이 넘긴다(사용자 결정, `|length` 안 씀). `split-work/edge_dump.py` 은퇴, 검토는 capture + diff 다. R12d `aae87e4` 은 write-wiki 절을 4 → 1 로 줄였다(바이트 동일). R12e `47b8f56` 은 agent 의 terms 절을 `{% if %}` 로 바꿨다(바이트 동일). R12f `22d67e0` 에서 게이트가 Jinja2 컴파일 · 줄 끝 공백 · `{#` 를 보고, `PromptResource.free_names` 가 생겼다. `082a1d3` 에서 루트 규약 문장을 고치고 0012 를 확정했다. A2 `f1355c7` · A3 `77fe047`(Mode 1 시험 docstring 의 경위 문장은 주석 규약대로 뺐다). A2 확인 grep 에 `test/test_no_any.py:17` · `test/test_prompt_resources.py:17` 두 줄이 걸린다. 둘 다 파일 목록이라 import 가 아니다. 게이트 pytest 747/2/19 · pyright 0 · npm test 8 · README 4 · doctor OK. 다음은 Phase K(§5 (4)) — 시작 전에 `before/` 를 HEAD 에서 다시 찍는다 |
