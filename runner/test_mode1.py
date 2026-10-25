@@ -433,9 +433,9 @@ def test_다른_파일의_같은_키는_여전히_양쪽_다_개명한다(tmp_pa
 def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
     b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
         {"id": "f", "name": "f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}
-    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", ["a.py"], 3)
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], ["a.py"], 3)
     assert "## 범위" in p and "_shards/L1-B00.json" in p
-    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
 
 
 # ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
@@ -672,7 +672,7 @@ def test_스키마_파일은_읽기_전용이고_다시_쓸_수_있다(tmp_path:
 
 def test_프롬프트_둘은_스키마_파일을_가리킨다():
     b = _one_batch_plan()["layers"][0]["batches"][0]
-    assert "record-schema.json" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "record-schema.json" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
     assert "record-schema.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
 
 
@@ -726,12 +726,13 @@ def test_재조사_프롬프트는_지난_오류를_싣는다(tmp_path: Path):
     again = SV.AnnotateSymbolsStage().jobs(c, 0)[0][1]
     assert "## 지난 시도" in again and "byte 7014" in again and "L1-B30.json.bad" in again
     assert SV.AnnotateSymbolsStage.FIX["malformed"] in again      # 갈래별 고치는 법이 실린다
-    assert again.startswith(first)          # 원래 지시는 그대로, 뒤에 붙는다
+    i, j = again.index("## 지난 시도"), again.index("## 너보다 아래층")
+    assert again[:i] + again[j:] == first   # 원래 지시는 그대로, 역할 소개와 아래층 절 사이에 끼인다
 
 
 def test_프롬프트_둘은_자가검사_명령을_준다():
     b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
-    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
     assert "/root/runner/check_shard.py /repo/out/codegraph-raw/_shards/L0-B00.json" in p
     assert "check_shard.py /repo/out/codegraph-raw/_shards/NONNODE.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
 
@@ -879,25 +880,27 @@ def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
     b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
         {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": ["C1"]}]}
     merged = {"b.g": {"means": "지 뜻"}}
-    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {"C1": "b.g"}) == "  - b.g — 지 뜻"
-    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {}) == ""      # 이름을 모르면 못 찾는다
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {"C1": "b.g"}) == [{"name": "b.g", "means": "지 뜻"}]
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {}) == []      # 이름을 모르면 못 찾는다
 
 
 def test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인다():
     b: survey_plan.PlanBatch = {"id": "F00", "files": ["a.py"], "symbols": [
         {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
          "depends_on": ["C1", "C9"]}]}
-    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", name_of={"C1": "b.g"})
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], name_of={"C1": "b.g"})
     assert "\n  - a.f (function) a.py:1   의존 -> b.g, C9\n" in p   # 이름표에 없는 id 는 그대로 둔다 — 지어내지 않는다
     assert "의존 -> C1" not in p
     assert "uses[].to 는 이 저장소 안 심볼의 레코드 키" in p
     assert "subprocess.run" in p                  # 외부 의존은 적지 않는다는 예시가 계약에 있다
-    assert '"shallow": ["위 목록의 이름 그대로"]' in SV.AnnotateSymbolsStage.pending_section("  - c.h (class) c.py:3")
+    pending: list[X.PendingRow] = [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
+    assert '"shallow": ["위 목록의 이름 그대로"]' in SV.AnnotateSymbolsStage.survey_batch_prompt(
+        "/repo", "/root", b, [], pending=pending)
 
 
 def test_배치_프롬프트는_이름표_없이도_돈다():
     b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
-    assert "의존 -> 없음" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "의존 -> 없음" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
 
 
 def test_name_of_는_계획_전체의_id_이름_표다():
@@ -920,7 +923,7 @@ def test_미조사_의존_절은_아직_없는_의존_대상을_이름_종류_�
     nodes = {"C1": {"id": "C1", "name": "b.g", "kind": "function", "file": "b.py", "line": 7, "module": "."},
              "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
     got = SV.AnnotateSymbolsStage.pending_excerpt({"b.g": {"means": "있다"}}, b, nodes)
-    assert got == "  - c.h (class) c.py:3"                    # b.g 는 이미 있으니 빠진다
+    assert got == [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]   # b.g 는 이미 있으니 빠진다
 
 
 def test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다():
@@ -932,7 +935,8 @@ def test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다():
          "depends_on": []}]}
     nodes = {"C3": {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "module": "."},
              "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
-    assert SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes) == "  - c.h (class) c.py:3"
+    assert SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes) == [
+        {"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
 
 
 def test_미조사_의존_줄은_id_순의_두_칸_들여쓴_줄이고_값을_다시_펴지_않는다():
@@ -942,14 +946,101 @@ def test_미조사_의존_줄은_id_순의_두_칸_들여쓴_줄이고_값을_�
     nodes = {"C8": {"id": "C8", "name": "b.{{x}}", "kind": "function", "file": "b%s.py", "line": 12, "module": "."},
              "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
     got = SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes)
-    assert got == "  - b.{{x}} (function) b%s.py:12\n  - c.h (class) c.py:3"
+    assert [r["name"] for r in got] == ["b.{{x}}", "c.h"]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], pending=got)
+    assert "\n\n  - b.{{x}} (function) b%s.py:12\n  - c.h (class) c.py:3\n\n이것들의 모듈을" in p
 
 
 def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다():
     b = _one_batch_plan("F00")["layers"][0]["batches"][0]
-    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "", pending="  - c.h (class) c.py:3")
+    pending: list[X.PendingRow] = [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], pending=pending)
     assert "## 아직 조사되지 않은 의존 대상" in p and "c.h (class)" in p and "shallow" in p
-    assert "## 아직 조사되지 않은 의존 대상" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, "")
+    assert "## 아직 조사되지 않은 의존 대상" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+
+
+# ── 배치 · 비노드 · 2패스 프롬프트의 꼴 — 조건부 절의 자리 · 빈 값 대체 · 빈 줄 ───────
+
+def _all_blocks_prompt(b: survey_plan.PlanBatch) -> str:
+    """재조사 · 범위 · 미조사 의존 절이 다 실린 배치 프롬프트."""
+    return SV.AnnotateSymbolsStage.survey_batch_prompt(
+        "/repo", "/root", b, [{"name": "b.g", "means": "지 뜻"}], targets=["a.py", "c.py"], total=9,
+        pending=[{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}],
+        faults=["[where] f — where 없음 (kind function)\n    → 고친다"], bad="/s/F00.json.bad")
+
+
+def test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼_목록_아래이고_보고_뒤에는_아무것도_없다():
+    p = _all_blocks_prompt(_one_batch_plan("F00")["layers"][0]["batches"][0])
+    heads = ["## 지난 시도가 되돌려졌다", "## 너보다 아래층은 이미 끝났다", "## 네가 맡은 심볼 1개",
+             "## 범위 — 증분 조사다", "## 아직 조사되지 않은 의존 대상", "## 읽는 법"]
+    at = [p.index(h) for h in heads]
+    assert at == sorted(at) and all(p.count(h) == 1 for h in heads)
+    assert p[:at[0]].endswith("무엇이 없어 막혔는지 적고 끝낸다.\n\n")
+    assert p.endswith("\n\n보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.\n")
+
+
+def test_비노드_프롬프트도_재조사_절을_역할_소개_아래에_싣는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L0-B00")
+    c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    first = SV.AnnotateSymbolsStage().jobs(c, 1)[0][1]
+    assert "## 지난 시도" not in first
+    SV.AnnotateSymbolsStage.quarantine(str(d), "NONNODE", [_fault("missing", "-")])
+    [(label, again)] = SV.AnnotateSymbolsStage().jobs(c, 1)
+    i, j = again.index("## 지난 시도"), again.index("## 심볼은 이미 전부 끝났다")
+    assert label == "NONNODE" and again[:i] + again[j:] == first
+    assert again.endswith("\n\n보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.\n")
+
+
+def test_재조사_절은_결함_줄마다_모든_줄을_두_칸_들여_싣는다():
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    lines = [SV.AnnotateSymbolsStage.fault_line(_fault("where", "a.f")), SV.AnnotateSymbolsStage.fault_line(_fault())]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], faults=lines, bad="/s/F00.json.bad")
+    want = "".join("  " + ln.replace("\n", "\n  ") + "\n" for ln in lines)
+    assert "결함 2개를 찾아 되돌렸다:\n\n" + want + "\n- 되돌린 샤드는 /s/F00.json.bad 에" in p
+
+
+def test_배치와_비노드의_재조사_절은_글자까지_같다():
+    S = SV.AnnotateSymbolsStage
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    lines = [S.fault_line(_fault("where", "a.f")), S.fault_line(_fault())]
+    batch = S.survey_batch_prompt("/repo", "/root", b, [], faults=lines, bad="/s/F00.json.bad")
+    nonnode = S.nonnode_prompt("/repo", "/root", lines, "/s/F00.json.bad")
+
+    def retry_block(p: str, next_head: str) -> str:
+        return p[p.index("## 지난 시도가 되돌려졌다"):p.index(next_head)]
+
+    assert retry_block(batch, "## 너보다 아래층은 이미 끝났다") == retry_block(nonnode, "## 심볼은 이미 전부 끝났다")
+
+
+def test_빈_목록과_빈_값은_대체_글을_싣는다():
+    b: survey_plan.PlanBatch = {"id": "F00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}
+    bare = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    assert "다시 조사하지 마라\n\n  (없음 — 너는 최하층이다)\n\n## 네가 맡은" in bare
+    assert "\n  - a.f (function) a.py:1   의존 -> 없음\n\n## 읽는 법" in bare
+    no_means = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [{"name": "b.g", "means": ""}])
+    assert "다시 조사하지 마라\n\n  - b.g — (뜻 없음)\n\n## 네가 맡은" in no_means
+    p2 = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})
+    assert "이제 조사가 끝났다\n\n  (없음)\n\n## 할 일" in p2
+    p2 = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F00", "a.py", {},
+                                              {"c.k": {"means": "c 뜻"}, "b.g": {"does": "b 일"}})
+    assert "이제 조사가 끝났다\n\n  - b.g —  / b 일\n  - c.k — c 뜻 / \n\n## 할 일" in p2
+
+
+def test_빠진_절은_빈_줄을_남기지_않는다():
+    S = SV.AnnotateSymbolsStage
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    bare = S.survey_batch_prompt("/repo", "/root", b, [])
+    assert "끝낸다.\n\n## 너보다 아래층" in bare and "의존 -> 없음\n\n## 읽는 법" in bare
+    fault = "[where] f — d\n    → 고친다"
+    variants = [bare, _all_blocks_prompt(b),
+                S.survey_batch_prompt("/repo", "/root", b, [], targets=["a.py"], total=2),
+                S.survey_batch_prompt("/repo", "/root", b, [], pending=[{"name": "c", "kind": "k", "file": "c.py", "line": "1"}]),
+                S.survey_batch_prompt("/repo", "/root", b, [], faults=[fault], bad="/s/b"),
+                S.nonnode_prompt("/repo", "/root"), S.nonnode_prompt("/repo", "/root", [fault], "/s/b"),
+                S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
+    assert [i for i, v in enumerate(variants) if "\n\n\n" in v or v.endswith("\n\n") or not v.endswith("\n")] == []
 
 
 # ── 미해결 표 unresolved.csv ─────────────────────────────────────────────────

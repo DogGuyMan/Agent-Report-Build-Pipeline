@@ -11,7 +11,6 @@
 |---|---|
 | `capture.py <저장소> <출력> <샤드폴더>` | 고정 입력으로 프롬프트 · 뼈대 · VitePress 설정 글 14개를 찍는다. 이름마다 `.txt`(끝 줄바꿈 하나로 맞춤) · `.raw`(그대로) |
 | `capture.sh <저장소> <출력>` | `capture.py` + `modules.dot` · `classes.dot` + 실제 `report-spec build` 의 `report.html` — 31개. Graphviz 15.1.1 의 `mincross.c` 단언은 `classes.dot` 이 써졌으면 넘긴다 |
-| `edge_dump.py <트리>` | Mode 1 프롬프트 함수 · `FIX` · 재조사 절 · `check_shard` 출력 · 미조사 의존 줄 · 결함 줄 · 결함 설명 · `.bad.why` 바이트를 경계 입력 209개로 돌려 JSON 을 stdout 에 낸다. 옛 트리(`git archive <기준> \| tar -x -C <폴더>`)와 후보 트리를 각각 돌려 `cmp`. `python -I` 로 돌린다 |
 | `extract.py <파일.py> <줄> <출력>` | 파이썬 문자열 하나를 `{{이름}}` 리소스 글로 옮긴다 — `.format` 이스케이프를 풀고 f-문자열 식은 `slotN` 으로 |
 | `split_reading.py <terms-reading.json> <mode1 출력> <mode2 출력>` | 전수조사 레코드를 두 저장소 몫으로 가른다(A4) |
 | `r9-gate-proto/` | R9 품질 검토가 남긴 게이트 강화 원형 — 아래 |
@@ -22,6 +21,7 @@
 .venv/bin/python bin/report-wiki prep .                      # out/codegraph-raw/codegraph.json 이 없으면 먼저
 split-work/capture.sh "$PWD" split-work/before                # 기준 — 31개
 split-work/capture.sh "$PWD" split-work/after && diff -r split-work/before split-work/after && echo 같다
+diff -ru split-work/before split-work/after > split-work/patches/<Task>/prompts.diff   # 프롬프트 꼴을 고친 Task(결정 0012) — 바뀐 글을 사람이 읽는다
 ```
 
 ## r9-gate-proto/ — `test/test_prompt_resources.py` 를 조이는 원형

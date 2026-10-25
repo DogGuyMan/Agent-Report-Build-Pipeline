@@ -163,7 +163,6 @@ LANG_ALIAS = SnapshotScan.LANG_ALIAS
 lang_of = SnapshotScan.lang_of
 changed_seed = DetectChangesStage.changed_seed
 from mode1.survey import AnnotateSymbolsStage  # noqa: E402
-warmup_section = AnnotateSymbolsStage.warmup_section
 dep_excerpt = AnnotateSymbolsStage.dep_excerpt
 survey_batch_prompt = AnnotateSymbolsStage.survey_batch_prompt
 nonnode_prompt = AnnotateSymbolsStage.nonnode_prompt

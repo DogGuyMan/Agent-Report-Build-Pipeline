@@ -137,7 +137,7 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
                     continue
                 prompt = self.survey_batch_prompt(
                     ctx.repo, ctx.root, b, self.dep_excerpt(ctx.merged, b, name_of),
-                    pending=self.pending_excerpt(ctx.merged, b, nodes), name_of=name_of) + self.retry_section(d, bid)
+                    pending=self.pending_excerpt(ctx.merged, b, nodes), name_of=name_of, **self.retry_inputs(d, bid))
                 submit(bid, prompt)
             drain()
             if not failed and has_nonnode and not os.path.exists(os.path.join(d, "NONNODE.json")):

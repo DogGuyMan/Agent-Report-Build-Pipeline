@@ -13,8 +13,8 @@ import pipeline as P
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
-from mode1.context import (ROOT, FaultKind, Mode1Context, Record, Records, ShardFault, ShardRecords,
-                           UnresolvedRow)
+from mode1.context import (ROOT, DepRow, FaultKind, Mode1Context, Pass2DepRow, PendingRow, Record, Records,
+                           RetryInputs, ShardFault, ShardRecords, SymbolRow, UnresolvedRow)
 from mode1.measured import Measured
 
 
@@ -23,12 +23,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     name = "annotate-symbols"
     emits = P.OK | P.FAIL | P.SKIP
     prompt_dir = X.PROMPT_DIR
-    prompt_names = ("annotate-symbols#batch", "annotate-symbols#batch-symbol",
-                    "annotate-symbols#batch-symbol-no-deps", "annotate-symbols#batch-dep",
-                    "annotate-symbols#batch-dep-no-means", "annotate-symbols#batch-no-deps",
-                    "annotate-symbols#scope", "annotate-symbols#pending",
-                    "annotate-symbols#retry", "annotate-symbols#nonnode",
-                    "annotate-symbols#pass2", "annotate-symbols#pass2-dep", "annotate-symbols#pass2-no-deps")
+    prompt_names = ("annotate-symbols#batch", "annotate-symbols#nonnode", "annotate-symbols#pass2")
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -48,21 +43,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     def shard_dir(ctx: Mode1Context) -> str:
         return os.path.join(X.raw_dir(ctx), "_shards")
 
-    # ── 프롬프트 넷 ─────────────────────────────────────────────────────
-
-    @staticmethod
-    def warmup_section(targets: Sequence[str] | None, total: int, repo: str = "") -> str:
-        """프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다.
-
-        붙는 곳은 **전수조사 배치 프롬프트뿐**이다. 위키 쪽 범위는 `wiki_page_prompt` 가
-        페이지 목록으로 따로 준다.
-        """
-        if not targets:
-            return ""
-        목록 = "\n".join("  " + t for t in targets)
-        return "\n" + AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#scope", reading=X.reading_path(repo, ROOT), count=str(len(targets)),
-            total=str(total), targets=목록)
+    # ── 프롬프트 — 배치 · 비노드 ─────────────────────────────────────────
 
     @staticmethod
     def name_of(plan: survey_plan.SurveyPlan) -> dict[str, str]:
@@ -72,88 +53,76 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 
     @staticmethod
     def dep_excerpt(merged: Mapping[str, Mapping[str, object]],
-                    batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> str:
-        """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다.
+                    batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> list[DepRow]:
+        """배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만, 이름 순의 줄로 낸다.
 
         `depends_on` 은 노드 id 다. `name_of` 로 이름을 얻고 그 이름이 `merged` 에 있을 때만 싣는다.
         아직 레코드가 없는 이름은 아예 뺀다 — 없는 것을 가리키면 세션이 그 자리를 추론으로 메운다.
+        `means` 가 없거나 비면 빈 글이다.
 
         읽기만 하므로 `Records` 가 아니라 `Mapping` 을 받는다 — `dict` 는 값 형이 고정이라
         `dict[str, dict[str, str]]` 같은 더 좁은 사전을 그대로 넘길 수 없다.
         """
         want = sorted({name_of.get(d, "") for s in batch.get("symbols", []) for d in s.get("depends_on", [])})
-        no_means = AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-dep-no-means").removesuffix("\n")
-        return "\n".join(
-            AnnotateSymbolsStage.load_prompt(
-                "annotate-symbols#batch-dep", name=k,
-                means=str((merged[k] or {}).get("means") or no_means)).removesuffix("\n")
-            for k in want if k and k in merged)
+        return [{"name": k, "means": str((merged[k] or {}).get("means") or "")} for k in want if k and k in merged]
 
     @staticmethod
     def survey_batch_prompt(repo: str, root: str, batch: survey_plan.PlanBatch,
-                            dep_records: str, targets: Sequence[str] | None = None,
-                            total: int = 0, pending: str = "",
-                            name_of: Mapping[str, str] | None = None) -> str:
+                            deps: Sequence[DepRow], targets: Sequence[str] | None = None,
+                            total: int = 0, pending: Sequence[PendingRow] = (),
+                            name_of: Mapping[str, str] | None = None,
+                            faults: Sequence[str] = (), bad: str = "") -> str:
         """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
 
-        `dep_records` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
-        **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 붙는다.
+        `deps` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
+        **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 실린다.
         `name_of` 는 계획의 `id -> name`. 심볼 줄의 `의존 ->` 를 이름으로 보인다 — 세션은 보이는 것을
-        `uses[].to` 에 그대로 베끼므로, id 를 보이면 id 가 레코드에 박힌다.
+        `uses[].to` 에 그대로 베끼므로, id 를 보이면 id 가 레코드에 박힌다. 이름표에 없는 id 는 그대로 둔다.
 
-        `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 있으면 **증분 조사**라는 뜻이라
-        `warmup_section` 이 만든 범위 지시문을 뒤에 붙인다. `None` 이면 전량 조사다.
+        `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 비지 않으면 **증분 조사**라 범위 절이 실린다.
+        `None` 이면 전량 조사다. `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
         """
         names = name_of or {}
-        no_deps = AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-symbol-no-deps").removesuffix("\n")
-        syms = "\n".join(
-            AnnotateSymbolsStage.load_prompt(
-                "annotate-symbols#batch-symbol", name=str(s["name"]), kind=str(s["kind"]),
-                file=str(s["file"]), line=str(s["line"]),
-                deps=", ".join(names.get(d, d) for d in (s.get("depends_on") or [])) or no_deps
-            ).removesuffix("\n")
-            for s in batch["symbols"])
+        syms: list[SymbolRow] = [
+            {"name": str(s["name"]), "kind": str(s["kind"]), "file": str(s["file"]), "line": str(s["line"]),
+             "deps": [names.get(d, d) for d in (s.get("depends_on") or [])]}
+            for s in batch["symbols"]]
+        scope = list(targets or ())
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#batch", repo=repo, root=root, bid=batch["id"], n=str(len(batch["symbols"])),
-            syms=syms, deps=dep_records
-            or AnnotateSymbolsStage.load_prompt("annotate-symbols#batch-no-deps").removesuffix("\n")) \
-            + AnnotateSymbolsStage.pending_section(pending) \
-            + AnnotateSymbolsStage.warmup_section(targets, total, repo)
-
-    @staticmethod
-    def pending_section(pending: str) -> str:
-        """미조사 의존 대상이 있을 때만 붙는 절. 열지 말고 얕게 쓰고 `shallow` 를 표시하라고 시킨다."""
-        if not pending:
-            return ""
-        return "\n" + AnnotateSymbolsStage.load_prompt("annotate-symbols#pending", pending=pending)
+            "annotate-symbols#batch", repo=repo, root=root, bid=batch["id"], n=len(syms), syms=syms,
+            deps=list(deps), targets=scope, target_count=len(scope), total=total,
+            reading=X.reading_path(repo, ROOT), pending=list(pending),
+            faults=list(faults), fault_count=len(faults), bad=bad)
 
     @staticmethod
     def pending_excerpt(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch,
-                        nodes: Mapping[str, Mapping[str, object]]) -> str:
-        """`depends_on` 중 **아직 레코드가 없는** 것을 `이름 (종류) 파일:줄` 로. 세션이 열지 않고 볼 최소 정보다.
+                        nodes: Mapping[str, Mapping[str, object]]) -> list[PendingRow]:
+        """`depends_on` 중 **아직 레코드가 없는** 것을 id 순의 줄로 — 이름 · 종류 · 파일 · 줄. 세션이 열지 않고 볼 최소 정보다.
 
         같은 배치의 심볼은 뺀다 — 세션이 지금 읽는 파일이라 "열지 마라" 가 성립하지 않는다.
-        `nodes` 는 `codegraph.json` 의 노드를 id 로 키질한 것이다.
+        `nodes` 는 `codegraph.json` 의 노드를 id 로 키질한 것이다. 칸은 `str()` 로 적는다 — 없는 칸은 `None` 이다.
         """
         mine = {s["id"] for s in batch.get("symbols", [])}
         ids = sorted({d for s in batch.get("symbols", []) for d in s.get("depends_on", [])} - mine)
-        lines: list[str] = []
+        rows: list[PendingRow] = []
         for i in ids:
             n = nodes.get(i)
             if n is None or str(n.get("name") or "") in merged:
                 continue
-            lines.append("  - %s (%s) %s:%s" % (n.get("name"), n.get("kind"), n.get("file"), n.get("line")))
-        return "\n".join(lines)
+            rows.append({"name": str(n.get("name")), "kind": str(n.get("kind")), "file": str(n.get("file")),
+                         "line": str(n.get("line"))})
+        return rows
 
     @staticmethod
-    def nonnode_prompt(repo: str, root: str) -> str:
+    def nonnode_prompt(repo: str, root: str, faults: Sequence[str] = (), bad: str = "") -> str:
         """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
 
         이것들은 코드 지도의 노드가 아니라 층 축이 없다. 대신 심볼 레코드가 재료다 —
-        **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.**
+        **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.** `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
         """
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#nonnode", repo=repo, root=root, reading=X.reading_path(repo, ROOT))
+            "annotate-symbols#nonnode", repo=repo, root=root, reading=X.reading_path(repo, ROOT),
+            faults=list(faults), fault_count=len(faults), bad=bad)
 
     # ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────
 
@@ -287,15 +256,10 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                 os.remove(path)
 
     @staticmethod
-    def retry_section(shard_dir: str, bid: str) -> str:
-        """지난 시도가 격리됐으면 그 결함들을 프롬프트 뒤에 붙일 절. 없으면 빈 글."""
-        faults = AnnotateSymbolsStage.load_faults(shard_dir, bid)
-        if not faults:
-            return ""
-        lines = "\n".join("  " + AnnotateSymbolsStage.fault_line(f).replace("\n", "\n  ") for f in faults)
-        return "\n" + AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#retry", count=str(len(faults)), faults=lines,
-            bad=os.path.join(shard_dir, bid + ".json.bad"))
+    def retry_inputs(shard_dir: str, bid: str) -> RetryInputs:
+        """재조사 절의 값 — 격리 사유의 결함마다 `fault_line` 과, 격리된 샤드 자리. 사유가 없으면 결함 줄이 빈다."""
+        return {"faults": [AnnotateSymbolsStage.fault_line(f) for f in AnnotateSymbolsStage.load_faults(shard_dir, bid)],
+                "bad": os.path.join(shard_dir, bid + ".json.bad")}
 
     # ── 미해결 표 — 얕게 쓴 레코드가 기다리는 의존 대상 ───────────────────
 
@@ -357,15 +321,10 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
                      deps: Mapping[str, Mapping[str, object]]) -> str:
         """2패스 — 파일을 다시 읽지 않는다. 얕게 쓴 레코드와, 이제 조사된 의존 대상의 뜻만 받아 다듬는다."""
         mine = json.dumps({k: dict(v) for k, v in shallow.items()}, ensure_ascii=False, indent=1)
-        theirs = "\n".join(
-            AnnotateSymbolsStage.load_prompt(
-                "annotate-symbols#pass2-dep", name=k, means=str(r.get("means") or ""),
-                does=str(r.get("does") or "")).removesuffix("\n")
-            for k, r in sorted(deps.items()))
+        theirs: list[Pass2DepRow] = [{"name": k, "means": str(r.get("means") or ""), "does": str(r.get("does") or "")}
+                                     for k, r in sorted(deps.items())]
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#pass2", repo=repo, root=root, bid=bid, file=file, mine=mine,
-            theirs=theirs
-            or AnnotateSymbolsStage.load_prompt("annotate-symbols#pass2-no-deps").removesuffix("\n"))
+            "annotate-symbols#pass2", repo=repo, root=root, bid=bid, file=file, mine=mine, theirs=theirs)
 
     @staticmethod
     def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:
@@ -603,18 +562,18 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
     def jobs(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]:
         assert ctx.plan is not None
         layer = ctx.plan["layers"][rnd]
+        d = self.shard_dir(ctx)
         if layer.get("kind") == "non-node":
-            jobs = [("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root))]
+            jobs = [("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root, **self.retry_inputs(d, "NONNODE")))]
         else:
             names = self.name_of(ctx.plan)
             jobs = [(b["id"], self.survey_batch_prompt(ctx.repo, ctx.root, b,
                                                        self.dep_excerpt(ctx.merged, b, names),
-                                                       ctx.targets, ctx.tracked_n, name_of=names))
+                                                       ctx.targets, ctx.tracked_n, name_of=names,
+                                                       **self.retry_inputs(d, b["id"])))
                     for b in layer["batches"]]
         # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돌고, 격리된 사유를 받는다.
-        d = self.shard_dir(ctx)
-        return [(bid, pr + self.retry_section(d, bid)) for bid, pr in jobs
-                if not os.path.exists(os.path.join(d, bid + ".json"))]
+        return [(bid, pr) for bid, pr in jobs if not os.path.exists(os.path.join(d, bid + ".json"))]
 
     def harvest(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome:
         out = super().harvest(ctx, got, rnd)

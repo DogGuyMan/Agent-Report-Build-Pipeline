@@ -160,26 +160,6 @@ def test_seed_tolerates_missing_buckets():
     assert R.changed_seed({}) == []
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_warmup_section_lists_every_target_and_the_ratio']"/>
-# 에이전트가 조사 범위를 알려면 프롬프트 절에 대상 파일 목록과 전체 대비 비율이 둘 다 있어야 하고, 목록 밖은 읽지 말라는 경고 문구도 있어야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.warmup_section · 쓰이는 곳: 없음
-def test_warmup_section_lists_every_target_and_the_ratio():
-    """에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다."""
-    s = R.warmup_section(["core/a.cpp", "server/b.h"], total=77)
-    assert "core/a.cpp" in s and "server/b.h" in s
-    assert "2" in s and "77" in s
-    assert "읽지 마라" in s          # 목록 밖을 읽지 말라고 분명히 말한다
-
-
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_warmup_section_is_empty_when_there_is_nothing_to_scope']"/>
-# 범위를 좁힐 대상이 없으면(빈 목록이나 None) 절 자체가 빈 문자열이어야 부르는 쪽이 그 절을 통째로 뺄 수 있다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.warmup_section · 쓰이는 곳: 없음
-def test_warmup_section_is_empty_when_there_is_nothing_to_scope():
-    """범위가 없으면 빈 글이다 — 부르는 쪽이 이 절을 통째로 뺀다."""
-    assert R.warmup_section([], total=77) == ""
-    assert R.warmup_section(None, total=77) == ""
-
-
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1._배치']"/>
 # 테스트에서 쓸 가짜 배치(batch) 데이터 하나를 만들어 주는 도우미 함수다.
 # 쓰는 것: machine.survey_plan.PlanBatch · 쓰이는 곳: runner.test_run_mode1.test_배치_프롬프트는_범위가_없으면_전량_조사다, runner.test_run_mode1.test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다, runner.test_run_mode1.test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다
@@ -197,7 +177,7 @@ def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
     """warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
     기존 레코드의 means/does 를 함부로 다시 쓰지 않는다.
     """
-    p = R.survey_batch_prompt("/r", "/root", _배치(), "", targets=["core/a.cpp"], total=77)
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [], targets=["core/a.cpp"], total=77)
     assert "core/a.cpp" in p
     assert "증분" in p
 
@@ -207,8 +187,21 @@ def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
 # 쓰는 것: runner.run_mode1.survey_batch_prompt, runner.test_run_mode1._배치 · 쓰이는 곳: 없음
 def test_배치_프롬프트는_범위가_없으면_전량_조사다():
     """warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다."""
-    p = R.survey_batch_prompt("/r", "/root", _배치(), "")
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [])
     assert "증분" not in p
+
+
+def test_범위_절은_목록과_비율을_싣고_목록_밖을_읽지_말라고_한다():
+    """에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다."""
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [], targets=["core/a.cpp", "server/b.h"], total=77)
+    assert "\n\n  core/a.cpp\n  server/b.h\n\n" in p
+    assert "**아래 2개 파일에 걸린 레코드만** 다시 만든다. 추적 파일 77개 중 2개다." in p
+    assert "읽지 마라" in p          # 목록 밖을 읽지 말라고 분명히 말한다
+
+
+def test_범위가_비었거나_없으면_범위_절이_없다():
+    assert "## 범위" not in R.survey_batch_prompt("/r", "/root", _배치(), [], targets=[], total=77)
+    assert "## 범위" not in R.survey_batch_prompt("/r", "/root", _배치(), [], targets=None, total=77)
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_claude_argv_is_headless_json_and_names_the_model']"/>
@@ -243,7 +236,7 @@ def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
     고치면 동시에 도는 다른 배치가 서로를 지운다.
     """
     p = R.survey_batch_prompt(repo="/어느/저장소", root="/도구/뿌리",
-                              batch=_배치(), dep_records="  - encode — 바이트로 바꾼다")
+                              batch=_배치(), deps=[{"name": "encode", "means": "바이트로 바꾼다"}])
     assert "/어느/저장소" in p and "/도구/뿌리" in p
     assert "L1-B00" in p
     assert "core/net.py" in p and "42" in p
@@ -264,7 +257,7 @@ def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한
                         "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
                                      "kind": "function", "in_cycle": False,
                                      "depends_on": []}]}
-    assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, "")
+    assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, [])
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_비노드_프롬프트는_심볼이_아닌_종류만_말한다']"/>
@@ -290,17 +283,12 @@ def test_의존_발췌는_아래층에_있는_것만_낸다():
     # `id` · `files` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
     batch = cast(PlanBatch, {"symbols": [{"id": "send", "depends_on": ["C1", "C9"]}]})
     got = R.dep_excerpt(merged, batch, {"C1": "encode", "C9": "아직없음"})   # depends_on 은 id, 표가 이름으로 건넨다
-    assert "encode" in got and "바이트로 바꾼다" in got
-    assert "무관" not in got
-    assert "아직없음" not in got
+    assert got == [{"name": "encode", "means": "바이트로 바꾼다"}]   # 무관 · 아직없음 은 빠진다
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_의존_발췌는_아무것도_없으면_빈_문자열']"/>
-# 의존 레코드도 없고 배치가 의존하는 것도 없으면 발췌 결과가 빈 문자열이어야 한다는 것을 보는 시험이다.
-# 쓰는 것: runner.run_mode1.dep_excerpt · 쓰이는 곳: 없음
-def test_의존_발췌는_아무것도_없으면_빈_문자열():
+def test_의존_발췌는_아무것도_없으면_빈_목록():
     # 위와 같은 이유로 부분 배치다
-    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]}), {}) == ""
+    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]}), {}) == []
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1.test_terms_argv_passes_the_static_codegraph_positionally']"/>
@@ -754,5 +742,5 @@ def test_남의_저장소는_docs_codegraph_아래를_본다() -> None:
 def test_배치_프롬프트의_범위_지시문이_같은_자리를_말한다() -> None:
     """프롬프트가 말하는 자리와 실행기가 읽고 쓰는 자리가 갈리면 세션이 없는 파일을 찾는다."""
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    s = R.warmup_section(["machine/warmup.py"], total=39, repo=root)
-    assert R.reading_path(root, root) in s
+    p = R.survey_batch_prompt(root, root, _배치(), [], targets=["machine/warmup.py"], total=39)
+    assert "지난 조사 결과가 %s 에 이미 있다" % R.reading_path(root, root) in p

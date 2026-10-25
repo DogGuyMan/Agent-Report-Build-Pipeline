@@ -112,6 +112,11 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`ShardFault`** | *class* | `at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키. |
 | **`FaultTable`** | *class* | `faults.toml` — `line` 은 결함 하나를 찍는 꼴, `kind` 는 갈래마다 `fix` 와 `detail…` 글. |
 | `load_fault_table` | `(path: str = FAULTS_PATH) -> FaultTable` | 결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외. |
+| **`SymbolRow`** | *class* | 배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다. |
+| **`DepRow`** | *class* | 배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다. |
+| **`PendingRow`** | *class* | 배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들. |
+| **`Pass2DepRow`** | *class* | 2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다. |
+| **`RetryInputs`** | *class* | 재조사 절의 값 — 지난 시도의 결함 줄들(`fault_line`)과 격리된 샤드 자리. `faults` 가 비면 절이 실리지 않는다. |
 | **`UnresolvedRow`** | *class* | `unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나. |
 | **`DroppedUse`** | *class* | `dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나. |
 | **`WikiPage`** | *class* | `outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다. |
@@ -263,13 +268,11 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `AnnotateSymbolsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `AnnotateSymbolsStage.shard_dir` | `(ctx: Mode1Context) -> str` |  |
-| `AnnotateSymbolsStage.warmup_section` | `(targets: Sequence[str] \| None, total: int, repo: str = '') -> str` | 프롬프트에 실을 범위 지시문. 범위가 없으면 빈 글이다. |
 | `AnnotateSymbolsStage.name_of` | `(plan: survey_plan.SurveyPlan) -> dict[str, str]` | 계획 전체의 `id -> name`. `depends_on` 은 노드 id 이고 레코드 키는 이름이라 이 표로 건넌다. |
-| `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> str` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만 발췌한다. |
-| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, dep_records: str, targets: Sequence[str] \| None = None, total: int = 0, pending: str = '', name_of: Mapping[str, str] \| None = None) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
-| `AnnotateSymbolsStage.pending_section` | `(pending: str) -> str` | 미조사 의존 대상이 있을 때만 붙는 절. 열지 말고 얕게 쓰고 `shallow` 를 표시하라고 시킨다. |
-| `AnnotateSymbolsStage.pending_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, nodes: Mapping[str, Mapping[str, object]]) -> str` | `depends_on` 중 **아직 레코드가 없는** 것을 `이름 (종류) 파일:줄` 로. 세션이 열지 않고 볼 최소 정보다. |
-| `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str) -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
+| `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> list[DepRow]` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만, 이름 순의 줄로 낸다. |
+| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, deps: Sequence[DepRow], targets: Sequence[str] \| None = None, total: int = 0, pending: Sequence[PendingRow] = (), name_of: Mapping[str, str] \| None = None, faults: Sequence[str] = (), bad: str = '') -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
+| `AnnotateSymbolsStage.pending_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, nodes: Mapping[str, Mapping[str, object]]) -> list[PendingRow]` | `depends_on` 중 **아직 레코드가 없는** 것을 id 순의 줄로 — 이름 · 종류 · 파일 · 줄. 세션이 열지 않고 볼 최소 정보다. |
+| `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str, faults: Sequence[str] = (), bad: str = '') -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
 | `AnnotateSymbolsStage.fault` | `(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault` |  |
 | `AnnotateSymbolsStage.fault_detail` | `(kind: FaultKind, name: str = 'detail', **values) -> str` | 결함 표의 결함 설명 `kind.<갈래>.<name>` 을 `values` 로 렌더한다. 인자가 위치 전용이라 값 이름이 `kind` 여도 된다. |
@@ -281,7 +284,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.quarantine` | `(shard_dir: str, bid: str, faults: Sequence[ShardFault] = ()) -> str` | 틀린 샤드를 `.json.bad` 로 옮기고 결함들을 `.json.bad.why` 에 JSON 으로 남긴다. |
 | `AnnotateSymbolsStage.load_faults` | `(shard_dir: str, bid: str) -> list[ShardFault]` | 격리 사유. 없거나 꼴이 틀리면 빈 목록 — 낡은 사유로 재조사를 오도하지 않는다. |
 | `AnnotateSymbolsStage.clear_quarantine` | `(shard_dir: str, bid: str) -> None` | 검문을 통과한 배치의 옛 격리 흔적을 치운다. 남기면 다음 재조사가 낡은 오류를 받는다. |
-| `AnnotateSymbolsStage.retry_section` | `(shard_dir: str, bid: str) -> str` | 지난 시도가 격리됐으면 그 결함들을 프롬프트 뒤에 붙일 절. 없으면 빈 글. |
+| `AnnotateSymbolsStage.retry_inputs` | `(shard_dir: str, bid: str) -> RetryInputs` | 재조사 절의 값 — 격리 사유의 결함마다 `fault_line` 과, 격리된 샤드 자리. 사유가 없으면 결함 줄이 빈다. |
 | `AnnotateSymbolsStage.shallow_of` | `(rec: Mapping[str, object]) -> list[str]` | 레코드의 `shallow` 를 이름 목록으로 좁힌다. 없거나 목록이 아니면 빈 목록. |
 | `AnnotateSymbolsStage.into_of` | `(cg: X.CodeGraphDoc) -> dict[str, int]` | 심볼 이름마다 **다른 파일에서** 들어오는 간선 수 — 얕게 쓴 레코드를 다듬을 가치의 척도다. |
 | `AnnotateSymbolsStage.unresolved_rows` | `(merged: Mapping[str, Mapping[str, object]], weight: Mapping[str, float], into: Mapping[str, int], known: Collection[str], queued: Collection[str] = ()) -> list[UnresolvedRow]` | `shallow` 를 가진 레코드마다 의존 대상 한 줄. `into` 의 키 집합이 "계획에 있는 이름" 이다. |
@@ -728,6 +731,13 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다` | `()` | 자기 파일 안의 함수는 지금 읽고 있는 것이다 — "열지 마라" 목록에 들어가면 안 된다. |
 | `test_미조사_의존_줄은_id_순의_두_칸_들여쓴_줄이고_값을_다시_펴지_않는다` | `()` |  |
 | `test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다` | `()` |  |
+| `_all_blocks_prompt` | `(b: survey_plan.PlanBatch) -> str` | 재조사 · 범위 · 미조사 의존 절이 다 실린 배치 프롬프트. |
+| `test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼_목록_아래이고_보고_뒤에는_아무것도_없다` | `()` |  |
+| `test_비노드_프롬프트도_재조사_절을_역할_소개_아래에_싣는다` | `(tmp_path: Path)` |  |
+| `test_재조사_절은_결함_줄마다_모든_줄을_두_칸_들여_싣는다` | `()` |  |
+| `test_배치와_비노드의_재조사_절은_글자까지_같다` | `()` |  |
+| `test_빈_목록과_빈_값은_대체_글을_싣는다` | `()` |  |
+| `test_빠진_절은_빈_줄을_남기지_않는다` | `()` |  |
 | `test_into_of_는_다른_파일에서_들어오는_간선_수를_이름으로_센다` | `()` |  |
 | `test_미해결_표는_shallow_레코드마다_의존_대상_한_줄이고_상태를_가른다` | `()` |  |
 | `test_미해결_csv_머리줄` | `()` |  |
@@ -888,18 +898,18 @@ Mode 1 실행기의 회귀 테스트.
 | `test_seed_excludes_valid_and_deleted` | `()` | 유효는 읽을 것이 없고, 삭제됨은 읽을 파일 자체가 없다. |
 | `test_seed_is_sorted_and_deduplicated` | `()` | 같은 파일이 두 갈래에 들어와도 한 번만 센다 — 프롬프트에 두 번 실리면 안 된다. |
 | `test_seed_tolerates_missing_buckets` | `()` |  |
-| `test_warmup_section_lists_every_target_and_the_ratio` | `()` | 에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다. |
-| `test_warmup_section_is_empty_when_there_is_nothing_to_scope` | `()` | 범위가 없으면 빈 글이다 — 부르는 쪽이 이 절을 통째로 뺀다. |
 | `_배치` | `() -> PlanBatch` |  |
 | `test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다` | `()` | warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야 |
 | `test_배치_프롬프트는_범위가_없으면_전량_조사다` | `()` | warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다. |
+| `test_범위_절은_목록과_비율을_싣고_목록_밖을_읽지_말라고_한다` | `()` | 에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다. |
+| `test_범위가_비었거나_없으면_범위_절이_없다` | `()` |  |
 | `test_claude_argv_is_headless_json_and_names_the_model` | `()` |  |
 | `test_claude_argv_does_not_pass_the_prompt_on_the_command_line` | `()` | 프롬프트는 표준 입력으로 준다. 명령줄에 실으면 길이 한계와 따옴표 지옥에 걸린다. |
 | `test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다` | `()` | 배치 세션은 자기 심볼만 읽고 자기 샤드에만 쓴다 — terms-reading.json 을 직접 |
 | `test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다` | `()` | 층0 은 의존 대상이 없다. 빈 칸을 그냥 두면 세션이 무엇이 빠졌는지 헷갈린다. |
 | `test_비노드_프롬프트는_심볼이_아닌_종류만_말한다` | `()` | K5 — file · module · artifact · key · concept 는 층 축이 없다. |
 | `test_의존_발췌는_아래층에_있는_것만_낸다` | `()` | 전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 캐시 이점이 사라진다. |
-| `test_의존_발췌는_아무것도_없으면_빈_문자열` | `()` |  |
+| `test_의존_발췌는_아무것도_없으면_빈_목록` | `()` |  |
 | `test_terms_argv_passes_the_static_codegraph_positionally` | `()` | `--reading` 만 주면 투영이 codegraph.json 을 **덮어쓴다**. 실제로 겪은 사고다. |
 | `test_report_has_a_row_per_stage_and_a_total` | `()` |  |
 | `test_report_marks_a_failed_stage` | `()` |  |

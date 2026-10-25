@@ -34,14 +34,14 @@ batch = {"id": "L0-B1", "files": ["a.py"],
                       "depends_on": ["n2"]}]}
 put("lang-hint", LangHintStage.hint_prompt("# README\n본문\n"))
 put("annotate-batch.full", S.survey_batch_prompt(
-    "/대상", "/도구", batch, "  - g — 뜻", targets=["a.py"], total=3,
-    pending="  - h (function) b.py:2", name_of={"n2": "g"}))
-put("annotate-batch.bare", S.survey_batch_prompt("/대상", "/도구", batch, ""))
+    "/대상", "/도구", batch, [{"name": "g", "means": "뜻"}], targets=["a.py"], total=3,
+    pending=[{"name": "h", "kind": "function", "file": "b.py", "line": "2"}], name_of={"n2": "g"}))
+put("annotate-batch.bare", S.survey_batch_prompt("/대상", "/도구", batch, []))
 put("annotate-nonnode", S.nonnode_prompt("/대상", "/도구"))
 put("annotate-pass2", S.pass2_prompt("/대상", "/도구", "L0-B1", "a.py", {"f": {"kind": "function"}},
                                      {"g": {"means": "뜻", "does": "함"}}))
 S.quarantine(SHARDS, "L0-B1", S.check_shard(b"{", "L0-B1", "/x.json"))
-put("annotate-retry", S.retry_section(SHARDS, "L0-B1"))
+put("annotate-retry", S.survey_batch_prompt("/대상", "/도구", batch, [], **S.retry_inputs(SHARDS, "L0-B1")))
 put("outline-wiki", OutlineWikiStage.wiki_catalogue_prompt("/대상", "/도구"))
 put("write-wiki", WriteWikiStage.wiki_page_prompt(
     "/대상", "/도구", {"file": "index.md", "title": "개요", "symbols": ["f"]}, "  - a.md — A"))

@@ -111,6 +111,42 @@ def load_fault_table(path: str = FAULTS_PATH) -> FaultTable:
         return msgspec.convert(tomllib.load(f), FaultTable)
 
 
+class SymbolRow(TypedDict):
+    """배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다."""
+    name: str
+    kind: str
+    file: str
+    line: str
+    deps: list[str]
+
+
+class DepRow(TypedDict):
+    """배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다."""
+    name: str
+    means: str
+
+
+class PendingRow(TypedDict):
+    """배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들."""
+    name: str
+    kind: str
+    file: str
+    line: str
+
+
+class Pass2DepRow(TypedDict):
+    """2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다."""
+    name: str
+    means: str
+    does: str
+
+
+class RetryInputs(TypedDict):
+    """재조사 절의 값 — 지난 시도의 결함 줄들(`fault_line`)과 격리된 샤드 자리. `faults` 가 비면 절이 실리지 않는다."""
+    faults: list[str]
+    bad: str
+
+
 class UnresolvedRow(TypedDict):
     """`unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나.
 
