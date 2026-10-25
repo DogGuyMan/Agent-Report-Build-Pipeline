@@ -239,7 +239,7 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
                  terms_json: str | None = None, doc_dir: str = "specs") -> str:
     """원고를 쓰는 한 세션이 할 일 전부.
 
-    글은 `runner/prompts/agent.md` 의 `main` 절이고, `terms_json` 이 있으면 `terms` 절을 `main` 의 `{{terms_block}}` 자리에 넣는다.
+    글은 `runner/prompts/agent.md` 의 `main` 절이다. 용어집 재료 절은 `terms_json` 이 있을 때만 실린다(`{% if %}`).
     **그 글이 기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
     무결성은 `check` 가 잡지만, 판정을 LLM Model이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.
@@ -248,11 +248,8 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
     LLM Model이 없는 경로를 열어 보고 막힌다.
     """
     folder = report_dir(project, slug, doc_dir)
-    terms_block = ""
-    if terms_json:
-        terms_block = "\n" + AgentStage.load_prompt("agent#terms", terms_json=terms_json)
     return AgentStage.load_prompt("agent#main", project=project, spec_file=spec_file, folder=folder,
-                                  root=root, terms_block=terms_block, doc_dir=doc_dir)
+                                  root=root, terms_json=terms_json, doc_dir=doc_dir)
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.run_agent']"/>
@@ -371,7 +368,7 @@ class AgentStage(P.LlmStage[Mode2Context]):
     """세션 하나. `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다."""
     name = "agent"
     prompt_dir = os.path.join(ROOT, "runner", "prompts")
-    prompt_names = ("agent#main", "agent#terms")
+    prompt_names = ("agent#main",)
 
     def prompt(self, ctx: Mode2Context) -> str:
         return agent_prompt(ctx.project, ctx.slug, ctx.spec_file, ctx.root,
