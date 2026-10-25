@@ -1,9 +1,10 @@
-"""리소스와 코드를 가르는 게이트 — 긴 글은 리소스 파일에 살고, 프롬프트 선언과 파일 · 절은 1:1 이다."""
+"""리소스와 코드를 가르는 게이트 — 긴 글은 리소스 파일에 살고, 프롬프트 선언과 파일 · 절은 1:1 이며, 프롬프트 글은 Jinja2 로 컴파일된다."""
 import ast
 import glob
 import importlib
 import os
 import sys
+import tomllib
 from collections.abc import Iterator
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,6 +68,30 @@ def template_files() -> list[str]:
                   if os.path.isfile(t))
 
 
+def prompt_files() -> list[str]:
+    """Jinja2 로 렌더되는 리소스 파일 — 프롬프트 파일과 결함 표."""
+    return sorted(glob.glob(os.path.join(ROOT, "runner", "**", "prompts", "*.md"), recursive=True)
+                  + glob.glob(os.path.join(ROOT, "runner", "**", "faults.toml"), recursive=True))
+
+
+def prompt_texts() -> Iterator[tuple[str, str]]:
+    """(자리, Jinja2 글) — 프롬프트 파일의 절마다, 결함 표의 글마다."""
+    import pipeline as P
+    for p in prompt_files():
+        rel = os.path.relpath(p, ROOT)
+        if p.endswith(".toml"):
+            with open(p, "rb") as f:
+                doc = tomllib.load(f)
+            yield rel + ":line", doc["line"]
+            for kind, row in doc["kind"].items():
+                for key, text in row.items():
+                    yield "%s:kind.%s.%s" % (rel, kind, key), text
+            continue
+        with open(p, encoding="utf-8") as f:
+            for sec, text in P.PromptResource.sections(f.read()).items():
+                yield rel + ("#" + sec if sec else ""), text
+
+
 def all_subclasses(cls: type) -> set[type]:
     out: set[type] = set()
     for c in cls.__subclasses__():
@@ -121,3 +146,27 @@ def test_템플릿_파일은_모두_코드가_부른다() -> None:
     assert dups == [], "템플릿 파일 이름이 겹친다 — 이름 하나가 파일 하나를 가리켜야 한다:\n" + "\n".join(dups)
     orphans = sorted(os.path.relpath(t, ROOT) for t in templates if os.path.basename(t) not in names)
     assert orphans == [], "어느 코드의 문자열 상수에도 이름이 없는 템플릿이 있다:\n" + "\n".join(orphans)
+
+
+def test_프롬프트_글은_모두_jinja2_로_컴파일된다() -> None:
+    import pipeline as P
+    from tools.template import TemplateError
+    bad: list[str] = []
+    for where, text in prompt_texts():
+        try:
+            P.PromptResource.free_names(text)
+        except TemplateError as e:
+            bad.append("%s: %s" % (where, e))
+    assert bad == [], "Jinja2 로 컴파일되지 않는 프롬프트 글이 있다:\n" + "\n".join(bad)
+
+
+def test_프롬프트_파일에_줄_끝_공백과_jinja2_주석_표식이_없다() -> None:
+    """블록 태그 뒤의 공백은 공백 줄을 남기고(`trim_blocks` 는 줄바꿈만 먹는다), `{#` 는 Jinja2 주석을 열어 글을 삼킨다."""
+    hits: list[str] = []
+    for p in prompt_files():
+        with open(p, encoding="utf-8") as f:
+            for i, line in enumerate(f, 1):
+                body = line.rstrip("\n")
+                if body != body.rstrip(" \t") or "{#" in body:
+                    hits.append("%s:%d" % (os.path.relpath(p, ROOT), i))
+    assert hits == [], "줄 끝 공백이나 `{#` 가 있는 프롬프트 리소스 줄:\n" + "\n".join(hits)

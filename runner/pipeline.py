@@ -533,28 +533,36 @@ class PromptResource:
         return out
 
     @staticmethod
-    def render_text(text: str, /, **values: object) -> str:
-        """Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`).
+    def free_names(text: str) -> set[str]:
+        """Jinja2 글 `text` 가 값으로 받아야 하는 이름들 — 타지 않는 `{% if %}` 갈래 안의 것도 센다.
 
-        글이 쓰는 자유 변수와 넘긴 값의 이름이 같아야 하고, 글이 쓰는 필터 · 검사는 환경에 있어야 한다 —
-        타지 않는 `{% if %}` 갈래 안의 것도 센다. 그래서 `default` 는 이름이 없을 때 쓰이지 않는다 — 빈 값 대체는
-        `{{ x or "대체" }}` 로 쓴다. 이 둘의 어긋남 · Jinja2 문법 오류 · 렌더 중 오류(없는 속성 · 열쇠 · `None` ·
-        형이 안 맞는 연산)는 모두 `TemplateError` 다.
+        Jinja2 문법 오류와 환경에 없는 필터 · 검사(타지 않는 갈래 안의 것도)는 `TemplateError` 다.
         """
         try:
             ast = PROMPT_ENV.parse(text)
             free = jinja2.meta.find_undeclared_variables(ast)    # 컴파일을 거쳐 타는 갈래의 없는 필터도 여기서 난다
         except jinja2.TemplateSyntaxError as e:
             raise TemplateError("Jinja2 문법 — 글의 %d 줄: %s" % (e.lineno, e.message)) from e
-        missing, unused = sorted(free - set(values)), sorted(set(values) - free)
-        if missing or unused:
-            raise TemplateError("값이 없는 자리 %s · 자리가 없는 값 %s" % (missing, unused))
         unknown = sorted({n.name for n in ast.find_all(jinja2.nodes.Filter) if n.name not in PROMPT_ENV.filters}
                          | {n.name for n in ast.find_all(jinja2.nodes.Test) if n.name not in PROMPT_ENV.tests})
         if unknown:
             raise TemplateError("Jinja2 문법 — 없는 필터 · 검사 %s" % unknown)
+        return free
+
+    @staticmethod
+    def render_text(text: str, /, **values: object) -> str:
+        """Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`).
+
+        `free_names` 가 내는 이름과 넘긴 값의 이름이 같아야 한다. 그래서 `default` 는 이름이 없을 때 쓰이지 않는다 —
+        빈 값 대체는 `{{ x or "대체" }}` 로 쓴다. 이 어긋남 · `free_names` 의 오류 · 렌더 중 오류(없는 속성 · 열쇠 ·
+        `None` · 형이 안 맞는 연산)는 모두 `TemplateError` 다.
+        """
+        free = PromptResource.free_names(text)
+        missing, unused = sorted(free - set(values)), sorted(set(values) - free)
+        if missing or unused:
+            raise TemplateError("값이 없는 자리 %s · 자리가 없는 값 %s" % (missing, unused))
         try:
-            return PROMPT_ENV.from_string(ast).render(values)
+            return PROMPT_ENV.from_string(text).render(values)
         except TemplateError:
             raise
         except jinja2.TemplateSyntaxError as e:

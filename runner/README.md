@@ -410,6 +410,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `_printable` | `(value: object) -> object` | `{{ }}` 로 찍히는 값. `None` 과 호출 가능한 것(메서드 · 함수)은 글이 될 수 없어 `TemplateError` 다. |
 | **`PromptResource`** | *class* | 프롬프트 글을 리소스 파일에서 읽는 단계의 믹스인. 단계당 파일 하나 `<prompt_dir>/<파일>.md`. |
 | `PromptResource.sections` | `(text: str) -> dict[str, str]` | 절 이름 → 글. 표식이 없으면 `{"": 본문}`. 글은 앞뒤 줄바꿈을 떼고 줄바꿈 하나로 끝낸다. |
+| `PromptResource.free_names` | `(text: str) -> set[str]` | Jinja2 글 `text` 가 값으로 받아야 하는 이름들 — 타지 않는 `{% if %}` 갈래 안의 것도 센다. |
 | `PromptResource.render_text` | `(text: str, **values) -> str` | Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`). |
 | `PromptResource.load_prompt` | `(cls, name: str, **values) -> str` | `"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 그 글을 `render_text` 로 렌더한다. |
 | **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다. |
