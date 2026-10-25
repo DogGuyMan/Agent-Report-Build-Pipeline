@@ -777,3 +777,12 @@ def test_ask_는_claude_가_없으면_실패한다(tmp_path: Path, monkeypatch: 
     monkeypatch.setattr(R.shutil, "which", _claude_missing)
     out = R.AskStage().perform(_m15(tmp_path))
     assert out.kind == P.FAIL and "claude" in out.why
+
+
+def test_term_script_paths_actually_exist() -> None:
+    """Mode 1.5 가 부르는 얼갈이 스크립트가 디스크에 실재하는가. 문자열 대조는 디렉토리 개편을 못 잡는다."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for name in ("collect.py", "emit.py", "quiz.py"):
+        # 경로를 만드는 곳이 모듈 전용 헬퍼뿐이라 그것을 들여다본다. 공개로 올리면 계약에 없는 이름이 는다.
+        p = R._term_script(root, name)  # pyright: ignore[reportPrivateUsage]
+        assert os.path.isfile(p), f"Mode 1.5 가 없는 파일을 가리킨다: {p}"

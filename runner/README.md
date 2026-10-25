@@ -942,7 +942,7 @@ Mode 1 실행기의 회귀 테스트.
 | `test_같은_샤드를_두_번_합쳐도_개명하지_않는다` | `(tmp_path: Path)` | 층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다. `is not` 으로 충돌을 |
 | `test_계획_요약은_층과_배치와_합계를_낸다` | `()` | 돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다. |
 | `test_lang_of_maps_every_collector_language_to_declmap` | `(tmp_path: Path) -> None` | 코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다. |
-| `test_every_runner_script_path_actually_exists` | `() -> None` | 세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다. |
+| `test_every_runner_script_path_actually_exists` | `() -> None` | Mode 1 이 부르는 얼갈이 스크립트 셋이 **디스크에 실재하는지** 본다. |
 | `test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다` | `() -> None` | `runner/wiki/*.py` 를 **스크립트로** 띄웠을 때 import 가 서는가. |
 | `test_자기호스팅_읽기레코드_경로가_실재한다` | `() -> None` | 이 저장소 자신을 조사할 때 원본은 `machine/terms-reading.json` 이다. |
 | `test_남의_저장소는_docs_codegraph_아래를_본다` | `() -> None` |  |
@@ -1034,6 +1034,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_ask_뒤에_답안이_없으면_기입란을_깔고_GATE_로_멈춘다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_ask_뒤에_답안이_있으면_OK_로_채점에_넘긴다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
 | `test_ask_는_claude_가_없으면_실패한다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_term_script_paths_actually_exist` | `() -> None` | Mode 1.5 가 부르는 얼갈이 스크립트가 디스크에 실재하는가. 문자열 대조는 디렉토리 개편을 못 잡는다. |
 
 ---
 
@@ -1088,6 +1089,7 @@ Mode 2 실행기의 회귀 시험.
 | `test_그래프의_실패는_전부_멈춤이다` | `(tmp_path: Path)` |  |
 | `test_build_만_고르면_이미_있는_파일이_given_이_된다` | `(tmp_path: Path)` |  |
 | `test_build_만_고르는데_파일이_없으면_팩토리가_죽는다` | `(tmp_path: Path)` |  |
+| `test_viz_script_paths_actually_exist` | `() -> None` | Mode 2 가 부르는 viz 스크립트 셋이 디스크에 실재하는가. |
 
 ---
 

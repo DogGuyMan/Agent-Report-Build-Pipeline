@@ -433,3 +433,11 @@ def test_build_만_고르는데_파일이_없으면_팩토리가_죽는다(tmp_p
         R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False,
                             only=["build"], skip=None)
     assert "산출물" in str(e.value)
+
+
+def test_viz_script_paths_actually_exist() -> None:
+    """Mode 2 가 부르는 viz 스크립트 셋이 디스크에 실재하는가."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for stage in ("init", "build", "check"):
+        p = R.script_argv(root, stage, "슬러그")[1]
+        assert os.path.isfile(p), f"Mode 2 가 없는 파일을 가리킨다: {p}"

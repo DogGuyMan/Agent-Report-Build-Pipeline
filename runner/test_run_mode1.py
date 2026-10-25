@@ -692,28 +692,14 @@ def test_lang_of_maps_every_collector_language_to_declmap(tmp_path: Path) -> Non
 # 세 실행기(Mode 1·1.5·2)가 부르는 node 스크립트 경로가 실제로 디스크에 존재하는지 확인해, 디렉토리 개편 후에도 옛 경로를 가리킨 채 시험만 통과하는 일을 막는 시험이다.
 # 쓰는 것: runner.run_mode1.wiki_argv, runner.run_mode1_5._term_script, runner.run_mode2.script_argv · 쓰이는 곳: 없음
 def test_every_runner_script_path_actually_exists() -> None:
-    """세 실행기가 부르는 node 스크립트가 **디스크에 실재하는지** 본다.
+    """Mode 1 이 부르는 얼갈이 스크립트 셋이 **디스크에 실재하는지** 본다.
 
-    문자열만 대조하는 시험은 디렉토리가 개편돼도 초록으로 남는다 — 실제로
-    `scripts/` 가 `runner/`·`viz/` 로 갈린 뒤에도 세 실행기가 옛 경로를 가리킨 채
-    시험이 통과하고 있었다. 여기서는 파일 존재를 본다.
+    문자열만 대조하는 시험은 디렉토리가 개편돼도 초록으로 남는다. 여기서는 파일 존재를 본다.
     """
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, os.path.join(root, "runner"))
-    import run_mode1_5 as R15
-    import run_mode2 as R2
-
     for script in ("prep.py", "build.py", "check.py"):
         p = R.wiki_argv(sys.executable, root, script, "/대상")[1]
         assert os.path.isfile(p), f"Mode 1 이 없는 파일을 가리킨다: {p}"
-    for name in ("collect.py", "emit.py", "quiz.py"):
-        # 이 시험만 모듈 전용 헬퍼를 들여다본다 — 경로가 실재하는지 보는 것이 목적이고
-        # 그 경로를 만드는 곳이 여기뿐이다. 공개로 올리면 계약에 없는 이름이 는다.
-        p = R15._term_script(root, name)  # pyright: ignore[reportPrivateUsage]
-        assert os.path.isfile(p), f"Mode 1.5 가 없는 파일을 가리킨다: {p}"
-    for stage in ("init", "build", "check"):
-        p = R2.script_argv(root, stage, "슬러그")[1]
-        assert os.path.isfile(p), f"Mode 2 가 없는 파일을 가리킨다: {p}"
 
 
 def test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다() -> None:
