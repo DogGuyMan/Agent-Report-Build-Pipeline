@@ -4,7 +4,7 @@
 
 네트워크 사정(🔵): `refactoring.guru` 는 WebFetch 에서 `getaddrinfo ENOTFOUND`, curl 에서 `CONNECT tunnel failed, response 403` 이었다. `wikidocs.net` 은 WebFetch `ENOTFOUND`. `cockpit.ireb.org` PDF 는 curl 응답 코드 000(받기 실패). `ko.wikipedia.org` 는 앞선 조사 보고서가 막혔다고 기록했다. 그래서 refactoring.guru·위키백과·위키독스·IREB 의 내용은 **전부 🟡** 이다. 보관소·중계 서비스(웹 아카이브 등)로 우회하는 것은 세션 정책이 거부했으므로 쓰지 않았다. Microsoft Learn 한국어 페이지는 Microsoft Learn MCP 의 `microsoft_docs_fetch` 로 원문을 받아 읽었다(🔵). GitHub 공개 저장소는 익명 `git clone` 이 됐다(🔵). GitHub 검색 API 는 세션 정책상 막혀 있었다("sessions are bound to their configured repositories").
 
-탐침 용어(probe terms) 표기: 아래 본문에서 "탐침 51개" 는 과제가 준 개념어 28개와 GoF 패턴 이름 23개를 합친 수다.
+탐침 용어(probe terms) 표기: 아래 본문에서 "탐침 49개" 는 과제가 준 개념어 26개와 GoF 패턴 이름 23개를 합친 수다.
 
 ## 1. refactoring.guru 에 한국어판이 있는가 (디자인 패턴 · 리팩터링 카탈로그 · 코드 스멜), 한국어 이름과 라이선스
 
@@ -43,7 +43,7 @@ learn.microsoft.com/ko-kr 의 Architecture Center 와 .NET 아키텍처 전자�
 - 🔵 .NET 전자책 "아키텍처 원칙" 한국어판 표기: Separation of Concerns → 절 제목 "문제의 분리", 본문 "**우려의 분리**", "문제를 분리하는 것". Encapsulation → "캡슐화". Dependency Inversion → "종속성 반전", "종속성 반전 원칙". Dependency injection → "종속성 주입". Explicit Dependencies → "명시적 종속성 원칙". Single Responsibility → "단일 책임 원칙". "DRY(반복 금지)". Persistence Ignorance → "PI(**지속성 무지**)", "지속성 무시". Bounded Contexts → 절 제목 "제한된 컨텍스트", 본문 "바인딩된 컨텍스트", "경계가 지정된 각 컨텍스트", "경계가 있는 컨텍스트". 이 페이지는 PDF 전자책에서 발췌했다고 밝힌다 — [아키텍처 원칙 (ko-kr)](https://learn.microsoft.com/ko-kr/dotnet/architecture/modern-web-apps-azure/architectural-principles)
 - 🔵 Microsoft Learn 이용 약관: "Unless otherwise specified, the Services are for your personal and non-commercial use. You may not modify, copy, distribute, … create derivative works … without prior written consent". 같은 약관에 "Certain documentation may be subject to explicit license terms separate from the terms contained here … the explicit license terms control" 도 있다 — [learn.microsoft.com Terms of Use](https://learn.microsoft.com/en-us/legal/termsofuse)
 - 🔵 영어 원문 저장소 `MicrosoftDocs/architecture-center` 는 공개다. HEAD `6d1df20` (2026-10-28T05:02:10Z), `LICENSE` = "Attribution 4.0 International", `LICENSE-CODE` = MIT — [architecture-center](https://github.com/MicrosoftDocs/architecture-center/tree/6d1df20e7433ce2b765b4944c10a3ed0f9625caf)
-- 🔵 한국어 저장소로 짐작한 `MicrosoftDocs/architecture-center.ko-kr` 는 익명 `git ls-remote` 에서 자격 증명을 요구했다. 앞선 보고서도 `azure-docs.ko-kr` 등 현지화 저장소가 지금은 닫혔다고 기록했다 — [앞선 보고서](/home/user/Agent-Report-Build-Pipeline/reports/한국어%20개발%20용어%20근거%20방법.md)
+- 🔵 한국어 저장소로 짐작한 `MicrosoftDocs/architecture-center.ko-kr` 는 익명 `git ls-remote` 에서 자격 증명을 요구했다. 앞선 보고서도 `azure-docs.ko-kr` 등 현지화 저장소가 지금은 닫혔다고 기록했다 — [앞선 보고서](../../reports/한국어%20개발%20용어%20근거%20방법.md)
 
 ### Inferences
 - 💭 75 같은 페이지에서 한 영어 용어가 6갈래로 옮겨지는 것은 사람이 관리하는 용어집이 적용되지 않았다는 신호다(용어집이 있으면 한 갈래로 묶였을 것). 그래서 ko-dev-terms 가 이 출처의 표기를 "개발자 영역에서 확립된 용어" 근거로 세면 잘못된 행이 생긴다. 쓴다면 출처 종류를 `기계번역(현지화)` 같은 별도 표지로 달아야 한다.
@@ -57,7 +57,7 @@ learn.microsoft.com/ko-kr 의 Architecture Center 와 .NET 아키텍처 전자�
 ## 3. 한국어 위키백과의 설계·공학 개념 문서 — 표제, 넘겨주기, 표기 변이
 
 ### Takeaway
-탐침 개념어 28개 가운데 **한국어 위키백과 표제가 검색으로 확인된 것은 약 20개**다(🟡, 정확한 수는 대조표 참조). 첫 문장의 괄호 병기(`결합도(coupling)` · `응집도(cohesion)` · `전제 조건(precondition)` · `사후 조건(postcondition)` · `IoC(Inversion of Control)`)가 항목별 명시적 짝을 준다. 표제 철자는 국립국어원 외래어 표기법 쪽(`옵서버` · `싱글턴` · `리팩터링`)이다. 한편 문서끼리 표기가 갈린다. precondition 은 `전제 조건`/`선행조건`, postcondition 은 `사후 조건`/`후행조건`, IoC 는 `제어 반전`/`역제어`, information hiding 은 `정보 은닉`/`정보 숨기기`, DIP 는 `의존관계 역전`/`의존성 역전` 이다. 덤프로 받으면 결정적이고 고정할 수 있다는 점은 앞선 보고서가 다뤘다. 이번 세션에는 접속이 막혀 넘겨주기 목록은 하나도 세지 못했다.
+탐침 개념어 26개 가운데 **한국어 위키백과에서 한국어 표기가 검색으로 확인된 것은 약 20개**다(🟡, 정확한 수는 대조표 참조). 첫 문장의 괄호 병기(`결합도(coupling)` · `응집도(cohesion)` · `전제 조건(precondition)` · `사후 조건(postcondition)` · `IoC(Inversion of Control)`)가 항목별 명시적 짝을 준다. 표제 철자는 국립국어원 외래어 표기법 쪽(`옵서버` · `싱글턴` · `리팩터링`)이다. 한편 문서끼리 표기가 갈린다. precondition 은 `전제 조건`/`선행조건`, postcondition 은 `사후 조건`/`후행조건`, IoC 는 `제어 반전`/`역제어`, information hiding 은 `정보 은닉`/`정보 숨기기`, DIP 는 `의존관계 역전`/`의존성 역전` 이다. 덤프로 받으면 결정적이고 고정할 수 있다는 점은 앞선 보고서가 다뤘다. 이번 세션에는 접속이 막혀 넘겨주기 목록은 하나도 세지 못했다.
 
 ### Cited Findings
 - 🟡 SOLID 묶음 표제: "SOLID (객체 지향 설계)", "단일 책임 원칙", "개방-폐쇄 원칙", "리스코프 치환 원칙", "의존관계 역전 원칙". 인터페이스 분리 원칙은 SOLID 문서 목록에만 이름이 나왔고 단독 문서는 검색되지 않았다 — [SOLID (객체 지향 설계)](https://ko.wikipedia.org/wiki/SOLID_(%EA%B0%9D%EC%B2%B4_%EC%A7%80%ED%96%A5_%EC%84%A4%EA%B3%84)); [단일 책임 원칙](https://ko.wikipedia.org/wiki/%EB%8B%A8%EC%9D%BC_%EC%B1%85%EC%9E%84_%EC%9B%90%EC%B9%99); [개방-폐쇄 원칙](https://ko.wikipedia.org/wiki/%EA%B0%9C%EB%B0%A9-%ED%8F%90%EC%87%84_%EC%9B%90%EC%B9%99); [리스코프 치환 원칙](https://ko.wikipedia.org/wiki/%EB%A6%AC%EC%8A%A4%EC%BD%94%ED%94%84_%EC%B9%98%ED%99%98_%EC%9B%90%EC%B9%99); [의존관계 역전 원칙](https://ko.wikipedia.org/wiki/%EC%9D%98%EC%A1%B4%EA%B4%80%EA%B3%84_%EC%97%AD%EC%A0%84_%EC%9B%90%EC%B9%99)
@@ -71,7 +71,7 @@ learn.microsoft.com/ko-kr 의 Architecture Center 와 .NET 아키텍처 전자�
 - 🟡 공학 실천 표제: "리팩터링", "코드 스멜", "기술 부채", "호출 그래프", "멱등법칙", "멱등원" — [리팩터링](https://ko.wikipedia.org/wiki/%EB%A6%AC%ED%8C%A9%ED%84%B0%EB%A7%81); [코드 스멜](https://ko.wikipedia.org/wiki/%EC%BD%94%EB%93%9C_%EC%8A%A4%EB%A9%9C); [기술 부채](https://ko.wikipedia.org/wiki/%EA%B8%B0%EC%88%A0_%EB%B6%80%EC%B1%84); [호출 그래프](https://ko.wikipedia.org/wiki/%ED%98%B8%EC%B6%9C_%EA%B7%B8%EB%9E%98%ED%94%84); [멱등법칙](https://ko.wikipedia.org/wiki/%EB%A9%B1%EB%93%B1%EB%B2%95%EC%B9%99)
 - 🟡 도메인 주도 설계 문서: "도메인 주도 설계(Domain-driven design, DDD)는 … 큰 체계를 각각 정해진 맥락에 따라 각자의 모델을 갖는 부분들로 나눈다" — bounded context 를 이 스니펫에서는 "정해진 맥락" 으로 풀어 썼다. 별도 표제는 확인되지 않았다 — [도메인 주도 설계](https://ko.wikipedia.org/wiki/%EB%8F%84%EB%A9%94%EC%9D%B8_%EC%A3%BC%EB%8F%84_%EC%84%A4%EA%B3%84)
 - 🟡 패턴 표제: "옵서버 패턴"(스니펫에 "발행/구독 모델로 알려져 있기도 하다"), "싱글턴 패턴"(별도 "싱글턴" 문서도 있음), "데코레이터 패턴", "비지터 패턴", "디자인 패턴 (책)", "소프트웨어 디자인 패턴", "멀티턴 패턴" — [옵서버 패턴](https://ko.wikipedia.org/wiki/%EC%98%B5%EC%84%9C%EB%B2%84_%ED%8C%A8%ED%84%B4); [싱글턴 패턴](https://ko.wikipedia.org/wiki/%EC%8B%B1%EA%B8%80%ED%84%B4_%ED%8C%A8%ED%84%B4); [데코레이터 패턴](https://ko.wikipedia.org/wiki/%EB%8D%B0%EC%BD%94%EB%A0%88%EC%9D%B4%ED%84%B0_%ED%8C%A8%ED%84%B4); [비지터 패턴](https://ko.wikipedia.org/wiki/%EB%B9%84%EC%A7%80%ED%84%B0_%ED%8C%A8%ED%84%B4); [디자인 패턴 (책)](https://ko.wikipedia.org/wiki/%EB%94%94%EC%9E%90%EC%9D%B8_%ED%8C%A8%ED%84%B4_(%EC%B1%85))
-- 🟡(앞선 보고서) 위키백과 SQL 덤프의 라이선스는 CC BY-SA 4.0 + GFDL 이고, 덤프 날짜로 고정할 수 있다 — [앞선 보고서](/home/user/Agent-Report-Build-Pipeline/reports/한국어%20개발%20용어%20근거%20방법.md)
+- 🟡(앞선 보고서) 위키백과 SQL 덤프의 라이선스는 CC BY-SA 4.0 + GFDL 이고, 덤프 날짜로 고정할 수 있다 — [앞선 보고서](../../reports/한국어%20개발%20용어%20근거%20방법.md)
 
 ### Inferences
 - 💭 75 위키백과에는 짝이 두 층으로 있다. (a) 언어 간 링크로 이어진 표제 짝(덤프 필요)과 (b) 첫 문장의 `한글(English)` 괄호 병기. (b) 는 같은 문서 안의 저자 정렬이므로 덤프 본문을 정규식으로 결정적으로 뽑을 수 있다. 다만 (b) 는 넘겨주기에 있는 다른 표기(예: `옵저버 패턴` → `옵서버 패턴` 넘겨주기 여부)를 보여 주지 않는다.
@@ -113,7 +113,7 @@ GoF · 『리팩터링 2판』 · 『클린 코드』 · 『클린 아키텍처�
 ## 5. GitHub 의 일반 프로그래밍·공학 용어 커뮤니티 용어집 (단일 프레임워크가 아닌 것)
 
 ### Takeaway
-실측으로 쓸 만한 것은 **`dahlia/cjk-compsci-terms` 하나**다(🔵). 259개 항목 전부에 영어·한국어 짝이 있고, CC BY-SA 4.0 이며, 커밋 `65a7584`(2026-10-19)로 고정된다. 스키마가 있는 YAML 이라 결정적으로 읽힌다. 다만 **탐침 51개 중 8개만 맞는다**(의존성 주입, 리팩토링, 싱글톤, 옵저버, 어댑터, 데코레이터, 전략, factory). 개념어(side effect, coupling, SOLID 다섯 원칙, invariant 등)는 하나도 없다. 그 밖의 후보는 데이터가 저장소 밖(Supabase, GitHub 이슈)에 있거나, 프레임워크 전용이거나, 받지 못했다.
+실측으로 쓸 만한 것은 **`dahlia/cjk-compsci-terms` 하나**다(🔵). 259개 항목 전부에 영어·한국어 짝이 있고, CC BY-SA 4.0 이며, 커밋 `65a7584`(2026-10-19)로 고정된다. 스키마가 있는 YAML 이라 결정적으로 읽힌다. 다만 **탐침 49개 중 7개만 정확히 맞는다**(개념어 2개: 의존성 주입 · 리팩토링, GoF 5개: 싱글톤 · 옵저버 · 어댑터 · 데코레이터 · 전략). 일반 키 `factory` 는 GoF 의 factory method · abstract factory 와 같지 않아 세지 않았다. 나머지 개념어(side effect, coupling, SOLID 다섯 원칙, invariant 등)는 하나도 없다. 그 밖의 후보는 데이터가 저장소 밖(Supabase, GitHub 이슈)에 있거나, 프레임워크 전용이거나, 받지 못했다.
 
 ### Cited Findings
 - 🔵 `dahlia/cjk-compsci-terms` HEAD `65a7584c56df0757342632a5e567384ae739ed33`(2026-10-19T18:39:05+09:00). `LICENSE` = "Attribution-ShareAlike 4.0 International". `tables/` 에 YAML 28개, 6,771행. 스키마 `table.schema.yaml` 은 로캘 `en, ja, ko, zh-CN, zh-HK, zh-TW` 와 term 필드 `term · space · correspond · read · loan · norm` 을 정의한다. `yaml.safe_load` 로 센 결과 **항목 259개, 그중 `ko` 가 있는 것 259개** — [cjk-compsci-terms](https://github.com/dahlia/cjk-compsci-terms/tree/65a7584c56df0757342632a5e567384ae739ed33)
@@ -163,8 +163,8 @@ GoF · 『리팩터링 2판』 · 『클린 코드』 · 『클린 아키텍처�
 | refactoring.guru/ko 디자인 패턴 | 예(슬러그 맞춤) | 받은 날짜뿐 | 수집하면 가능 | GoF 22개(해석자 없음), 개념어 0 | All rights reserved, 링크 조건 재사용 · 그 밖은 허락 필요 | 슬러그로 얻음 | 🟡 |
 | refactoring.guru/ko 리팩터링·스멜 | — | — | — | 한국어판 미확인 | 위와 같음 | — | 🟡 |
 | MS Learn ko-kr Architecture Center · .NET 전자책 | 예(행·절 맞춤) | 영어만 커밋 `6d1df20`, 한국어는 날짜뿐 | 영어 저장소는 예, 한국어는 수집 필요 | DI·SRP·캡슐화·SoC·coupling·cohesion·DIP·idempotent·bounded context·ubiquitous language 등 일부 | 영어 저장소 CC BY 4.0 / 사이트 약관 개인·비상업 | 약어에만 병기, 그 밖은 정렬로 얻음 | 🔵 |
-| 한국어 위키백과 (덤프) | 예 | 덤프 날짜 | 예(테이블 단위) | 개념어 약 20 / 28, 패턴 4 확인 | CC BY-SA 4.0 + GFDL | 첫 문장 괄호 병기 + 언어 간 링크 | 🟡 |
-| `dahlia/cjk-compsci-terms` | 예(YAML) | 커밋 `65a7584` | 예 | 탐침 51개 중 8개 | CC BY-SA 4.0 | 예(en 키 ↔ ko 키) | 🔵 |
+| 한국어 위키백과 (덤프) | 예 | 덤프 날짜 | 예(테이블 단위) | 개념어 약 20 / 26, 패턴 4 확인 | CC BY-SA 4.0 + GFDL | 첫 문장 괄호 병기 + 언어 간 링크 | 🟡 |
+| `dahlia/cjk-compsci-terms` | 예(YAML) | 커밋 `65a7584` | 예 | 탐침 49개 중 7개 | CC BY-SA 4.0 | 예(en 키 ↔ ko 키) | 🔵 |
 | 번역 고전서 본문·색인 | 손 조회 | 판·쇄 | 아니오(저작물) | 책마다 다름, 미측정 | 저작권 | 색인에 있을 것(미확인) | 🟡 |
 | `WegraLee/Refactoring` | — | 커밋 `48bca38` | 예 | 용어표 없음 | LICENSE 없음 | 없음 | 🔵 |
 | `hwahyeon/terms-bridge` | — | 불가(외부 DB) | 아니오 | 미측정 | 미확인 | — | 🔵 |
@@ -213,6 +213,6 @@ GoF · 『리팩터링 2판』 · 『클린 코드』 · 『클린 아키텍처�
 - 💭 65 `circular dependency` · `layered architecture` · `deterministic` 의 공백은 이번 출처들로는 메워지지 않는다. 이들은 공식 사전(TTA 등, 다른 조사자 범위)이나 괄호 병기 채굴 쪽에 기대야 할 것으로 보인다.
 
 ### Gaps
-- 위키백과 수치("약 20 / 28")는 스니펫에 표제가 나온 것만 센 하한이다. 덤프로 다시 재야 한다.
+- 위키백과 수치("약 20 / 26")는 스니펫에 표제가 나온 것만 센 하한이다. 덤프로 다시 재야 한다.
 - refactoring.guru 22개 이름 중 6개(추상 팩토리 · 빌더 · 상태 · 전략 · 템플릿 메서드 · 커맨드 표제)는 문자 그대로 확인하지 못했다.
 - 복제한 저장소(`research-clones/` 아래 5개)는 측정 뒤 지웠다. 위 커밋 해시로 다시 받을 수 있다.
