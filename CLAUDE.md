@@ -89,7 +89,7 @@ Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
 | `docs/handoffs/ReportSystem_ReturnHandOff.md` | 위 문서의 **사실 오류와 실행 중 발견된 결함**을 되돌려 보낸 회신. 인계 문서와 충돌하면 이쪽이 실측이다 |
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | **Track C — 별개 갈래.** 코드베이스 위키(deep-wiki + VitePress 다중 페이지). Track A/B 와 섞지 말 것 |
 | `docs/superpowers/plans/2026-08-26-report-builder.md` | 실행 계획. 발견된 결함이 해당 Phase 절에 반영돼 있다 |
-| `docs/handoffs/RESUME-2026-10-28-official-term-grounding.md` | **Mode 1.5 강화 갈래 — 공식 용어 근거 스킬(① 권위 출처 · ② 사용 빈도 말뭉치).** 0단계 확인과 사용자 결정까지 받았다. 스킬 프로젝트는 이 저장소 최상위 `ko-dev-terms/` 에 만든다(아직 없다) — 계획서 `docs/superpowers/plans/2026-10-28-ko-dev-terms.md` [제안됨], 승인 대기. Track A/B/C 와 섞지 말 것. 개인어 그래프(⑤)는 [`0013`](docs/decisions/0013-personal-language-graph-deferred.md) 으로 보류 |
+| `docs/handoffs/RESUME-2026-10-28-official-term-grounding.md` | **Mode 1.5 강화 갈래 — 공식 용어 근거 스킬(① 권위 출처 · ② 사용 빈도 말뭉치).** 0단계 확인과 사용자 결정까지 받았다. 스킬 프로젝트는 이 저장소 최상위 `ko-dev-terms/` 에 만든다(아직 없다) — 계획서 `docs/superpowers/plans/2026-10-28-ko-dev-terms.md` [제안됨] 2판(단어집 = 모듈 · 기본 층 std), 승인 대기. Track A/B/C 와 섞지 말 것. 개인어 그래프(⑤)는 [`0013`](docs/decisions/0013-personal-language-graph-deferred.md) 으로 보류 |
 
 `ReportSystem_HandOff.md` 는 `HANDOFF-report-system.md` 와 동일 계열의 구판이다.
 
