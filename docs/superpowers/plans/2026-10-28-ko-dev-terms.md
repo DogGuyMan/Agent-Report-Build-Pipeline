@@ -1,388 +1,397 @@
-# 🧭 계획 — `ko-dev-terms` : 영어 개발 용어 → 한국어 표기 근거 스킬
+# 🧭 Plan — `ko-dev-terms` : grounding the Korean rendering of English developer terms
 
-> 📅 2026-10-30 · 브랜치 `claude/loving-knuth-0tuhzs` · **Before = `cfb1e5c`** (main 과 같음) — 이 저장소에 `ko-dev-terms` 는 아직 없다(코드 0줄)
-> 📄 근거 : 사용자 답 2026-10-28 ~ 29 · [인계 문서](../../handoffs/HANDOFF-2026-10-28-official-term-grounding.md) · [재개 문서](../../handoffs/RESUME-2026-10-28-official-term-grounding.md) · 리서치 보고서 [1](<../../../reports/한국어 개발 용어 근거 방법.md>) · [2](<../../../reports/언어 불문 설계 용어 출처.md>) · [30개 확인](<../../../research_notes/언어 불문 설계 용어 출처/isaqb_30_check.md>)
-> 🔒 지킬 규칙 : 계획하는 도중에는 낱말을 제한하지 않는다 — 근거는 한국어로 번역할 때만 · 스킬은 고르지 않는다(G5) — 고르는 것은 선호표(③) 또는 번역 LLM(추론 표시) · 근거 없으면 `근거 없음`(G1) · 고정값 대조, 다르면 멈춤(G2) · 원본 · 색인 · 등록부는 저장소 밖(MS 라이선스 2(i)) · 모듈의 코드를 실행하지 않음 · 다른 축 import 금지 · 파이썬 표준 라이브러리만 · 리소스와 코드를 가른다
-> 🧪 검증 방식 : 같은 파일 두 번 등록 → 색인 바이트 동일 · 형식별 읽기를 고정 커밋의 **실제 파일**로 시험 · 세기 정밀도 표본 · 시범 표본 5행 손 대조 · 게이트(pytest · pyright strict · 인용 · 리소스 · README · 격리)
-> ✋ 승인 : **승인 전** — 데이터도 받지 않고 코드도 짜지 않는다
+> 🌐 **Canonical (English).** Korean translation: [`2026-10-28-ko-dev-terms.ko.md`](2026-10-28-ko-dev-terms.ko.md). Edit this file only, then regenerate the translation
+> 📅 2026-10-30 · branch `claude/loving-knuth-0tuhzs` · **Before = `cfb1e5c`** (same as main) — `ko-dev-terms` does not exist in this repository yet (0 lines of code)
+> 📄 Evidence: user answers 2026-10-28 to 30 · [handoff](../../handoffs/HANDOFF-2026-10-28-official-term-grounding.md) · [resume](../../handoffs/RESUME-2026-10-28-official-term-grounding.md) · research reports [1](<../../../reports/한국어 개발 용어 근거 방법.md>) · [2](<../../../reports/언어 불문 설계 용어 출처.md>) · [30-term check](<../../../research_notes/언어 불문 설계 용어 출처/isaqb_30_check.md>)
+> 🔒 Rules to keep: no word restriction while planning — evidence is used only when translating into Korean · the skill never picks (G5) — the pick comes from a preference table (③) or from the translating LLM (marked as inference) · no evidence → `근거 없음` / "no evidence" (G1) · check the pin, stop on mismatch (G2) · source files, indexes and registry live outside the repository (MS license 2(i)) · never execute code shipped by a module · no imports from other axes · Python standard library only · resources separate from code
+> 🧪 Verification: register the same file twice → byte-identical index · test each format reader against **real files** at pinned commits · precision sample for counting · hand-check 5 sample rows in the pilot · gates (pytest · pyright strict · citations · resources · README · isolation)
+> ✋ Approval: **not approved** — no data is downloaded and no code is written
 
-## 0. 🎯 한 장
+## 0. 🎯 One page
 
-| 구분 | 내용 |
+| Item | Content |
 |---|---|
-| 🎯 다루는 것 | **영어로 세운 계획 · 사양을 한국어로 번역할 때** 개발 용어 표기의 근거를 주입하는 조회 자료. LLM 이 고른 한국어 낱말이 개발 도메인에서 실제로 쓰이는 표기인지 확인할 때도 꺼내 본다. 1차 목표는 기본 층(std) |
-| 🧩 한 줄 결론 | <span style="color:cyan">단어집 모듈</span>을 붙이고 떼는 틀 + 형식별 내장 읽기 + 고르지 않는 조회 + 번역 때 영어 정본 본문을 등록된 표제와 문자열로 맞추는 <span style="color:cyan">문서 대조</span>. 데이터는 전부 사용자가 받아 등록한다 |
-| 🟰 그대로 | Mode 1 · 1.5 · 2 의 코드와 산출물. `term-benchmark` 스킬. 기존 게이트의 판정 기준 |
-| 🗘 바뀜 | ★ 최상위 폴더 `ko-dev-terms/` 가 새로 생긴다. 🗘 게이트 설정 넷(`pyrightconfig.json` · 인용 시험 · 리소스 시험 · README 표류 명령)에 그 폴더가 들어간다 |
-| ⚠️ 함정 | std 의 **소프트웨어 공학 · 테스트 & 품질은 실측한 한국어 짝이 0** 이다. MS 한국어판은 아직 못 열었다(이 세션에서 차단). 같은 낱말의 다른 뜻(coupling = CRM 레코드 연결)이 근거로 섞인다. 선호표가 없고 표기가 갈리면 번역 LLM 이 고른다 — 추론이므로 표시한다. 두 파일 꼴이라 `report-spec init` 은 `.ko.md` 를 따로 나열한다 |
-| 🚫 범위 밖 | 한국어 → 영어 역조회 · Mode 1.5 · 2 · 위키 연결 · 판정 순서와 강제 도구(④) · 개인어 그래프(⑤, [결정 0013](../../decisions/0013-personal-language-graph-deferred.md)) · 요구공학 · 프로젝트 관리의 std 편입 · 계획 도중의 낱말 제한 · 구현 전 효과 실험 |
+| 🎯 Scope | A lookup that **injects evidence for Korean renderings of developer terms when a plan or spec written in English is translated into Korean**. Also consulted to check whether a Korean word an LLM chose is the rendering actually used in the developer domain. First goal: the base layer (std) |
+| 🧩 One-line conclusion | A frame to attach and detach glossary modules + built-in readers per format + a lookup that never picks + a document match that compares the English canonical text against registered headwords at translation time. All data is downloaded and registered by the user |
+| 🟰 Unchanged | Code and outputs of Mode 1 · 1.5 · 2. The `term-benchmark` skill. The pass criteria of existing gates |
+| 🗘 Changed | ★ new top-level folder `ko-dev-terms/`. 🗘 four gate settings (`pyrightconfig.json` · citation test · resource test · README drift command) include that folder. 🗘 one line in the repository `CLAUDE.md` working rules: "new plans and specs are two files". 🗘 this plan becomes an English canonical plus a Korean translation |
+| ⚠️ Pitfalls | For the std layer, **software engineering and testing & quality have 0 measured Korean pairs**. The Korean MS file has not been opened yet (blocked in this session). Other senses of the same word (coupling = CRM record link) mix into the evidence. Without a preference table and with competing renderings, the translating LLM picks — that is inference, so it is marked. Because of the two-file form, `report-spec init` lists the `.ko.md` separately |
+| 🚫 Out of scope | Korean → English reverse lookup · Mode 1.5 · 2 · wiki integration · judgment order and enforcement tools (④) · personal-idiolect graph (⑤, [decision 0013](../../decisions/0013-personal-language-graph-deferred.md)) · requirements engineering and project management in std · restricting words during planning · a pre-implementation effect experiment |
 
-## 0-1. 🧭 9 단계 한눈에
+## 0-1. 🧭 Nine stages at a glance
 
 ```text
-📍 Before (cfb1e5c)              │ 🛠️ After · 제안
+📍 Before (cfb1e5c)              │ 🛠️ After · proposal
 ─────────────────────────────────┼──────────────────────────────────────────────
-LLM 작성자                        │ 0 ✋ 이 계획 승인
-  └ 감각으로 낱말을 고른다         │ 1 🔎 3차 조회 — std 공백 · MS 한국어판 실물(V1)
-     (간선/엣지가 대화마다 흔들림) │ 2 ★ 모듈 틀 — 매니페스트 · 등록부 · add/remove/list/verify
-                                  │ 3 ★ 내장 읽기 — MDN 머리말 · cjk YAML · iSAQB AsciiDoc · TBX
-근거 자료 : 없음                   │ 4 ★ 세기 — MDN 본문의 병기 · 낱말 개수
-게이트 : machine runner viz tools │ 5 ★ 조회 + 출력 — 고르지 않음 · 근거 없음 · 고지문
-                                  │ 6 ★ SKILL.md + 링크 · 🗘 게이트 편입
-                                  │ 7 🧪 시범 — 인계 문서 1절 원어 + std 탐침
-                                  │ 8 ✋ 결과를 사용자에게 — ③④ 재료
+LLM writer                        │ 0 ✋ approve this plan
+  └ picks words by feel           │ 1 🔎 third lookup — std gaps · real MS Korean file (V1)
+     (간선/엣지 wavered per chat) │ 2 ★ module frame — manifest · registry · add/remove/list/verify
+                                  │ 3 ★ built-in readers — MDN front matter · cjk YAML · iSAQB AsciiDoc · TBX
+evidence: none                    │ 4 ★ counting — glosses and word counts in MDN prose
+gates: machine runner viz tools   │ 5 ★ lookup + output — never picks · no evidence · notice
+                                  │ 6 ★ SKILL.md + link · 🗘 gate inclusion
+                                  │ 7 🧪 pilot — handoff §1 source terms + std probes
+                                  │ 8 ✋ results to the user — material for ③④
 ```
 
-| 🧬 패턴 | 뜻 |
+| 🧬 Pattern | Meaning |
 |---|---|
-| 데이터만 붙는다 | 모듈은 <span style="color:cyan">매니페스트</span> + 사용자가 받은 파일. 새 형식은 스킬의 코드 변경으로만 |
-| 모든 읽기는 한 꼴로 | 형식이 달라도 <span style="color:cyan">정규형 행</span> 하나로 모인다 |
-| 행은 출처를 끌고 다닌다 | 모듈 이름 · <span style="color:cyan">고정값</span> · <span style="color:cyan">의미 표지</span>가 행마다 붙는다 |
+| Only data attaches | A module is a manifest + a file the user downloaded. New formats arrive only through code changes in the skill |
+| Every reader emits one shape | Whatever the format, everything becomes one normalized row |
+| Rows carry their origin | Each row carries the module name, the pin and the sense label |
 
-## 0-2. 🚦 현황 · 정한 것
+## 0-2. 🚦 Status · decided
 
-| 항목 | 진행 |
+| Item | Progress |
 |---|---|
-| 인계 받기 · 0단계 확인(V2 ~ V6) | ✅ 됨 — V1 은 ⚠️ 차단(MS 다운로드 서버) |
-| 리서치 두 번 · 30개 확인 | ✅ 됨 |
-| 계획서 — 결정 반영 · 이 양식으로 다시 씀 | ✅ 됨 |
-| 계획 승인 | ❌ 안 됨 |
-| 3차 조회 (13절 T1 ~ T7) | ❌ 안 됨 — 사용자가 미룸 |
-| 모듈 틀 · 읽기 · 세기 · 조회 · SKILL.md · 시범 | ❌ 안 됨 |
+| Handoff received · stage-0 checks (V2 to V6) | ✅ done — V1 ⚠️ blocked (MS download server) |
+| Two research rounds · 30-term check | ✅ done |
+| Plan — decisions folded in · rewritten in this style | ✅ done |
+| This plan as English canonical + Korean translation · one repository rule line | ✅ done |
+| Plan approval | ❌ not done |
+| Third lookup (§9 T1 to T7) | ❌ not done — deferred by the user |
+| Module frame · readers · counting · lookup · SKILL.md · pilot | ❌ not done |
 
-| 무엇 | 👍 고른 것 | 👎 버린 것 | 누가 · 언제 |
+| What | 👍 Chosen | 👎 Rejected | Who · when |
 |---|---|---|---|
-| 스킬 자리 | 👍 이 저장소 최상위 폴더 `ko-dev-terms/` (Mode 처럼) | 👎 사용자 전역만 · 👎 `.claude/skills` 아래 | 사용자 · 10-28 |
-| 이름 | 👍 `ko-dev-terms` | 👎 `official-term-grounding` · 👎 `term-grounding` | 사용자 · 10-28 |
-| 범위 | 👍 독립 스킬까지 | 👎 Mode 1.5 산출물 연결 · 👎 Mode 1.5 앞 표기 점검 | 사용자 · 10-28 |
-| 조회 방향 | 👍 영어 → 한국어만 | 👎 양방향 | 사용자 · 10-28 |
-| 캐시 | 👍 출처에서 직접 + 클라우드 환경 캐시 | 👎 비공개 GitHub 캐시 · 👎 클라우드는 MS 없이 | 사용자 · 10-28 |
-| MS 라이선스 (D1) | 👍 조건부 수락 | 👎 zip 약관 확인 뒤 · 👎 MS 빼기 | 사용자 · 10-28 |
-| LLM 후보 (D4) | 👍 표시 붙여서만 | 👎 허용하지 않음 | 사용자 · 10-28 |
-| 판정 순서 (D5) | 👍 스킬에 넣지 않음 — ④ 는 사용자 몫 | — | 사용자 · 10-28 |
-| 프로젝트 용어집의 갈래 | 👍 ① 권위 출처 | 👎 ② 말뭉치 · 👎 셋째 갈래 | 사용자 · 10-28 |
-| 인계 문서 공개 | 👍 원 프로젝트 고유 내용만 일반화해 둔다 | 👎 그대로 · 👎 넣지 않음 | 사용자 · 10-28 |
-| 무게 | 👍 범위 · 우선순위의 뜻 (G5 유지) | 👎 후보에 점수 | 사용자 · 10-28 |
-| 범위 목록 | 👍 국제 표준 어휘 + 사용자 목록 | 👎 사용자 목록만 · 👎 범위 두지 않음 | 사용자 · 10-28 |
-| 단어집 출처 | 👍 언어 불문 설계 · 소프트웨어 공학 쪽 | 👎 프레임워크 종속 단어집 · 👎 쿠버네티스 · 👎 python-docs-ko | 사용자 · 10-28 |
-| 막힌 호스트 측정 | 👍 3차 조회로 미루고 표시만 | — | 사용자 · 10-28 |
-| 단어집의 꼴 | 👍 단어집 = 모듈 (DLL 처럼 붙이고 뗀다) | — | 사용자 · 10-29 |
-| 기본 층 std | 👍 구조 · 설계 · 소프트웨어 공학 · 프로그래밍 언어(특히 OOP) · 테스트 & 품질 | — | 사용자 · 10-29 |
-| 축 A 모듈의 꼴 | 👍 데이터 모듈 + 내장 읽기 | 👎 공통 정규형만 · 👎 코드 플러그인 | 사용자 · 10-29 |
-| 축 B 제공 방식 | 👍 전부 매니페스트만 — 데이터는 사용자가 받는다 | 👎 허락되는 것은 동봉 · 👎 첫 실행 때 자동 받기 | 사용자 · 10-29 |
-| 축 C 소프트웨어 공학 경계 | 👍 요구공학 · 프로젝트 관리 제외 | 👎 요구공학만 포함 · 👎 둘 다 포함 | 사용자 · 10-29 |
-| 축 D 시작 시점 | 👍 계획서만 먼저 다듬기 | 👎 지금 모듈 틀부터 · 👎 3차 조회 먼저 | 사용자 · 10-29 |
-| 구현 전 효과 실험 | 👍 실험 없이 간다 | 👎 네 조건 비교 실험 | 사용자 · 10-30 |
-| 근거 1 — 용어를 통일하면 검토 오판이 준다 | 👍 참으로 가정 (사용자 경험 — 용어를 해독하는 시간이 병목) | — | 사용자 · 10-30 |
-| 근거 2 — 리소스 검색이 빨라진다 | — | 👎 근거에서 뺀다 — 한국어는 저장소 안의 규칙이고 밖(검색 · 외부 도구 · 추론)에는 언어 제약이 없다 | 사용자 · 10-30 |
-| 계획 언어 | 👍 계획 문서는 영어 정본 + 추론도 영어로 요청(지켜졌는지는 확인할 수 없음) | 👎 계획 문서만 | 사용자 · 10-30 |
-| 낱말 근거를 쓰는 때 | 👍 한국어로 번역할 때만 | 👎 계획 도중 "DB 낱말만 써라" 지침 | 사용자 · 10-30 |
-| 지침 자리 | 👍 사용자 전역 `~/.claude/CLAUDE.md` | 👎 이 저장소 CLAUDE.md · 👎 SKILL.md 만 | 사용자 · 10-30 |
-| 나란히 두는 꼴 | 👍 두 파일 — 영어 `<이름>.md` 정본 + 한국어 `<이름>.ko.md` 사본 | 👎 한 파일 위아래 · 👎 문단마다 번갈아 | 사용자 · 10-30 |
-| 대상 문서 | 👍 계획 · 사양 문서만 | 👎 + 인계 문서 · 👎 저장소의 문서 전부 | 사용자 · 10-30 |
-| 주석 · 커밋 언어 | 👍 저장소마다 지금 관례 유지 | 👎 주석도 번역 주입 · 👎 주석은 영어 | 사용자 · 10-30 |
-| 번역 때 용어 찾기 | 👍 등록된 영어 표제와 문자열 일치 | 👎 LLM 이 뽑음 · 👎 둘 다 | 사용자 · 10-30 |
-| 표기가 갈리거나 근거가 없을 때 | 👍 선호표 먼저, 없으면 번역 LLM 이 고르고 첫 등장 영어 병기 + "추론으로 고름" 표시 | 👎 LLM 이 고르고 병기만 · 👎 영어 그대로 | 사용자 · 10-30 |
-| 선호표 자리 | 👍 저장소마다 + 사용자 전역 (저장소 것이 먼저) | 👎 저장소만 · 👎 전역만 | 사용자 · 10-30 |
-| 모르는 용어 | 👍 Mode 1.5 로 배운다 — 1.5 의 목표와 맞음 | — | 사용자 · 10-30 |
+| Skill location | 👍 top-level folder `ko-dev-terms/` in this repository (like a Mode) | 👎 user-global only · 👎 under `.claude/skills` | user · 10-28 |
+| Name | 👍 `ko-dev-terms` | 👎 `official-term-grounding` · 👎 `term-grounding` | user · 10-28 |
+| Scope | 👍 a standalone skill | 👎 wiring into Mode 1.5 outputs · 👎 a rendering check before Mode 1.5 | user · 10-28 |
+| Lookup direction | 👍 English → Korean only | 👎 both directions | user · 10-28 |
+| Cache | 👍 straight from the source + cloud environment cache | 👎 private GitHub cache · 👎 no MS in the cloud | user · 10-28 |
+| MS license (D1) | 👍 conditional acceptance | 👎 decide after reading terms inside the zip · 👎 drop MS | user · 10-28 |
+| LLM candidates (D4) | 👍 only with a label | 👎 not allowed | user · 10-28 |
+| Judgment order (D5) | 👍 not in the skill — ④ belongs to the user | — | user · 10-28 |
+| Class of project glossaries | 👍 ① authoritative source | 👎 ② corpus · 👎 a third class | user · 10-28 |
+| Publishing the handoff | 👍 generalize only content specific to the original project | 👎 as received · 👎 keep it out | user · 10-28 |
+| Weight | 👍 means scope and priority (G5 kept) | 👎 scoring candidates | user · 10-28 |
+| Scope list | 👍 international standard vocabulary + user list | 👎 user list only · 👎 no scope | user · 10-28 |
+| Glossary sources | 👍 language-agnostic design and software engineering | 👎 framework-bound glossaries · 👎 Kubernetes · 👎 python-docs-ko | user · 10-28 |
+| Measuring blocked hosts | 👍 defer to the third lookup, mark only | — | user · 10-28 |
+| Glossary form | 👍 glossary = module (attach and detach like a DLL) | — | user · 10-29 |
+| Base layer std | 👍 architecture · design · software engineering · programming languages (especially OOP) · testing & quality | — | user · 10-29 |
+| Axis A module form | 👍 data module + built-in readers | 👎 normalized form only · 👎 code plugins | user · 10-29 |
+| Axis B delivery | 👍 manifests only — the user downloads all data | 👎 bundle what licenses allow · 👎 auto-download on first run | user · 10-29 |
+| Axis C software-engineering boundary | 👍 exclude requirements engineering and project management | 👎 include requirements only · 👎 include both | user · 10-29 |
+| Axis D when to start | 👍 refine the plan first | 👎 build the module frame now · 👎 third lookup first | user · 10-29 |
+| Pre-implementation effect experiment | 👍 proceed without it | 👎 a four-condition comparison | user · 10-30 |
+| Rationale 1 — unified terms reduce review misjudgment | 👍 assumed true (user experience — decoding terms is the bottleneck) | — | user · 10-30 |
+| Rationale 2 — resource search gets faster | — | 👎 dropped — Korean is a rule inside the repository; outside it (search · external tools · reasoning) there is no language restriction | user · 10-30 |
+| Planning language | 👍 English canonical plan + reasoning in English requested (cannot be verified) — refined by the "global guideline form" and "repositories without the skill" rows below | 👎 plan documents only | user · 10-30 |
+| When word evidence is used | 👍 only when translating into Korean | 👎 a "use only DB words" rule during planning | user · 10-30 |
+| Guideline location | 👍 user-global `~/.claude/CLAUDE.md` | 👎 this repository's CLAUDE.md · 👎 SKILL.md only | user · 10-30 |
+| Side-by-side form | 👍 two files — English `<name>.md` canonical + Korean `<name>.ko.md` copy (when the skill is used, and in this repository) | 👎 one file, English above Korean · 👎 alternating paragraphs | user · 10-30 |
+| Documents covered | 👍 plans and specs only | 👎 + handoffs · 👎 every document in the repository | user · 10-30 |
+| Comment and commit language | 👍 keep each repository's current convention | 👎 inject translations into comments too · 👎 comments in English | user · 10-30 |
+| Finding terms at translation time | 👍 string match against registered English headwords | 👎 the LLM extracts terms · 👎 both | user · 10-30 |
+| Competing renderings or no evidence | 👍 preference table first; otherwise the translating LLM picks, glosses the English at first mention and marks "picked by inference" | 👎 LLM picks and glosses only · 👎 keep the English as is | user · 10-30 |
+| Preference table location | 👍 per repository + user-global (the repository's wins) | 👎 per repository only · 👎 global only | user · 10-30 |
+| Unknown terms | 👍 learned through Mode 1.5 — matches its goal | — | user · 10-30 |
+| Global guideline form | 👍 in English · shortest · no skill dependency | 👎 Korean text · 👎 text that depends on the skill | user · 10-30 |
+| Plans and specs in repositories without the skill | 👍 think and draft in English → one Korean file + first-mention gloss | 👎 one English file · 👎 leave it to each repository | user · 10-30 |
+| Where the two-file rule lives | 👍 when the skill is used (SKILL.md) + this repository's rules — before the skill exists, first-mention gloss only | 👎 only this plan first | user · 10-30 |
+| This plan | 👍 under the new rule — English canonical + Korean translation | — | user · 10-30 |
 
-## 0-3. 📖 용어
+## 0-3. 📖 Terms
 
-| 한국어 용어 | 코드 이름 [제안] | 뜻 |
-|---|---|---|
-| <span style="color:cyan">단어집 모듈</span> | `ko-dev-terms/modules/<이름>.toml` + 사용자 파일 | 붙이고 뗄 수 있는 단어집 하나 |
-| <span style="color:cyan">매니페스트</span> | `modules/<이름>.toml` | 모듈의 이름 · 층 · 역할 · 형식 · 받는 곳 · 라이선스 · 고정값 |
-| <span style="color:cyan">정규형 행</span> | `en` · `ko` · `entry` · `sense` · `extra` | 모든 읽기가 내는 한 꼴의 행 |
-| <span style="color:cyan">의미 표지</span> | `sense` | 출처 자신의 정의 · 분류 — 같은 낱말의 다른 뜻을 가른다 |
-| <span style="color:cyan">고정값</span> | `pin` | 파일 SHA-256 · 커밋 SHA · 판 |
-| <span style="color:cyan">데이터 자리</span> | `KO_DEV_TERMS_DATA` | 원본 · 색인 · 등록부가 사는 저장소 밖 폴더 |
-| <span style="color:cyan">std 층</span> | `layer = "std"` | 기본으로 매니페스트를 제공하는 층 |
-| <span style="color:cyan">붙이기 · 떼기</span> | `add` · `remove` | 모듈 등록 · 제거 |
-| <span style="color:cyan">받는 명령</span> | `fetch-commands` | 매니페스트의 받는 명령을 보여 주기만 한다 |
-| <span style="color:cyan">선호표</span> | `role = "preference"` 모듈 — 저장소 것 · 사용자 전역 것 | 표기가 갈릴 때 가장 먼저 따르는 사용자 · 팀의 표(③). 저장소 것이 전역 것보다 먼저 |
-| <span style="color:cyan">한국어 번역본</span> | `<이름>.ko.md` | 영어 정본 옆의 사본 — 정본만 고치고 다시 번역한다 |
-| 등록부 · 형식별 읽기 · <span style="color:cyan">문서 대조</span> | 이름 미정 | 붙은 모듈 목록 / 형식마다 함수 하나 / 영어 정본 본문을 등록된 영어 표제와 문자열로 맞춘다 |
-| 첫 등장 병기 | (규칙 — 코드 이름 없음) | 한 문서에서 개발 용어가 처음 나올 때만 한국어 뒤에 영어 원어를 괄호로: `부수 효과(side effect)` |
+| English term | Korean | Code name [proposal] | Meaning |
+|---|---|---|---|
+| glossary module | <span style="color:cyan">단어집 모듈</span> | `ko-dev-terms/modules/<name>.toml` + the user's file | One glossary that can be attached and detached |
+| manifest | <span style="color:cyan">매니페스트</span> | `modules/<name>.toml` | Module name · layer · role · format · source · license · pin |
+| normalized row | <span style="color:cyan">정규형 행</span> | `en` · `ko` · `entry` · `sense` · `extra` | The single row shape every reader emits |
+| sense label | <span style="color:cyan">의미 표지</span> | `sense` | The source's own definition or category — separates other senses of the same word |
+| pin | <span style="color:cyan">고정값</span> | `pin` | File SHA-256 · commit SHA · edition |
+| data location | <span style="color:cyan">데이터 자리</span> | `KO_DEV_TERMS_DATA` | Folder outside the repository holding source files, indexes and the registry |
+| std layer | <span style="color:cyan">std 층</span> | `layer = "std"` | The layer whose manifests ship by default |
+| attach · detach | <span style="color:cyan">붙이기 · 떼기</span> | `add` · `remove` | Register and unregister a module |
+| fetch commands | <span style="color:cyan">받는 명령</span> | `fetch-commands` | Only shows the manifest's download commands |
+| preference table | <span style="color:cyan">선호표</span> | `role = "preference"` module — per repository · user-global | The user's or team's table followed first when renderings compete (③). The repository's wins over the global one |
+| Korean translation | <span style="color:cyan">한국어 번역본</span> | `<name>.ko.md` | Copy beside the English canonical — edit only the canonical and translate again |
+| registry · format readers · document match | 등록부 · 형식별 읽기 · <span style="color:cyan">문서 대조</span> | names undecided | List of attached modules / one function per format / string-match the English canonical text against registered English headwords |
+| first-mention gloss | 첫 등장 병기 | (a rule — no code name) | Only at a term's first appearance in a document, add the English original in parentheses after the Korean: `부수 효과(side effect)` |
 
 ## 1. 🔁 Before → After
 
-| 대상 | 📍 이전 (안 되던 것 · 지금) | 🛠️ After · 제안 | 🎉 해결되는 것 | 🔭 기대 | 진행 |
+| Target | 📍 Before (what failed · now) | 🛠️ After · proposal | 🎉 Resolved | 🔭 Expected | Progress |
 |---|---|---|---|---|---|
-| 낱말 고르기 | 🐞 LLM 이 감각으로 고른다 — 같은 대화에서 `간선` / `엣지` 가 흔들렸다(인계 문서 1절) | 조회가 근거 행을 낸다 | 추론 대신 근거 | 같은 질문 + 같은 등록부 = 바이트까지 같은 답 | ❌ |
-| 근거 자료 | 없음 | <span style="color:cyan">단어집 모듈</span>을 사용자가 받아 붙인다 | 출처를 골라 쓰고 바꿀 수 있다 | `list` 에 층 · 라이선스 · <span style="color:cyan">고정값</span>이 보인다 | ❌ |
-| 동형이의 | 🐞 coupling = CRM 레코드 연결, node = Node.js 가 설계 뜻으로 섞인다(실측) | 행마다 <span style="color:cyan">의미 표지</span> | 다른 뜻을 근거로 오인하지 않는다 | 행에 출처의 정의 첫 줄이 따라온다 | ❌ |
-| 라이선스 | MS 원본은 남이 복사하도록 게시할 수 없다 | 데이터는 전부 저장소 밖 · 저장소에는 매니페스트만 | 공개 저장소에 원본이 들어갈 길이 없다 | `git status` 에 데이터가 안 보인다 | ❌ |
-| 계획 언어 | 한국어로 계획하면 추론이 나빠질 수 있다(🟡 MGSM 계열 연구) · LLM 이 영어로 생각한다는 보장이 없다 | 사용자 전역 지침 — 영어 정본 + 추론도 영어로 요청 + <span style="color:cyan">한국어 번역본</span> | 생각은 자유롭게, 사람은 모국어로 검토 | 계획 · 사양마다 `.md` + `.ko.md` | ❌ |
-| 번역 때 표기 | 번역 LLM 이 감각으로 고른다 | <span style="color:cyan">문서 대조</span>로 근거 행 주입 · <span style="color:cyan">선호표</span> 먼저 · 갈리면 첫 등장 병기 + 추론 표시 | 표기가 근거나 사용자 표에 묶인다 | 번역본의 개발 용어마다 선호표 · 근거 · "추론으로 고름" 중 하나가 붙는다 | ❌ |
-| 설계 어휘 공백 | ⚠️ SOLID · side effect · postcondition 근거 0 | std 층 + 3차 조회 + 사용자 목록 | 공백 크기를 안다 | `근거 없음` 의 비율이 시범에서 나온다 | ❌ |
+| Picking words | 🐞 the LLM picks by feel — `간선` / `엣지` wavered within one conversation (handoff §1) | the lookup returns evidence rows | evidence instead of inference | same question + same registry = byte-identical answer | ❌ |
+| Evidence | none | the user downloads and attaches glossary modules | sources can be chosen and swapped | `list` shows layer · license · pin | ❌ |
+| Homonyms | 🐞 coupling = CRM record link, node = Node.js mix in as design senses (measured) | a sense label on every row | other senses are not mistaken for evidence | the first line of the source's definition follows each row | ❌ |
+| License | the MS source may not be published for others to copy | all data outside the repository · only manifests inside | no path for source files into the public repository | `git status` never shows data | ❌ |
+| Planning language | planning in Korean may hurt reasoning (🟡 MGSM-line research) · no guarantee the LLM thinks in English | user-global guideline (English · shortest) — think and draft in English, leave one Korean file + first-mention gloss in the repository. With the skill and in this repository: English canonical + Korean translation | free thinking, review in the mother tongue | with the skill and in this repository `.md` + `.ko.md`; elsewhere one Korean file + gloss | ❌ |
+| Renderings at translation time | the translating LLM picks by feel | inject evidence rows through the document match · preference table first · when they compete, first-mention gloss + inference mark | renderings are tied to evidence or to the user's table | every developer term in the translation is backed by a preference table, by evidence, or by "picked by inference" | ❌ |
+| Design vocabulary gap | ⚠️ 0 evidence for SOLID · side effect · postcondition | std layer + third lookup + user list | the size of the gap is known | the pilot yields the share of "no evidence" | ❌ |
 
-## 2. 🧱 구조 — classDiagram
+## 2. 🧱 Structure — classDiagram
 
-### ★ 신규 · 🗘 변경 항목 · After 제안
+### ★ New · 🗘 changed items · After proposal
 
-| 순서 | 종류 | 항목 | 구분 | 소속/역할 |
+| Order | Kind | Item | Change | Owner/role |
 |---|---|---|---|---|
-| 1 | 모듈 | ★ `ko-dev-terms` (최상위 프로젝트 · 스킬) | 신규 | 단어집 모듈 틀과 조회. 다른 축을 import 하지 않는다 |
-| 2 | 파일 | ★ `ko-dev-terms/CLAUDE.md` · ★ `README.md` · ★ `SKILL.md` | 신규 | 나침반 · 목록 · 사용법 |
-| 2 | 파일 | ★ `ko-dev-terms/modules/*.toml` | 신규 | std 모듈 매니페스트 — 데이터 없음 |
-| 2 | 파일 | ★ `ko-dev-terms/resources/` (조사 목록 · 출력 템플릿 · 고지문) | 신규 | 리소스 — 파이썬은 읽기만 |
-| 2 | 파일 | ★ `ko-dev-terms/ko_dev_terms/*.py` · ★ `ko-dev-terms/test_*.py` | 신규 | 패키지와 시험. 파일 이름 미정 |
-| 2 | 파일 | ★ `.claude/skills/ko-dev-terms` (링크) | 신규 | Claude 가 스킬을 찾는 자리 |
-| 2 | 파일 | 🗘 `pyrightconfig.json` · 🗘 `test/test_docs_citations.py` · 🗘 `test/test_prompt_resources.py` · 🗘 `CLAUDE.md` | 변경 | 게이트 편입 |
-| 2 | 파일 | 🗘 `tools/cloud_env.sh` | 변경 | 클라우드 설정 스크립트에 받는 명령 · `add` · 전역 지침 쓰기 (사용자가 환경 설정에 다시 붙여 넣는다) |
-| 2 | 파일 | 🗘 `~/.claude/CLAUDE.md` (저장소 밖 · 기계마다) | 변경 | 절 하나 추가 — "계획은 영어로, 사람이 읽는 판은 한국어로". 사용자가 붙여 넣는다 (문안 5절) |
-| 2 | 파일 | ★ 계획 · 사양마다 `<이름>.ko.md` | 신규 | <span style="color:cyan">한국어 번역본</span> — 각 저장소 |
-| 3 | 클래스 | 미정 | — | 개념은 정해짐 — <span style="color:cyan">매니페스트</span> · <span style="color:cyan">정규형 행</span> · 등록부. 클래스로 둘지와 이름은 미정 |
-| 4 | 함수 | ★ 명령 `add` · `remove` · `list` · `verify` · `fetch-commands` | 신규 | 명령 이름은 제안 |
-| 4 | 함수 | ★ 형식별 읽기 — MDN 머리말 · cjk YAML · iSAQB AsciiDoc · TBX · 정규형 TSV | 신규 | 형식마다 함수 하나. 이름 미정 |
-| 4 | 함수 | ★ 세기 · ★ 조회 · ★ 출력 그리기 · ★ <span style="color:cyan">문서 대조</span> | 신규 | 이름 미정 |
-| 5 | 멤버 | ★ <span style="color:cyan">정규형 행</span>의 열 `en` · `ko` · `entry` · `sense` · `extra` | 신규 | [제안] |
-| 5 | 멤버 | ★ <span style="color:cyan">매니페스트</span>의 칸 — 이름 · 층 · 영역 · 역할(`ko-pair` · `en-scope` · `corpus` · `preference`) · 형식 · 받는 곳/명령 · 라이선스 · <span style="color:cyan">고정값</span> · <span style="color:cyan">의미 표지</span>를 읽는 곳 | 신규 | [제안] |
+| 1 | Module | ★ `ko-dev-terms` (top-level project · skill) | new | Glossary-module frame and lookup. Imports no other axis |
+| 2 | File | ★ `ko-dev-terms/CLAUDE.md` · ★ `README.md` · ★ `SKILL.md` | new | Compass · listing · usage |
+| 2 | File | ★ `ko-dev-terms/modules/*.toml` | new | std module manifests — no data |
+| 2 | File | ★ `ko-dev-terms/resources/` (particle list · output template · notice) | new | Resources — Python only reads them |
+| 2 | File | ★ `ko-dev-terms/ko_dev_terms/*.py` · ★ `ko-dev-terms/test_*.py` | new | Package and tests. File names undecided |
+| 2 | File | ★ `.claude/skills/ko-dev-terms` (link) | new | Where Claude finds the skill |
+| 2 | File | 🗘 `pyrightconfig.json` · 🗘 `test/test_docs_citations.py` · 🗘 `test/test_prompt_resources.py` · 🗘 `CLAUDE.md` | changed | Gate inclusion |
+| 2 | File | 🗘 `tools/cloud_env.sh` | changed | Download commands · `add` · writing the global guideline into the cloud setup script (the user pastes it into the environment settings again) |
+| 2 | File | 🗘 `~/.claude/CLAUDE.md` (outside the repository · per machine) | changed | One section added — English · shortest · no skill dependency. Pasted by the user (text in §5) |
+| 2 | File | 🗘 `CLAUDE.md` (this repository) working rules | changed | One line — new plans and specs are two files; before the skill exists, first-mention gloss only |
+| 2 | File | 🗘 `docs/superpowers/plans/2026-10-28-ko-dev-terms.md` → English canonical · 🗘 Korean version renamed to `.ko.md` | changed · renamed | This plan |
+| 2 | File | ★ `<name>.ko.md` per plan or spec | new | Korean translation — repositories using the skill, and this repository |
+| 3 | Class | undecided | — | Concepts are decided — manifest · normalized row · registry. Whether they become classes, and their names, is undecided |
+| 4 | Function | ★ commands `add` · `remove` · `list` · `verify` · `fetch-commands` | new | Command names are proposals |
+| 4 | Function | ★ format readers — MDN front matter · cjk YAML · iSAQB AsciiDoc · TBX · normalized TSV | new | One function per format. Names undecided |
+| 4 | Function | ★ counting · ★ lookup · ★ output rendering · ★ document match | new | Names undecided |
+| 5 | Member | ★ normalized-row columns `en` · `ko` · `entry` · `sense` · `extra` | new | [proposal] |
+| 5 | Member | ★ manifest fields — name · layer · domains · role (`ko-pair` · `en-scope` · `corpus` · `preference`) · format · source/commands · license · pin · where the sense label is read | new | [proposal] |
 
-범례: **★ 신규 생성 · 🗘 변경/업데이트/갱신 · 표식 없음 = 그대로 재사용 · ✕ 삭제**. 이 표식은 바뀌는 종류이지 구현 · 검증 상태가 아니다.
+Legend: **★ newly created · 🗘 changed/updated/refreshed · no mark = reused as is · ✕ removed**. These marks describe the kind of change, not implementation or verification status.
 
 ### 📍 Before · `cfb1e5c`
 
 ```mermaid
 classDiagram
-    class Writer["LLM 작성자"] {
-        +낱말 고르기() 감각
+    class Writer["LLM writer"] {
+        +pick words() by feel
     }
-    class Doc["한국어 개발 문서"]
+    class Doc["Korean developer document"]
     class TermBench["term-benchmark (Mode 1.5)"] {
         +collect()
         +grade()
         +emit()
     }
-    Writer ..> Doc : 쓴다
+    Writer ..> Doc : writes
 ```
 
-### 🛠️ After · 제안 (클래스 이름은 개념 — 미정)
+### 🛠️ After · proposal (class names are concepts — undecided)
 
 ```mermaid
 classDiagram
-    class Writer["🗘 LLM 작성자 (전역 지침)"] {
-        +계획() 🗘 영어로
-        +번역() ★ 한국어 번역본
+    class Writer["🗘 LLM writer (global guideline)"] {
+        +plan() 🗘 in English
+        +translate() ★ Korean translation
     }
-    class Doc["🗘 계획 · 사양 문서 = 영어 정본"]
-    class KoDoc["★ 한국어 번역본 .ko.md"]
+    class Doc["🗘 plan or spec = English canonical"]
+    class KoDoc["★ Korean translation .ko.md"]
     class TermBench["term-benchmark (Mode 1.5)"] {
         +collect()
         +grade()
         +emit()
     }
     class Skill["★ SKILL.md"] {
-        +G1~G6 규칙 ★
+        +G1~G6 rules ★
     }
-    class Matcher["★ 문서 대조"] {
-        +정본 본문 x 영어 표제() ★
+    class Matcher["★ document match"] {
+        +canonical text x English headwords() ★
     }
-    class Cli["★ 명령"] {
+    class Cli["★ commands"] {
         +add() ★
         +remove() ★
         +list() ★
         +verify() ★
         +fetch_commands() ★
     }
-    class Registry["★ 등록부 (데이터 자리)"] {
-        +붙은 모듈 목록 ★
+    class Registry["★ registry (data location)"] {
+        +attached modules ★
     }
-    class Manifest["★ 매니페스트 (modules/*.toml)"] {
+    class Manifest["★ manifest (modules/*.toml)"] {
         +layer ★
-        +role ★ preference 포함
+        +role ★ incl. preference
         +format ★
         +license ★
         +pin ★
     }
-    class Reader["★ 형식별 읽기"] {
-        +MDN 머리말() ★
+    class Reader["★ format readers"] {
+        +MDN front matter() ★
         +cjk YAML() ★
         +iSAQB AsciiDoc() ★
         +TBX() ★
-        +정규형 TSV() ★
+        +normalized TSV() ★
     }
-    class Row["★ 정규형 행"] {
+    class Row["★ normalized row"] {
         +en ★
         +ko ★
         +entry ★
         +sense ★
         +extra ★
     }
-    class Query["★ 조회 + 출력"] {
-        +조회(en, ko 후보?) ★
+    class Query["★ lookup + output"] {
+        +lookup(en, ko candidate?) ★
     }
-    Writer ..> Doc : 🗘 영어로 쓴다
-    Writer ..> KoDoc : ★ 번역해 쓴다
-    Writer ..> Skill : ★ 번역 때 부른다
-    Skill ..> Matcher : 정본 본문
-    Skill ..> Query : 낱말 하나
-    Matcher ..> Registry : 붙은 모듈의 표제
-    Matcher ..> Row : 맞은 용어의 행
-    Cli ..> Registry : 올리고 내린다
-    Cli ..> Manifest : 고정값 대조
-    Registry o-- Manifest : 붙은 모듈
-    Reader ..> Row : 낸다
-    Cli ..> Reader : 등록 때 색인
-    Query ..> Registry : 붙은 모듈만 읽는다
-    Query ..> Row : 모은다
+    Writer ..> Doc : 🗘 writes in English
+    Writer ..> KoDoc : ★ translates
+    Writer ..> Skill : ★ calls when translating
+    Skill ..> Matcher : canonical text
+    Skill ..> Query : one word
+    Matcher ..> Registry : headwords of attached modules
+    Matcher ..> Row : rows for matched terms
+    Cli ..> Registry : attach and detach
+    Cli ..> Manifest : check the pin
+    Registry o-- Manifest : attached modules
+    Reader ..> Row : emits
+    Cli ..> Reader : index on attach
+    Query ..> Registry : reads attached modules only
+    Query ..> Row : collects
 ```
 
-`term-benchmark` 는 그대로이고 연결선이 없다 — Mode 1.5 연결은 범위 밖이다.
+`term-benchmark` is unchanged and has no edge — Mode 1.5 integration is out of scope.
 
-## 3. ⏱️ 호출 순서 — sequenceDiagram
+## 3. ⏱️ Call order — sequenceDiagram
 
 ### 📍 Before
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant L as LLM 작성자
-    participant W as 한국어 문서
-    Note over L: 영어 개념 → 한국어 낱말을 감각으로
-    L->>W: 낱말을 쓴다 (근거 없음)
+    participant L as LLM writer
+    participant W as Korean document
+    Note over L: English concept → Korean word by feel
+    L->>W: writes the word (no evidence)
 ```
 
-### 🛠️ After · 제안 — 모듈 붙이기
+### 🛠️ After · proposal — attaching a module
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant U as 사용자
-    participant C as ★ 명령
-    participant R as ★ 등록부
-    participant D as ★ 형식별 읽기
-    U->>C: ★ fetch-commands(모듈)
-    C-->>U: 받는 명령을 보여 준다 (실행은 사용자)
-    U->>U: 출처에서 직접 받는다
-    U->>C: ★ add(매니페스트, 받은 파일)
-    C->>C: 고정값 대조
-    alt 고정값이 다르다
-        C-->>U: 멈춘다 (G2)
-    else 같다
-        C->>D: 형식에 맞는 읽기
-        D-->>C: 정규형 행
-        C->>R: 색인 저장 · 등록부에 올린다
-        C-->>U: 붙었다 (층 · 라이선스 · 고정값)
+    participant U as user
+    participant C as ★ commands
+    participant R as ★ registry
+    participant D as ★ format readers
+    U->>C: ★ fetch-commands(module)
+    C-->>U: shows the download commands (the user runs them)
+    U->>U: downloads straight from the source
+    U->>C: ★ add(manifest, downloaded file)
+    C->>C: check the pin
+    alt pin differs
+        C-->>U: stops (G2)
+    else pin matches
+        C->>D: reader for the format
+        D-->>C: normalized rows
+        C->>R: store the index · register
+        C-->>U: attached (layer · license · pin)
     end
 ```
 
-### 🛠️ After · 제안 — 조회
+### 🛠️ After · proposal — lookup
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant L as LLM 작성자
+    participant L as LLM writer
     participant S as ★ SKILL.md
-    participant Q as ★ 조회 + 출력
-    participant R as ★ 등록부
-    L->>S: (영어 원어, 내 한국어 후보)
-    S->>Q: ★ 조회
-    Q->>R: 붙은 모듈의 색인
-    loop 모듈마다 (std 먼저)
-        R-->>Q: 정규형 행 또는 없음
+    participant Q as ★ lookup + output
+    participant R as ★ registry
+    L->>S: (English term, my Korean candidate)
+    S->>Q: ★ lookup
+    Q->>R: indexes of attached modules
+    loop per module (std first)
+        R-->>Q: normalized rows or none
     end
-    Q-->>S: 근거 행 · 근거 없음 · 고지문 · 판정 하지 않음
-    S-->>L: 고르지 않은 근거
-    Note over L: 고르는 것은 ③ ④ — 사용자 몫
+    Q-->>S: evidence rows · no evidence · notice · no verdict
+    S-->>L: evidence, not a pick
+    Note over L: picking is ③ ④ — the user's
 ```
 
-### 🛠️ After · 제안 — 번역 (계획 · 사양 문서)
+### 🛠️ After · proposal — translation (plans and specs)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant L as 🗘 LLM 작성자
-    participant E as 🗘 영어 정본
-    participant M as ★ 문서 대조
-    participant R as ★ 등록부
-    participant K as ★ 한국어 번역본
-    L->>E: 계획을 영어로 쓴다 (추론도 영어로 — 요청)
-    L->>M: ★ 정본 본문
-    M->>R: 붙은 모듈의 영어 표제
-    R-->>M: 표제 목록
-    M-->>L: 맞은 용어마다 근거 행 (선호표 먼저)
-    loop 맞은 용어마다
-        alt 저장소 선호표에 있다
-            L->>K: 그 표기
-        else 전역 선호표에 있다
-            L->>K: 그 표기
-        else 근거 행의 표기가 하나
-            L->>K: 그 표기 + 첫 등장 병기
-        else 여럿이거나 없다
-            L->>K: 고른 표기 + 첫 등장 병기 + 추론으로 고름
+    participant L as 🗘 LLM writer
+    participant E as 🗘 English canonical
+    participant M as ★ document match
+    participant R as ★ registry
+    participant K as ★ Korean translation
+    L->>E: writes the plan in English (reasoning in English — requested)
+    L->>M: ★ canonical text
+    M->>R: English headwords of attached modules
+    R-->>M: headword list
+    M-->>L: evidence rows per matched term (preference tables first)
+    loop per matched term
+        alt in the repository preference table
+            L->>K: that rendering
+        else in the global preference table
+            L->>K: that rendering
+        else evidence has one rendering
+            L->>K: that rendering + first-mention gloss
+        else several or none
+            L->>K: chosen rendering + first-mention gloss + picked by inference
         end
     end
-    Note over L,K: 표제에 없는 용어는 첫 등장 병기만
+    Note over L,K: terms not among the headwords get the first-mention gloss only
 ```
 
-## 4. 🔀 분기 — flowchart
+## 4. 🔀 Branches — flowchart
 
 ### 📍 Before
 
 ```mermaid
 flowchart TD
-    A["영어 개념"] --> B["LLM 감각"]
-    B --> C["한국어 낱말"]
-    C --> D["문서"]
-    B -.-> X["🐞 대화마다 흔들림"]
+    A["English concept"] --> B["LLM feel"]
+    B --> C["Korean word"]
+    C --> D["document"]
+    B -.-> X["🐞 wavers per conversation"]
     classDef block fill:#f8d7da,stroke:#b02a37,color:#000
     class X block
 ```
 
-### 🛠️ After · 제안 — 조회
+### 🛠️ After · proposal — lookup
 
 ```mermaid
 flowchart TD
-    I["입력: 영어 원어 (+ 내 후보)"] --> M{"붙은 모듈이 있나"}
-    M -- 없음 --> N["★ '붙은 모듈 없음' + 받는 명령 안내"]
-    M -- 있음 --> E["★ 모듈마다 en 으로 찾기"]
-    E --> H{"행이 있나"}
-    H -- 있음 --> R["★ 근거 행: ko · entry · sense · 고정값"]
-    H -- 없음 --> Z["★ 근거 없음 + '이 모듈의 범위 밖일 수 있음'"]
-    R --> K["★ 빈도 말뭉치 개수 · 병기 개수"]
+    I["input: English term (+ my candidate)"] --> M{"any attached module?"}
+    M -- no --> N["★ 'no module attached' + fetch commands"]
+    M -- yes --> E["★ find en in each module"]
+    E --> H{"any row?"}
+    H -- yes --> R["★ evidence row: ko · entry · sense · pin"]
+    H -- no --> Z["★ no evidence + 'may be outside this module's scope'"]
+    R --> K["★ corpus counts · gloss counts"]
     Z --> K
-    K --> L{"LLM 후보가 있나"}
-    L -- 있음 --> LL["★ 후보 출처 = LLM (추론) · 개수 실측"]
-    L -- 없음 --> G
-    LL --> G{"고지가 필요한 모듈 행이 있나"}
-    G -- 있음 --> GL["★ 라이선스 고지문"]
-    G -- 없음 --> O
-    GL --> O["★ 출력 · 판정 하지 않음"]
+    K --> L{"LLM candidate given?"}
+    L -- yes --> LL["★ candidate source = LLM (inference) · counts measured"]
+    L -- no --> G
+    LL --> G{"rows from a module needing a notice?"}
+    G -- yes --> GL["★ license notice"]
+    G -- no --> O
+    GL --> O["★ output · no verdict"]
     classDef new fill:#dff5e1,stroke:#2e7d32,color:#000
     class N,E,R,Z,K,LL,GL,O new
 ```
 
-### 🛠️ After · 제안 — 번역 때 용어 하나
+### 🛠️ After · proposal — one term at translation time
 
 ```mermaid
 flowchart TD
-    T["문서 대조로 맞은 용어"] --> P1{"저장소 선호표에 있나"}
-    P1 -- 있음 --> U1["★ 그 표기"]
-    P1 -- 없음 --> P2{"전역 선호표에 있나"}
-    P2 -- 있음 --> U1
-    P2 -- 없음 --> C{"근거 행의 한국어 표기 수"}
-    C -- 하나 --> U2["★ 그 표기 + 첫 등장 병기"]
-    C -- 여럿 또는 없음 --> U3["★ 번역 LLM 이 고름 + 첫 등장 병기 + '추론으로 고름'"]
+    T["term matched by the document match"] --> P1{"in the repository preference table?"}
+    P1 -- yes --> U1["★ that rendering"]
+    P1 -- no --> P2{"in the global preference table?"}
+    P2 -- yes --> U1
+    P2 -- no --> C{"number of Korean renderings in evidence"}
+    C -- one --> U2["★ that rendering + first-mention gloss"]
+    C -- several or none --> U3["★ translating LLM picks + first-mention gloss + 'picked by inference'"]
     classDef new fill:#dff5e1,stroke:#2e7d32,color:#000
     class U1,U2,U3 new
 ```
 
-범례: 초록 = ★ 신규 · 노랑 = 🗘 변경 · 회색 = 그대로 · 빨강 = 막는 문제.
+Legend: green = ★ new · amber = 🗘 changed · gray = unchanged · red = blocking problem.
 
-## 5. 📝 고칠 곳과 제안 diff
+## 5. 📝 Where to change and proposed diffs
 
-| 파일 · 심볼 | 바뀜 | 이유 | 근거 |
+| File · symbol | Change | Why | Evidence |
 |---|---|---|---|
-| ★ `ko-dev-terms/` 전부 | 신규 | 1절 자리 결정 | 사용자 · 10-28 |
-| 🗘 `pyrightconfig.json` `include` · `extraPaths` | 폴더 추가 | pyright strict 가 지금 네 축만 본다 | [코드 확인] `pyrightconfig.json` |
-| 🗘 `test/test_docs_citations.py` `contextDocs()` | 문서 둘 추가 | 새 컨텍스트 문서는 인용 검사 대상에 올린다(`test/CLAUDE.md`) | [코드 확인] |
-| 🗘 `test/test_prompt_resources.py` `CODE_TOPS` | 폴더 추가 | 리소스와 코드를 가르는 게이트 | [코드 확인] 15행 |
-| 🗘 `CLAUDE.md` 게이트 표 | README 표류 명령에 폴더 추가 | `tools/gen_readme.py` 가 이 폴더 꼴을 읽는지 먼저 본다 | [코드 확인] 117행 |
-| 🗘 `tools/cloud_env.sh` | 받는 명령 · `add` 추가 · 전역 지침을 `~/.claude/CLAUDE.md` 에 쓴다 | 클라우드 환경 캐시 · 클라우드 세션에도 전역 지침 | [코드 확인] · 클라우드 환경 문서("a setup script that writes `~/.claude/CLAUDE.md`") |
-| 🗘 `~/.claude/CLAUDE.md` (저장소 밖) | 절 추가 | 영어 계획 · 번역 규칙 | 👍 사용자 · 10-30 |
+| ★ all of `ko-dev-terms/` | new | the location decision in §0-2 | user · 10-28 |
+| 🗘 `pyrightconfig.json` `include` · `extraPaths` | add the folder | pyright strict covers only four axes today | [code checked] `pyrightconfig.json` |
+| 🗘 `test/test_docs_citations.py` `contextDocs()` | add two documents | new context documents join the citation check (`test/CLAUDE.md`) | [code checked] |
+| 🗘 `test/test_prompt_resources.py` `CODE_TOPS` | add the folder | the resources-versus-code gate | [code checked] line 15 |
+| 🗘 `CLAUDE.md` gate table | add the folder to the README drift command | first confirm that `tools/gen_readme.py` reads this folder's layout | [code checked] line 117 |
+| 🗘 `tools/cloud_env.sh` | add download commands · `add` · write the global guideline into `~/.claude/CLAUDE.md` | cloud environment cache · global guideline in cloud sessions too | [code checked] · cloud environment docs ("a setup script that writes `~/.claude/CLAUDE.md`") |
+| 🗘 `~/.claude/CLAUDE.md` (outside the repository) | add a section | think in English · Korean file · first-mention gloss — English text, no skill dependency | 👍 user · 10-30 |
+| 🗘 `CLAUDE.md` working rules | add one line | new plans and specs are two files; before the skill, gloss only | 👍 user · 10-30 |
 
-**🗘 `pyrightconfig.json` — 변경 · 제안 diff**
+**🗘 `pyrightconfig.json` — changed · proposed diff**
 
 ```diff
 -  "include": ["machine", "runner", "viz", "tools"],
@@ -392,7 +401,7 @@ flowchart TD
 +  "extraPaths": ["machine", "runner", "viz", "tools", "ko-dev-terms"],
 ```
 
-**🗘 `test/test_docs_citations.py` `contextDocs()` — 변경 · 제안 diff**
+**🗘 `test/test_docs_citations.py` `contextDocs()` — changed · proposed diff**
 
 ```diff
              ".claude/skills/term-benchmark/SKILL.md",
@@ -402,56 +411,57 @@ flowchart TD
 +            "ko-dev-terms/SKILL.md"]
 ```
 
-**🗘 `test/test_prompt_resources.py` — 변경 · 제안 diff** (하이픈이 든 폴더 이름을 이 시험이 받는지는 ❓ 미검증)
+**🗘 `test/test_prompt_resources.py` — changed · proposed diff** (whether this test accepts a folder name with a hyphen is ❓ unverified)
 
 ```diff
 -CODE_TOPS = ("runner", "viz", "machine", "tools")   # 긴 글을 찾는 폴더 — 시험 파일은 뺀다
 +CODE_TOPS = ("runner", "viz", "machine", "tools", "ko-dev-terms")   # 긴 글을 찾는 폴더 — 시험 파일은 뺀다
 ```
 
-**🗘 `CLAUDE.md` 게이트 표 — 변경 · 제안 diff** (개수는 편입 뒤 실측)
+**🗘 `CLAUDE.md` gate table — changed · proposed diff** (count measured after inclusion)
 
 ```diff
 -| README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` | 4개 일치 |
 +| README 표류 | `.venv/bin/python tools/gen_readme.py --check machine runner viz tools ko-dev-terms` | (편입 뒤 실측) |
 ```
 
-**🗘 `~/.claude/CLAUDE.md` (저장소 밖) — 절 추가 · 문안 [제안]** — 사용자가 Mac · Windows 의 전역 파일에 붙여 넣는다
+**🗘 `~/.claude/CLAUDE.md` (outside the repository) — added section · text [proposal]** — the user pastes it into the global file on the Mac and the Windows PC
 
 ```markdown
-## 계획은 영어로, 사람이 읽는 판은 한국어로
+## Plans in English, Korean for people
 
-- 계획 · 사양 문서(사람이 검토하고 승인하는 plans · specs)는 **영어 원문을 정본으로 먼저 쓴다.**
-  계획을 세우는 추론도 영어로 한다 — 이 요청은 지켜졌는지 확인할 수 없다.
-- 정본 옆에 **한국어 번역본 `<이름>.ko.md`** 를 둔다. 고칠 때는 정본만 고치고 번역본은 다시 만든다.
-- **계획하는 도중에는 낱말을 제한하지 않는다.** 용어 근거는 한국어로 번역할 때만 쓴다.
-- 번역할 때 — 정본 본문을 등록된 단어집(`ko-dev-terms`)의 영어 표제와 문자열로 맞춰 맞은 용어의 근거 행을 받는다.
-  표기는 이 순서로 정한다: 저장소 선호표 → 사용자 전역 선호표 → 근거 행의 표기가 하나면 그것 →
-  여럿이거나 없으면 번역하며 고르되 "추론으로 고름" 을 표시한다.
-  선호표가 아닌 경우는 모두 첫 등장에 영어 원어를 괄호로 병기한다: `부수 효과(side effect)`.
-  `ko-dev-terms` 가 없는 기계에서는 첫 등장 병기만 한다.
-- 한국어는 저장소 안에 남기는 사람용 산출물의 규칙이다. 검색 · 외부 도구 · 추론에는 언어 제약이 없다.
-- 코드 주석과 커밋 메시지는 저장소마다의 관례를 따른다. 인계 · 보고서 · README 는 이 규칙의 대상이 아니다.
+- For plans and specs, reason and draft in English (this cannot be verified — follow it anyway), then write the repository file in Korean.
+- In that Korean file, gloss each technical term with its English original at its first mention: `부수 효과(side effect)`.
+- Korean is a rule for files left in the repository. Searches, tool calls and reasoning have no language restriction.
+- Code comments and commit messages follow each repository's convention.
+- If a repository or skill asks for more — for example an English canonical plan beside a Korean `.ko.md` — follow it.
 ```
 
-**🗘 `tools/cloud_env.sh` — 변경 · 제안 diff** (끝에 덧붙인다. 문안은 위와 같다)
+**🗘 `CLAUDE.md` working rules — changed · diff** (this repository — ✅ applied now)
+
+```diff
+ - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).
++- 새 계획 · 사양 문서는 영어 정본 `<이름>.md` 와 한국어 번역본 `<이름>.ko.md` 두 파일로 쓴다. 고칠 때는 정본만 고치고 번역본을 다시 만든다. `ko-dev-terms` 가 생기기 전에는 번역할 때 첫 등장 영어 병기만 한다.
+```
+
+**🗘 `tools/cloud_env.sh` — changed · proposed diff** (appended at the end; same text as above)
 
 ```diff
  echo 'digraph { a -> b }' | dot -Tsvg_inline > /dev/null
  echo 'digraph { a -> b }' | dot -Tpng > /dev/null
 +mkdir -p ~/.claude
 +cat >> ~/.claude/CLAUDE.md <<'EOF'
-+## 계획은 영어로, 사람이 읽는 판은 한국어로
-+(위 문안 그대로)
++## Plans in English, Korean for people
++(the text above, verbatim)
 +EOF
 ```
 
-**★ `ko-dev-terms/modules/mdn-glossary-ko.toml` — 신규 · 요점만 · 의사코드** (칸 이름은 제안, 커밋은 실측한 값)
+**★ `ko-dev-terms/modules/mdn-glossary-ko.toml` — new · outline · pseudocode** (field names are proposals; the commit is a measured value)
 
 ```toml
 name    = "mdn-glossary-ko"
 layer   = "std"
-role    = "ko-pair"            # ko-pair | en-scope | corpus
+role    = "ko-pair"            # ko-pair | en-scope | corpus | preference
 format  = "mdn-frontmatter"
 domains = ["programming", "design"]
 license = { name = "CC-BY-SA-2.5", url = "https://github.com/mdn/translated-content/blob/main/LICENSE.md", share_alike = true }
@@ -464,123 +474,122 @@ fetch   = [
 ]
 ```
 
-**★ <span style="color:cyan">정규형 행</span> — 출력 꼴 예시** (값은 MDN 고정 커밋에서 본 것)
+**★ Normalized row — output shape example** (values seen at the pinned MDN commit)
 
 ```text
 en                 ko         entry                                            sense     extra
 callback function  콜백 함수  files/ko/glossary/callback_function/index.md      Glossary
 ```
 
-## 6. 📦 std 모듈 후보 — 지금까지 실측한 자료
+## 6. 📦 std module candidates — measured so far
 
-탐침 목록과 갈래 판정은 연구 도구이지 정답이 아니다.
+The probe list and the class judgments are research instruments, not ground truth.
 
-| 모듈 | 역할 | 형식 | 고정 | 라이선스 | std 영역 | 상태 |
+| Module | Role | Format | Pin | License | std area | Status |
 |---|---|---|---|---|---|---|
-| Microsoft Terminology (`ko`) | 한국어 짝 | TBX | zip SHA-256 | MS Globalization License (👍 조건부 수락) | 전 영역 — `sense` 로 다른 뜻을 가른다 | ⚠️ 한국어판 미측정(T2). 프랑스어 · 독일어판의 영어 표제로 대신 재니 탐침 63개 중 36개, 그중 13개는 다른 뜻으로만 [실측] |
-| MDN 용어집 | 한국어 짝 | 머리말 Markdown | 커밋 `2a7c03a4` | CC-BY-SA 2.5 | 프로그래밍 언어(일반 159) · 설계(37) | [실측] 항목의 58% 는 웹 플랫폼 고유 — ❓ E4 |
-| MDN 한국어 본문 | 빈도 말뭉치 | Markdown 산문 | 같음 | 같음 | 전 영역 | [실측] 탐침 병기 9개 낱말 18건 |
-| cjk-compsci-terms | 한국어 짝 | YAML 표 | 커밋 `65a7584` | CC BY-SA 4.0 | `design-patterns` · `software-eng` · `programming` · `paradigms` | [실측] 28표 · 259항목, 표마다 10개 안팎 — ❓ E11 |
-| iSAQB 아키텍처 용어집 | 영어 범위 | AsciiDoc | 커밋 `bd3ce64` | CC BY 4.0 | 구조 · 설계 | [실측] 표제 274 — ❓ E7 |
-| GoF · SOLID · 패키지 원칙 · GRASP | 영어 범위 | 이름 목록 | 책 판 | 이름은 저작물 아님(미국법) | 설계 | ❓ 축 B 대상인지 |
-| SEVOCAB (ISO/IEC/IEEE 24765) | 영어 범위 (손 조회) | 정규형 TSV | 조회 날짜 · 판 | IEEE · ISO — 정의는 싣지 않음 | 소프트웨어 공학 | [미검증] T1 |
-| ktword | 한국어 짝 (손 조회) | 정규형 TSV | 항목 번호 · 날짜 · 본문 해시 | 출처 표시 시 자유(검색 요약) | 설계 · 소프트웨어 공학 | [미검증] T4 |
-| ISTQB · KSTQB · ISO/IEC 25010 | 영어 범위 · 한국어 짝 | 미정 | 미정 | 미정 | 테스트 & 품질 | [미검증] 조사 전 T7 |
-| 한국어 위키백과 | 한국어 짝 | 덤프 | 덤프 날짜 | CC BY-SA | 전 영역 | [미검증] T3 — 개념어 공백의 최대 후보 |
-| 사용자 목록 | 영어 범위 + 한국어 후보 | 정규형 TSV | 파일 해시 | 사용자 | 전 영역 | [내 판단] 범위의 주된 수단이 될 수 있다 |
-| <span style="color:cyan">선호표</span> — 저장소 것 · 사용자 전역 것 | 선호 (`preference`) | 정규형 TSV | 파일 해시 | 사용자 · 팀 | 전 영역 | 사용자가 채운다. 저장소 것이 전역 것보다 먼저 |
+| Microsoft Terminology (`ko`) | Korean pair | TBX | zip SHA-256 | MS Globalization License (👍 conditional acceptance) | all areas — `sense` separates other senses | ⚠️ Korean file not measured (T2). Measured through the English headwords of the French and German files instead: 36 of 63 probes, 13 of them only in other senses [measured] |
+| MDN glossary | Korean pair | front-matter Markdown | commit `2a7c03a4` | CC-BY-SA 2.5 | programming languages (general 159) · design (37) | [measured] 58% of entries are web-platform specific — ❓ E4 |
+| MDN Korean prose | frequency corpus | Markdown prose | same | same | all areas | [measured] probe glosses: 18 hits for 9 words |
+| cjk-compsci-terms | Korean pair | YAML tables | commit `65a7584` | CC BY-SA 4.0 | `design-patterns` · `software-eng` · `programming` · `paradigms` | [measured] 28 tables · 259 entries, about 10 per table — ❓ E11 |
+| iSAQB architecture glossary | English scope | AsciiDoc | commit `bd3ce64` | CC BY 4.0 | architecture · design | [measured] 274 headwords — ❓ E7 |
+| GoF · SOLID · package principles · GRASP | English scope | name lists | book edition | names are not copyrightable (US law) | design | ❓ whether axis B applies |
+| SEVOCAB (ISO/IEC/IEEE 24765) | English scope (manual lookup) | normalized TSV | lookup date · edition | IEEE · ISO — definitions not stored | software engineering | [unverified] T1 |
+| ktword | Korean pair (manual lookup) | normalized TSV | entry number · date · body hash | free use with attribution (search summary) | design · software engineering | [unverified] T4 |
+| ISTQB · KSTQB · ISO/IEC 25010 | English scope · Korean pair | undecided | undecided | undecided | testing & quality | [unverified] not yet researched, T7 |
+| Korean Wikipedia | Korean pair | dump | dump date | CC BY-SA | all areas | [unverified] T3 — the largest candidate for the concept-term gap |
+| User list | English scope + Korean candidates | normalized TSV | file hash | user | all areas | [my judgment] may become the main scope instrument |
+| Preference table — per repository · user-global | preference (`preference`) | normalized TSV | file hash | user · team | all areas | filled by the user. The repository's wins over the global one |
 
-| std 영역 | 실측한 한국어 짝 | [내 판단] |
+| std area | Measured Korean pairs | [my judgment] |
 |---|---|---|
-| 구조 · 설계 | cjk-compsci-terms 20 · MDN 설계 37 — MS 한국어판 미측정 | 얇다 |
-| 소프트웨어 공학 | 없음 | 거의 공백 |
-| 프로그래밍 언어 · OOP | MDN 일반 159 · cjk-compsci-terms 19 | 중간 |
-| 테스트 & 품질 | 없음 | 공백 |
+| architecture · design | cjk-compsci-terms 20 · MDN design 37 — Korean MS file not measured | thin |
+| software engineering | none | almost empty |
+| programming languages · OOP | MDN general 159 · cjk-compsci-terms 19 | moderate |
+| testing & quality | none | empty |
 
-## 7. 📐 규칙 — 후보 · 세기 · 출력 · 데이터 자리
+## 7. 📐 Rules — candidates · counting · output · data location
 
-**한국어 후보를 어디서 얻나**
+**Where Korean candidates come from**
 
-| 기호 | 후보 출처 | 결정적인가 |
+| Mark | Candidate source | Deterministic? |
 |---|---|---|
-| (a) | 한국어 짝 모듈의 대상어 | 예 |
-| (b) | 빈도 말뭉치의 병기 `<한글 낱말>\s*\(\s*<영어>\s*\)` | 예 |
-| (c) | 사용자가 준 후보 — 조회 입력의 한국어 후보도 여기 | 예 |
-| (d) | LLM 후보 — `후보 출처 = LLM (추론)`, 개수 실측, 0 이면 0 | 아니오 (표시) |
+| (a) | target terms of Korean-pair modules | yes |
+| (b) | gloss pattern in the frequency corpus `<Hangul word>\s*\(\s*<English>\s*\)` | yes |
+| (c) | candidates given by the user — including the Korean candidate in a lookup input | yes |
+| (d) | LLM candidates — `candidate source = LLM (inference)`, counts measured, 0 reported as 0 | no (labeled) |
 
-**세기** — 산문만(머리말 · 코드 블록 · 인라인 코드 · MDN 매크로 `{{ … }}` · HTML 주석 제외). 경계 규칙 v1: 앞 글자가 한글이 아니고 뒤가 조사이거나 한글이 아닐 때만(`트리` ⊂ `트리거` 를 막는다), 조사 목록은 리소스 파일. 정밀도 표본: 100 이상이면 무작위 100줄, 아니면 전부. MDN `conflicting` · `orphaned` 는 뺀다.
+**Counting** — prose only (front matter · code blocks · inline code · MDN macros `{{ … }}` · HTML comments excluded). Boundary rule v1: count only when the preceding character is not Hangul and what follows is a particle or not Hangul (stops `트리` ⊂ `트리거`); the particle list is a resource file. Precision sample: 100 random lines when a count is 100 or more, otherwise all. MDN `conflicting` · `orphaned` excluded.
 
-**출력** — 한 행 = 원어 · 한국어 후보 · 모듈 · 근거(항목 id / `파일:줄` · 개수) · `sense` · <span style="color:cyan">고정값</span> · 후보 출처. 줄 세우기는 층(std 먼저)과 역할 순서뿐 — 판정이 아니다. 끝에 `판정 : 하지 않음`. 고지를 요구하는 모듈의 행이 있으면 고지문(MS: "Entry from Microsoft Learn's Globalization Essentials. © … Microsoft Corporation. All rights reserved."). 글 꼴은 리소스 템플릿.
+**Output** — one row = source term · Korean candidate · module · evidence (entry id / `file:line` · count) · `sense` · pin · candidate source. Ordering is only by layer (std first) and role — not a verdict. Ends with `판정 : 하지 않음` ("no verdict"). If any row comes from a module that requires a notice, append it (MS: "Entry from Microsoft Learn's Globalization Essentials. © … Microsoft Corporation. All rights reserved."). The text shape comes from a resource template.
 
-**<span style="color:cyan">데이터 자리</span>** — 원본 · 색인 · 등록부는 `KO_DEV_TERMS_DATA`, 없으면 Linux · Mac `~/.cache/ko-dev-terms`, Windows `%LOCALAPPDATA%\ko-dev-terms`. GitHub 출처는 `git clone --filter=blob:none --no-checkout` + sparse + 고정 커밋 — `codeload.github.com` 아카이브는 쓰지 않는다(클라우드 GitHub 프록시가 붙이지 않은 저장소의 아카이브를 403 으로 막는다). 클라우드는 사용자가 허용 도메인을 더하고 설정 스크립트에 받는 명령 · `add` 를 넣는다 — 약 5분 안에 끝나면 약 7일 스냅숏 재사용, 넘기면 받기만 SessionStart 훅의 배경 작업으로.
+**Data location** — source files, indexes and the registry live in `KO_DEV_TERMS_DATA`; if unset, `~/.cache/ko-dev-terms` on Linux · Mac and `%LOCALAPPDATA%\ko-dev-terms` on Windows. GitHub sources use `git clone --filter=blob:none --no-checkout` + sparse + a pinned commit — never `codeload.github.com` archives (the cloud GitHub proxy returns 403 for archives of repositories not attached to the session). In the cloud, the user adds allowed domains and puts the download commands and `add` into the setup script — if it finishes within about 5 minutes, the snapshot is reused for about 7 days; otherwise move only the download into a background SessionStart hook.
 
-**번역 규칙** (사용자 전역 지침과 같은 내용) — <span style="color:cyan">문서 대조</span>로 영어 정본 본문에서 등록된 영어 표제와 문자열이 맞는 용어를 찾는다(추론 없음). 표기는 저장소 <span style="color:cyan">선호표</span> → 전역 선호표 → 근거 행의 표기가 하나면 그것 → 여럿이거나 없으면 번역 LLM 이 고르고 "추론으로 고름" 을 표시한다. 선호표가 아닌 경우는 첫 등장 병기. 표제에 없는 용어도 첫 등장 병기. 스킬은 이 순서를 사용자가 준 대로 **적용만** 한다(D5 — "사용자가 주면 적용만").
+**Translation rules** (rules of the skill — they live in SKILL.md and in this repository's rules, not in the global guideline) — the document match finds terms whose English headword appears verbatim in the English canonical text (no inference). Renderings follow: repository preference table → global preference table → the single rendering in the evidence, if there is exactly one → if several or none, the translating LLM picks and marks "picked by inference". Anything not from a preference table gets the first-mention gloss. Terms not among the headwords also get the first-mention gloss. The skill only **applies** this order as given by the user (D5 — "apply it if the user provides it").
 
-**<span style="color:cyan">매니페스트</span>의 꼴** — TOML 을 제안한다(저장소의 `config/*.toml` 관례). `tomllib` 은 파이썬 3.11 부터라 ⚠️ M5 를 본 뒤 정하고, 낮으면 JSON.
+**Manifest form** — TOML is proposed (the repository's `config/*.toml` convention). `tomllib` exists from Python 3.11, so decide after ⚠️ M5; below 3.11, use JSON.
 
-## 8. 🧪 확인과 다음 단계
+## 8. 🧪 Checks and next steps
 
-**구현 조각 — 의존 순서** (전부 ❌ 안 됨)
+**Implementation slices — dependency order** (all ❌ not done)
 
-| # | 결과물 | 확인 | 앞선 조건 |
+| # | Deliverable | Check | Precondition |
 |---|---|---|---|
-| 0 | ✋ 이 계획 승인 | 사용자 | — |
-| 0b | ✋ 사용자 전역 지침 붙여 넣기 — Mac · Windows 의 `~/.claude/CLAUDE.md`, 클라우드는 설정 스크립트 | 사용자 | 0 |
-| 1 | 🔎 3차 조회 결과 (13절) | std 공백 크기 · MS 한국어판 실물(V1)이 사실로 채워짐 | 사용자가 허용 도메인을 연다 |
-| 2 | ★ 모듈 틀 — 매니페스트 꼴 · 등록부 · 명령 다섯 · 정규형 TSV 읽기 | 같은 파일 두 번 등록 → 색인 바이트 동일 · `remove` 뒤 흔적 없음 | 0 |
-| 3 | ★ 내장 읽기 — MDN · cjk · iSAQB · TBX | 고정 커밋의 실제 파일 전부에 돌려 꼴 예외를 센다 · 원어 다섯 개 손 대조 | 2 (TBX 는 1 도) |
-| 4 | ★ 세기 — MDN 본문 | 정밀도 표본 | 2 |
-| 5 | ★ 조회 + 출력 | 고르지 않음 · `근거 없음` · 고지문 · 범위 표시 | 3 · 4 |
-| 5b | ★ <span style="color:cyan">문서 대조</span> + 선호표 순서 적용 | 같은 정본으로 두 번 돌려 같은 근거 목록 · 선호표 순서가 사용자 표대로 | 5 |
-| 6 | ★ SKILL.md + 링크 · 🗘 게이트 편입 | 새 게이트 초록 — 기존 빨강 둘(위키 표류 · 층 분포)은 별개 | 5 |
-| 7 | 🧪 시범 — 인계 문서 1절 원어 + std 탐침 + 영어 계획 하나를 번역 | 행마다 근거 또는 `근거 없음` · 두 번 돌려 같음 · 표본 5행 손 대조 | 6 |
-| 8 | ✋ 시범 결과 보고 — ③④ 재료 | 사용자 확인 | 7 |
+| 0 | ✋ approve this plan | user | — |
+| 0b | ✋ paste the user-global guideline (English · five lines) — `~/.claude/CLAUDE.md` on the Mac and the Windows PC; the setup script in the cloud | user | 0 |
+| 1 | 🔎 third-lookup results (§9) | std gap sizes and the real Korean MS file (V1) are filled in as facts | the user opens allowed domains |
+| 2 | ★ module frame — manifest form · registry · five commands · normalized TSV reader | register the same file twice → byte-identical index · nothing left after `remove` | 0 |
+| 3 | ★ built-in readers — MDN · cjk · iSAQB · TBX | run against every real file at the pinned commits and count format exceptions · hand-check five source terms | 2 (TBX also needs 1) |
+| 4 | ★ counting — MDN prose | precision sample | 2 |
+| 5 | ★ lookup + output | never picks · "no evidence" · notice · scope label | 3 · 4 |
+| 5b | ★ document match + preference order | same canonical twice → same evidence list · preference order follows the user's tables | 5 |
+| 6 | ★ SKILL.md + link · 🗘 gate inclusion | new gates green — the two existing reds (wiki drift · layer distribution) are separate | 5 |
+| 7 | 🧪 pilot — handoff §1 source terms + std probes + translating one English plan | evidence or "no evidence" per row · same result twice · hand-check 5 sample rows | 6 |
+| 8 | ✋ report pilot results — material for ③④ | user confirmation | 7 |
 
-시범 원어 목록은 [제안] 으로 먼저 보인다 — 인계 문서 1절 표의 영어 병기에서 기계적으로 뽑고, 병기가 없는 행(`나무` · `입장권`)은 사용자가 채운다.
+The pilot term list is shown first as a [proposal] — extracted mechanically from the English glosses in the handoff §1 tables; rows without a gloss (`나무` · `입장권`) are filled in by the user.
 
-**❓ 남은 결정**
+**❓ Open decisions**
 
-| # | 무엇 | 근거 | [내 판단] | 영향 |
+| # | What | Evidence | [my judgment] | Impact |
 |---|---|---|---|---|
-| E4 | MDN 용어집을 std 에서 거르나 (일반 159 · 설계 37 만) | [실측] 웹 플랫폼 항목 325개. 갈래 판정은 한 연구자의 판단 | 거른다 — std 의 뜻과 맞다 (65) | 거르면 MDN 행의 대부분이 std 밖 선택 모듈로 간다 |
-| E7 | iSAQB 를 "국제 표준 어휘" 에 넣나 | [실측] 30개 확인 — `node` 거짓 적중, `open-closed principle` 은 SOLID 가 덮음 | 표준이 아니라 "인증 단체 범위 목록" 으로 따로 표시하고 넣는다 (60) | 범위 목록의 기계 판독 부분이 사실상 iSAQB 하나다 |
-| E11 | cjk-compsci-terms 를 std 모듈로 | [실측] 깨끗하지만 표마다 10개 안팎 | 넣는다 — 실무 음차 진영의 독립 근거 (60) | CC BY-SA 동일조건이 파생 행에 걸린다 |
-| — | 이름 목록(GoF · SOLID · …)을 `modules/` 리소스로 둘지 | 제3자 단어집이 아니라 우리가 적는 목록 | 리소스로 둔다 — 축 B 는 제3자 데이터에 대한 결정으로 본다 (55) | 아니면 사용자 목록에 합친다 |
-| — | 3차 조회 시점 | 2 · 3 단계 중 TBX 읽기가 여기 걸린다 | — | 늦을수록 MS 행 없이 시범 |
-| — | 이 계획서 자체를 새 규칙(영어 정본 + `.ko.md`)으로 바꿀지 | 대상 문서는 계획 · 사양 — 이 문서도 해당 | — | 바꾸면 영어 정본을 새로 쓰고 지금 한국어판은 `.ko.md` 가 된다 |
-| — | "추론으로 고름" 표시의 꼴 | 번역본 안에 남는다 | 첫 등장 병기 뒤에 짧은 표지(예: `†`)와 문서 끝 목록 (55) | 표지가 본문을 어지럽히지 않아야 한다 |
-| — | 리서치 보고서의 나머지 후보 K1 ~ K12 · E1 ~ E13 | 이 계획에 녹인 것: E2 · E6 → `sense`, E9 · E10 → 손 조회 모듈, E3 · E5 → 제외 | — | — |
+| E4 | Filter the MDN glossary for std (general 159 · design 37 only)? | [measured] 325 web-platform entries. The class judgment is one researcher's | filter — it matches what std means (65) | most MDN rows move to an optional non-std module |
+| E7 | Count iSAQB as "international standard vocabulary"? | [measured] 30-term check — `node` is a false hit, `open-closed principle` is covered by SOLID | include it, labeled separately as a "certification-body scope list", not a standard (60) | iSAQB is practically the only machine-readable part of the scope list |
+| E11 | cjk-compsci-terms as a std module? | [measured] clean but about 10 entries per table | include — independent evidence for the practitioners' loanword spellings (60) | CC BY-SA share-alike applies to derived rows |
+| — | Keep the name lists (GoF · SOLID · …) as `modules/` resources? | lists we write, not third-party glossaries | keep them as resources — axis B is read as a decision about third-party data (55) | otherwise merge them into the user list |
+| — | When to run the third lookup | TBX reading in stages 2 · 3 depends on it | — | the later it runs, the longer the pilot goes without MS rows |
+| — | Form of the "picked by inference" mark | it stays in the translation | a short marker after the first-mention gloss (e.g. `†`) plus a list at the end of the document (55) | the marker must not clutter the body |
+| — | Remaining research candidates K1 to K12 · E1 to E13 | already folded in: E2 · E6 → `sense`, E9 · E10 → manual-lookup modules, E3 · E5 → excluded | — | — |
 
-**⚠️ 실행할 때 재야 할 것**
+**⚠️ To measure during execution**
 
-| # | 무엇 | 왜 모르나 |
+| # | What | Why unknown |
 |---|---|---|
-| M1 | MS zip 안의 구조와 별도 약관 | 이 세션에서 `download.microsoft.com` 차단 |
-| M2 | MS 다운로드 시간 — 설정 스크립트 5분 안 | 같은 이유 |
-| M3 | 설정 스크립트가 돌 때 저장소 클론이 있나 | 문서에서 못 찾음 |
-| M4 | GitHub 이 커밋 SHA 로 얕은 fetch 를 받나 | 안 돌려 봄 |
-| M5 | Windows PC 의 파이썬 판 — 매니페스트 꼴이 걸림 | 인계 문서는 "python 있음" 만 |
-| M6 | MDN 용어집의 꼴 예외 | 표본 2개만 봄 |
+| M1 | layout of the MS zip and any separate terms | `download.microsoft.com` blocked in this session |
+| M2 | MS download time — within the 5-minute setup-script window? | same reason |
+| M3 | is the repository clone present when the setup script runs? | not found in the docs |
+| M4 | does GitHub accept a shallow fetch by commit SHA? | not tried |
+| M5 | Python version on the Windows PC — the manifest form depends on it | the handoff only says "python is installed" |
+| M6 | format exceptions in the MDN glossary | only 2 samples seen |
 
-## 9. 🔎 3차 조회 — 표시만, 아직 하지 않는다
+## 9. 🔎 Third lookup — marked only, not done yet
 
-사용자 답: "다음 3차 조회 내용으로 당장 말고 노트에 마크업만". 호스트는 사용자가 허용 도메인에 더하고, 새 세션부터 적용된다.
+User answer: "다음 3차 조회 내용으로 당장 말고 노트에 마크업만" (make it the next, third lookup — not now; only mark it up in the notes). The user adds the hosts to the allowed domains; changes apply from the next session.
 
-| # | 잴 것 | 열어야 할 호스트 |
+| # | What to measure | Hosts to open |
 |---|---|---|
-| T1 | SEVOCAB 에서 iSAQB · 이름 목록 밖 탐침 33개 · 내보내기 · 이용 조건 · SWEBOK v4 용어집 | `pascal.computer.org` · `www.computer.org` (· `www.swebok.org`) |
-| T2 | MS 한국어 TBX 실물 — V1 · 상태 필드 · 한국어 대상어와 정의 · 스타일 가이드의 음역 규칙 | `download.microsoft.com` · `aka.ms` |
-| T3 | 한국어 위키백과 · Wikidata — 표제 · 넘겨주기 · 첫 문장 병기 · 한국어 label | `dumps.wikimedia.org` · `ko.wikipedia.org` · `www.wikidata.org` |
-| T4 | ktword — 탐침 재측정 · 본문 영어 병기 · `robots.txt` | `www.ktword.co.kr` · `ktword.co.kr` |
-| T5 | KS X 0001 소프트웨어 부 · 24765 KS 부합화판 · TTA 소프트웨어 공학 용어 표준 | `standard.go.kr` · `e-ks.kr` · `standard.tta.or.kr` · `terms.tta.or.kr` |
-| T6 | NCS · 정보처리기사 · refactoring.guru · 리팩터링 · PoEAA · EIP · DDD 목록. IREB 는 std 밖 선택 모듈 후보로만 | `www.ncs.go.kr` · `www.q-net.or.kr` · `refactoring.guru` · `martinfowler.com` · `refactoring.com` · `www.enterpriseintegrationpatterns.com` · `domainlanguage.com` (· `cockpit.ireb.org`) |
-| T7 | 테스트 & 품질 — ISTQB 용어집 · KSTQB · ISO/IEC 25010 과 KS 부합화판 | 조사 때 정한다 |
+| T1 | in SEVOCAB: the 33 probes outside iSAQB and the name lists · export · terms of use · whether SWEBOK v4 has a glossary | `pascal.computer.org` · `www.computer.org` (· `www.swebok.org`) |
+| T2 | the real Korean MS TBX — V1 · status fields · Korean targets and definitions · transliteration rules in the style guide | `download.microsoft.com` · `aka.ms` |
+| T3 | Korean Wikipedia · Wikidata — titles · redirects · glosses in first sentences · Korean labels | `dumps.wikimedia.org` · `ko.wikipedia.org` · `www.wikidata.org` |
+| T4 | ktword — re-measure the probes · English glosses in the body · `robots.txt` | `www.ktword.co.kr` · `ktword.co.kr` |
+| T5 | software part of KS X 0001 · a KS adoption of 24765 · a TTA software-engineering terminology standard | `standard.go.kr` · `e-ks.kr` · `standard.tta.or.kr` · `terms.tta.or.kr` |
+| T6 | NCS · Engineer Information Processing exam · refactoring.guru · refactoring, PoEAA, EIP and DDD catalogs. IREB only as an optional non-std module candidate | `www.ncs.go.kr` · `www.q-net.or.kr` · `refactoring.guru` · `martinfowler.com` · `refactoring.com` · `www.enterpriseintegrationpatterns.com` · `domainlanguage.com` (· `cockpit.ireb.org`) |
+| T7 | testing & quality — ISTQB glossary · KSTQB · ISO/IEC 25010 and its KS adoption | decided during research |
 
-## 10. 🧱 새 구조 공개 (`design-decision-discipline` §2.5)
+## 10. 🧱 New-structure disclosure (`design-decision-discipline` §2.5)
 
-| 항목 | 새 최상위 폴더 `ko-dev-terms/` | 단어집 모듈 경계 |
+| Item | New top-level folder `ko-dev-terms/` | Glossary module boundary |
 |---|---|---|
-| 구현자 수 | 0 → 1. TBX · `.po` 를 읽는 파이썬 0건 [코드 확인] (`termEntry` · `.tbx` · `msgstr` grep — 걸린 1건은 `runner/run_mode1_5.py` 의 `TermEntry` 형) | 실측한 형식만 다섯(TBX · 머리말 Markdown · YAML · AsciiDoc · 이름 목록) + 정규형 TSV |
-| 소비자 수 | 지금 0. 예정 둘(report-builder · 코드베이스 위키)은 사용자 진술 | 1 — 조회 |
-| 삭제 시험 | 지우면 되살아나는 곳 0 — 소비자가 아직 없다 | 지우면 출처마다의 읽기 · 라이선스 · 범위 · 고정값이 조회 코드로 흩어진다 — 출처 수만큼 |
-| 계획과의 관계 | 인계 문서 7-1 의 `scripts/` 안 → 👍 "새로운 스킬 프로젝트로 … Mode 개발하듯" | 1판의 "레지스트리 · 플러그인을 두지 않는다" → 👍 단어집 = 모듈. 경계는 코드 인터페이스가 아니라 데이터 꼴이고 모듈은 코드를 들고 오지 않는다(👍 축 A) |
+| Implementers | 0 → 1. Python that reads TBX · `.po`: 0 hits [code checked] (`termEntry` · `.tbx` · `msgstr` grep — the one hit is the `TermEntry` type in `runner/run_mode1_5.py`) | five measured formats (TBX · front-matter Markdown · YAML · AsciiDoc · name lists) + normalized TSV |
+| Consumers | 0 today. Two expected (report-builder · codebase wiki) — the user's statement | 1 — the lookup |
+| Deletion test | nothing reappears if removed — no consumer yet | if removed, per-source reading · license · scope · pin scatter into the lookup code — once per source |
+| Relation to the plan | handoff §7-1 put scripts under `scripts/` → 👍 "새로운 스킬 프로젝트로 … Mode 개발하듯" (a new skill project, developed like a Mode) | version 1's "no registry · no plugins" → 👍 glossary = module. The boundary is a data shape, not a code interface, and modules carry no code (👍 axis A) |
