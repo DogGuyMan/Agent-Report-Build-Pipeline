@@ -75,6 +75,8 @@
 | `hasReport` | `(cwd: str, docDir: str, slug: str) -> bool` |  |
 | `listDocs` | `(cwd: str) -> list[dict[str, str]]` |  |
 | `writeSkeleton` | `(dir: str, slug: str, date: str, specName: str, branch: str, version: str) -> None` |  |
+| `repoTopLevel` | `(cwd: str) -> str` | git 최상위. git 밖이거나 git 이 없으면 cwd 그대로 — build.py 가 링크 뿌리를 찾는 것과 같은 규칙. |
+| `modeOneStatus` | `(python: str, repo: str) -> str` | 봉인 상태 한 줄. 판정만 하고 막지 않는다 — Mode 2 는 Mode 1 과 독립이다. |
 | `main` | `() -> None` |  |
 
 ---
