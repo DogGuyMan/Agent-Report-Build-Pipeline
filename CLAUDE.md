@@ -91,6 +91,7 @@ Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | **Track C — 별개 갈래.** 코드베이스 위키(deep-wiki + VitePress 다중 페이지). Track A/B 와 섞지 말 것 |
 | `docs/superpowers/plans/2026-08-26-report-builder.md` | 실행 계획. 발견된 결함이 해당 Phase 절에 반영돼 있다 |
 | `docs/handoffs/RESUME-2026-10-28-official-term-grounding.md` | **Mode 1.5 강화 갈래 — 공식 용어 근거 스킬(① 권위 출처 · ② 사용 빈도 말뭉치).** 0단계 확인과 사용자 결정까지 받았다. 스킬 프로젝트는 이 저장소 최상위 `ko-dev-terms/` 에 만든다(아직 없다) — 계획서 `docs/superpowers/plans/2026-10-28-ko-dev-terms.md`(영어 정본) · `docs/superpowers/plans/2026-10-28-ko-dev-terms.ko.md`(한국어 번역본) [제안됨] — 단어집 = 모듈 · 기본 층 std · 번역할 때 근거 주입, 승인 대기. Track A/B/C 와 섞지 말 것. 개인어 그래프(⑤)는 [`0013`](docs/decisions/0013-personal-language-graph-deferred.md) 으로 보류 |
+| `docs/superpowers/specs/2026-10-31-directory-reorg-design.md`(영어 정본) · `docs/superpowers/specs/2026-10-31-directory-reorg-design.ko.md`(한국어 번역본) | **디렉토리 정리 — 1차 축 mode(`codewiki` · `term` · `spec`) · 2차 언어 · 3차 성격축, `core` · `common` · `test`/`qa` · `resource/` 한 자리.** 결정 [`0014`](docs/decisions/0014-mode-first-layout-and-resource-dir.md). **분리 계획 M 뒤 · Phase B 앞에 실행**하고(K · M 은 2026-10-31 에 끝났다) 그 뒤 Phase B 는 `codewiki/` 를 통째로 떼어낸다. 계획서 `docs/superpowers/plans/2026-10-31-directory-reorg.md`(영어 정본) · `docs/superpowers/plans/2026-10-31-directory-reorg.ko.md`(한국어 번역본). **실행 전까지 이 문서의 경로는 전부 지금 구조다** |
 
 `ReportSystem_HandOff.md` 는 `HANDOFF-report-system.md` 와 동일 계열의 구판이다.
 

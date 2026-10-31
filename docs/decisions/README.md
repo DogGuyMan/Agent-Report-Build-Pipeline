@@ -16,8 +16,9 @@
 | [0009](0009-second-report-genre-deferred.md) | 두 번째 보고서 장르(`번복기록`) mode | 보류 | 소비자 0 인 동안 mode 축을 파지 않는다. `plans/` 입력은 열렸다 |
 | [0010](0010-xmldoc-retired.md) | `xmldoc` 주석 주입을 쓰지 않는다 | **폐지** | 게이트에서 뺐다. `emit`·`inject` 안 돌린다. 남은 블록은 잔재 — 지우는 건 별개 작업 |
 | [0011](0011-split-mode1-and-report.md) | Mode 1 / Mode 1.5+2 두 저장소 · 데이터 계약 경계 | 확정 | Mode 1 은 사람이 부를 때만 · 1.5 는 봉인 필수 · 2 는 독립 · 리소스와 코드 분리 |
-| [0012](0012-prompt-dynamics-in-jinja2.md) | 프롬프트의 동적 부분을 프롬프트 파일 안 Jinja2 로 | 확정 | 마크다운 · 절 표식 유지 · 엄격 검사 · 결함 문구는 TOML · 파일 템플릿은 그대로 · 템플릿은 꼴만 |
+| [0012](0012-prompt-dynamics-in-jinja2.md) | 프롬프트의 동적 부분을 프롬프트 파일 안 Jinja2 로 | 확정 · 자리 조항은 0014 | 마크다운 · 절 표식 유지 · 엄격 검사 · 결함 문구는 TOML · 파일 템플릿은 그대로 · 템플릿은 꼴만 |
 | [0013](0013-personal-language-graph-deferred.md) | 사용자 개인어를 공식 용어로 잇는 가중치 그래프(⑤) | 보류 | 공식 용어 쪽 끝이 ①② 실측이라 그것이 먼저다. 개인어 자료는 공개 저장소에 두지 않는다 |
+| [0014](0014-mode-first-layout-and-resource-dir.md) | 1차 축은 mode(`codewiki` · `term` · `spec`) · `core` · `common` · `test`/`qa` · `resource/` 한 자리 | 확정 · 미이행 | 분리 계획 M 뒤 · B 앞에 실행(K · M 은 2026-10-31 끝). 0012 의 리소스 자리 조항을 고친다. xmldoc 잔재는 이때 지운다 |
 
 ## 새 기록을 더하는 법
 
