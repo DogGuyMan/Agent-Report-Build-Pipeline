@@ -9,8 +9,8 @@
 
 | 자리 | 하는 일 |
 |---|---|
-| `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열두 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
-| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 14개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 일곱 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에, 샤드 검문의 결함 문구(결함 줄 꼴 · 고치는 법 · 결함 설명)는 결함 표 `mode1/faults.toml` 에 산다 |
+| `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열세 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
+| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 16개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 여덟 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `seal`(`seal-artifacts` — 이 실행에서 검사를 통과한 것만 `docs/codegraph/` 에 봉인) · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에, 샤드 검문의 결함 문구(결함 줄 꼴 · 고치는 법 · 결함 설명)는 결함 표 `mode1/faults.toml` 에 산다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
 | `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
@@ -58,7 +58,7 @@ flowchart LR
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로
 갈려 있어, 어느 쪽도 상대의 메모리를 보지 않는다.
 
-**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` 셋이다.
+**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` · `manifest`(`ArtifactManifest` 꼴만) 넷이다.
 축이 갈린 뒤로 같은 폴더가 아니게 되어 파일 머리에서 `sys.path` 에 `machine/` 을 직접 넣는다.
 다른 러너는 러너끼리만 import 하므로 그 줄이 없다.
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 | 방향 | 무엇 |
 |---|---|
 | `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `run_dispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
-| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
+| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴은 import) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
 | 여기 → `../tools/template.py` | `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다. `pipeline.py` 는 예외 `TemplateError` 만 쓴다 — 프롬프트 글은 Jinja2 로 렌더한다 |

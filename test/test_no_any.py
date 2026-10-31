@@ -27,6 +27,7 @@ COVERED = [
     "runner/mode1/wiki.py",
     "runner/mode1/edges.py",
     "runner/mode1/resume.py",
+    "runner/mode1/seal.py",
     "runner/run_mode1_5.py",
     "runner/run_mode2.py",
     "runner/run_grade.py",

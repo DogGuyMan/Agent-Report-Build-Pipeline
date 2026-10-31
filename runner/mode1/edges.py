@@ -7,6 +7,7 @@ from mode1.context import Mode1Context
 from mode1.graph import CollectGraphStage, ScheduleBatchesStage
 from mode1.lang import LangDecideStage, LangHintStage
 from mode1.scan import DetectChangesStage, SnapshotSourcesStage
+from mode1.seal import SealArtifactsStage
 from mode1.survey import AnnotateSymbolsStage
 from mode1.survey_files import AnnotateFilesStage
 from mode1.terms import VerifyTermsStage
@@ -14,7 +15,7 @@ from mode1.wiki import OutlineWikiStage, PublishWikiStage, VerifyWikiStage, Writ
 
 ORDER = ["lang-hint", "lang-decide", "detect-changes", "collect-graph", "schedule-batches",
          "annotate-symbols", "snapshot-sources", "verify-terms", "outline-wiki", "write-wiki",
-         "publish-wiki", "verify-wiki"]
+         "publish-wiki", "verify-wiki", "seal-artifacts"]
 
 # 전량 그래프에는 없는 단계. 대조할 옛 지문이 없는데 대조 단계를 돌리지 않는다.
 WARM_ONLY: set[str] = {"detect-changes"}
@@ -36,6 +37,7 @@ STAGES: dict[str, P.Stage[Mode1Context]] = {
     "snapshot-sources": SnapshotSourcesStage(), "verify-terms": VerifyTermsStage(),
     "outline-wiki": OutlineWikiStage(), "write-wiki": WriteWikiStage(),
     "publish-wiki": PublishWikiStage(), "verify-wiki": VerifyWikiStage(),
+    "seal-artifacts": SealArtifactsStage(),
 }
 
 # 전이표는 **하나**다. 전량과 증분의 차이는 단계 목록(`WARM_ONLY`)과 `ctx.cold` 가 만든다.

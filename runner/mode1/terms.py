@@ -36,3 +36,12 @@ class VerifyTermsStage(Mode1Machine):
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.CODEGRAPH]
+
+    def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.TERMS_DB]
+
+    def perform(self, ctx: Mode1Context) -> P.Outcome:
+        out = super().perform(ctx)
+        if out.kind == P.OK:
+            ctx.verified.add("terms-db")
+        return out

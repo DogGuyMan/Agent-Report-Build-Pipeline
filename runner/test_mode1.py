@@ -12,6 +12,7 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "runner"))
 sys.path.insert(0, os.path.join(ROOT, "machine"))
+import manifest as MF  # noqa: E402
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 import survey_plan  # noqa: E402
@@ -478,8 +479,8 @@ def test_페이지_층은_인용한_심볼의_최대():
 # ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
 
 
-def test_증분은_열둘_전량은_열하나():
-    assert len(E.ORDER) == 12
+def test_증분은_열셋_전량은_열둘():
+    assert len(E.ORDER) == 13
     assert "detect-changes" not in E.plan_stages(None, None, cold=True)
     assert "detect-changes" in E.plan_stages(None, None, cold=False)
     assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
@@ -550,22 +551,35 @@ def test_재개_문서는_어디서_왜_멈췄는지를_담는다(tmp_path: Path
         {"stage": "annotate-symbols/L0-B00", "seconds": 2.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"},
     ]
     p = str(tmp_path / "resume.json")
-    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["collect-graph", "annotate-symbols", "verify-terms"])
+    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["collect-graph", "annotate-symbols", "verify-terms"],
+                   verified={"wiki", "terms-db"})
     got = Z.read_resume(p)
     assert got is not None
     assert got["failed_at"] == "annotate-symbols" and got["done"] == ["collect-graph"] and got["graph"] == "mode1-warm"
+    assert got.get("verified") == ["terms-db", "wiki"]
+    assert Z.carried_verified(got, "mode1-warm") == {"terms-db", "wiki"}
+    assert Z.carried_verified(got, "mode1-cold") == set()       # 다른 그래프의 문서는 넘겨 주지 않는다
+
+
+def test_verified_가_없는_옛_재개_문서도_읽힌다(tmp_path: Path) -> None:
+    p = tmp_path / "resume.json"
+    p.write_text(json.dumps({"graph": "mode1-warm", "failed_at": "write-wiki", "why": "x", "done": [], "rows": []}),
+                 encoding="utf-8")
+    got = Z.read_resume(str(p))
+    assert got is not None and Z.start_stage(got, "mode1-warm") == "write-wiki"
+    assert Z.carried_verified(got, "mode1-warm") == set()
 
 
 def test_실패가_없으면_재개_문서를_쓰지_않는다(tmp_path: Path):
     p = str(tmp_path / "r.json")
-    assert Z.write_resume(p, graph="mode1-warm", rows=[], order=["collect-graph"]) is None
+    assert Z.write_resume(p, graph="mode1-warm", rows=[], order=["collect-graph"], verified=set()) is None
     assert not os.path.exists(p)
 
 
 def test_다른_그래프의_재개_문서는_거부한다(tmp_path: Path):
     p = str(tmp_path / "r.json")
     rows: list[M.StageRow] = [{"stage": "collect-graph", "seconds": 0.0, "usage": M.normalize_usage(None), "ok": False, "why": "x"}]
-    Z.write_resume(p, graph="mode1-cold", rows=rows, order=["collect-graph"])
+    Z.write_resume(p, graph="mode1-cold", rows=rows, order=["collect-graph"], verified=set())
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-warm") is None
     assert Z.start_stage(Z.read_resume(p), for_graph="mode1-cold") == "collect-graph"
 
@@ -1275,3 +1289,145 @@ def test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다() -> None:
     fix = SV.AnnotateSymbolsStage.FIX
     assert set(fix) == set(get_args(X.FaultKind))
     assert all(v.strip() and "\n" not in v for v in fix.values())
+
+
+# ── 12. 봉인 — seal-artifacts ───────────────────────────────────────────
+
+
+def _old_seal(repo: Path) -> Path:
+    """이전 실행이 남긴 봉인 하나를 `docs/codegraph/manifest.json` 에 둔다."""
+    path = repo / "docs" / "codegraph" / "manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc: MF.ArtifactManifest = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "p",
+                                "source_commit": "s", "source_exts": [".py"], "skip_dirs": [],
+                                "artifacts": {}, "inputs": {}}
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def test_seal_은_검사를_통과한_것만_싣는다(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    ctx = _ctx(tmp_path)
+    ctx.verified = {"wiki", "terms-db"}
+    argv = SL.SealArtifactsStage().argv(ctx)
+    assert argv[argv.index("--kinds") + 1] == "terms-db,wiki"
+
+
+def test_seal_은_통과한_검사가_없으면_실패한다(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    out = SL.SealArtifactsStage().perform(_ctx(tmp_path))
+    assert out.kind == P.FAIL and "봉인할 것이 없다" in out.why
+    assert [(r["stage"], r["ok"]) for r in out.rows] == [("seal-artifacts", False)]   # 행이 없으면 종료 코드 · 재개 문서가 실패를 못 본다
+
+
+def test_seal_artifacts_는_그래프의_마지막이다() -> None:
+    assert E.ORDER[-1] == "seal-artifacts"
+
+
+def test_verify_terms_는_통과하면_verified_에_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+
+    def ok(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.OK, "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", ok)
+    assert T.VerifyTermsStage().perform(ctx).kind == P.OK
+    assert ctx.verified == {"terms-db"}
+
+
+def test_verify_wiki_는_통과할_때만_verified_에_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    kind = [P.FAIL]
+
+    def fake(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(kind[0], "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", fake)
+    assert W.VerifyWikiStage().perform(ctx).kind == P.FAIL and ctx.verified == set()
+    kind[0] = P.OK
+    assert W.VerifyWikiStage().perform(ctx).kind == P.OK and ctx.verified == {"wiki"}
+
+
+def test_mark_superseded_는_이전_봉인에_표식을_적고_없으면_False(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    repo = tmp_path / "대상"
+    (repo / "docs" / "codegraph").mkdir(parents=True)
+    assert SL.SealArtifactsStage.mark_superseded(str(repo), "write-wiki", "abc") is False
+    manifest = _old_seal(repo)
+    assert SL.SealArtifactsStage.mark_superseded(str(repo), "write-wiki", "abc") is True
+    got = json.loads(manifest.read_text(encoding="utf-8"))
+    assert got["superseded_by"]["stage"] == "write-wiki" and got["superseded_by"]["producer_commit"] == "abc"
+
+
+@pytest.mark.parametrize("text", ["{", '{"contract": "mode1-artifacts"}'])
+def test_mark_superseded_는_계약_꼴이_아닌_봉인이면_False_이고_건드리지_않는다(tmp_path: Path, text: str) -> None:
+    from mode1 import seal as SL
+    manifest = tmp_path / "docs" / "codegraph" / "manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(text, encoding="utf-8")
+    assert SL.SealArtifactsStage.mark_superseded(str(tmp_path), "write-wiki", "abc") is False
+    assert manifest.read_text(encoding="utf-8") == text
+
+
+def test_main_은_실패한_실행만_이전_봉인에_표식을_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    manifest = _old_seal(repo)
+
+    def failed(self: P.Pipeline[X.Mode1Context], graph: P.StageDagGraph[X.Mode1Context],
+               ctx: X.Mode1Context) -> list[M.StageRow]:
+        return [{"stage": "lang-hint/x", "seconds": 0.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"}]
+    monkeypatch.setattr(P.Pipeline, "run", failed)
+    assert R1.main([str(repo), "--only", "lang-hint", "--dry-run"]) == 0
+    assert "superseded_by" not in json.loads(manifest.read_text(encoding="utf-8"))
+    assert R1.main([str(repo), "--only", "lang-hint"]) == 1
+    assert json.loads(manifest.read_text(encoding="utf-8"))["superseded_by"]["stage"] == "lang-hint"
+
+
+def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """write-wiki 실패 → 재개 뒤 seal 실패 → 다시 재개. 검사 단계 셋만 실제 `perform` 을 돈다."""
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    raw = repo / "out" / "codegraph-raw"
+    raw.mkdir(parents=True)
+    for name in ("lang-select.json", "snapshot.json", "batches.json", "outline.json", "terms-db.json"):
+        (raw / name).write_text("{}", encoding="utf-8")
+    fail_at = [""]
+    sealed: list[str] = []
+
+    def row(name: str, ok: bool) -> M.StageRow:
+        return {"stage": name, "seconds": 0.0, "usage": M.normalize_usage(None), "ok": ok, "why": "" if ok else "터짐"}
+
+    def machine(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        if self.name == "seal-artifacts":
+            argv = self.argv(c)
+            sealed.append(argv[argv.index("--kinds") + 1])
+        ok = self.name != fail_at[0]
+        return P.Outcome(P.OK if ok else P.FAIL, "", [row(self.name, ok)])
+
+    def run(self: P.Pipeline[X.Mode1Context], graph: P.StageDagGraph[X.Mode1Context],
+            ctx: X.Mode1Context) -> list[M.StageRow]:
+        rows: list[M.StageRow] = []
+        for name in graph.order:
+            if name in ("verify-terms", "verify-wiki", "seal-artifacts"):
+                out = graph.stages[name].perform(ctx)
+            else:
+                ok = name != fail_at[0]
+                out = P.Outcome(P.OK if ok else P.FAIL, "", [row(name, ok)])
+            rows += out.rows
+            if out.kind == P.FAIL:
+                break
+        return rows
+    monkeypatch.setattr(P.MachineStage, "perform", machine)
+    monkeypatch.setattr(P.Pipeline, "run", run)
+    resume_path = raw / "resume.json"
+
+    fail_at[0] = "write-wiki"
+    assert R1.main([str(repo), "--cold"]) == 1
+    assert json.loads(resume_path.read_text(encoding="utf-8"))["verified"] == ["terms-db"]
+    fail_at[0] = "seal-artifacts"
+    assert R1.main([str(repo), "--cold", "--resume"]) == 1
+    doc = json.loads(resume_path.read_text(encoding="utf-8"))
+    assert doc["failed_at"] == "seal-artifacts" and "verify-terms" not in doc["done"]   # done 은 누적이 아니다
+    assert doc["verified"] == ["terms-db", "wiki"]
+    fail_at[0] = ""
+    assert R1.main([str(repo), "--cold", "--resume"]) == 0
+    assert sealed == ["terms-db,wiki", "terms-db,wiki"] and not resume_path.exists()

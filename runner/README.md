@@ -21,6 +21,7 @@
 | [`mode1/measured.py`](mode1/measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
 | [`mode1/resume.py`](mode1/resume.py) | 재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다. |
 | [`mode1/scan.py`](mode1/scan.py) | `detect-changes` · `snapshot-sources`. 옛 지문과 지금 소스를 대조하고, 조사가 해낸 뒤 지문을 찍는다. |
+| [`mode1/seal.py`](mode1/seal.py) | `seal-artifacts`. 이 실행에서 검사를 통과하고 지금 소스를 다시 읽은 산출물을 docs/codegraph 에 봉인한다. |
 | [`mode1/survey.py`](mode1/survey.py) | `annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다. |
 | [`mode1/survey_files.py`](mode1/survey_files.py) | `annotate-symbols` 의 파일 전략. 파일 하나가 세션 하나, 가중치 순, 장벽 없는 풀. |
 | [`mode1/terms.py`](mode1/terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
@@ -125,6 +126,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `_no_pages` | `() -> Pages` |  |
 | `_no_ints` | `() -> list[int]` |  |
 | `_no_levels` | `() -> dict[str, int]` |  |
+| `_no_strs` | `() -> set[str]` |  |
 | **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
 | **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과 |
@@ -229,10 +231,11 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`ResumeDoc`** | *class* |  |
-| `write_resume` | `(path: str, graph: str, rows: list[M.StageRow], order: list[str]) -> ResumeDoc \| None` | 실패한 행이 없으면 아무것도 쓰지 않고 `None`. 있으면 쓴다. |
+| **`ResumeDoc`** | *class* | `verified` 는 이 실행까지 검사를 통과한 산출물 종류다. 재개한 실행이 이어받는다. 없는 문서도 읽힌다. |
+| `write_resume` | `(path: str, graph: str, rows: list[M.StageRow], order: list[str], verified: Iterable[str]) -> ResumeDoc \| None` | 실패한 행이 없으면 아무것도 쓰지 않고 `None`. 있으면 쓴다. |
 | `read_resume` | `(path: str) -> ResumeDoc \| None` | 없으면 `None`. 있는데 꼴이 틀리면 예외다. |
 | `start_stage` | `(doc: ResumeDoc \| None, for_graph: str) -> str \| None` | 이 그래프용 재개 문서면 시작할 단계를, 아니면 `None`. |
+| `carried_verified` | `(doc: ResumeDoc \| None, for_graph: str) -> set[str]` | 이 그래프용 재개 문서면 앞선 실행이 검사를 통과시킨 산출물 종류를, 아니면 빈 집합. |
 
 ---
 
@@ -254,6 +257,22 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`SnapshotSourcesStage`** | *class* | 전수조사가 해낸 뒤에만 지문을 찍는다. |
 | `SnapshotSourcesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `SnapshotSourcesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+
+---
+
+## `seal.py`
+
+`seal-artifacts`. 이 실행에서 검사를 통과하고 지금 소스를 다시 읽은 산출물을 docs/codegraph 에 봉인한다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`SealArtifactsStage`** | *class* | `machine/manifest.py seal` 을 부른다. 싣는 종류는 `ctx.verified` 이고, 비었으면 부르지 않고 실패 행 하나로 `FAIL` 이다. |
+| `SealArtifactsStage.producer_commit` | `(root: str) -> str` | 봉인한 도구의 판. git 밖이면 `unknown`. |
+| `SealArtifactsStage.mark_superseded` | `(repo: str, stage: str, producer_commit: str) -> bool` | 실패한 실행 뒤 **이전 봉인**에 표식을 적는다. 봉인이 없거나 계약 꼴이 아니면 False. 봉인 자체는 새로 쓰지 않는다. |
+| `SealArtifactsStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `SealArtifactsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `SealArtifactsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `SealArtifactsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
 
@@ -331,6 +350,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `VerifyTermsStage.terms_argv` | `(python: str, root: str, repo: str, codegraph: str \| None, reading: str \| None) -> list[str]` | `terms_db.py` 명령줄. |
 | `VerifyTermsStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `VerifyTermsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `VerifyTermsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `VerifyTermsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
 
@@ -365,6 +386,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`VerifyWikiStage`** | *class* |  |
 | `VerifyWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `VerifyWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `VerifyWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
 
@@ -683,7 +705,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_목차_프롬프트는_새_이름의_파일을_말한다` | `()` |  |
 | `test_write_wiki_는_이미_쓴_장을_건너뛴다` | `(tmp_path: Path)` |  |
 | `test_페이지_층은_인용한_심볼의_최대` | `()` |  |
-| `test_증분은_열둘_전량은_열하나` | `()` |  |
+| `test_증분은_열셋_전량은_열둘` | `()` |  |
 | `test_순서의_불변식_셋` | `()` |  |
 | `test_별명은_쪼갠_단계로_펴진다` | `()` |  |
 | `test_모르는_단계는_거부한다` | `()` |  |
@@ -693,6 +715,7 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_팩토리는_어긋난_그래프를_거부한다` | `(tmp_path: Path)` |  |
 | `test_재개는_그_앞을_잘라_낸다` | `(tmp_path: Path)` |  |
 | `test_재개_문서는_어디서_왜_멈췄는지를_담는다` | `(tmp_path: Path)` |  |
+| `test_verified_가_없는_옛_재개_문서도_읽힌다` | `(tmp_path: Path) -> None` |  |
 | `test_실패가_없으면_재개_문서를_쓰지_않는다` | `(tmp_path: Path)` |  |
 | `test_다른_그래프의_재개_문서는_거부한다` | `(tmp_path: Path)` |  |
 | `_good_record` | `() -> dict[str, object]` |  |
@@ -759,6 +782,16 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_설정이_정확한_모델_ID_를_준다` | `()` |  |
 | `test_write_wiki_는_다음_층_프롬프트에_아래층_장을_한_줄씩_싣는다` | `(tmp_path: Path) -> None` |  |
 | `test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다` | `() -> None` |  |
+| `_old_seal` | `(repo: Path) -> Path` | 이전 실행이 남긴 봉인 하나를 `docs/codegraph/manifest.json` 에 둔다. |
+| `test_seal_은_검사를_통과한_것만_싣는다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_통과한_검사가_없으면_실패한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_artifacts_는_그래프의_마지막이다` | `() -> None` |  |
+| `test_verify_terms_는_통과하면_verified_에_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_verify_wiki_는_통과할_때만_verified_에_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_mark_superseded_는_이전_봉인에_표식을_적고_없으면_False` | `(tmp_path: Path) -> None` |  |
+| `test_mark_superseded_는_계약_꼴이_아닌_봉인이면_False_이고_건드리지_않는다` | `(tmp_path: Path, text: str) -> None` |  |
+| `test_main_은_실패한_실행만_이전_봉인에_표식을_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` | write-wiki 실패 → 재개 뒤 seal 실패 → 다시 재개. 검사 단계 셋만 실제 `perform` 을 돈다. |
 
 ---
 

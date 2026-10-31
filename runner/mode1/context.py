@@ -8,6 +8,7 @@ import msgspec
 import pipeline as P
 import survey_plan
 import warmup
+from manifest import ArtifactManifest
 from mode1.diff import WarmupDiff
 from mode1.resume import ResumeDoc
 
@@ -210,6 +211,10 @@ def _no_levels() -> dict[str, int]:
     return {}
 
 
+def _no_strs() -> set[str]:
+    return set()
+
+
 @dataclass
 class Mode1Context(P.RunContext):
     """칸마다 이름과 형이 있다. 자루(dict)는 없다."""
@@ -232,6 +237,7 @@ class Mode1Context(P.RunContext):
     wiki_levels: list[int] = field(default_factory=_no_ints)
     wiki_level_of: dict[str, int] = field(default_factory=_no_levels)
     wiki_done: Pages = field(default_factory=_no_pages)
+    verified: set[str] = field(default_factory=_no_strs)     # verify-terms · verify-wiki → seal-artifacts (검사를 통과한 종류)
 
 
 def raw_dir(c: Mode1Context) -> str:
@@ -301,9 +307,13 @@ WIKI_DIR = P.Artifact[Mode1Context](
     "docs/wiki", lambda c: os.path.join(c.repo, "docs", "wiki"))
 RESUME = P.Artifact[Mode1Context](
     "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
+MANIFEST = P.Artifact[Mode1Context](
+    "manifest.json", lambda c: os.path.join(c.repo, "docs", "codegraph", "manifest.json"), ArtifactManifest)
+WIKI_STATE = P.Artifact[Mode1Context](
+    "wiki-state.json", lambda c: os.path.join(raw_dir(c), "wiki-state.json"))
 
 ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
-             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME]
+             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE]
 
 
 def snapshot_path(c: Mode1Context) -> str:

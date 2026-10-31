@@ -4,10 +4,10 @@
 # 쓰는 것: 없음 · 쓰이는 곳: 없음
 """Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
-## 열두 단계 — LLM 이 도는 칸은 **넷**이다
+## 열세 단계 — LLM 이 도는 칸은 **넷**이다
 
     lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
-    ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki
+    ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
 
 전량(`--cold`)에는 `detect-changes` 가 없다 — 대조할 옛 지문이 없어서다. 단계 클래스와 전이표는
 `runner/mode1/` 패키지에 있고, 이 파일은 `main` 과 옛 이름 재수출만 갖는다.
@@ -26,6 +26,7 @@
 | `write-wiki` | LLM | 장마다 한 세션, 같은 층 순서 | `claude -p` 장마다 1회 |
 | `publish-wiki` | 기계 | Mermaid 를 사전 렌더 SVG 로 바꾸고 VitePress 사이트를 짓는다 | `runner/wiki/build.py` |
 | `verify-wiki` | 기계 | 산문의 인용을 저장소 실물과 대조한다 | `runner/wiki/check.py` |
+| `seal-artifacts` | 기계 | 이 실행에서 검사를 통과하고 다시 읽은 산출물을 `docs/codegraph/` 에 봉인 | `machine/manifest.py` |
 
 **층 축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다(K1).**
 의존 하나만 가진 심볼도 그 하나가 3층이면 4층이다. 같은 층은 서로 의존하지 않으므로
@@ -187,6 +188,7 @@ from mode1 import diff, resume  # noqa: E402
 from mode1.context import Mode1Context  # noqa: E402
 from mode1.edges import ORDER as STAGES, build_mode1_graph, graph_name  # noqa: E402
 from mode1.edges import expand as expand, plan_stages as plan_stages  # noqa: E402
+from mode1.seal import SealArtifactsStage  # noqa: E402
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1.main']"/>
@@ -227,10 +229,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                        strategy=strategy)
     start = None
     if a.resume:
-        start = resume.start_stage(resume.read_resume(X.RESUME.locate(ctx)), graph_name(ctx))
+        prev = resume.read_resume(X.RESUME.locate(ctx))
+        start = resume.start_stage(prev, graph_name(ctx))
         if start is None:
             print("에러 — 이 그래프용 resume.json 이 없다", file=sys.stderr)
             return 1
+        ctx.verified = resume.carried_verified(prev, graph_name(ctx))
     try:
         graph = build_mode1_graph(ctx, only=only.split(",") if only else None,
                                   skip=skip.split(",") if skip else None, start_at=start)
@@ -257,7 +261,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     t_all = time.monotonic()
     rows = P.Pipeline[Mode1Context]().run(graph, ctx)
     wall = time.monotonic() - t_all
-    doc = resume.write_resume(X.RESUME.locate(ctx), graph.name, rows, graph.order)
+    doc = resume.write_resume(X.RESUME.locate(ctx), graph.name, rows, graph.order, ctx.verified)
     if doc:
         print("멈춤 — %s 에서. 재개: --resume  (%s)" % (doc["failed_at"], X.RESUME.locate(ctx)),
               file=sys.stderr)
@@ -279,6 +283,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                        "target": ctx.target, "total": sum_usage([r["usage"] for r in rows]),
                        "wall_seconds": wall}, f, ensure_ascii=False, indent=1)
         print("\n측정값 %s" % json_out)
+    # 실패한 실행은 새로 봉인하지 않고 이전 봉인에 표식만 남긴다. 실패한 단계는 재개 문서의 것과 같다.
+    if doc and SealArtifactsStage.mark_superseded(ctx.repo, doc["failed_at"],
+                                                  SealArtifactsStage.producer_commit(ctx.root)):
+        print("이전 봉인에 표식을 적었다 — 이 실행이 %s 에서 실패했다. Mode 1.5·2 는 경고를 보고 옛 자료로 돈다"
+              % doc["failed_at"], file=sys.stderr)
     return 0 if all(r["ok"] or r.get("skipped") for r in rows) else 1
 
 
