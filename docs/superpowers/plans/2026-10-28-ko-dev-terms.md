@@ -546,7 +546,7 @@ The probe list and the class judgments are research instruments, not ground trut
 | 7 | 🧪 pilot — handoff §1 source terms + std probes + translating one English plan | evidence or "no evidence" per row · same result twice · hand-check 5 sample rows | 6 |
 | 8 | ✋ report pilot results — material for ③④ | user confirmation | 7 |
 
-The pilot term list is shown first as a [proposal] — extracted mechanically from the English glosses in the handoff §1 tables; rows without a gloss (`나무` · `입장권`) are filled in by the user.
+시범 원어 목록은 [제안] 으로 먼저 보인다 — 인계 문서 1절 표의 영어 병기에서 기계적으로 뽑고, 병기가 없는 행(`트리` · `입장권`)은 사용자가 채운다.
 
 **❓ Open decisions**
 
