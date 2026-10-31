@@ -10,6 +10,7 @@
 | [`clang_doc.py`](clang_doc.py) | clang-doc 이 흩뿌린 JSON 을 평평한 심볼 목록 하나로 모은다. |
 | [`clangd_refs.py`](clangd_refs.py) | clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6). |
 | [`codegraph_types.py`](codegraph_types.py) | `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳. |
+| [`contract_types.py`](contract_types.py) | 생성물 — tools/gen_contract_types.py 가 contracts/mode1-artifacts.v1.json 에서 낸다. 손대지 마라. |
 | [`declmap.py`](declmap.py) | 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다. |
 | [`facts.py`](facts.py) | codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다. |
 | [`file_cache.py`](file_cache.py) | 파일 통독 캐시. |
@@ -89,6 +90,20 @@ clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6
 | **`Node`** | *class* | 코드 지도의 점. 1차 타입 하나 또는 접힌 외부 섬 하나. |
 | **`Module`** | *class* | 폴더 트리 한 칸. `depends_on` 은 클래스 간선에서 유도된 타입 의존이다. |
 | **`CodeGraph`** | *class* | `normalize.py::_assemble` 이 내는 최종 모양. |
+
+---
+
+## `contract_types.py`
+
+생성물 — tools/gen_contract_types.py 가 contracts/mode1-artifacts.v1.json 에서 낸다. 손대지 마라.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`ArtifactEntry`** | *class* |  |
+| **`SupersededBy`** | *class* |  |
+| **`ArtifactManifest`** | *class* |  |
+| **`DbUse`** | *class* |  |
+| **`TermRecord`** | *class* |  |
 
 ---
 
