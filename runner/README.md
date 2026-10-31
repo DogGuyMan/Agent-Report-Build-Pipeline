@@ -178,6 +178,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
+| `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 LLM 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. |
+| `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `LLM 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 config/mode1.toml 의 [estimate]. |
 | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
@@ -792,6 +794,16 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_mark_superseded_는_계약_꼴이_아닌_봉인이면_False_이고_건드리지_않는다` | `(tmp_path: Path, text: str) -> None` |  |
 | `test_main_은_실패한_실행만_이전_봉인에_표식을_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` | write-wiki 실패 → 재개 뒤 seal 실패 → 다시 재개. 검사 단계 셋만 실제 `perform` 을 돈다. |
+| `test_estimate_line_은_세션_수와_비용_범위를_적는다` | `() -> None` |  |
+| `test_session_count_는_배치가_없는_층을_한_세션으로_센다` | `() -> None` |  |
+| `test_계획_요약_합계는_배치와_LLM_세션을_따로_적는다` | `() -> None` |  |
+| `test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_dry_run_은_층_계획_뒤에_예상_비용_한_줄을_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_detect_changes_는_지문이_없으면_전량이라고_굵게_알린다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `_scanned_ok` | `(ctx: X.Mode1Context) -> tuple[dict[str, list[str]], dict[str, object], str]` | `scan_snapshot` 대신 쓰는 가짜 — 언어를 아는 길의 `(판정, 새 지문, 지문 경로)`. |
+| `test_detect_changes_는_지난_지문_파일이_없으면_그것을_알린다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_detect_changes_는_지문_파일이_있으면_전량이라고_알리지_않는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, name: str) -> None` |  |
 
 ---
 

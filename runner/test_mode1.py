@@ -1431,3 +1431,126 @@ def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(
     fail_at[0] = ""
     assert R1.main([str(repo), "--cold", "--resume"]) == 0
     assert sealed == ["terms-db,wiki", "terms-db,wiki"] and not resume_path.exists()
+
+
+# ── 진입 알림 — 예상 비용 한 줄과 전량 폴백 ──────────────────────────────────
+
+def test_estimate_line_은_세션_수와_비용_범위를_적는다() -> None:
+    cfg: X.EstimateConfig = {"usd_per_batch_min": 0.4, "usd_per_batch_max": 1.4}
+    assert G.ScheduleBatchesStage.estimate_line(78, cfg, full=False) == "LLM 세션 78개 · 예상 $31~109 · 증분"
+    assert G.ScheduleBatchesStage.estimate_line(0, cfg, full=True) == "LLM 세션 0개 · 예상 $0~0 · 전량"
+
+
+def test_session_count_는_배치가_없는_층을_한_세션으로_센다() -> None:
+    plan = _plan_with(["a.py"])
+    assert G.ScheduleBatchesStage.session_count(plan) == 1
+    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+    assert G.ScheduleBatchesStage.session_count(plan) == 2
+    assert G.ScheduleBatchesStage.session_count(_empty_plan()) == 0
+
+
+def test_계획_요약_합계는_배치와_LLM_세션을_따로_적는다() -> None:
+    plan = _plan_with(["a.py"])
+    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+    assert G.ScheduleBatchesStage.plan_summary(plan)[-1] == "  합계 — 심볼 1 · 층 1 · 배치 1 · LLM 세션 2"
+
+
+def test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+        return _plan_with(["x.py"])
+    monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+    cfg = X.load_config()["estimate"]
+    c.targets = ["x.py"]
+    assert G.ScheduleBatchesStage().perform(c).kind == P.OK
+    last = capsys.readouterr().out.rstrip("\n").splitlines()[-1]
+    assert last == G.ScheduleBatchesStage.estimate_line(1, cfg, full=False) + "  (Ctrl-C 로 멈춤)"
+    assert last.startswith("LLM 세션 1개 · 예상 $") and last.count("증분") == 1
+
+
+def test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+        return _plan_with(["x.py"])
+    monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+    assert c.cold is False and c.targets is None        # 증분 그래프인데 diff 가 좁히지 못했다
+    G.ScheduleBatchesStage().perform(c)
+    assert "· 전량  (Ctrl-C 로 멈춤)" in capsys.readouterr().out
+    c.cold = True
+    G.ScheduleBatchesStage().perform(c)
+    assert "· 전량  (Ctrl-C 로 멈춤)" in capsys.readouterr().out
+
+
+def test_dry_run_은_층_계획_뒤에_예상_비용_한_줄을_찍는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    raw = repo / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text(json.dumps({"language": "python", "nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.f", "kind": "function", "file": "b.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+    cfg = X.load_config()["estimate"]
+    tail_text = "  (Ctrl-C 로 멈춤)"
+    # 심볼 층 둘(배치 하나씩)과 비노드 층(배치 없음 — 한 세션) = 세션 셋
+    assert R1.main([str(repo), "--dry-run"]) == 0       # 증분 그래프지만 changes.json 이 없어 계획이 좁혀지지 않는다
+    out = capsys.readouterr().out.rstrip("\n").splitlines()
+    assert out[-2] == "  합계 — 심볼 2 · 층 2 · 배치 2 · LLM 세션 3"
+    assert out[-1] == G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
+    assert R1.main([str(repo), "--dry-run", "--cold"]) == 0
+    assert capsys.readouterr().out.rstrip("\n").splitlines()[-1] == \
+        G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
+    D.write_diff(str(raw / "changes.json"), _diff(["a.py"])["verdicts"], ["a.py"], 1, 2)
+    assert R1.main([str(repo), "--dry-run"]) == 0       # diff 가 좁히면 증분이다
+    out = capsys.readouterr().out.rstrip("\n").splitlines()
+    assert "— diff 로 좁힘" in "\n".join(out)
+    assert out[-1].endswith("· 증분" + tail_text) and out[-1].startswith("LLM 세션 ")
+
+
+def test_detect_changes_는_지문이_없으면_전량이라고_굵게_알린다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+
+    def unknown_language(c: X.Mode1Context) -> None:
+        return None
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(unknown_language))
+    SC.DetectChangesStage().perform(ctx)
+    err = capsys.readouterr().err
+    assert "⚠ 증분으로 불렸지만 전량이다 — 증분 판정을 건너뛴다(언어를 모르거나 git 이 아는 소스가 없다). " \
+           "비용은 전량과 같다" in err
+    assert err.count("증분으로 불렸지만") == 1
+
+
+def _scanned_ok(ctx: X.Mode1Context) -> tuple[dict[str, list[str]], dict[str, object], str]:
+    """`scan_snapshot` 대신 쓰는 가짜 — 언어를 아는 길의 `(판정, 새 지문, 지문 경로)`."""
+    return _no_change(), {}, X.SNAPSHOT.locate(ctx)
+
+
+def test_detect_changes_는_지난_지문_파일이_없으면_그것을_알린다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(_scanned_ok))
+    assert not os.path.exists(X.snapshot_path(ctx))
+    out = SC.DetectChangesStage().perform(ctx)
+    err = capsys.readouterr().err
+    assert out.kind == P.OK
+    assert "⚠ 증분으로 불렸지만 전량이다 — 지난 지문(snapshot.json)이 없다" in err
+    assert err.count("증분으로 불렸지만") == 1 and "건너뛴다" not in err
+
+
+@pytest.mark.parametrize("name", ["snapshot.json", "warmup.json"])
+def test_detect_changes_는_지문_파일이_있으면_전량이라고_알리지_않는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    ctx = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / name).write_text("{}")                         # 옛 이름(warmup.json)만 있어도 지문은 있다
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(_scanned_ok))
+    assert SC.DetectChangesStage().perform(ctx).kind == P.OK
+    assert "증분으로 불렸지만" not in capsys.readouterr().err

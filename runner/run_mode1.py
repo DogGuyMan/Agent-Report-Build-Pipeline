@@ -256,6 +256,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("\n층 계획 (기계가 결정론으로 낸다)%s" % (" — diff 로 좁힘" if narrowed else ""))
             for line in ScheduleBatchesStage.plan_summary(미리):
                 print(line)
+            print(ScheduleBatchesStage.estimate_line(ScheduleBatchesStage.session_count(미리),
+                                                     X.load_config()["estimate"], narrowed is None)
+                  + ScheduleBatchesStage.STOP_TAIL)
         return 0
 
     t_all = time.monotonic()

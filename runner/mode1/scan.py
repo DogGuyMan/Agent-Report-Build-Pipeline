@@ -95,13 +95,17 @@ class DetectChangesStage(SnapshotScan, Measured, P.Stage[Mode1Context]):
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
         diff_path = X.CHANGES.locate(ctx)
+        no_snapshot = not os.path.exists(X.snapshot_path(ctx))
         scanned = self.scan_snapshot(ctx)
         if scanned is None:
             empty: warmup.Verdicts = {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
-            print("알림 — 언어를 몰라 증분 판정을 건너뛴다. 전량 조사로 돈다.", file=sys.stderr)
+            print("⚠ 증분으로 불렸지만 전량이다 — 증분 판정을 건너뛴다(언어를 모르거나 git 이 아는 소스가 없다). "
+                  "비용은 전량과 같다", file=sys.stderr)
             D.write_diff(diff_path, empty, None, ctx.hops, 0)
             ctx.targets = None
             return P.Outcome(P.OK, "", [self.row(t0, True)])
+        if no_snapshot:
+            print("⚠ 증분으로 불렸지만 전량이다 — 지난 지문(snapshot.json)이 없다", file=sys.stderr)
         판정, entries, cache = scanned
         files_n = sum(len(v) for k, v in 판정.items() if k != "삭제됨")
         seed = self.changed_seed(판정)
