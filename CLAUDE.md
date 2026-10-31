@@ -90,6 +90,7 @@ Graphviz 에만 있고 그것이 의미축의 전제다(`viz/CLAUDE.md`).
 | `docs/handoffs/ReportSystem_ReturnHandOff.md` | 위 문서의 **사실 오류와 실행 중 발견된 결함**을 되돌려 보낸 회신. 인계 문서와 충돌하면 이쪽이 실측이다 |
 | `docs/handoffs/HANDOFF-codebase-wiki.md` | **Track C — 별개 갈래.** 코드베이스 위키(deep-wiki + VitePress 다중 페이지). Track A/B 와 섞지 말 것 |
 | `docs/superpowers/plans/2026-08-26-report-builder.md` | 실행 계획. 발견된 결함이 해당 Phase 절에 반영돼 있다 |
+| `docs/handoffs/RESUME-2026-10-28-official-term-grounding.md` | **Mode 1.5 강화 갈래 — 공식 용어 근거 스킬(① 권위 출처 · ② 사용 빈도 말뭉치).** 0단계 확인과 사용자 결정까지 받았다. 스킬 프로젝트는 이 저장소 최상위 `ko-dev-terms/` 에 만든다(아직 없다) — 계획서 `docs/superpowers/plans/2026-10-28-ko-dev-terms.md`(영어 정본) · `docs/superpowers/plans/2026-10-28-ko-dev-terms.ko.md`(한국어 번역본) [제안됨] — 단어집 = 모듈 · 기본 층 std · 번역할 때 근거 주입, 승인 대기. Track A/B/C 와 섞지 말 것. 개인어 그래프(⑤)는 [`0013`](docs/decisions/0013-personal-language-graph-deferred.md) 으로 보류 |
 
 `ReportSystem_HandOff.md` 는 `HANDOFF-report-system.md` 와 동일 계열의 구판이다.
 
@@ -360,6 +361,7 @@ Track 별 참조 스킬 목록은 [`0008`](docs/decisions/0008-old-output-is-ori
 **새 코드에 심지 않고, 있는 것을 고치지도 않는다.** `emit` · `inject` · `check` 어느 것도 돌리지 않는다.
 지우는 것은 별개의 코드 작업이라 사용자가 시점을 정한다. 대체 마크업은 없다 — 의존 그래프는 `terms-db.json` 에 산다.
 - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).
+- 새 계획 · 사양 문서는 영어 정본 `<이름>.md` 와 한국어 번역본 `<이름>.ko.md` 두 파일로 쓴다. 고칠 때는 정본만 고치고 번역본을 다시 만든다. `ko-dev-terms` 가 생기기 전에는 번역할 때 첫 등장 영어 병기만 한다.
 
 ## 문서 정본
 
