@@ -15,6 +15,7 @@
 | [`file_cache.py`](file_cache.py) | 파일 통독 캐시. |
 | [`fix_citation_paths.py`](fix_citation_paths.py) | 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다. |
 | [`lang_select.py`](lang_select.py) | 어떤 정적 수집기를 돌릴지 고른다. |
+| [`manifest.py`](manifest.py) | Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다. |
 | [`normalize.py`](normalize.py) | 언어별 정적 분석 산출물을 codegraph.json(스키마 v2)으로 바꾼다. |
 | [`pycalls.py`](pycalls.py) | 파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기. |
 | [`reverse_refs.py`](reverse_refs.py) | 1차 심볼 전수 역참조를 뽑는다 (E6 + 전수 확정). |
@@ -25,6 +26,7 @@
 | [`test_external_contracts.py`](test_external_contracts.py) | 바깥 도구의 동작에 기대는 주장을 고정한다. |
 | [`test_file_cache.py`](test_file_cache.py) | 파일 캐시의 회귀 시험. |
 | [`test_lang_select.py`](test_lang_select.py) | 언어 판별의 회귀 시험. |
+| [`test_manifest.py`](test_manifest.py) | 봉인(`manifest.py seal`)이 낸 꼴과 거부 조건의 시험. |
 | [`test_normalize.py`](test_normalize.py) | 정규화 계층의 회귀 시험. |
 | [`test_pycalls.py`](test_pycalls.py) | AST 호출 수집기의 회귀 시험. |
 | [`test_survey_plan.py`](test_survey_plan.py) | 층 계획기의 회귀 시험. |
@@ -165,6 +167,29 @@ codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든�
 | `read_docs` | `(repo: str, limit: int = 6000) -> str` | 루트 문서 몇 개를 앞부분만 잘라 잇는다. 없으면 빈 문자열이다. |
 | `select` | `(repo: str, proposed: str \| None = None) -> LangSelect` | 제안이 검사를 통과하면 그것을, 아니면 파일 수가 가장 많은 언어를 고른다. |
 | `main` | `() -> int` |  |
+
+---
+
+## `manifest.py`
+
+Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`ArtifactEntry`** | *class* | 봉인된 산출물 파일 하나. `path` 는 대상 저장소 뿌리 기준. |
+| **`SupersededBy`** | *class* | 이 봉인 뒤의 Mode 1 실행이 실패했다는 표식. 봉인 자체는 그대로다 — 읽는 쪽이 경고로 본다. |
+| **`ArtifactManifest`** | *class* | `docs/codegraph/manifest.json` 의 꼴. `inputs` 는 봉인 시점 소스 파일마다의 git blob id 다. |
+| **`LangPick`** | *class* | `lang-select.json` 에서 봉인이 읽는 칸. 언어를 못 골랐으면 None 이다. |
+| **`WikiState`** | *class* | `write-wiki` 가 따라잡은 지문(`snapshot.json` 바이트의 sha256)과 그때 쓴 장마다의 해시. |
+| `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
+| `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
+| `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
+| `missing` | `(repo: str, sources: Sequence[str]) -> list[str]` | git 이 추적하는데 작업 트리에 없는 소스. 지운 것을 아직 커밋하지 않은 상태다. |
+| `unsurveyed` | `(repo: str, sources: Sequence[str], snapshot: str) -> list[str]` | 지난 전수조사의 지문과 다른 소스. 지문에 없는 새 파일도 넣는다. |
+| `wiki_caught_up` | `(raw: str) -> bool` | `wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하면 아니다. |
+| `entries` | `(repo: str, kind: str) -> list[ArtifactEntry]` | 봉인한 종류의 파일 목록과 sha256. terms-db 는 `docs/codegraph/` 의 사본, wiki 는 `docs/wiki/*.md` 다. |
+| `refuse` | `(head: str, rels: Sequence[str]) -> int` | 봉인을 거부한 이유를 stderr 에 적고 종료 코드 3 을 낸다. 파일은 스무 개까지 보인다. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | `seal` 명령. 거부 조건을 모두 지나야 `docs/codegraph/` 에 쓴다. |
 
 ---
 
@@ -406,6 +431,28 @@ clang-doc 적재기의 회귀 시험.
 | `test_empty_repo_selects_nothing` | `(tmp_path: Path) -> None` | 소스가 하나도 없으면 고르지 않는다 — 지어내지 않는다. |
 | `test_collector_names_match_prep` | `(tmp_path: Path) -> None` | 여기서 내는 수집기 이름이 prep 이 아는 이름과 같아야 한다. |
 | `test_read_docs_picks_root_documents` | `(tmp_path: Path) -> None` | LLM Model에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다. |
+
+---
+
+## `test_manifest.py`
+
+봉인(`manifest.py seal`)이 낸 꼴과 거부 조건의 시험.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> None` |  |
+| `entry` | `(path: str) -> warmup.Entry` |  |
+| `make_repo` | `(tmp_path: Path) -> str` | 조사가 끝난 직후의 대상 저장소 — 지문과 위키 상태가 지금 소스와 맞는다. |
+| `seal` | `(repo: str, kinds: str = 'terms-db,wiki') -> int` |  |
+| `read_manifest` | `(repo: str) -> MF.ArtifactManifest` |  |
+| `test_미추적_파일은_소스에_넣지_않는다` | `(tmp_path: Path) -> None` |  |
+| `test_blob_ids_는_git_hash_object_와_같다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_docs_codegraph_에_계약_꼴로_낸다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_다시_읽지_않은_소스를_봉인하지_않는다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_조사되지_않은_추적_파일도_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_작업_트리에서_지워진_추적_소스를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_지문을_따라잡지_못한_위키를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_모르는_종류와_빈_종류를_거부한다` | `(tmp_path: Path) -> None` |  |
 
 ---
 
