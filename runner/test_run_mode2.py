@@ -500,7 +500,7 @@ def test_근거_절은_용어집_뒤_규율_앞에_빈_줄_하나씩을_두고_�
     p = _sealed_prompt(terms_json=tj)
     before = '그대로 실린다.\n\n' if tj else '이라고 쓰지 마라.**\n\n'
     assert before + '## Mode 1 실측 자료 — 이 저장소에 봉인돼 있다\n\n  ' + SEALED[0] + '\n  ' + SEALED[1] \
-        + '\n\n형제 저장소' in p
+        + '\n\nMode 1(코드베이스 위키)이' in p
     assert '(' + MANIFEST + '). 코드의 뜻' in p
     assert '으로 적는다.\n\n## 규율\n' in p
     if tj:
