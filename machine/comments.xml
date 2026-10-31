@@ -633,7 +633,7 @@
   </term>
   <term id="machine.pycalls.scan_module" kind="function" module="machine.pycalls" where="machine/pycalls.py:156" source="reading">
     <means>한 파이썬 파일 안에서 함수·클래스·메서드가 무엇을 부르는지 뽑아내는 함수다.</means>
-    <does>AST(파이썬 코드를 나무 모양으로 표현한 것)를 훑어서 함수·클래스·메서드 정의를 심볼 목록(syms)으로 모으고, 그 안의 모든 호출식(f())을 찾아 (부르는 쪽, 쓰인 이름, 줄번호) 목록(raw)에 담는다. 마지막으로 import 표(alias)와 같은 모듈 안 이름(local_names)을 이용해 각 호출이 어디를 가리키는지 최대한 완전한 점(.) 경로로 바꿔 resolved 로 돌려준다. 모듈 최상위(함수 밖)에서 일어나는 호출은 모듈 자신이 부르는 것으로 취급한다. 완전히 못 푸는 이름은 그대로 남겨 호출자인 collect 함수가 나중에 버리게 한다.</does>
+    <does>AST(파이썬 코드를 트리 모양으로 표현한 것)를 훑어서 함수·클래스·메서드 정의를 심볼 목록(syms)으로 모으고, 그 안의 모든 호출식(f())을 찾아 (부르는 쪽, 쓰인 이름, 줄번호) 목록(raw)에 담는다. 마지막으로 import 표(alias)와 같은 모듈 안 이름(local_names)을 이용해 각 호출이 어디를 가리키는지 최대한 완전한 점(.) 경로로 바꿔 resolved 로 돌려준다. 모듈 최상위(함수 밖)에서 일어나는 호출은 모듈 자신이 부르는 것으로 취급한다. 완전히 못 푸는 이름은 그대로 남겨 호출자인 collect 함수가 나중에 버리게 한다.</does>
     <uses to="machine.pycalls.signature_of" kind="dependency" label="함수 시그니처 문자열 생성" where="machine/pycalls.py:191"/>
     <uses to="machine.pycalls.import_table" kind="dependency" label="import 별칭 표를 받아옴" where="machine/pycalls.py:163"/>
   </term>
@@ -1398,7 +1398,7 @@
     <uses to="machine.verify_citations.short" kind="dependency" label="짧은 이름을 물어봄" where="machine/test_normalize.py:284"/>
   </term>
   <term id="machine.test_normalize.test_py_expr_name_reads_name_and_dotted_attribute" kind="function" module="machine.test_normalize" where="machine/test_normalize.py:730" source="reading">
-    <means>파이썬 코드의 식(표현) 나무에서 '쓰여진 그대로의 점으로 이어진 이름'을 꺼내는 함수를 확인하는 시험 함수다. 이름이 아닌 다른 종류의 식이면 아무것도 못 꺼내고 None 이 나와야 한다.</means>
+    <means>파이썬 코드의 식(표현) 트리에서 '쓰여진 그대로의 점으로 이어진 이름'을 꺼내는 함수를 확인하는 시험 함수다. 이름이 아닌 다른 종류의 식이면 아무것도 못 꺼내고 None 이 나와야 한다.</means>
     <does>ExprName 딕셔너리에서는 이름을 그대로, ExprAttribute 딕셔너리에서는 abc.Mapping 처럼 점으로 이어붙인 이름을, 문자열 "None" 은 그대로, ExprSubscript 나 아예 None 인 입력에서는 None 이 나오는지 확인한다.</does>
     <uses to="machine.normalize.py_expr_name" kind="dependency" label="식에서 이름을 뽑아냄" where="machine/test_normalize.py:732"/>
   </term>

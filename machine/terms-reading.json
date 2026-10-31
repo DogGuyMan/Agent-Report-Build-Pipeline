@@ -1604,7 +1604,7 @@
  },
  "machine.normalize.normalize_python": {
   "confidence": "HIGH",
-  "does": "griffe 의 모듈 나무를 평평하게 펴서 모든 클래스 이름을 모으고, 각 클래스를 1차 노드로 만들면서 py_abstraction 으로 interface/abstract 표시를 붙인다. 각 클래스의 베이스·속성 주석·메서드 매개변수/반환 주석을 py_walk_expr 로 훑어 관계 이름을 뽑고, 1차가 아니면 py_external_group 으로 외부 노드로 묶어 간선을 쌓는다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다.",
+  "does": "griffe 의 모듈 트리를 평평하게 펴서 모든 클래스 이름을 모으고, 각 클래스를 1차 노드로 만들면서 py_abstraction 으로 interface/abstract 표시를 붙인다. 각 클래스의 베이스·속성 주석·메서드 매개변수/반환 주석을 py_walk_expr 로 훑어 관계 이름을 뽑고, 1차가 아니면 py_external_group 으로 외부 노드로 묶어 간선을 쌓는다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다.",
   "kind": "function",
   "means": "griffe가 뽑아낸 파이썬 클래스 정보(와 선택적으로 pycalls가 뽑아낸 호출 정보)를 이 프로젝트 공통의 코드 지도로 바꾸는 함수다.",
   "module": "machine",
@@ -4843,7 +4843,7 @@
   "confidence": "HIGH",
   "does": "ExprName 딕셔너리에서 \"Node\"를, ExprAttribute 중첩 구조에서 \"abc.Mapping\"을, 문자열 \"None\"에서 \"None\"을 꺼내는지, ExprSubscript와 None 입력에서는 None이 나오는지 N.py_expr_name 호출로 assert 한다.",
   "kind": "function",
-  "means": "파이썬 코드의 식(표현) 나무에서 쓰여진 그대로의 점으로 이어진 이름을 꺼내는 함수를 확인하는 함수다. 이름이 아닌 다른 종류의 식이면 None이 나와야 한다.",
+  "means": "파이썬 코드의 식(표현) 트리에서 쓰여진 그대로의 점으로 이어진 이름을 꺼내는 함수를 확인하는 함수다. 이름이 아닌 다른 종류의 식이면 None이 나와야 한다.",
   "module": "machine",
   "shallow": [
    "C214"

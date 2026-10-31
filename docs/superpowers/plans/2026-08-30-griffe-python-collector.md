@@ -775,7 +775,7 @@ def normalize_python(dump, repo, source_tool):
     """
     stats = Counter()
 
-    # ── 0패스: 모듈 나무를 평평하게 편다.
+    # ── 0패스: 모듈 트리를 평평하게 편다.
     #    griffe 는 완전 수식 이름을 주지 않고 members 를 이름으로 키질한 dict 로만 준다
     #    (🔵 2026-08-30 griffe 2.2.0 실측 — 조사 문서가 경고한 v1 의 list 가 아니다).
     #    그래서 이름은 여기서 직접 이어 붙인다.

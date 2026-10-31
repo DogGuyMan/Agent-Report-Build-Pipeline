@@ -917,7 +917,7 @@ class GriffeObject(TypedDict, total=False):
     labels: list[str]
 
 
-# griffe dump 의 뿌리 — 최상위 패키지 이름 -> 모듈 나무.
+# griffe dump 의 뿌리 — 최상위 패키지 이름 -> 모듈 트리.
 GriffeDump = dict[str, GriffeObject]
 
 
@@ -1099,7 +1099,7 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     """
     stats: Counter[str] = Counter()
 
-    # ── 0패스: 모듈 나무를 평평하게 편다.
+    # ── 0패스: 모듈 트리를 평평하게 편다.
     #    griffe 는 완전 수식 이름을 주지 않고 members 를 이름으로 키질한 dict 로만 준다.
     #    그래서 이름은 여기서 직접 이어 붙인다.
     mods: dict[str, tuple[GriffeObject, str | None]] = {}

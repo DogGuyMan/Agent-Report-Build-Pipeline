@@ -89,7 +89,7 @@ UI 현지화 TM 은 **도구·UI 어휘(`breakpoint` → `중단점`, `callback`
 **A. Mozilla (Pontoon · Transvision)**
 - `mozilla-l10n/mt-training-data` (commit `cda8e0c`, 2026-10-01): `ko/ko_pontoon.tmx`(33,486,005 바이트)와 `ko/sumo_ko.csv` 가 있다. TMX 헤더 `creationtool="pontoon"`, `srclang="en-US"`, `creationdate="2026-10-01T00:56:26"`. 저장소 LICENSE 는 MPL-2.0 — [mozilla-l10n/mt-training-data](https://github.com/mozilla-l10n/mt-training-data/tree/cda8e0c/ko) (이번 세션 실측)
 - 같은 TMX 의 TU 수 **110,374**. `tuid` 접두어(프로젝트)별: firefox 24,246 · thunderbird 14,758 · firefox-beta 12,593 · sumo 5,873 · firefox-os 5,439 · firefox-os-25 5,341 · mozilla-accounts 5,266 · amo 4,268 · mozillaorg 3,746 · firefox-for-ios 2,942 · firefox-for-android 2,765 · common-voice 2,762 · mdn 2,150 — [ko_pontoon.tmx](https://github.com/mozilla-l10n/mt-training-data/blob/cda8e0c/ko/ko_pontoon.tmx) (이번 세션 실측, `xml.etree.ElementTree.iterparse` 로 셈)
-- **예시 용어 탐침(영어 쪽 단어 경계 정규식, 대소문자 무시, 복수 `s` 허용):** `side effect` 0 · `single source of truth` 0 · `postcondition` 0 · `breakpoint` 100(예: `Add Breakpoint` → `중단점 추가`, `firefox:devtools/client/debugger.properties`) · `callback` 12(`JSONP → callback %S()` → `JSONP → 콜백 %S()`) · `tree` 52(`Hide or unhide tree` → `트리 숨김/표시` 와 `tree-planting` → `나무 심기` 혼재) · `edge` 122(대부분 `right edge` → `오른쪽 가장자리` 같은 화면 기하) · `dependency` 1(`외부 의존성`) — 같은 파일 (이번 세션 실측)
+- **예시 용어 탐침(영어 쪽 단어 경계 정규식, 대소문자 무시, 복수 `s` 허용):** `side effect` 0 · `single source of truth` 0 · `postcondition` 0 · `breakpoint` 100(예: `Add Breakpoint` → `중단점 추가`, `firefox:devtools/client/debugger.properties`) · `callback` 12(`JSONP → callback %S()` → `JSONP → 콜백 %S()`) · `tree` 52(`Hide or unhide tree` → `트리 숨김/표시` 와 `tree-planting` → `트리 심기` 혼재) · `edge` 122(대부분 `right edge` → `오른쪽 가장자리` 같은 화면 기하) · `dependency` 1(`외부 의존성`) — 같은 파일 (이번 세션 실측)
 - OPUS 의 Mozilla-I10n v1(2021-03-03 릴리스)은 바로 이 저장소에서 모은 TMX 이고 라이선스 MPL-2.0, en-ko 정렬 82,034 — [Helsinki-NLP/OPUS corpus/Mozilla-I10n/v1](https://github.com/Helsinki-NLP/OPUS/tree/42d4fbe/corpus/Mozilla-I10n/v1) (README · LICENSE · statistics.yaml, 이번 세션 실측)
 - `mozilla-l10n/firefox-l10n` (commit `3b935d8`, 2026-10-28): 모든 로캘의 번역만 담고 원문은 `firefox-l10n-source` 에 있다. 번역은 PR 이 아니라 Pontoon 동기화로 `main` 에 커밋된다. LICENSE MPL-2.0 — [firefox-l10n README](https://github.com/mozilla-l10n/firefox-l10n/blob/3b935d8/README.md) (이번 세션 실측)
 - 같은 저장소 `ko/` 에 `.ftl` 233개 · `.properties` 96개, FTL 메시지 행 12,532 · properties 항목 4,049(정규식 계수, 대략값). `ko/devtools/` 가 있어 `whypaused-breakpoint = 중단점에서 일시 중지됨` 같은 개발 도구 문자열이 있다 — [firefox-l10n/ko](https://github.com/mozilla-l10n/firefox-l10n/tree/3b935d8/ko) (이번 세션 실측). 원문 저장소 `firefox-l10n-source` 는 commit `1b65ce5` (2026-10-26) — [firefox-l10n-source](https://github.com/mozilla-l10n/firefox-l10n-source/tree/1b65ce5)
@@ -171,7 +171,7 @@ UI 현지화 TM 은 **도구·UI 어휘(`breakpoint` → `중단점`, `callback`
 ## 5. 음차 탐지 · 역음차 (transliteration detection / back-transliteration)
 
 ### Takeaway
-"트리"가 tree 의 음차인지, "나무"가 번역인지를 **결정론적으로** 가리는 길은 (a) 발음 사전(CMUdict)으로 영어 발음을 얻어 외래어 표기 규칙으로 예상 한글을 만들고 비교하는 규칙 방식(이도길 2009 계열), (b) 음절 단위 HMM 태깅(오종훈·최기선 2001)처럼 고정 모델의 Viterbi 추론이다. 외래어 한글 표기 도구 Hangulize 에는 **영어 규칙이 없다**(이번 세션 실측). 평가용 영–한 음차 쌍은 NEWS 공유 과제의 EnKo(약 7천 쌍, CJK Institute 제공)가 있으나 라이선스가 불명확하다.
+"트리"가 tree 의 음차인지, "트리"가 번역인지를 **결정론적으로** 가리는 길은 (a) 발음 사전(CMUdict)으로 영어 발음을 얻어 외래어 표기 규칙으로 예상 한글을 만들고 비교하는 규칙 방식(이도길 2009 계열), (b) 음절 단위 HMM 태깅(오종훈·최기선 2001)처럼 고정 모델의 Viterbi 추론이다. 외래어 한글 표기 도구 Hangulize 에는 **영어 규칙이 없다**(이번 세션 실측). 평가용 영–한 음차 쌍은 NEWS 공유 과제의 EnKo(약 7천 쌍, CJK Institute 제공)가 있으나 라이선스가 불명확하다.
 
 ### Cited Findings
 - 정길순(Jeong) · 맹성현(Myaeng) · 이재성 · 최기선, "Automatic identification and back-transliteration of foreign words for information retrieval", *Information Processing & Management* 35(4), 1999, pp. 523–540. 과학·공학 분야 한국어 텍스트에 외래어·영어가 많다는 문제를 IR 관점에서 다룬다 — [IR Anthology IPM 1999 35(4)](https://ir.webis.de/anthology/1999.ipm_journal-ir0anthology0volumeA35A4.6/), [dblp](https://dblp.dagstuhl.de/rec/journals/ipm/JeongMLC99.html) (서지·초록 수준, 본문 미확인)
@@ -185,10 +185,10 @@ UI 현지화 TM 은 **도구·UI 어휘(`breakpoint` → `중단점`, `callback`
 - CMUdict (`cmusphinx/cmudict`, commit `7479086`, 2025-10-24): `cmudict.dict` 135,166행, BSD 계열 재배포 허용 라이선스(Copyright 1993–2015 CMU) — [cmusphinx/cmudict](https://github.com/cmusphinx/cmudict/tree/7479086) (이번 세션 실측)
 - Hangulize (`hangulize/hangulize`, commit `b951421`, 2026-05-14): 외래어를 한글로 바꾸는 도구로 `specs/` 에 40개 언어 규칙(.hsl: deu, ita, jpn, rus, spa 등)이 있으나 **영어(eng) 규칙은 없다** — [hangulize/specs](https://github.com/hangulize/hangulize/tree/b951421/specs) (이번 세션 실측)
 - NEWS 2009 공유 과제의 EnKo 데이터는 CJK Institute 가 제공한 약 7K 이름이고, NEWS 2018 의 T-EnKo 는 학습 7,387 · 개발 1,000 · 시험 1,000 — [NEWS 2009 whitepaper](https://aclanthology.org/www.mt-archive.info/NEWS-2009-Li-2.pdf), [NEWS 2018 W18-2408](https://preview.aclanthology.org/fix_video/W18-2408.pdf) (검색 요약). 라이선스 조항은 찾지 못했다.
-- Firefox TMX 에서 `tree` 가 문맥에 따라 `트리`(UI) 와 `나무`(나무 심기)로 모두 번역된다 — [ko_pontoon.tmx](https://github.com/mozilla-l10n/mt-training-data/blob/cda8e0c/ko/ko_pontoon.tmx) (이번 세션 실측). 즉 같은 영어 용어에 음차형과 번역형 후보가 동시에 생긴다.
+- Firefox TMX 에서 `tree` 가 문맥에 따라 `트리`(UI) 와 `트리`(트리 심기)로 모두 번역된다 — [ko_pontoon.tmx](https://github.com/mozilla-l10n/mt-training-data/blob/cda8e0c/ko/ko_pontoon.tmx) (이번 세션 실측). 즉 같은 영어 용어에 음차형과 번역형 후보가 동시에 생긴다.
 
 ### Inferences
-- **결정론적 판별 절차 제안(💭):** 영어 용어 → CMUdict ARPAbet 발음 → 국립국어원 "영어의 표기" 세칙을 손으로 옮긴 규칙표 → 예상 한글 표기 → 후보 한글과 자모(jamo) 단위 편집 거리. `TREE` → `트리` 는 거리 0, `나무` 는 큼. 규칙표·CMUdict 커밋을 고정하면 같은 입력에 같은 판정이 나온다. CMUdict 에 없는 합성어·약어(`OAuth`, `kubectl`)는 판정 불가로 남긴다.
+- **결정론적 판별 절차 제안(💭):** 영어 용어 → CMUdict ARPAbet 발음 → 국립국어원 "영어의 표기" 세칙을 손으로 옮긴 규칙표 → 예상 한글 표기 → 후보 한글과 자모(jamo) 단위 편집 거리. `TREE` → `트리` 는 거리 0, `트리` 는 큼. 규칙표·CMUdict 커밋을 고정하면 같은 입력에 같은 판정이 나온다. CMUdict 에 없는 합성어·약어(`OAuth`, `kubectl`)는 판정 불가로 남긴다.
 - 이 판정은 승자를 고르는 것이 아니라 후보 행에 "음차형/번역형" 열을 붙이는 용도로만 쓰는 것이 ko-dev-terms 설계와 맞는다(💭).
 - 음차는 표기 변이(`엣지`/`에지`, `콜백`/`콜 백`)가 많아 계수 전에 변이형 묶기가 필요하다(💭). 이번 세션 Kiwi 시험에서 `엣지` 는 NNP 로, `콜백` 은 `콜/NNG 백/NNG` 로 쪼개졌다(6절).
 

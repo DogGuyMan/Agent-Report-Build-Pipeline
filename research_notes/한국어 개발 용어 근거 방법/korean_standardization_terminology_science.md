@@ -23,7 +23,7 @@
 - 한 개인 저장소의 통계는 표제어를 **일상어 506,415 · 전문어 706,422** 로 나누어 적는다(작성 시점 불명, 2016년 수치와 다르다). — [mukenko/opendict-db (검색 스니펫)](https://github.com/mukenko/opendict-db)
 - 2022-02-03 검색 기준 우리말샘 표제어 총 1,137,315개라는 학술 논문 수치가 있다. — [탐라문화 2022 논문 PDF](http://jst.re.kr/upload/pdf/RC00095177.pdf)
 - 전문 분야 체계: 표준국어대사전의 **53개 분야를 우리말샘에서 67개로 확장**했다. 다만 "정보·통신" 분야의 표제어 수는 찾지 못했다. — [탐라문화 2022 논문 PDF](http://jst.re.kr/upload/pdf/RC00095177.pdf)
-- 신뢰도 층위: 일반 사용자 정보는 표현·표기 감수를 거쳐 **"참여자 제안 정보"**, 분야 전문가 감수를 거치면 **"전문가 감수 정보"** 로 표시된다. — [bartoc.org 우리말샘 항목 (검색 요약)](https://bartoc.org/en/node/20607); [나무위키 우리말샘](https://namu.wiki/w/%EC%9A%B0%EB%A6%AC%EB%A7%90%EC%83%98)
+- 신뢰도 층위: 일반 사용자 정보는 표현·표기 감수를 거쳐 **"참여자 제안 정보"**, 분야 전문가 감수를 거치면 **"전문가 감수 정보"** 로 표시된다. — [bartoc.org 우리말샘 항목 (검색 요약)](https://bartoc.org/en/node/20607); [트리위키 우리말샘](https://namu.wiki/w/%EC%9A%B0%EB%A6%AC%EB%A7%90%EC%83%98)
 - **라이선스: 크리에이티브 커먼즈 저작자표시-동일조건변경허락(CC BY-SA)** 이 사전 안의 모든 자료에 적용된다고 국립국어원 사용 설명 영상이 안내하고, 공공데이터포털 등록 정보도 이용허락범위를 "저작자표시-동일조건변경허락" 으로 적는다. — [국립국어원 우리말샘 사용 설명 영상](https://www.korean.go.kr/front/board/boardMovieView.do?board_id=16&b_movie_type=&mn_id=234&b_seq=221&pageIndex=1); [data.go.kr 국립국어원_개방형 사전(우리말샘)](https://www.data.go.kr/data/15019347/openapi.do)
 - 판(version)은 **CC BY-SA 2.0 KR** 로 적힌다(개인 저장소 설명과 온용어 페이지 문구). 출판물에서 인용된 예문은 자유 사용이 제한된다. — [mukenko/opendict-db (검색 스니펫)](https://github.com/mukenko/opendict-db); [온용어 항목 페이지 (검색 스니펫)](https://kli.korean.go.kr/term/trgtWord/indexTrgtWord.do?trgtWordNo=619315)
 - **충돌:** 2016년 개통 브리핑은 "저작권이 설정되지 않기 때문에 누구나 어떤 목적으로든 활용할 수 있다" 고 설명했다 — 현재 안내(CC BY-SA)와 어긋나며 오래된 자료다. — [korea.kr 브리핑](https://www.korea.kr/briefing/policyBriefingView.do?newsId=156157539)
@@ -210,7 +210,7 @@ ISO/IEC 2382(정보기술 어휘)는 2015년판이 현행이고 Part 1 개정 �
 
 **정보통신 분야 순화 사업**
 - 2022년 영남대 국어문화연구소와 한국지능정보사회진흥원(NIA)은 정보통신기술 용어 약 500개를 발굴하고 언어·ICT 전문가 자문과 설문을 거쳐 순화어 50개를 선정했다. — [뉴시스 2022-11-24](https://www.newsis.com/view/NISX20221124_0002099356)
-- 1990년대 전산 용어 순화 운동(패스워드→열쇠말, 패킷→보쌈, 다운로드→내려받기 등)은 커뮤니티 정리본에만 상세하며, 실제로는 "비밀번호" 같은 말이 더 널리 쓰인다고 서술한다 — 학술 근거로는 약하다. — [나무위키 전산용어 순화 운동](https://namu.wiki/w/%EC%A0%84%EC%82%B0%EC%9A%A9%EC%96%B4%20%EC%88%9C%ED%99%94%20%EC%9A%B4%EB%8F%99); [KLDP 토론](https://kldp.org/node/67779)
+- 1990년대 전산 용어 순화 운동(패스워드→열쇠말, 패킷→보쌈, 다운로드→내려받기 등)은 커뮤니티 정리본에만 상세하며, 실제로는 "비밀번호" 같은 말이 더 널리 쓰인다고 서술한다 — 학술 근거로는 약하다. — [트리위키 전산용어 순화 운동](https://namu.wiki/w/%EC%A0%84%EC%82%B0%EC%9A%A9%EC%96%B4%20%EC%88%9C%ED%99%94%20%EC%9A%B4%EB%8F%99); [KLDP 토론](https://kldp.org/node/67779)
 - 순화어가 있어도 찾아보는 사람이 많지 않다는 언론 지적(2014). — [매일신문 2014-10-04](http://news.imaeil.com/Life/2014100407544195295)
 
 **용어 변이(terminological variation) — 국제 문헌**

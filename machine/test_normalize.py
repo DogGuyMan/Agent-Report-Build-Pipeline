@@ -725,7 +725,7 @@ def test_py_module_of_reuses_folder_tree(path: str, expected: str) -> None:
 
 
 # <include file="machine/comments.xml" path="//term[@id='machine.test_normalize.test_py_expr_name_reads_name_and_dotted_attribute']"/>
-# 파이썬 코드의 식(표현) 나무에서 '쓰여진 그대로의 점으로 이어진 이름'을 꺼내는 함수를 확인하는 시험 함수다. 이름이 아닌 다른 종류의 식이면 아무것도 못 꺼내고 None 이 나와야 한다.
+# 파이썬 코드의 식(표현) 트리에서 '쓰여진 그대로의 점으로 이어진 이름'을 꺼내는 함수를 확인하는 시험 함수다. 이름이 아닌 다른 종류의 식이면 아무것도 못 꺼내고 None 이 나와야 한다.
 # 쓰는 것: machine.normalize.py_expr_name · 쓰이는 곳: 없음
 def test_py_expr_name_reads_name_and_dotted_attribute() -> None:
     """식 트리에서 '쓰인 그대로의 점 이름' 을 꺼낸다. 이름이 아닌 식이면 None 이다."""

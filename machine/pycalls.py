@@ -151,7 +151,7 @@ def import_table(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, 
 # <include file="machine/comments.xml" path="//term[@id='machine.pycalls.scan_module']"/>
 # 한 파이썬 파일 안에서 함수·클래스·메서드가 무엇을 부르는지 뽑아내는 함수다.
 # 쓰는 것: machine.pycalls.signature_of, machine.pycalls.import_table · 쓰이는 곳: machine.pycalls.collect
-# 한 소스 나무에서 정의와 호출을 뽑는다.
+# 한 소스 트리에서 정의와 호출을 뽑는다.
 # 쓰는 것: signature_of, import_table · 쓰이는 곳: collect
 def scan_module(tree: ast.Module, mod: str, rel: str,
                 stem_to_module: dict[str, str]) -> tuple[list[PySymbol], list[tuple[str, str, int]]]:
