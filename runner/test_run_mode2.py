@@ -569,7 +569,7 @@ def test_봉인을_읽으면_상태_한_줄을_찍고_목록을_받는다(monkey
     assert capsys.readouterr().out == "Mode 1 봉인 — 있음 · 낡음 1건\n"
     evidence_calls = [a for a in fake.argvs if a[0] != "git"]
     assert [a[-1] for a in evidence_calls] == ["--status", "--list"]
-    assert all(a[1] == R.EVIDENCE and a[2] == "/저장소" and a[3:5] == ["--need", "terms-db,wiki"]
+    assert all(a[1] == R.EVIDENCE and a[2] == "/저장소" and a[3:6] == ["--need", "terms-db,wiki", "--optional"]
                for a in evidence_calls)
 
 
@@ -599,6 +599,33 @@ def test_봉인이_없는_저장소에서_진짜_evidence_py_가_빈_값을_낸�
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     assert R.read_seal(str(tmp_path)) == R.no_seal()
     assert capsys.readouterr().out == "Mode 1 봉인 — 없음\n"
+
+
+def test_위키_없이_봉인된_저장소에서_terms_db_를_싣는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    """생산자는 위키가 따라잡지 못하면 terms-db 만 봉인한다 — 그 봉인을 깨짐으로 버리지 않는다."""
+    import hashlib
+    import json
+
+    def git(*a: str) -> None:
+        subprocess.run(["git", "-C", str(tmp_path), "-c", "user.email=t@t", "-c", "user.name=t", *a],
+                       check=True, capture_output=True)
+
+    pub = tmp_path / "docs" / "codegraph"
+    pub.mkdir(parents=True)
+    rec: dict[str, object] = {"kind": "function", "module": "pkg", "where": "pkg/a.py:1", "means": "뜻", "uses": [],
+           "neighbors": [], "source": "reading"}
+    (pub / "terms-db.json").write_text(json.dumps({"f": rec}, ensure_ascii=False), encoding="utf-8")
+    doc = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "p", "source_commit": "s",
+           "source_exts": [".py"], "skip_dirs": ["out"], "inputs": {},
+           "artifacts": {"terms-db": [{"path": "docs/codegraph/terms-db.json",
+                                       "sha256": hashlib.sha256((pub / "terms-db.json").read_bytes()).hexdigest()}]}}
+    (pub / "manifest.json").write_text(json.dumps(doc), encoding="utf-8")
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-qm", "봉인")
+    got = R.read_seal(str(tmp_path))
+    assert got["artifacts"] == [str(pub / "terms-db.json")]
+    assert capsys.readouterr().out == "Mode 1 봉인 — 있음(terms-db 만)\n"
 
 
 def test_dry_run_은_자식_프로세스를_하나도_띄우지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,

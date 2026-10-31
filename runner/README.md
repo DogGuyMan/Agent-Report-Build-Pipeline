@@ -1203,6 +1203,7 @@ Mode 2 실행기의 회귀 시험.
 | `test_목록이_꼴에_안_맞아도_멈추지_않고_빈_값이다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 | `test_상태_줄이_비면_알_수_없다고_찍는다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 | `test_봉인이_없는_저장소에서_진짜_evidence_py_가_빈_값을_낸다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_위키_없이_봉인된_저장소에서_terms_db_를_싣는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` | 생산자는 위키가 따라잡지 못하면 terms-db 만 봉인한다 — 그 봉인을 깨짐으로 버리지 않는다. |
 | `test_dry_run_은_자식_프로세스를_하나도_띄우지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 
 ---

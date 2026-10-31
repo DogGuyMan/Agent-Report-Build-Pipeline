@@ -69,14 +69,15 @@ if __name__ == "__main__":
 
     plan_path = sys.argv[1]
     db_path = os.path.abspath(sys.argv[2])
-    top = subprocess.run(["git", "-C", os.path.dirname(db_path), "rev-parse", "--show-toplevel"],
-                         capture_output=True, text=True).stdout.strip() or os.path.dirname(db_path)
-    sealed_db = os.path.join(top, SEALED_DB)
-    if os.path.realpath(db_path) != os.path.realpath(sealed_db):
-        print("에러 — 봉인된 용어 사전이 아니다: %s — 봉인 자리는 %s" % (db_path, sealed_db), file=sys.stderr)
+    real = os.path.realpath(db_path)
+    if not real.endswith(os.sep + SEALED_DB):
+        print("에러 — 봉인된 용어 사전이 아니다: %s — 봉인 자리는 %s"
+              % (db_path, os.path.join("<대상>", SEALED_DB)), file=sys.stderr)
         sys.exit(1)
+    # 봉인 자리는 대상 저장소 뿌리에서 세 단계 아래다 — 그 뿌리로 판정을 부른다.
+    target = os.path.dirname(os.path.dirname(os.path.dirname(real)))
     # stderr 는 그대로 흘려 경고가 터미널에 보이게 하고, stdout 의 JSON 만 받는다.
-    ev = subprocess.run([sys.executable, EVIDENCE, top, "--need", "terms-db", "--list"],
+    ev = subprocess.run([sys.executable, EVIDENCE, target, "--need", "terms-db", "--list"],
                         stdout=subprocess.PIPE, text=True)
     if ev.returncode != 0:
         print("에러 — 봉인된 Mode 1 결과가 없다. 정답지 없이는 시험을 낼 수 없다.", file=sys.stderr)

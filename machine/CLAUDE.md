@@ -236,6 +236,7 @@ cd $REPO_ROOT
 | `runner/wiki/prep.py` → 여기 | `pycalls.py` · `normalize.py` · `facts.py` 를 자식 프로세스로 부른다 |
 | `runner/wiki/check.py` → 여기 | `verify_citations.py` 를 부른다 |
 | `runner/run_mode1.py` · `runner/mode1/*` → 여기 | `survey_plan`(`run_mode1` · `graph` · `survey` · `context` · `wiki`) · `warmup`(`scan` · `diff` · `context` · `wiki`) · `declmap`(`scan`) · `manifest`(`context` · `wiki` · `seal`) 을 import 하고, `runner/mode1/terms.py` 가 `terms_db.py` 를 자식 프로세스로 부른다 |
+| `runner/term/collect.py` · `runner/run_mode2.py` · `viz/init.py` → 여기 | `evidence.py` 를 자식 프로세스로 부른다 — 봉인된 Mode 1 산출물 판정 |
 | 여기 → 바깥 | **없다.** 이 모듈은 아무도 부르지 않는다 — 불려 가기만 한다 |
 
 ⚠ **`render_modules.py`(prep) 와 `demermaid.py`(build) 는 여기 없다.** 그림을 그리므로

@@ -109,7 +109,7 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 - 대응 문서 없음 → 거부 + 비슷한 slug 제시 후 exit 1
 - 찾음 → `date`(파일명) · `specName`(문서 첫 `# ` 제목) · `branch`(git) 자동 채움
 - **`data.ts` 가 이미 있으면 문서 존재를 따지지 않는다** — 작업 중인 보고서를 문서 이름 변경으로 막으면 안 된다
-- **봉인 상태 한 줄** — init 이 `machine/evidence.py --status` 를 불러 찍는다. 목록만 보이고 끝나는 길 · 이어 쓰기 · 새 뼈대 · 거부 어느 길이든 `listDocs` 바로 뒤에서 한 번 지난다. 막지 않는다 — Mode 2 는 Mode 1 과 독립이다
+- **봉인 상태 한 줄** — init 이 `machine/evidence.py --optional --status` 를 불러 찍는다(봉인에 있는 종류만 판정 — 위키 없이 봉인됐으면 `있음(terms-db 만)`). 목록만 보이고 끝나는 길 · 이어 쓰기 · 새 뼈대 · 거부 어느 길이든 `listDocs` 바로 뒤에서 한 번 지난다. 막지 않는다 — Mode 2 는 Mode 1 과 독립이다
 
 ### 원본은 두 자리에 산다 (2026-08-31)
 
@@ -149,8 +149,9 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 | 여기 → `../tools/template.py` | `init.py` · `build.py` · `render_classes.py` · `render_modules.py` 가 `templates/` 의 파일을 `render_file` 로 채운다 |
 | 여기 → `../config/report.toml` | `init.py` 가 원본 문서 자리 규칙을 읽는다 |
 | 여기 → 바깥 명령 | `dot`(Graphviz) · `npx mmdc`(Mermaid) 를 PATH 로 부른다 |
+| 여기 → `../machine/evidence.py` | `init.py` 가 봉인 상태 한 줄을 자식 프로세스로 받는다. import 하지 않는다 |
 
-**러너축 · 기계축으로 나가는 화살표는 없다** — 시각축은 잎이다. 나가는 것은 `tools/template.py` 와 읽기 전용 설정뿐이고, 부르는 쪽은 언제나 러너다.
+**러너축으로 나가는 화살표는 없고, 기계축으로는 `init.py` → `evidence.py` 자식 프로세스 하나뿐이다** — import 로 엮인 것은 `tools/template.py` 와 읽기 전용 설정뿐이고, 부르는 쪽은 언제나 러너다.
 
 ## 흔한 변경 패턴 (Common modification patterns)
 

@@ -30,7 +30,7 @@ cd $REPO_ROOT
 .venv/bin/python runner/run_mode1.py <저장소> --dry-run          # 자식 프로세스 0개. 폴백 간선까지 실제 흐름을 찍는다
 .venv/bin/python runner/run_mode1.py <저장소> --only collect-graph --cold
 .venv/bin/python runner/run_mode1.py <저장소> --resume --json evals/runs/$(date +%F)-mode1-<대상>-<조건>.json
-.venv/bin/python runner/run_mode1_5.py <plan.md> --dry-run
+.venv/bin/python runner/run_mode1_5.py <plan.md> --terms-db <저장소>/docs/codegraph/terms-db.json --dry-run
 .venv/bin/python runner/run_mode2.py <프로젝트> <slug> --dry-run
 .venv/bin/python -m pytest runner/ -q                             # 러너 시험만
 .venv/bin/python -m pytest runner/test_import_isolation.py -q     # measure.py · pipeline.py 가 machine/ 을 물지 않는가
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 | 방향 | 무엇 |
 |---|---|
 | `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `run_dispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
-| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/wiki.py`(warmup · manifest 꼴) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴과 `wiki_caught_up` 은 import) |
+| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/wiki.py`(warmup · manifest 꼴) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴과 `wiki_caught_up` 은 import) · `term/collect.py` · `run_mode2.py`(evidence — 자식 프로세스, 봉인 판정) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
 | 여기 → `../tools/template.py` | `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다. `pipeline.py` 는 예외 `TemplateError` 만 쓴다 — 프롬프트 글은 Jinja2 로 렌더한다 |

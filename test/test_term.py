@@ -263,10 +263,14 @@ def test_collect_은_봉인_없는_용어_사전을_거부한다(tmp_path):
     assert not (tmp_path / "term-candidates.json").exists()
 
 
-def _sealed_target(tmp_path):
-    """`pkg/a.py` 하나와 그 용어 사전을 봉인해 커밋한 대상 저장소. `(저장소, docs/codegraph)` 를 돌려준다."""
+def _sealed_target(tmp_path, under=""):
+    """`pkg/a.py` 하나와 그 용어 사전을 봉인해 커밋한 대상 저장소. `(대상, docs/codegraph)` 를 돌려준다.
+
+    `under` 를 주면 그 폴더가 git 뿌리이고 대상은 그 아래 `대상/` 이다.
+    """
     import hashlib, subprocess
-    repo = tmp_path / "대상"
+    top = tmp_path / under if under else tmp_path / "대상"
+    repo = top / "대상" if under else top
     (repo / "pkg").mkdir(parents=True)
     (repo / "pkg" / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
     pub = repo / "docs" / "codegraph"
@@ -276,7 +280,7 @@ def _sealed_target(tmp_path):
     (pub / "terms-db.json").write_text(json.dumps({"f": rec}, ensure_ascii=False), encoding="utf-8")
 
     def git(*a: str) -> None:
-        subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t", *a],
+        subprocess.run(["git", "-C", str(top), "-c", "user.email=t@t", "-c", "user.name=t", *a],
                        check=True, capture_output=True)
 
     git("init", "-q")
@@ -291,6 +295,16 @@ def _sealed_target(tmp_path):
     git("add", "-A")
     git("commit", "-qm", "init")
     return repo, pub
+
+
+def _collect(tmp_path, db):
+    """`collect.py <plan> <db>` 를 tmp_path 에서 돌린다. 계획서는 용어 `f` 를 부른다."""
+    import os, subprocess, sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    plan = tmp_path / "plan.md"
+    plan.write_text("# 계획\nf 를 고친다.\n", encoding="utf-8")
+    return subprocess.run([sys.executable, os.path.join(root, "runner", "term", "collect.py"), str(plan), str(db)],
+                          capture_output=True, text=True, cwd=tmp_path)
 
 
 def test_collect_은_낡은_파일의_용어에_stale_을_표시하고_evidence_를_싣는다(tmp_path):
@@ -322,4 +336,43 @@ def test_collect_은_봉인_자리가_아닌_용어_사전을_거부한다(tmp_p
                         str(plan), str(raw / "terms-db.json")], capture_output=True, text=True, cwd=tmp_path)
     assert r.returncode == 1 and "봉인된 용어 사전이 아니다" in r.stderr
     assert "봉인 자리는" in r.stderr and os.path.join("docs", "codegraph", "terms-db.json") in r.stderr
+    assert not (tmp_path / "term-candidates.json").exists()
+
+
+def test_collect_은_내용만_고친_용어_사전을_거부한다(tmp_path):
+    """계약 꼴은 지키고 뜻만 바꾼 봉인 — 정답지가 봉인과 다르면 시험을 내지 않는다."""
+    repo, pub = _sealed_target(tmp_path)
+    rec = json.loads((pub / "terms-db.json").read_text(encoding="utf-8"))
+    rec["f"]["means"] = "둘을 돌려준다."
+    (pub / "terms-db.json").write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+    r = _collect(tmp_path, pub / "terms-db.json")
+    assert r.returncode == 1 and "봉인 뒤 바뀌었다 — docs/codegraph/terms-db.json" in r.stderr
+    assert not (tmp_path / "term-candidates.json").exists()
+
+
+def test_collect_은_git_하위_폴더의_대상도_받는다(tmp_path):
+    """봉인 자리는 git 뿌리가 아니라 받은 파일의 세 단계 위 폴더(대상 저장소)를 기준으로 본다."""
+    repo, pub = _sealed_target(tmp_path, under="모노")
+    r = _collect(tmp_path, pub / "terms-db.json")
+    assert r.returncode == 0, r.stderr
+    got = json.loads((tmp_path / "term-candidates.json").read_text(encoding="utf-8"))
+    assert "f" in got["known"] and got["evidence"]["stale"] == []
+
+
+def test_collect_은_git_밖에서_봉인_자리를_엉뚱하게_안내하지_않는다(tmp_path):
+    import os
+    outside = tmp_path / "밖"
+    (outside / "docs" / "codegraph").mkdir(parents=True)
+    db = outside / "docs" / "codegraph" / "terms-db.json"
+    db.write_text("{}", encoding="utf-8")
+    r = _collect(tmp_path, db)                          # 자리는 맞고 봉인이 없다
+    assert r.returncode == 1 and "manifest.json 이 없다" in r.stderr
+    assert str(outside / "docs" / "codegraph" / "manifest.json") in r.stderr
+    assert os.path.join("docs", "codegraph", "docs", "codegraph") not in r.stderr
+    other = tmp_path / "다른" / "terms-db.json"         # 자리가 틀렸다
+    other.parent.mkdir()
+    other.write_text("{}", encoding="utf-8")
+    r = _collect(tmp_path, other)
+    assert r.returncode == 1 and "봉인된 용어 사전이 아니다" in r.stderr
+    assert "봉인 자리는 " + os.path.join("<대상>", "docs", "codegraph", "terms-db.json") in r.stderr
     assert not (tmp_path / "term-candidates.json").exists()

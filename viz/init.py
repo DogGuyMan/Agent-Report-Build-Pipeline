@@ -117,7 +117,7 @@ def repoTopLevel(cwd: str) -> str:
 def modeOneStatus(python: str, repo: str) -> str:
     """봉인 상태 한 줄. 판정만 하고 막지 않는다 — Mode 2 는 Mode 1 과 독립이다."""
     try:
-        res = subprocess.run([python, EVIDENCE, repo, "--need", "terms-db,wiki", "--status"],
+        res = subprocess.run([python, EVIDENCE, repo, "--need", "terms-db,wiki", "--optional", "--status"],
                              capture_output=True, text=True)
     except OSError:
         return "Mode 1 봉인 — 상태를 알 수 없다 (evidence.py 를 부르지 못했다)"

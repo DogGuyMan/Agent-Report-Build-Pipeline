@@ -333,7 +333,8 @@ def no_seal() -> SealedEvidence:
 def read_seal(project: str) -> SealedEvidence:
     """프로젝트가 든 저장소에 봉인된 Mode 1 산출물을 읽는다. 상태 한 줄을 찍고, 못 읽으면 `no_seal()` 이다.
 
-    `machine/evidence.py` 를 자식 프로세스로 두 번 부른다 — `--status`(한 줄) 와 `--list`(JSON). 봉인이 없거나 깨졌거나
+    `machine/evidence.py` 를 자식 프로세스로 두 번 부른다 — `--status`(한 줄) 와 `--list`(JSON). `--optional` 이라
+    봉인에 있는 종류만 판정하고 싣는다(위키 없이 봉인됐으면 terms-db 만). 봉인이 없거나 깨졌거나
     꼴이 안 맞아도 멈추지 않는다. 구조 문제의 이유는 `--list` 의 stderr 가 그대로 터미널에 흘러 보인다.
     """
     try:
@@ -341,10 +342,10 @@ def read_seal(project: str) -> SealedEvidence:
                              capture_output=True, text=True).stdout.strip() or project
     except OSError:
         top = project
-    got = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--status"],
+    got = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--optional", "--status"],
                          stdout=subprocess.PIPE, text=True)
     print(got.stdout.strip() or "Mode 1 봉인 — 상태를 알 수 없다")
-    listed = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--list"],
+    listed = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--optional", "--list"],
                             stdout=subprocess.PIPE, text=True)
     if listed.returncode != 0:
         return no_seal()

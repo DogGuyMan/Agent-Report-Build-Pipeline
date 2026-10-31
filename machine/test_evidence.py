@@ -1,4 +1,5 @@
 """test_evidence.py — 봉인 판정(`evidence.py`)의 구조 문제 · 낡음 · 한 줄 상태 시험."""
+import hashlib
 import json
 import os
 import shutil
@@ -15,6 +16,7 @@ import evidence as E  # noqa: E402
 
 RECORD: dict[str, object] = {"kind": "function", "module": "pkg", "where": "pkg/a.py:1", "means": "하나를 돌려준다.",
           "uses": [], "neighbors": [], "source": "reading"}
+SKIP = (".git", "__pycache__", "node_modules", "out")
 
 
 def git(repo: str, *args: str) -> None:
@@ -37,10 +39,26 @@ def append(path: str, text: str) -> None:
         f.write(text)
 
 
-def sealed(tmp_path: Path, kinds: tuple[str, ...] = ("terms-db", "wiki")) -> str:
+def sha(path: str) -> str:
+    """판정 쪽 함수를 쓰지 않고 잰 sha256 — 준비가 판정과 같은 구멍을 갖지 않게."""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def blob(repo: str, rel: str) -> str:
+    """판정 쪽 함수를 쓰지 않고 `git hash-object` 로 잰 blob id."""
+    return subprocess.run(["git", "-C", repo, "hash-object", "--", rel],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def sealed(tmp_path: Path, kinds: tuple[str, ...] = ("terms-db", "wiki"), files: dict[str, str] | None = None,
+           exts: tuple[str, ...] = (".py",), skip: tuple[str, ...] = SKIP,
+           inputs: tuple[str, ...] = ("pkg/a.py",)) -> str:
+    """봉인까지 커밋한 대상 저장소. 매니페스트는 손으로 적은 기대값이다 — `inputs` 에 적은 파일만 소스다."""
     r = tmp_path / "대상"
-    (r / "pkg").mkdir(parents=True)
-    (r / "pkg" / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    for rel, text in {"pkg/a.py": "def f():\n    return 1\n", **(files or {})}.items():
+        (r / rel).parent.mkdir(parents=True, exist_ok=True)
+        (r / rel).write_text(text, encoding="utf-8")
     (r / "docs" / "wiki").mkdir(parents=True)
     (r / "docs" / "wiki" / "index.md").write_text("# 위키\n", encoding="utf-8")
     pub = r / "docs" / "codegraph"
@@ -49,15 +67,14 @@ def sealed(tmp_path: Path, kinds: tuple[str, ...] = ("terms-db", "wiki")) -> str
     repo = str(r)
     git(repo, "init", "-q")
     git(repo, "add", "-A")                              # 소스 집합은 추적 파일이다 — 봉인 전에 추적시킨다
-    exts, skip = [".py"], [".git", "__pycache__", "node_modules", "out"]
     arts: dict[str, list[dict[str, str]]] = {}
     if "terms-db" in kinds:
-        arts["terms-db"] = [{"path": "docs/codegraph/terms-db.json", "sha256": E.sha256_of(str(pub / "terms-db.json"))}]
+        arts["terms-db"] = [{"path": "docs/codegraph/terms-db.json", "sha256": sha(str(pub / "terms-db.json"))}]
     if "wiki" in kinds:
-        arts["wiki"] = [{"path": "docs/wiki/index.md", "sha256": E.sha256_of(str(r / "docs" / "wiki" / "index.md"))}]
+        arts["wiki"] = [{"path": "docs/wiki/index.md", "sha256": sha(str(r / "docs" / "wiki" / "index.md"))}]
     doc = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "abc", "source_commit": "def",
-           "source_exts": exts, "skip_dirs": skip, "artifacts": arts,
-           "inputs": E.blob_ids(repo, E.source_files(repo, exts, skip))}
+           "source_exts": list(exts), "skip_dirs": list(skip), "artifacts": arts,
+           "inputs": {rel: blob(repo, rel) for rel in inputs}}
     (pub / "manifest.json").write_text(json.dumps(doc), encoding="utf-8")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "init")                 # 봉인까지 커밋된 상태가 기본이다
@@ -152,7 +169,7 @@ def test_terms_db_가_계약_꼴이_아니면_문제다(tmp_path: Path):
         f.write(json.dumps({"f": {"kind": "function"}}))
     m = os.path.join(repo, E.MANIFEST)
     doc = read_json(m)
-    doc["artifacts"]["terms-db"][0]["sha256"] = E.sha256_of(p)
+    doc["artifacts"]["terms-db"][0]["sha256"] = sha(p)
     write_json(m, doc)
     assert any("terms-db.json 이 계약 꼴이 아니다" in x for x in E.problems(repo, ["terms-db"]))
 
@@ -220,3 +237,91 @@ def test_status_는_git_밖이어도_한_줄을_내고_0이다(tmp_path: Path, m
     out = capsys.readouterr()
     assert out.out.count("\n") == 1 and out.out.startswith("Mode 1 봉인 — 있음") and "미커밋" in out.out
     assert out.err == ""
+
+
+# ── 부분 봉인 — `--optional`
+@pytest.mark.parametrize("kind", ["terms-db", "wiki"])
+def test_부분_봉인은_optional_이면_있는_종류만_판정한다(tmp_path: Path, capsys: pytest.CaptureFixture[str], kind: str):
+    repo = sealed(tmp_path, kinds=(kind,))
+    other = "wiki" if kind == "terms-db" else "terms-db"
+    assert any("%s 가 없다" % other in p for p in E.problems(repo, ["terms-db", "wiki"]))
+    assert E.problems(repo, ["terms-db", "wiki"], optional=True) == []
+    assert E.status_line(repo, ["terms-db", "wiki"], optional=True) == "Mode 1 봉인 — 있음(%s 만)" % kind
+    assert E.status_line(repo, ["terms-db", "wiki"]).startswith("Mode 1 봉인 — 깨짐: 봉인에 %s 가 없다" % other)
+    assert E.main([repo, "--need", "terms-db,wiki", "--optional", "--list"]) == 0
+    path = "docs/codegraph/terms-db.json" if kind == "terms-db" else "docs/wiki/index.md"
+    assert json.loads(capsys.readouterr().out)["artifacts"] == [os.path.join(repo, path)]
+
+
+def test_optional_이라도_봉인에_아무_종류도_없으면_문제다(tmp_path: Path):
+    repo = sealed(tmp_path, kinds=())
+    got = "\n".join(E.problems(repo, ["terms-db", "wiki"], optional=True))
+    assert "terms-db 가 없다" in got and "wiki 가 없다" in got
+
+
+# ── 소스 집합은 매니페스트의 규칙 그대로다
+def test_건너뛸_폴더_안의_추적_파일은_소스가_아니다(tmp_path: Path):
+    """경로 중간의 폴더 성분과 파일 이름 성분 둘 다 `skip_dirs` 에 걸린다."""
+    repo = sealed(tmp_path, files={"pkg/build/x.py": "x = 1\n", "pkg/skipme.py": "s = 1\n"},
+                  skip=(".git", "build", "skipme.py"))
+    assert E.staleness(repo) == []
+
+
+def test_매니페스트의_source_exts_를_그대로_따른다(tmp_path: Path):
+    repo = sealed(tmp_path, files={"src/a.ts": "export const a = 1;\n", "pkg/notes.txt": "메모\n"},
+                  exts=(".ts",), inputs=("src/a.ts",))
+    assert E.staleness(repo) == []
+    append(os.path.join(repo, "pkg", "a.py"), "# 바꿈 — .ts 저장소에서는 소스가 아니다\n")
+    append(os.path.join(repo, "src", "a.ts"), "export const b = 2;\n")
+    assert E.staleness(repo) == ["바뀜 src/a.ts"]
+
+
+def test_비ASCII_이름의_소스도_소스_집합에_든다(tmp_path: Path):
+    repo = sealed(tmp_path, files={"pkg/한글.py": "h = 1\n"}, inputs=("pkg/a.py", "pkg/한글.py"))
+    git(repo, "config", "core.quotePath", "true")       # 기계 설정과 무관하게 따옴표가 붙는 기본값으로
+    assert "pkg/한글.py" in E.source_files(repo, [".py"], list(SKIP))
+    assert E.staleness(repo) == []
+    append(os.path.join(repo, "pkg", "한글.py"), "# 바꿈\n")
+    assert E.staleness(repo) == ["바뀜 pkg/한글.py"]
+
+
+# ── 산출물
+def test_봉인된_terms_db_의_내용만_고쳐도_문제다(tmp_path: Path):
+    """계약 꼴은 지키고 뜻만 바꾼 용어 사전 — 해시가 잡는다."""
+    repo = sealed(tmp_path)
+    changed = dict(RECORD, means="둘을 돌려준다.")
+    write_json(os.path.join(repo, E.TERMS_DB), {"f": changed})
+    assert "봉인 뒤 바뀌었다 — docs/codegraph/terms-db.json" in E.problems(repo, ["terms-db"])
+
+
+def test_봉인_항목_경로가_종류와_맞지_않으면_문제다(tmp_path: Path):
+    repo = sealed(tmp_path)
+    m = os.path.join(repo, E.MANIFEST)
+    doc = read_json(m)
+    page = os.path.join(repo, "docs", "wiki", "index.md")
+    doc["artifacts"]["terms-db"] = [{"path": "docs/wiki/index.md", "sha256": sha(page)}]
+    write_json(m, doc)
+    assert any("봉인 항목 경로가 종류와 맞지 않는다 — terms-db: docs/wiki/index.md" in p
+               for p in E.problems(repo, ["terms-db"]))
+    assert not E.entry_fits("wiki", "docs/wiki/../x.md") and not E.entry_fits("wiki", "docs/wiki/sub/x.md")
+    assert not E.entry_fits("wiki", "/docs/wiki/x.md") and E.entry_fits("wiki", "docs/wiki/x.md")
+
+
+# ── 미커밋 — 매니페스트와 거기 적힌 산출물 전부
+def test_위키_장만_커밋되지_않아도_미커밋이다(tmp_path: Path):
+    repo = sealed(tmp_path)
+    git(repo, "rm", "-q", "--cached", "docs/wiki/index.md")
+    git(repo, "commit", "-qm", "위키 장을 추적에서 뺀다")
+    assert E.problems(repo, ["terms-db", "wiki"]) == []
+    assert "미커밋" in E.status_line(repo, ["terms-db", "wiki"])
+
+
+def test_gitignore_로_무시된_봉인은_미커밋이다(tmp_path: Path):
+    repo = sealed(tmp_path)
+    with open(os.path.join(repo, ".gitignore"), "w", encoding="utf-8") as f:
+        f.write("docs/codegraph/\n")
+    git(repo, "rm", "-q", "-r", "--cached", "docs/codegraph")
+    git(repo, "add", ".gitignore")
+    git(repo, "commit", "-qm", "봉인 폴더를 무시한다")
+    assert E.problems(repo, ["terms-db", "wiki"]) == []
+    assert "미커밋" in E.status_line(repo, ["terms-db", "wiki"])

@@ -89,6 +89,24 @@ def test_mode_one_status_는_한_줄을_돌려준다(tmp_path: Path):
     assert modeOneStatus(sys.executable, str(tmp_path)) == STATUS
 
 
+def test_mode_one_status_는_위키_없는_봉인을_깨짐이_아니라_부분으로_낸다(tmp_path: Path):
+    import hashlib, json
+    from viz.init import modeOneStatus
+    pub = tmp_path / "docs" / "codegraph"
+    pub.mkdir(parents=True)
+    rec = {"kind": "function", "module": "pkg", "where": "pkg/a.py:1", "means": "뜻", "uses": [],
+           "neighbors": [], "source": "reading"}
+    (pub / "terms-db.json").write_text(json.dumps({"f": rec}, ensure_ascii=False), encoding="utf-8")
+    doc = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "p", "source_commit": "s",
+           "source_exts": [".py"], "skip_dirs": ["out"], "inputs": {},
+           "artifacts": {"terms-db": [{"path": "docs/codegraph/terms-db.json",
+                                       "sha256": hashlib.sha256((pub / "terms-db.json").read_bytes()).hexdigest()}]}}
+    (pub / "manifest.json").write_text(json.dumps(doc), encoding="utf-8")
+    for args in (["init", "-q"], ["add", "-A"], ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "봉인"]):
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)
+    assert modeOneStatus(sys.executable, str(tmp_path)) == "Mode 1 봉인 — 있음(terms-db 만)"
+
+
 def test_mode_one_status_는_evidence_가_답하지_않아도_글을_돌려준다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     import viz.init as I
     monkeypatch.setattr(I, "EVIDENCE", str(tmp_path / "없는-파일.py"))
