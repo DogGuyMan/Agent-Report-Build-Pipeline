@@ -1,0 +1,60 @@
+node_modules/
+
+# 테스트용 esbuild 중간 산출물 (src/spec/typescript/lib.mjs)
+.tmp/
+
+# 시험 · 빌드가 저장소 뿌리에 잠깐 쓰는 파일 (.tmp-eval.mjs · .tmp-eval-math.ts · .tmp-render.mjs · .tmp-report*.*)
+.tmp-*
+
+# 빌드 산출물 — 소스에서 재생성한다. 깊이에 상관없이 out/ 이름의 폴더 전부
+out/
+
+.DS_Store
+
+# 편집기 백업
+*~
+
+# 파이썬 가상환경 - requirements.txt 로 각자 만든다 (npm run doctor 가 확인한다)
+.venv/
+
+# 파이썬 바이트코드 캐시 - 소스 실행 시 자동 재생성된다
+__pycache__/
+
+# Claude Code 개인 설정 — 각자 기계의 권한 · 환경. 공유 설정은 .claude/settings.json
+.claude/settings.local.json
+
+# 로컬 유지보수 도구 - 기계마다 다른 경로가 규칙에 박혀 있어 공유하지 않는다
+tools/scrub_local_paths.py
+
+# ai-readiness-cartography 출력 - report.json 에 로컬 경로가 들어간다
+.claude/readiness/
+
+# 문서 보관소 · 자기호스팅 위키 · 결정 기록 · 개인 노트 - 이 기계에만 둔다. README 가 쓰는 그림 폴더만 추적한다
+docs/*
+!docs/diagrams/
+
+# microsoft/skills 에서 받은 스킬 - 이 저장소는 쓰지 않는다. 출처는 skills-lock.json.
+# 한 줄이 .agents/skills/<이름>/ 과 .claude/skills/<이름> 링크를 함께 막는다
+**/skills/applicationinsights-web-ts
+**/skills/cloud-solution-architect
+**/skills/continual-learning
+**/skills/copilot-sdk
+**/skills/debugview
+**/skills/entra-agent-id
+**/skills/frontend-design-review
+**/skills/github-issue-creator
+**/skills/kql
+**/skills/mcp-builder
+**/skills/microsoft-docs
+**/skills/podcast-generation
+
+# 분리 작업 대조 도구(split-work/)의 산출물 — 기준 출력 · 후보 diff 에 이 기계의 절대 경로가 실린다
+split-work/before*/
+split-work/after*/
+split-work/fixture-shards/
+split-work/patches/
+split-work/frag/
+split-work/reading-mode*.json
+
+# 디렉토리 정리(결정 0014) 일회용 스크립트의 산출물 — 경로 지도 · 지운 줄 기록 · 기준선 캡처
+split-work/reorg/out/
