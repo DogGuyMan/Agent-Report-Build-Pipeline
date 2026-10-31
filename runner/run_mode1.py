@@ -261,6 +261,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                   + ScheduleBatchesStage.STOP_TAIL)
         return 0
 
+    # 새 실행이 시작되면 옛 재개 지점은 무효다 — 끊긴 실행(Ctrl-C · 예외)이 옛 `verified` 를 남기지 않게 지금 지운다.
+    if not a.resume and os.path.exists(X.RESUME.locate(ctx)):
+        os.remove(X.RESUME.locate(ctx))
     t_all = time.monotonic()
     rows = P.Pipeline[Mode1Context]().run(graph, ctx)
     wall = time.monotonic() - t_all

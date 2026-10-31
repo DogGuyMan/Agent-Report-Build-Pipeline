@@ -179,8 +179,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
-| `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 LLM 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. |
-| `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `LLM 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 config/mode1.toml 의 [estimate]. |
+| `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다. |
+| `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `전수조사 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 config/mode1.toml 의 [estimate]. |
 | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
@@ -381,10 +381,12 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `WriteWikiStage.wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: Sequence[X.LowerPageRow]) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
 | `WriteWikiStage.page_hash` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
 | `WriteWikiStage.stale_pages` | `(wiki_dir: str, pages: Iterable[str], changed: set[str]) -> set[str]` | 이미 쓴 장 중 바뀐 파일의 경로를 글자 그대로 담은 것. 그 장은 다시 쓴다. |
-| `WriteWikiStage.edited_pages` | `(wiki_dir: str, pages: Iterable[str], recorded: Mapping[str, str]) -> set[str]` | 지난 write-wiki 가 적어 둔 해시와 지금 해시가 다른 장 — 사람이 고친 것이다. |
-| `WriteWikiStage.back_up_edited` | `(wiki_dir: str, edited: Iterable[str]) -> list[str]` | 손댄 장을 `docs/wiki/.bak/<장>` 으로 옮긴다. 옮긴 뒤에는 없는 장이라 `jobs` 가 다시 쓴다. |
+| `WriteWikiStage.edited_pages` | `(wiki_dir: str, pages: Iterable[str], recorded: Mapping[str, str]) -> set[str]` | 있는 장 중 지난 write-wiki 가 적어 둔 해시가 없거나 지금 해시와 다른 것 — 사람이 고쳤거나 누가 썼는지 모른다. |
+| `WriteWikiStage.back_up_edited` | `(wiki_dir: str, edited: Iterable[str]) -> list[str]` | 손댄 장을 `docs/wiki/.bak/` 으로 옮기고 옮긴 자리를 낸다. 같은 이름이 있으면 덮지 않고 `<stem>.1.md` · `<stem>.2.md` … 로. |
+| `WriteWikiStage.remove_pages` | `(wiki_dir: str, names: Iterable[str]) -> list[str]` | write-wiki 가 쓴 그대로인 낡은 장을 지우고 지운 이름을 낸다. 지운 뒤에는 없는 장이라 `jobs` 가 다시 쓴다. |
+| `WriteWikiStage.wiki_files` | `(wiki_dir: str) -> list[str]` | `docs/wiki` 의 최상위 `*.md` 이름 — 봉인(`manifest.entries`)이 싣는 집합과 같다. |
 | `WriteWikiStage.read_state` | `(path: str) -> WikiState \| None` | 지난 write-wiki 의 상태. 없거나 꼴이 틀리면 None — 그러면 기준도 손댐도 판정하지 않는다. |
-| `WriteWikiStage.write_state` | `(path: str, state: WikiState) -> None` | `wiki-state.json` 을 쓴다. 다른 산출물과 같은 꼴(들여쓰기 1, 한글 그대로)이다. |
+| `WriteWikiStage.write_state` | `(path: str, state: WikiState) -> None` | `wiki-state.json` 을 쓴다. 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다 — 도중에 끊겨도 반쪽 파일이 남지 않는다. |
 | `WriteWikiStage.source_hashes` | `(snapshot: str) -> dict[str, str] \| None` | 지문 파일의 `{경로: file_hash}`. 지문이 없으면 None. 못 읽은 파일(`file_hash` 가 None)은 뺀다. |
 | `WriteWikiStage.changed_sources` | `(prev: Mapping[str, str], cur: Mapping[str, str]) -> set[str]` | 기준 소스 지도와 지금 지문의 해시가 다른 경로 — 바뀐 것 · 새로 생긴 것 · 지운 것. |
 | `WriteWikiStage.record_pages` | `(state_path: str, wiki_dir: str, names: Iterable[str], sources: Mapping[str, str] \| None = None) -> None` | 방금 쓴 장들의 해시를 `pages` 에 적는다. `sources` 를 주면 기준도 바꿔 적는다. `snapshot_sha256` 은 건드리지 않는다. |
@@ -392,8 +394,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `WriteWikiStage.prepare` | `(self, ctx: Mode1Context) -> None` |  |
 | `WriteWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `WriteWikiStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
-| `WriteWikiStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
-| `WriteWikiStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` | 층이 끝날 때마다 성공한 장의 해시를 바로 적는다 — 뒤 층이 실패해도 그 장은 LLM 이 쓴 것으로 남는다. |
+| `WriteWikiStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` | 이 층의 없는 장. 낡은 장은 `prepare` 가 비워 두었다. 아래층 장 목록은 층 번호가 더 작은 개요 장 중 디스크에 있거나 이번 실행이 쓴 것이다(층 · 개요 순). |
+| `WriteWikiStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` | 층이 끝날 때마다 세션이 실제로 쓴 장의 해시를 바로 적는다 — 뒤 층이 실패해도 그 장은 LLM 이 쓴 것으로 남는다. |
 | **`PublishWikiStage`** | *class* |  |
 | `PublishWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `PublishWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -726,10 +728,25 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `_snapshot` | `(c: X.Mode1Context, hashes: dict[str, str]) -> str` | 지문 `snapshot.json` 을 `{경로: file_hash}` 로 쓴다. 나머지 칸은 위키 판정이 보지 않는다. |
 | `_outline` | `(c: X.Mode1Context, pages: list[X.WikiPage]) -> None` |  |
 | `_fake_layer` | `(fail: set[str]) -> Callable[..., list[P.JobResult]]` | `run_layer` 대역. `fail` 에 든 장은 세션이 실패하고, 나머지는 장 `x.md` 에 `pkg/x.py` 인용을 쓰고 성공한다. |
-| `test_write_wiki_는_기준_소스와_지금_지문이_다른_파일을_인용한_장만_다시_쓴다` | `(tmp_path: Path) -> None` |  |
+| `test_write_wiki_는_기준_소스와_지금_지문이_다른_파일을_인용한_장만_다시_쓴다` | `(tmp_path: Path, cold: bool) -> None` |  |
 | `test_write_wiki_는_기준이_없으면_기존_장을_건너뛰고_따라잡았다고_적지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
 | `test_write_wiki_는_빈_위키를_처음_구우면_따라잡았다고_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_write_wiki_가_한_층을_쓰고_실패하면_기준은_그대로이고_다시_준비해도_LLM_이_쓴_장을_bak_로_옮기지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `_bake` | `(c: X.Mode1Context, monkeypatch: pytest.MonkeyPatch, names: list[str], snap: dict[str, str]) -> Path` | 빈 위키를 처음 구워 따라잡은 상태를 만든다. 장은 모두 층0 이고 `x.md` 는 `pkg/x.py` 를 인용한다. |
+| `_noop_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[P.JobResult]` | 세션은 모두 성공했다고 하고 장은 하나도 건드리지 않는다. |
+| `test_changed_sources_는_바뀐_것_새로_생긴_것_지운_것을_모두_낸다` | `() -> None` |  |
+| `test_record_pages_는_앞서_적은_장을_지키고_기준은_그대로_둔다` | `(tmp_path: Path) -> None` |  |
+| `test_write_state_는_끊겨도_옛_파일을_지키고_임시_파일을_남기지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_back_up_edited_는_같은_이름이_있으면_덮지_않고_빈_이름을_찾는다` | `(tmp_path: Path) -> None` |  |
+| `test_write_wiki_는_옮긴_자리를_세션을_띄우기_전에_알린다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_write_wiki_는_기준이_있으면_바뀐_파일을_인용한_개요_밖_장을_신선도_모르는_장으로_남긴다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_write_wiki_는_기준이_없으면_개요_밖_장도_기존_장으로_센다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_write_wiki_는_실패한_세션이_반쯤_쓴_장을_bak_로_옮겨_다시_쓰고_그_뒤에야_따라잡았다고_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_write_wiki_는_성공한_세션이_낡은_장을_다시_만들지_않으면_따라잡았다고_적지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_write_wiki_는_같은_바이트로_다시_써도_따라잡았다고_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_write_wiki_는_낡은_장을_세션_전에_지우고_사람이_고친_장은_bak_로_옮긴다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_write_wiki_는_성공한_세션이_장을_만들지_않아도_멈추지_않고_따라잡았다고_적지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_write_wiki_는_증분에서도_디스크에_있는_아래층_장을_싣는다` | `(tmp_path: Path) -> None` |  |
 | `test_증분은_열셋_전량은_열둘` | `()` |  |
 | `test_순서의_불변식_셋` | `()` |  |
 | `test_별명은_쪼갠_단계로_펴진다` | `()` |  |
@@ -815,13 +832,15 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_seal_artifacts_는_그래프의_마지막이다` | `() -> None` |  |
 | `test_verify_terms_는_통과하면_verified_에_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_verify_wiki_는_통과할_때만_verified_에_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_verify_terms_는_실패하면_verified_에_적지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_재개가_아닌_실행은_시작할_때_옛_재개_문서를_지운다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_mark_superseded_는_이전_봉인에_표식을_적고_없으면_False` | `(tmp_path: Path) -> None` |  |
 | `test_mark_superseded_는_계약_꼴이_아닌_봉인이면_False_이고_건드리지_않는다` | `(tmp_path: Path, text: str) -> None` |  |
 | `test_main_은_실패한_실행만_이전_봉인에_표식을_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` | write-wiki 실패 → 재개 뒤 seal 실패 → 다시 재개. 검사 단계 셋만 실제 `perform` 을 돈다. |
 | `test_estimate_line_은_세션_수와_비용_범위를_적는다` | `() -> None` |  |
 | `test_session_count_는_배치가_없는_층을_한_세션으로_센다` | `() -> None` |  |
-| `test_계획_요약_합계는_배치와_LLM_세션을_따로_적는다` | `() -> None` |  |
+| `test_계획_요약_합계는_배치와_전수조사_세션을_따로_적는다` | `() -> None` |  |
 | `test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_dry_run_은_층_계획_뒤에_예상_비용_한_줄을_찍는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None` |  |

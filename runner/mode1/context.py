@@ -241,10 +241,12 @@ class Mode1Context(P.RunContext):
     wiki_levels: list[int] = field(default_factory=_no_ints)
     wiki_level_of: dict[str, int] = field(default_factory=_no_levels)
     wiki_done: Pages = field(default_factory=_no_pages)
-    wiki_stale: set[str] = field(default_factory=_no_strs)     # 기준 소스 뒤 바뀐 파일을 인용해 다시 쓸 장
-    wiki_backed_up: list[str] = field(default_factory=_no_names)   # 손으로 고쳐서 .bak 에 남긴 장
-    wiki_unknown: list[str] = field(default_factory=_no_names)     # 기준이 없어 신선도를 모른 채 건너뛴 기존 장
+    wiki_stale: set[str] = field(default_factory=_no_strs)     # 기준 뒤 바뀐 파일을 인용하거나 해시를 적어 두지 않은 개요 장 — 다시 쓴다
+    wiki_backed_up: list[str] = field(default_factory=_no_names)   # 다시 쓰기 전에 .bak 으로 옮긴 자리(`docs/wiki` 기준)
+    wiki_removed: list[str] = field(default_factory=_no_names)     # 다시 쓰기 전에 지운 낡은 장 — write-wiki 가 쓴 그대로였다
+    wiki_unknown: list[str] = field(default_factory=_no_names)     # 신선도를 모르는 채 남는 장 — 있으면 따라잡았다고 적지 않는다
     wiki_first_bake: bool = False                                  # 기준도 기존 장도 없는 처음 굽기 — 층마다 지금 지문을 기준으로 적는다
+    wiki_unwritten: list[str] = field(default_factory=_no_names)   # 세션은 성공했는데 장이 없다 — 있으면 따라잡았다고 적지 않는다
     verified: set[str] = field(default_factory=_no_strs)     # verify-terms · verify-wiki → seal-artifacts (검사를 통과한 종류)
 
 

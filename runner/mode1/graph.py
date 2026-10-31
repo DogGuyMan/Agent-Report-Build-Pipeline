@@ -64,25 +64,25 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
                               L["file_count"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
                               n))
         총배치 = sum(len(L.get("batches", [])) for L in plan.get("layers", []))
-        out.append("  합계 — 심볼 %d · 층 %d · 배치 %d · LLM 세션 %d"
+        out.append("  합계 — 심볼 %d · 층 %d · 배치 %d · 전수조사 세션 %d"
                    % (plan["totals"]["symbols"], plan["totals"]["levels"], 총배치,
                       ScheduleBatchesStage.session_count(plan)))
         return out
 
     @staticmethod
     def session_count(plan: survey_plan.SurveyPlan) -> int:
-        """계획이 띄울 LLM 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다."""
+        """계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다."""
         return sum(len(L.get("batches", [])) or 1 for L in plan.get("layers", []))
 
     @staticmethod
     def estimate_line(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str:
-        """`LLM 세션 N개 · 예상 $lo~hi · 증분|전량`. 범위는 config/mode1.toml 의 [estimate].
+        """`전수조사 세션 N개 · 예상 $lo~hi · 증분|전량`. 범위는 config/mode1.toml 의 [estimate].
 
         `full` 은 계획이 diff 로 좁혀지지 않았다는 뜻이다.
         """
         lo = round(n_sessions * cfg["usd_per_batch_min"])
         hi = round(n_sessions * cfg["usd_per_batch_max"])
-        return "LLM 세션 %d개 · 예상 $%d~%d · %s" % (n_sessions, lo, hi, "전량" if full else "증분")
+        return "전수조사 세션 %d개 · 예상 $%d~%d · %s" % (n_sessions, lo, hi, "전량" if full else "증분")
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()

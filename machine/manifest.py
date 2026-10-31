@@ -2,8 +2,8 @@
 """Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다.
 
 봉인은 그 실행에서 **검사기를 통과한** 산출물만 싣고, 그것이 **지금 소스를 다시 읽은 결과**일 때만 싣는다.
-- terms-db : 소스 파일마다의 지문이 지난 전수조사의 지문(`out/codegraph-raw/snapshot.json`)과 같아야 한다
-- wiki     : `write-wiki` 가 그 지문을 따라잡았다는 표(`out/codegraph-raw/wiki-state.json`)가 있어야 한다
+- 종류마다 : 소스 파일마다의 지문이 지난 전수조사의 지문(`out/codegraph-raw/snapshot.json`)과 같아야 한다
+- wiki     : 그 위에 `write-wiki` 가 그 지문을 따라잡았다는 표(`out/codegraph-raw/wiki-state.json`)가 있어야 한다
 소스 집합은 `declmap.tracked_files` 가 낸다 — git 이 아는 파일 중 언어의 확장자에 맞고 `declmap.SKIP_DIRS` 밖에 있는 것.
 읽는 쪽(report-builder 의 `machine/evidence.py`)은 매니페스트 하나로 꼴과 신선도를 판정한다. 소스를 모으는
 규칙(확장자 · 건너뛸 폴더)도 같이 적어, 읽는 쪽이 Mode 1 을 몰라도 같은 규칙을 다시 돌리게 한다.
@@ -65,10 +65,10 @@ class LangPick(TypedDict):
 
 
 class WikiState(TypedDict):
-    """`write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, 나머지 둘은 따라잡았을 때 함께 적는다.
+    """`write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, `sources` 는 낡음 판정의 기준, `snapshot_sha256` 은 따라잡은 지문이다.
 
-    `snapshot_sha256` 은 따라잡은 지문(`snapshot.json` 바이트의 sha256), `sources` 는 그 지문의 `{경로: file_hash}` 다.
-    둘이 없으면 위키는 아직 어느 지문도 따라잡지 못했다.
+    `sources` 는 지문의 `{경로: file_hash}` 로, 따라잡았을 때와 처음 굽는 실행이 층을 마칠 때 적는다.
+    `snapshot_sha256`(`snapshot.json` 바이트의 sha256)은 따라잡았을 때만 적는다 — 없으면 위키는 아직 어느 지문도 따라잡지 못했다.
     """
     snapshot_sha256: NotRequired[str]
     sources: NotRequired[dict[str, str]]
@@ -164,10 +164,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     gone = missing(repo, sources)
     if gone:
         return refuse("추적되는데 작업 트리에 없는 소스 %d개:" % len(gone), gone)
-    if "terms-db" in kinds:
-        stale = unsurveyed(repo, sources, os.path.join(raw, "snapshot.json"))
-        if stale:
-            return refuse("지난 전수조사 뒤 바뀐 소스 %d개. Mode 1 을 증분으로 다시 돌린다:" % len(stale), stale)
+    stale = unsurveyed(repo, sources, os.path.join(raw, "snapshot.json"))
+    if stale:
+        return refuse("지난 전수조사 뒤 바뀐 소스 %d개 — 봉인할 %s 에 반영되지 않았다. Mode 1 을 증분으로 다시 돌린다:"
+                      % (len(stale), ", ".join(kinds)), stale)
     if "wiki" in kinds and not wiki_caught_up(raw):
         return refuse("write-wiki 가 지난 전수조사를 따라잡지 못했다", [])
     os.makedirs(os.path.join(repo, PUBLISH), exist_ok=True)

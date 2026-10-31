@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import msgspec
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import declmap  # noqa: E402
@@ -102,7 +103,16 @@ def test_seal_은_조사되지_않은_추적_파일도_거부한다(tmp_path: Pa
 def test_seal_은_작업_트리에서_지워진_추적_소스를_거부한다(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     os.remove(os.path.join(repo, "pkg", "a.py"))           # 지웠고 아직 커밋하지 않았다
-    assert seal(repo, "wiki") == 3                         # 지문 검사가 없는 종류도 막힌다
+    assert seal(repo, "wiki") == 3                         # 위키만 봉인해도 막힌다
+    assert not os.path.exists(os.path.join(repo, "docs", "codegraph", "manifest.json"))
+
+
+def test_seal_은_위키만_봉인할_때도_지문_뒤_바뀐_소스를_거부한다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = make_repo(tmp_path)
+    with open(os.path.join(repo, "pkg", "a.py"), "a", encoding="utf-8") as f:
+        f.write("def g():\n    return 2\n")
+    assert seal(repo, "wiki") == 3
+    assert "바뀐 소스 1개 — 봉인할 wiki" in capsys.readouterr().err
     assert not os.path.exists(os.path.join(repo, "docs", "codegraph", "manifest.json"))
 
 

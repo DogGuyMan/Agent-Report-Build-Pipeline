@@ -195,7 +195,7 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | **`SupersededBy`** | *class* | 이 봉인 뒤의 Mode 1 실행이 실패했다는 표식. 봉인 자체는 그대로다 — 읽는 쪽이 경고로 본다. |
 | **`ArtifactManifest`** | *class* | `docs/codegraph/manifest.json` 의 꼴. `inputs` 는 봉인 시점 소스 파일마다의 git blob id 다. |
 | **`LangPick`** | *class* | `lang-select.json` 에서 봉인이 읽는 칸. 언어를 못 골랐으면 None 이다. |
-| **`WikiState`** | *class* | `write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, 나머지 둘은 따라잡았을 때 함께 적는다. |
+| **`WikiState`** | *class* | `write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, `sources` 는 낡음 판정의 기준, `snapshot_sha256` 은 따라잡은 지문이다. |
 | `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
 | `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
 | `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
@@ -466,6 +466,7 @@ clang-doc 적재기의 회귀 시험.
 | `test_seal_은_다시_읽지_않은_소스를_봉인하지_않는다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_조사되지_않은_추적_파일도_거부한다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_작업_트리에서_지워진_추적_소스를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_위키만_봉인할_때도_지문_뒤_바뀐_소스를_거부한다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None` |  |
 | `test_seal_은_지문을_따라잡지_못한_위키를_거부한다` | `(tmp_path: Path) -> None` |  |
 | `test_wiki_caught_up_은_장_해시만_있는_상태를_따라잡지_않았다고_본다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_모르는_종류와_빈_종류를_거부한다` | `(tmp_path: Path) -> None` |  |
