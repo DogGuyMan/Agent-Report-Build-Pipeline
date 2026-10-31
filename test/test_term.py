@@ -1,3 +1,4 @@
+import json
 import pytest
 from typing import Any, Dict
 from runner.term.collect import pick_terms, find_new_concepts
@@ -233,3 +234,92 @@ def test_tallysheet_output_matches_gradeall_input():
     assert Q.grade_all(counts) == {
       "PageRank": { "rate": 67, "mental": "확실", "means": "그래프에서 중요한 점을 매기는 방법" },
     }
+
+
+def test_collect_은_용어_사전_없이_돌지_않는다(tmp_path):
+    import os, subprocess, sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    plan = tmp_path / "plan.md"
+    plan.write_text("# 계획\nRenderer 를 고친다.\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, os.path.join(root, "runner", "term", "collect.py"), str(plan)],
+                       capture_output=True, text=True, cwd=tmp_path)
+    assert r.returncode == 1 and "terms-db.json" in r.stderr
+    assert not (tmp_path / "term-candidates.json").exists()
+
+
+def test_collect_은_봉인_없는_용어_사전을_거부한다(tmp_path):
+    import os, subprocess, sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo = tmp_path / "대상"
+    (repo / "docs" / "codegraph").mkdir(parents=True)
+    db = repo / "docs" / "codegraph" / "terms-db.json"
+    db.write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    plan = tmp_path / "plan.md"
+    plan.write_text("# 계획\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, os.path.join(root, "runner", "term", "collect.py"), str(plan), str(db)],
+                       capture_output=True, text=True, cwd=tmp_path)
+    assert r.returncode == 1 and "manifest.json 이 없다" in r.stderr
+    assert not (tmp_path / "term-candidates.json").exists()
+
+
+def _sealed_target(tmp_path):
+    """`pkg/a.py` 하나와 그 용어 사전을 봉인해 커밋한 대상 저장소. `(저장소, docs/codegraph)` 를 돌려준다."""
+    import hashlib, subprocess
+    repo = tmp_path / "대상"
+    (repo / "pkg").mkdir(parents=True)
+    (repo / "pkg" / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    pub = repo / "docs" / "codegraph"
+    pub.mkdir(parents=True)
+    rec = {"kind": "function", "module": "pkg", "where": "pkg/a.py:1", "means": "하나를 돌려준다.",
+           "uses": [], "neighbors": [], "source": "reading"}
+    (pub / "terms-db.json").write_text(json.dumps({"f": rec}, ensure_ascii=False), encoding="utf-8")
+
+    def git(*a: str) -> None:
+        subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t", *a],
+                       check=True, capture_output=True)
+
+    git("init", "-q")
+    blob = subprocess.run(["git", "-C", str(repo), "hash-object", "pkg/a.py"],
+                          capture_output=True, text=True).stdout.strip()
+    doc = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "p", "source_commit": "s",
+           "source_exts": [".py"], "skip_dirs": [".git", "__pycache__", "node_modules", "out"],
+           "artifacts": {"terms-db": [{"path": "docs/codegraph/terms-db.json",
+                                       "sha256": hashlib.sha256((pub / "terms-db.json").read_bytes()).hexdigest()}]},
+           "inputs": {"pkg/a.py": blob}}
+    (pub / "manifest.json").write_text(json.dumps(doc), encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "init")
+    return repo, pub
+
+
+def test_collect_은_낡은_파일의_용어에_stale_을_표시하고_evidence_를_싣는다(tmp_path):
+    import os, subprocess, sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo, pub = _sealed_target(tmp_path)
+    (repo / "pkg" / "a.py").write_text("def f():\n    return 2\n", encoding="utf-8")     # 봉인 뒤 바뀜
+    plan = tmp_path / "plan.md"
+    plan.write_text("# 계획\nf 를 고친다.\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, os.path.join(root, "runner", "term", "collect.py"),
+                        str(plan), str(pub / "terms-db.json")], capture_output=True, text=True, cwd=tmp_path)
+    assert r.returncode == 0 and "경고" in r.stderr
+    got = json.loads((tmp_path / "term-candidates.json").read_text(encoding="utf-8"))
+    assert got["known"]["f"]["stale"] is True
+    assert got["evidence"]["stale"] == ["바뀜 pkg/a.py"] and got["evidence"]["uncommitted"] is False
+
+
+def test_collect_은_봉인_자리가_아닌_용어_사전을_거부한다(tmp_path):
+    """봉인은 멀쩡해도 받은 파일이 봉인된 그 파일이 아니면 시험을 내지 않는다."""
+    import os, shutil, subprocess, sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo, pub = _sealed_target(tmp_path)
+    raw = repo / "out" / "codegraph-raw"
+    raw.mkdir(parents=True)
+    shutil.copyfile(pub / "terms-db.json", raw / "terms-db.json")
+    plan = tmp_path / "plan.md"
+    plan.write_text("# 계획\nf 를 고친다.\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, os.path.join(root, "runner", "term", "collect.py"),
+                        str(plan), str(raw / "terms-db.json")], capture_output=True, text=True, cwd=tmp_path)
+    assert r.returncode == 1 and "봉인된 용어 사전이 아니다" in r.stderr
+    assert "봉인 자리는" in r.stderr and os.path.join("docs", "codegraph", "terms-db.json") in r.stderr
+    assert not (tmp_path / "term-candidates.json").exists()

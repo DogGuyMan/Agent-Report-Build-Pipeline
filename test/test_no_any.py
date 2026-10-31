@@ -34,6 +34,7 @@ COVERED = [
     "runner/dispatch.py",
     "tools/template.py",
     "machine/contract_types.py",
+    "machine/evidence.py",
 ]
 
 # 낱말 경계로 본다 — `Anything` 같은 이름을 잘못 잡지 않는다.

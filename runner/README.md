@@ -509,10 +509,10 @@ Mode 1.5(용어 이해도 점검) 파이프라인 실행기. **사람 앞에서 
 | `plan_slug` | `(plan: str) -> str` | 계획서 경로에서 작업 폴더 이름으로 쓸 slug 를 뽑는다. |
 | `default_workdir` | `(root: str, plan: str) -> str` | `--workdir` 를 안 주면 여기로 떨어진다 — `<root>/out/mode1_5/<slug>/`. |
 | `_term_script` | `(root: str, name: str) -> str` | `runner/term/<이름>` 의 절대 경로. 작업 폴더가 어디든 같은 파일을 부른다. |
-| `collect_argv` | `(root: str, plan: str, terms_db: str \| None) -> list[str]` | `collect.py` 명령줄. node 는 PATH 에서 찾는다. |
+| `collect_argv` | `(root: str, plan: str, terms_db: str) -> list[str]` | `collect.py` 명령줄. node 는 PATH 에서 찾는다. |
 | `grade_argv` | `(root: str, answers: str, questions: str) -> list[str]` | `quiz.py` 명령줄. 산출물은 **부르는 쪽의 작업 폴더**에 떨어진다. |
 | `emit_argv` | `(root: str, grades: str) -> list[str]` | `emit.py` 명령줄. `terms.json` 과 `term-study-note.md` 를 작업 폴더에 쓴다. |
-| `ask_argv` | `(root: str, plan: str, workdir: str, python: str) -> list[str]` | 대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다. |
+| `ask_argv` | `(root: str, plan: str, workdir: str, python: str, terms_db: str) -> list[str]` | 대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다. |
 | `run_interactive` | `(argv: Sequence[str], cwd: str) -> int` | 터미널을 그대로 넘겨 자식을 띄우고 끝날 때까지 기다린다. 출력을 가로채지 않는다. |
 | `gate_notice` | `(questions: str, sheet: str, answers: str, held: Sequence[str], answer_key: str, unasked: Sequence[str] = ()) -> str` | 사람 차례에서 화면에 낼 안내문. |
 | `format_run` | `(rows: Sequence[M.StageRow], skipped: Sequence[tuple[str, str]] \| None, gate: str \| None) -> str` | `measure.format_report` 의 표를 쓰고, 그 표가 말하지 못하는 둘을 덧붙인다. |
@@ -591,6 +591,7 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`EvidenceList`** | *class* | `machine/evidence.py --list` 가 stdout 에 내는 JSON. `stale_files` 는 봉인 뒤 움직인 소스 경로다. |
 | `escape_re` | `(s: str) -> str` |  |
 | `pick_terms` | `(db: dict[str, Any], plan_text: str) -> dict[str, Any]` |  |
 | `find_new_concepts` | `(db: dict[str, Any], plan_text: str) -> list[str]` |  |
@@ -1090,7 +1091,7 @@ Mode 1.5 실행기의 회귀 시험.
 | `test_a_sheet_whose_question_text_drifted_is_caught` | `()` |  |
 | `test_the_old_count_shaped_answers_file_is_rejected` | `()` | 옛 꼴(`{용어: {correct, dontKnow}}`)을 주면 조용히 0점이 아니라 거부한다. |
 | `test_collect_argv_names_the_plan_and_the_term_database` | `()` |  |
-| `test_collect_argv_works_without_a_term_database` | `()` | DB 가 없으면 코드베이스 용어는 0개다 — 그래도 신규 개념은 잡힌다. |
+| `test_collect_argv_always_names_the_term_database` | `()` | 용어 사전은 필수다 — Mode 1.5 는 Mode 1 결과 없이 돌지 않는다. |
 | `test_grade_and_emit_argv_point_at_the_right_scripts` | `()` |  |
 | `test_grade_argv_hands_over_both_files` | `()` | 채운 기입란에는 정답이 없다. 문항지가 같이 가야 채점이 된다. |
 | `test_the_report_reuses_the_mode_1_table` | `()` |  |

@@ -85,7 +85,7 @@
 ## 쓰는 법
 
     .venv/bin/python runner/run_mode1_5.py <plan.md> \
-        [--workdir <작업폴더>] [--terms-db <terms-db.json>] [--dry-run]
+        --terms-db <terms-db.json> [--workdir <작업폴더>] [--dry-run]
 
 **`--workdir` 는 이제 선택이다.** 안 주면 계획서 이름에서 slug 를 뽑아
 `out/mode1_5/<slug>/` 를 만들어 쓴다(`default_workdir`). **계획서를 둘 이상 동시에
@@ -472,16 +472,12 @@ def _term_script(root: str, name: str) -> str:
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.collect_argv']"/>
 # 용어 후보를 모으는 collect.mjs 를 실행할 명령줄(문자열 목록)을 만드는 함수다.
 # 쓰는 것: runner.run_mode1_5._term_script · 쓰이는 곳: runner.run_mode1_5.main, runner.test_run_mode1_5.test_collect_argv_names_the_plan_and_the_term_database, runner.test_run_mode1_5.test_collect_argv_works_without_a_term_database
-def collect_argv(root: str, plan: str, terms_db: str | None) -> list[str]:
+def collect_argv(root: str, plan: str, terms_db: str) -> list[str]:
     """`collect.py` 명령줄. node 는 PATH 에서 찾는다.
 
-    **용어 사전이 없으면 인자를 빼고 부른다.** 빈 문자열을 넘기면 `collect.py` 가
-    그것을 파일 경로로 알고 찾다 실패한다.
+    **용어 사전은 늘 둘째 인자로 붙인다.** `collect.py` 는 그것이 봉인된 Mode 1 산출물인지 본 뒤에야 후보를 낸다.
     """
-    argv = [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "collect.py"), plan]
-    if terms_db:
-        argv.append(terms_db)
-    return argv
+    return [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "collect.py"), plan, terms_db]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode1_5.grade_argv']"/>
@@ -504,7 +500,7 @@ def emit_argv(root: str, grades: str) -> list[str]:
     return [pythonPath(root, sys.platform, dict(os.environ)), _term_script(root, "emit.py"), grades]
 
 
-def ask_argv(root: str, plan: str, workdir: str, python: str) -> list[str]:
+def ask_argv(root: str, plan: str, workdir: str, python: str, terms_db: str) -> list[str]:
     """대화형 `claude` 명령줄. 첫 프롬프트가 `/term-benchmark …` 라 세션이 뜨자마자 스킬이 돈다.
 
     `-p` 를 쓰지 않는다 — 스킬은 `AskUserQuestion` 으로 사람에게 묻고, 헤드리스는 되물을 수 없다.
@@ -514,7 +510,7 @@ def ask_argv(root: str, plan: str, workdir: str, python: str) -> list[str]:
     prompt = AskStage.load_prompt(
         "ask", skill=SKILL, plan=plan, workdir=workdir,
         candidates=os.path.join(workdir, CANDIDATES), questions=os.path.join(workdir, QUESTIONS),
-        python=python, runner=os.path.join(root, "runner", "run_mode1_5.py"),
+        python=python, runner=os.path.join(root, "runner", "run_mode1_5.py"), terms_db=terms_db,
         sheet=os.path.join(workdir, SHEET), answers=os.path.join(workdir, ANSWERS)).removesuffix("\n")
     return ["claude", "--add-dir", workdir, prompt]
 
@@ -611,7 +607,7 @@ class Mode15Context(P.RunContext):
     """Mode 1.5 의 단계 사이를 건너다니는 값. 산출 파일 자리는 `workdir` 이 정한다."""
     plan: str = ""
     workdir: str = ""
-    terms_db: str | None = None
+    terms_db: str = ""
     # 사람 관문이 남긴 안내. `format_run` 이 표 밖에 찍는다.
     gate: str | None = None
 
@@ -736,7 +732,7 @@ class AskStage(P.PromptResource, P.Stage[Mode15Context]):
             row["why"] = "PATH 에 claude 가 없다"
             return P.Outcome(P.FAIL, row["why"], [row])
         python = pythonPath(ctx.root, sys.platform, dict(os.environ))
-        rc = run_interactive(ask_argv(ctx.root, ctx.plan, ctx.workdir, python), cwd=ctx.root)
+        rc = run_interactive(ask_argv(ctx.root, ctx.plan, ctx.workdir, python, ctx.terms_db), cwd=ctx.root)
         row["seconds"] = time.monotonic() - t0
         if rc != 0:
             row["why"] = "claude 세션 종료 코드 %d" % rc
@@ -788,8 +784,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--workdir", default=None,
                     help="산출 파일이 쌓일 폴더 (기본: out/mode1_5/<계획서 slug>/, 없으면 만든다). "
                          "스크립트가 cwd 에 쓰기 때문에 필요하다")
-    ap.add_argument("--terms-db", dest="terms_db", default=None,
-                    help="코드베이스 용어 사전 terms-db.json. 없으면 신규 개념만 잡힌다")
+    ap.add_argument("--terms-db", dest="terms_db", required=True,
+                    help="코드베이스 용어 사전. 대상 저장소 docs/codegraph/terms-db.json (codebase-wiki 가 봉인한다)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")
@@ -814,8 +810,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         # 계획서 둘을 동시에 점검하면 산출 파일이 서로 덮어써 한쪽이 죽는다.
         workdir = default_workdir(ROOT, plan)
         os.makedirs(workdir, exist_ok=True)
-    terms_db = os.path.abspath(os.path.expanduser(a.terms_db)) if a.terms_db else None
-    if terms_db and not os.path.isfile(terms_db):
+    terms_db = os.path.abspath(os.path.expanduser(a.terms_db))
+    if not os.path.isfile(terms_db):
         print("에러 — 용어 사전이 없다: %s" % terms_db, file=sys.stderr)
         return 1
 

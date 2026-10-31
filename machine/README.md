@@ -12,6 +12,7 @@
 | [`codegraph_types.py`](codegraph_types.py) | `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳. |
 | [`contract_types.py`](contract_types.py) | 생성물 — tools/gen_contract_types.py 가 contracts/mode1-artifacts.v1.json 에서 낸다. 손대지 마라. |
 | [`declmap.py`](declmap.py) | 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다. |
+| [`evidence.py`](evidence.py) | 대상 저장소에 봉인된 Mode 1 산출물이 계약대로 있는지 판정하고, 봉인 뒤 소스가 움직였는지 알린다. |
 | [`facts.py`](facts.py) | codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다. |
 | [`file_cache.py`](file_cache.py) | 파일 통독 캐시. |
 | [`fix_citation_paths.py`](fix_citation_paths.py) | 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다. |
@@ -24,6 +25,7 @@
 | [`terms_db.py`](terms_db.py) | 코드베이스 용어 전수 수집. |
 | [`test_clang_doc.py`](test_clang_doc.py) | clang-doc 적재기의 회귀 시험. |
 | [`test_declmap.py`](test_declmap.py) | 선언·문서주석 추출기의 회귀 시험. |
+| [`test_evidence.py`](test_evidence.py) | 봉인 판정(`evidence.py`)의 구조 문제 · 낡음 · 한 줄 상태 시험. |
 | [`test_external_contracts.py`](test_external_contracts.py) | 바깥 도구의 동작에 기대는 주장을 고정한다. |
 | [`test_file_cache.py`](test_file_cache.py) | 파일 캐시의 회귀 시험. |
 | [`test_lang_select.py`](test_lang_select.py) | 언어 판별의 회귀 시험. |
@@ -121,6 +123,27 @@ clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6
 | `scan` | `(repo: str, lang: str, includes: list[str], doc_chars: int) -> tuple[dict[str, FileDecls], dict[str, int]]` |  |
 | `render` | `(result: dict[str, FileDecls]) -> str` | 사람과 LLM 이 그대로 읽을 수 있는 글자로. JSON 보다 짧다. |
 | `main` | `() -> int` |  |
+
+---
+
+## `evidence.py`
+
+대상 저장소에 봉인된 Mode 1 산출물이 계약대로 있는지 판정하고, 봉인 뒤 소스가 움직였는지 알린다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
+| `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
+| `source_files` | `(repo: str, exts: Sequence[str], skip: Sequence[str]) -> list[str]` | git 이 추적하는 파일 중 확장자가 맞고, 경로의 어느 성분(파일 이름 포함)도 `skip` 에 없는 것. 정렬해 낸다. |
+| `missing` | `(repo: str, sources: Sequence[str]) -> list[str]` | git 이 추적하는데 작업 트리에 없는 소스. 지운 것을 아직 커밋하지 않은 상태다. |
+| `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
+| `load_manifest` | `(repo: str) -> tuple[ArtifactManifest \| None, str]` | 매니페스트와 빈 글, 또는 None 과 읽지 못한 이유. |
+| `problems` | `(repo: str, need: Sequence[str]) -> list[str]` | 구조 문제. 비면 봉인을 근거로 쓸 수 있다. |
+| `staleness` | `(repo: str) -> list[str]` | 봉인 뒤 소스의 움직임. 매니페스트에 적힌 규칙으로 다시 모은다 — Mode 1 을 몰라도 된다. |
+| `uncommitted` | `(repo: str) -> list[str]` | 봉인 파일 중 작업 트리에서 바뀌었거나 추적되지 않은 것. 비면 커밋된 봉인이다. |
+| `warnings` | `(repo: str, m: ArtifactManifest) -> list[str]` | 낡음 — 멈추지 않는 것들. 소스 움직임 · 미커밋 · 뒤 실행 실패. |
+| `status_line` | `(repo: str, need: Sequence[str]) -> str` | `--status` 의 한 줄. 어느 경우든 예외 없이 글 하나를 돌려준다. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | 구조 문제면 1 과 사람이 칠 명령, 아니면 낡음을 경고로 찍고 0. `--status` 는 늘 0 이다. |
 
 ---
 
@@ -392,6 +415,37 @@ clang-doc 적재기의 회귀 시험.
 | `test_skip_dirs_covers_build_and_cache` | `() -> None` | 빌드 산출물과 캐시 디렉토리가 거름망에 들어 있다. |
 | `test_first_party_rejects_qt_type_seen_inside_repo` | `() -> None` | 저장소 안에서 보였어도 git 이 추적하지 않는 파일의 타입은 1차가 아니다. |
 | `test_first_party_accepts_tracked_global_namespace_type` | `(tmp_path: Path) -> None` | git 이 추적하는 파일에서 정의된 전역 네임스페이스 타입은 1차다. |
+
+---
+
+## `test_evidence.py`
+
+봉인 판정(`evidence.py`)의 구조 문제 · 낡음 · 한 줄 상태 시험.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> None` |  |
+| `read_json` | `(path: str) -> dict[str, Any]` |  |
+| `write_json` | `(path: str, doc: dict[str, Any]) -> None` |  |
+| `append` | `(path: str, text: str) -> None` |  |
+| `sealed` | `(tmp_path: Path, kinds: tuple[str, ...] = ('terms-db', 'wiki')) -> str` |  |
+| `test_봉인이_맞으면_문제도_낡음도_없다` | `(tmp_path: Path)` |  |
+| `test_봉인이_없으면_문제다` | `(tmp_path: Path)` |  |
+| `test_계약_판이_다르면_문제다` | `(tmp_path: Path)` |  |
+| `test_필요한_종류가_봉인에_없으면_문제다` | `(tmp_path: Path)` |  |
+| `test_봉인_뒤_산출물을_고치거나_장을_더하면_문제다` | `(tmp_path: Path)` |  |
+| `test_소스가_움직이면_낡음이지_문제가_아니다` | `(tmp_path: Path)` |  |
+| `test_미추적_파일은_낡음에_넣지_않는다` | `(tmp_path: Path)` |  |
+| `test_추적되는데_지운_파일은_사라짐이다` | `(tmp_path: Path)` |  |
+| `test_hash_object_가_실패한_파일은_읽기실패다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_원고_커밋은_낡음이_아니다` | `(tmp_path: Path)` |  |
+| `test_terms_db_가_계약_꼴이_아니면_문제다` | `(tmp_path: Path)` |  |
+| `test_main_은_낡음을_경고로만_찍고_목록에_싣는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_main_은_구조_문제면_1_과_사람이_칠_명령을_낸다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_미커밋_봉인은_경고다` | `(tmp_path: Path)` |  |
+| `test_뒤_실행_실패_표식은_경고다` | `(tmp_path: Path)` |  |
+| `test_status_는_있음_깨짐_없음을_한_줄로_내고_늘_0이다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_status_는_git_밖이어도_한_줄을_내고_0이다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 
 ---
 
