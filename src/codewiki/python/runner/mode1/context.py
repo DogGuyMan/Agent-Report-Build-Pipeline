@@ -1,0 +1,336 @@
+"""Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다."""
+import os
+import tomllib
+from dataclasses import dataclass, field
+from typing import Literal, NotRequired, TypedDict
+
+import msgspec
+from core import pipeline as P
+import survey_plan
+import warmup
+from manifest import ArtifactManifest
+from mode1.diff import WarmupDiff
+from mode1.resume import ResumeDoc
+
+# 이 파일은 <ROOT>/src/codewiki/python/runner/mode1/ 에 있다. 저장소 뿌리는 그 넷 위다 — 박지 않고 계산한다.
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+
+# Mode 1 LLM 단계의 프롬프트 리소스. 단계마다 `prompt_names` 로 자기 것을 선언한다.
+PROMPT_DIR = os.path.join(ROOT, "resource", "codewiki", "prompts")
+
+
+class ModelsConfig(TypedDict):
+    """`[models]` — 배치 · 목차 · 장 세션의 Model 과 `lang-hint` 의 Model."""
+    sessions: str
+    lang_hint: str
+
+
+class EstimateConfig(TypedDict):
+    """`[estimate]` — 배치당 비용 어림(USD)의 하한과 상한."""
+    usd_per_batch_min: float
+    usd_per_batch_max: float
+
+
+class Mode1Config(TypedDict):
+    """`resource/codewiki/config.toml`."""
+    models: ModelsConfig
+    estimate: EstimateConfig
+
+
+CONFIG_PATH = os.path.join(ROOT, "resource", "codewiki", "config.toml")
+
+
+def load_config(path: str = CONFIG_PATH) -> Mode1Config:
+    """설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다."""
+    with open(path, "rb") as f:
+        return msgspec.toml.decode(f.read(), type=Mode1Config)
+
+
+# 레코드의 칸은 배치 세션이 채우므로 못 박지 않는다. 값은 `object` 이므로 읽는 자리에서 좁힌다.
+Record = dict[str, object]
+Records = dict[str, Record]
+
+# 배치 세션이 샤드에 쓰는 레코드의 꼴. 프롬프트의 "레코드 계약" 과 같은 칸이고, 기계가 이 형으로
+# 샤드를 검문한다. `method` 는 코드 지도(pycalls)가 내는 종류라 함께 받는다.
+RecordKind = Literal["file", "module", "function", "method", "class", "struct", "enum", "interface",
+                     "delegate", "record", "external", "artifact", "key", "concept"]
+UseKind = Literal["dependency", "inheritance", "aggregation", "composition", "association", "realization"]
+Confidence = Literal["HIGH", "MEDIUM", "LOW"]
+
+
+class ShardUse(TypedDict):
+    to: str
+    kind: UseKind
+    label: str | None
+    where: str
+
+
+class ShardRecord(TypedDict):
+    """`where` 는 `module` · `external` 만 없어도 된다 — 그 규칙은 형이 아니라 검문이 본다."""
+    kind: RecordKind
+    module: str | None
+    where: NotRequired[str]
+    means: str
+    does: NotRequired[str]
+    uses: list[ShardUse]
+    confidence: Confidence
+    source: Literal["reading"]
+    # 1패스가 의존 대상을 열지 않고 시그니처로 얕게 쓴 레코드. 값은 그 의존 대상들의 이름.
+    # 2패스가 다듬으면 뗀다. 기계는 이 칸으로 미해결 표를 만든다.
+    shallow: NotRequired[list[str]]
+
+
+ShardRecords = dict[str, ShardRecord]
+
+# 샤드 검문이 내는 결함 하나. 격리 사유(`.json.bad.why`)와 재조사 프롬프트가 같은 꼴을 쓴다.
+FaultKind = Literal["missing", "malformed", "schema", "where", "coverage"]
+
+
+class ShardFault(TypedDict):
+    """`at` 은 결함의 자리 — 문법이면 `byte N`, 꼴이면 `$[...].칸`, where 면 레코드 키."""
+    kind: FaultKind
+    batch: str
+    path: str
+    at: str
+    detail: str
+    fix: str
+
+
+# 결함 표 — 결함 줄 꼴과, 결함 갈래마다 고치는 법 · 늘 같은 결함 설명. 글은 모두 Jinja2 꼴이다.
+FAULTS_PATH = os.path.join(ROOT, "resource", "codewiki", "faults.toml")
+
+
+class FaultTable(TypedDict):
+    """`faults.toml` — `line` 은 결함 하나를 찍는 꼴, `kind` 는 갈래마다 `fix` 와 `detail…` 글."""
+    line: str
+    kind: dict[FaultKind, dict[str, str]]
+
+
+def load_fault_table(path: str = FAULTS_PATH) -> FaultTable:
+    """결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외."""
+    with open(path, "rb") as f:
+        return msgspec.convert(tomllib.load(f), FaultTable)
+
+
+class SymbolRow(TypedDict):
+    """배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다."""
+    name: str
+    kind: str
+    file: str
+    line: str
+    deps: list[str]
+
+
+class DepRow(TypedDict):
+    """배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다."""
+    name: str
+    means: str
+
+
+class PendingRow(TypedDict):
+    """배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들."""
+    name: str
+    kind: str
+    file: str
+    line: str
+
+
+class Pass2DepRow(TypedDict):
+    """2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다."""
+    name: str
+    means: str
+    does: str
+
+
+class RetryInputs(TypedDict):
+    """재조사 절의 값 — 지난 시도의 결함 줄들(`fault_line`)과 격리된 샤드 자리. `faults` 가 비면 절이 실리지 않는다."""
+    faults: list[str]
+    bad: str
+
+
+class LowerPageRow(TypedDict):
+    """위키 장 프롬프트의 이미 선 장 한 줄 — 파일명과 제목."""
+    fname: str
+    title: str
+
+
+class UnresolvedRow(TypedDict):
+    """`unresolved.csv` 의 한 줄 — 얕게 쓴 레코드(`key`) 하나가 기다리는 의존 대상(`dep`) 하나.
+
+    `into` 는 `key` 의 피의존수(다른 파일에서 들어오는 간선), `priority` 는 그 파일의 가중치.
+    `status` 는 shallow(대상이 아직 없다) · queued(2패스에 들어갔다) · resolved(대상이 생겼다) ·
+    unknown(어느 계획에도 없는 이름 — 영원히 안 생긴다).
+    """
+    file: str
+    key: str
+    dep: str
+    priority: float
+    into: int
+    status: Literal["shallow", "queued", "resolved", "unknown"]
+
+
+class DroppedUse(TypedDict):
+    """`dropped-uses.csv` 의 한 줄 — 병합 보정이 레코드에서 떼어 낸 `uses[]` 하나 또는 `shallow` 이름 하나.
+
+    `to` 는 떼어 낸 대상 이름(노드 id 였으면 이름으로 바꾼 뒤). `why` 는 unknown-target(어느 레코드 키도
+    계획 이름도 아니다 — stdlib·서드파티·짧은 이름) · unknown-shallow(같은 사유, `shallow` 칸).
+    """
+    file: str
+    key: str
+    to: str
+    label: str
+    where: str
+    why: Literal["unknown-target", "unknown-shallow"]
+
+
+class WikiPage(TypedDict):
+    """`outline.json` 의 장 하나. 목차 세션이 쓰는 파일이라 제목과 심볼은 빠질 수 있다."""
+
+    file: str
+    title: NotRequired[str]
+    symbols: NotRequired[list[str]]
+
+
+Pages = list[WikiPage]
+
+
+def _no_records() -> Records:
+    """`field(default_factory=dict)` 는 원소 형을 잃는다. 형이 붙은 빈 사전을 낸다."""
+    return {}
+
+
+def _no_pages() -> Pages:
+    return []
+
+
+def _no_ints() -> list[int]:
+    return []
+
+
+def _no_levels() -> dict[str, int]:
+    return {}
+
+
+def _no_strs() -> set[str]:
+    return set()
+
+
+def _no_names() -> list[str]:
+    return []
+
+
+@dataclass
+class Mode1Context(P.RunContext):
+    """칸마다 이름과 형이 있다. 자루(dict)는 없다."""
+    repo: str = ""
+    target: int = 8
+    hops: int = 1
+    cold: bool = False
+    strategy: Literal["layer", "file"] = "layer"     # annotate-symbols 를 위상 층으로 돌지, 파일 하나 = 세션 하나로 돌지
+    # 단계 사이를 건너다니는 값. 채우는 단계 → 읽는 단계.
+    proposed: str | None = None                      # lang-hint → lang-decide
+    targets: list[str] | None = None                 # detect-changes → schedule-batches · annotate-symbols
+    entries: warmup.Manifest | None = None           # detect-changes → snapshot-sources
+    warmup_cache: str | None = None                  # detect-changes → snapshot-sources
+    tracked_n: int = 0                               # detect-changes → annotate-symbols (프롬프트 쪽지)
+    plan: survey_plan.SurveyPlan | None = None       # schedule-batches → annotate-symbols · write-wiki
+    survey_ok: bool = False                          # annotate-symbols → snapshot-sources
+    baseline: Records = field(default_factory=_no_records)   # annotate-symbols 층 사이
+    merged: Records = field(default_factory=_no_records)                     # annotate-symbols 층 사이
+    wiki_pages: Pages = field(default_factory=_no_pages)                     # write-wiki 층 사이
+    wiki_levels: list[int] = field(default_factory=_no_ints)
+    wiki_level_of: dict[str, int] = field(default_factory=_no_levels)
+    wiki_done: Pages = field(default_factory=_no_pages)
+    wiki_stale: set[str] = field(default_factory=_no_strs)     # 기준 뒤 바뀐 파일을 인용하거나 해시를 적어 두지 않은 개요 장 — 다시 쓴다
+    wiki_backed_up: list[str] = field(default_factory=_no_names)   # 다시 쓰기 전에 .bak 으로 옮긴 자리(`docs/wiki` 기준)
+    wiki_removed: list[str] = field(default_factory=_no_names)     # 다시 쓰기 전에 지운 낡은 장 — write-wiki 가 쓴 그대로였다
+    wiki_unknown: list[str] = field(default_factory=_no_names)     # 신선도를 모르는 채 남는 장 — 있으면 따라잡았다고 적지 않는다
+    wiki_first_bake: bool = False                                  # 기준도 기존 장도 없는 처음 굽기 — 층마다 지금 지문을 기준으로 적는다
+    wiki_unwritten: list[str] = field(default_factory=_no_names)   # 세션은 성공했는데 장이 없다 — 있으면 따라잡았다고 적지 않는다
+    verified: set[str] = field(default_factory=_no_strs)     # verify-terms · verify-wiki → seal-artifacts (검사를 통과한 종류)
+
+
+def raw_dir(c: Mode1Context) -> str:
+    return os.path.join(c.repo, "out", "codegraph-raw")
+
+
+# ── 산출물의 꼴. `Artifact.schema` 가 되어 경계에서 msgspec 이 검증한다 ─────────
+
+
+class CodeGraphDoc(TypedDict):
+    """`codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과
+    어긋나(`file` 에 `null` 이 온다) 러너는 열지 않는다 — `survey_plan.plan` 에 넘길 때 `cast` 한다.
+    """
+    nodes: list[dict[str, object]]
+    edges: list[dict[str, object]]
+
+
+class LangSelect(TypedDict):
+    """`lang-select.json`. `language` 는 못 골랐으면 `null` 이다."""
+    language: str | None
+    collector: str
+
+
+class Outline(TypedDict):
+    """`outline.json`."""
+    pages: list[WikiPage]
+
+
+def reading_path(repo: str, root: str) -> str:
+    """전수조사 원본 `terms-reading.json` 의 자리.
+
+    대상 저장소는 `<repo>/docs/codegraph/` 아래에 둔다. **이 저장소 자신만 다르다** —
+    자기 것은 `src/codewiki/python/machine/` 으로 옮겨져 있어 자기호스팅일 때 자리가 갈린다.
+    """
+    if os.path.abspath(repo) == os.path.abspath(root):
+        return os.path.join(root, "resource", "codewiki", "terms-reading.json")
+    return os.path.join(repo, "docs", "codegraph", "terms-reading.json")
+
+
+# ── 산출물 선언. 자리는 ctx 가 정한다 ────────────────────────────────────
+
+LANG_SELECT = P.Artifact[Mode1Context](
+    "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), LangSelect)
+CODEGRAPH = P.Artifact[Mode1Context](
+    "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), CodeGraphDoc)
+SNAPSHOT = P.Artifact[Mode1Context](
+    "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
+CHANGES = P.Artifact[Mode1Context](
+    "changes.json", lambda c: os.path.join(raw_dir(c), "changes.json"), WarmupDiff)
+BATCHES = P.Artifact[Mode1Context](
+    "batches.json", lambda c: os.path.join(raw_dir(c), "batches.json"), survey_plan.SurveyPlan)
+FILE_PRIORITY = P.Artifact[Mode1Context](
+    "file-priority.csv", lambda c: os.path.join(raw_dir(c), "file-priority.csv"))
+UNRESOLVED = P.Artifact[Mode1Context](
+    "unresolved.csv", lambda c: os.path.join(raw_dir(c), "unresolved.csv"))
+DROPPED = P.Artifact[Mode1Context](
+    "dropped-uses.csv", lambda c: os.path.join(raw_dir(c), "dropped-uses.csv"))
+RECORD_SCHEMA = P.Artifact[Mode1Context](
+    "record-schema.json", lambda c: os.path.join(raw_dir(c), "record-schema.json"))
+READING = P.Artifact[Mode1Context](
+    "terms-reading.json", lambda c: reading_path(c.repo, c.root), Records)
+TERMS_DB = P.Artifact[Mode1Context](
+    "terms-db.json", lambda c: os.path.join(raw_dir(c), "terms-db.json"))
+OUTLINE = P.Artifact[Mode1Context](
+    "outline.json", lambda c: os.path.join(raw_dir(c), "outline.json"), Outline)
+WIKI_DIR = P.Artifact[Mode1Context](
+    "docs/wiki", lambda c: os.path.join(c.repo, "docs", "wiki"))
+RESUME = P.Artifact[Mode1Context](
+    "resume.json", lambda c: os.path.join(raw_dir(c), "resume.json"), ResumeDoc)
+MANIFEST = P.Artifact[Mode1Context](
+    "manifest.json", lambda c: os.path.join(c.repo, "docs", "codegraph", "manifest.json"), ArtifactManifest)
+WIKI_STATE = P.Artifact[Mode1Context](
+    "wiki-state.json", lambda c: os.path.join(raw_dir(c), "wiki-state.json"))
+
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
+             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE]
+
+
+def snapshot_path(c: Mode1Context) -> str:
+    """읽을 지문 파일. `snapshot.json` 이 없고 옛 이름 `warmup.json` 이 있으면 그것을 읽는다.
+
+    쓰는 것은 늘 `snapshot.json` 이다 — 한 번 돌면 이주가 끝난다.
+    """
+    new = SNAPSHOT.locate(c)
+    old = os.path.join(raw_dir(c), "warmup.json")
+    return old if not os.path.exists(new) and os.path.exists(old) else new

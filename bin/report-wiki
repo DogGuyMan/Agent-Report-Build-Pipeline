@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+from core.dispatch import run_dispatch
+
+run_dispatch(
+    root=ROOT,
+    argv=sys.argv[1:],
+    table={
+        "prep": "src/codewiki/python/runner/wiki/prep.py",
+        "build": "src/codewiki/python/runner/wiki/build.py",
+        "check": "src/codewiki/python/runner/wiki/check.py",
+    },
+    usage="사용법 — report-wiki <prep|build|check> <저장소 경로>"
+)

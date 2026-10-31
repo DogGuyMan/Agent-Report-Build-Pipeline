@@ -1,0 +1,207 @@
+{
+  "contract": "mode1-artifacts",
+  "schemas": {
+    "manifest.json": {
+      "$defs": {
+        "ArtifactEntry": {
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        "ArtifactManifest": {
+          "properties": {
+            "artifacts": {
+              "additionalProperties": {
+                "items": {
+                  "$ref": "#/$defs/ArtifactEntry"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            "contract": {
+              "type": "string"
+            },
+            "inputs": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "producer_commit": {
+              "type": "string"
+            },
+            "skip_dirs": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "source_commit": {
+              "type": "string"
+            },
+            "source_exts": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "superseded_by": {
+              "$ref": "#/$defs/SupersededBy"
+            },
+            "version": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "artifacts",
+            "contract",
+            "inputs",
+            "producer_commit",
+            "skip_dirs",
+            "source_commit",
+            "source_exts",
+            "version"
+          ],
+          "type": "object"
+        },
+        "SupersededBy": {
+          "properties": {
+            "at": {
+              "type": "string"
+            },
+            "producer_commit": {
+              "type": "string"
+            },
+            "stage": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "producer_commit",
+            "stage"
+          ],
+          "type": "object"
+        }
+      },
+      "$ref": "#/$defs/ArtifactManifest"
+    },
+    "terms-db.json": {
+      "$defs": {
+        "DbUse": {
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "where": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "label",
+            "to",
+            "where"
+          ],
+          "type": "object"
+        },
+        "TermRecord": {
+          "properties": {
+            "confidence": {
+              "type": "string"
+            },
+            "does": {
+              "type": "string"
+            },
+            "hotspot": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "means": {
+              "type": "string"
+            },
+            "module": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "neighbors": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "source": {
+              "type": "string"
+            },
+            "uses": {
+              "items": {
+                "$ref": "#/$defs/DbUse"
+              },
+              "type": "array"
+            },
+            "where": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "means",
+            "module",
+            "neighbors",
+            "source",
+            "uses",
+            "where"
+          ],
+          "type": "object"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/TermRecord"
+      },
+      "type": "object"
+    }
+  },
+  "types": {
+    "manifest.json": "ArtifactManifest",
+    "terms-db.json": "TermsDb"
+  },
+  "version": 1
+}

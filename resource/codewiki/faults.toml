@@ -1,0 +1,28 @@
+# 샤드 검문의 결함 표. 글은 모두 Jinja2 꼴이고 `AnnotateSymbolsStage`(survey.py) 가 렌더한다.
+# [kind.<갈래>] 의 갈래 이름은 `FaultKind`(context.py) 와 같다.
+#   fix       고치는 법 한 줄. 재조사 절 · check_shard.py 출력 · .json.bad.why 에 실린다
+#   detail…   결함 설명이 늘 같은 글인 갈래에만 있다. schema · malformed 의 설명은 msgspec 의 오류 글이다
+
+# 결함 하나를 찍는 꼴 — 재조사 절 · stderr · check_shard.py 출력이 이 줄을 쓴다. 값은 결함 하나 `f`. 끝 줄바꿈이 없다.
+line = '''
+[{{ f.kind }}] {{ f.at }} — {{ f.detail }}
+    → {{ f.fix }}'''
+
+[kind.missing]
+detail = '샤드 없음'
+fix = '샤드 파일이 없다. 지정된 자리에 {"키": 레코드} 꼴로 하나 만든다.'
+
+[kind.malformed]
+fix = 'JSON 문법이 깨졌다. 그 바이트 자리를 연다 — 문자열 안 따옴표는 \" 로, 줄바꿈은 \n 으로 쓴다.'
+
+[kind.schema]
+fix = '필수 칸이 빠졌거나 어휘 밖의 값이다. record-schema.json 의 required 와 enum 에 맞춘다.'
+
+[kind.where]
+detail = 'where 없음 (kind {{ kind }})'    # 값 `kind` 는 where 가 빠진 레코드의 kind
+fix = 'where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수 있다.'
+
+[kind.coverage]
+detail-not-in-shard = '계획에 있는데 샤드에 없다'
+detail-not-in-plan = '샤드에 있는데 계획에 없다'
+fix = '네 배치의 심볼 목록과 샤드의 키를 하나씩 대조한다. 빠진 것은 읽어 넣고, 목록 밖의 것은 뺀다.'

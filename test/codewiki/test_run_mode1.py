@@ -1,0 +1,587 @@
+"""Mode 1 실행기의 회귀 테스트.
+
+재는 자리는 **틀려도 오류가 나지 않는다** — 조용히 0이나 절반을 내고 표까지 잘 그려진다.
+그래서 여기서 본다: 단계 고르기 · 토큰 합(캐시 둘을 더하는가) · 실패 판정(종료 코드 0 인
+실패를 잡는가) · 투영이 정적 `codegraph.json` 을 덮어쓰지 않는가 · 층 병렬과 샤드 병합.
+
+  python -m pytest test/codewiki/test_run_mode1.py -q      # .venv 를 켠 뒤
+"""
+import json
+import os
+import sys
+import time
+from pathlib import Path
+from typing import cast
+
+import pytest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "src", "codewiki", "python", "runner"), os.path.join(ROOT, "src", "codewiki", "python", "machine"),
+                os.path.join(ROOT, "src", "codewiki", "python", "viz")]
+import run_mode1 as R  # noqa: E402
+from survey_plan import PlanBatch, SurveyPlan  # noqa: E402
+
+
+# ── 2. 토큰 합 — 캐시를 빼먹지 않는다
+def test_usage_totals_include_cache():
+    """캐시 읽기와 캐시 생성까지 더해야 실제로 흘러간 토큰이다."""
+    got = R.normalize_usage({
+        "usage": {"input_tokens": 9, "output_tokens": 52,
+                  "cache_read_input_tokens": 13595, "cache_creation_input_tokens": 17213},
+        "total_cost_usd": 0.036, "num_turns": 1, "duration_api_ms": 1657,
+    })
+    assert got["input"] == 9
+    assert got["output"] == 52
+    assert got["cache_read"] == 13595
+    assert got["cache_write"] == 17213
+    assert got["total"] == 9 + 52 + 13595 + 17213
+    assert got["cost_usd"] == 0.036
+    assert got["turns"] == 1
+
+
+def test_usage_of_a_machine_stage_is_all_zero():
+    """기계 단계는 토큰을 쓰지 않는다. None 이 아니라 0 이어야 표가 더해진다."""
+    z = R.normalize_usage(None)
+    assert z["total"] == 0 and z["cost_usd"] == 0.0 and z["turns"] == 0
+
+
+def test_usage_tolerates_missing_fields():
+    assert R.normalize_usage({"usage": {}})["total"] == 0
+
+
+def test_usage_sums_across_stages():
+    a = R.normalize_usage({"usage": {"input_tokens": 1, "output_tokens": 2}, "total_cost_usd": 0.5})
+    b = R.normalize_usage({"usage": {"output_tokens": 3}, "total_cost_usd": 0.25})
+    s = R.sum_usage([a, b])
+    assert s["total"] == 6 and s["cost_usd"] == 0.75
+
+
+# ── 3. 실패 판정 — 종료 코드만 믿지 않는다
+def test_agent_result_is_a_failure_when_is_error_is_set():
+    ok, why = R.agent_verdict(0, {"subtype": "success", "is_error": False})
+    assert ok and why == ""
+    bad, why = R.agent_verdict(0, {"subtype": "error_max_turns", "is_error": True})
+    assert not bad and "error_max_turns" in why
+
+
+def test_agent_result_is_a_failure_when_the_process_died():
+    ok, why = R.agent_verdict(1, {"subtype": "success", "is_error": False})
+    assert not ok and "종료 코드 1" in why
+
+
+def test_agent_result_is_a_failure_when_json_is_unreadable():
+    ok, why = R.agent_verdict(0, None)
+    assert not ok and "읽지" in why
+
+
+# ── 3.5 WarmUp — 언어 이름 다리
+def test_lang_of_bridges_the_two_naming_schemes(tmp_path: Path):
+    """코드 지도는 'csharp' 이라 적고 declmap 은 'cs' 로 안다. 이 한 칸이 어긋나면 단계가 죽는다."""
+    p = tmp_path / "codegraph.json"
+    p.write_text('{"language": "csharp"}', encoding="utf-8")
+    assert R.lang_of(str(p)) == "cs"
+
+
+def test_lang_of_passes_through_a_name_declmap_already_knows(tmp_path: Path):
+    p = tmp_path / "codegraph.json"
+    p.write_text('{"language": "cpp"}', encoding="utf-8")
+    assert R.lang_of(str(p)) == "cpp"
+
+
+def test_lang_of_is_none_when_it_cannot_tell():
+    """모르는 언어와 없는 파일은 둘 다 None 이다 — 부르는 쪽이 단계를 건너뛴다. 실패가 아니다."""
+    assert R.lang_of("/없는/파일.json") is None
+    assert R.lang_of(None) is None
+
+
+def test_seed_includes_position_only_files():
+    """함수 본문만 바꾼 변경은 '위치만' 으로 온다 — `warmup.decl_hash` 가 (kind, name)
+    만 해싱하기 때문이다. 이 갈래를 빼면 레코드의 does 가 조용히 낡는다.
+    """
+    판정 = {"유효": ["a.cpp"], "재읽기": ["b.cpp"], "위치만": ["c.cpp"], "삭제됨": ["d.cpp"]}
+    assert R.changed_seed(판정) == ["b.cpp", "c.cpp"]
+
+
+def test_seed_excludes_valid_and_deleted():
+    """유효는 읽을 것이 없고, 삭제됨은 읽을 파일 자체가 없다."""
+    seed = R.changed_seed({"유효": ["a"], "재읽기": [], "위치만": [], "삭제됨": ["d"]})
+    assert seed == []
+
+
+def test_seed_is_sorted_and_deduplicated():
+    """같은 파일이 두 갈래에 들어와도 한 번만 센다 — 프롬프트에 두 번 실리면 안 된다."""
+    assert R.changed_seed({"재읽기": ["z", "a"], "위치만": ["a"]}) == ["a", "z"]
+
+
+def test_seed_tolerates_missing_buckets():
+    assert R.changed_seed({}) == []
+
+
+def _배치() -> PlanBatch:
+    return {"id": "L1-B00", "files": ["core/net.py"],
+            "symbols": [{"id": "send", "name": "send", "file": "core/net.py",
+                         "line": 42, "kind": "function", "in_cycle": False,
+                         "depends_on": ["encode"]}]}
+
+
+def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
+    """warmup 이 판정한 목록이 있으면 증분 조사다. 배치 세션이 그것을 알아야
+    기존 레코드의 means/does 를 함부로 다시 쓰지 않는다.
+    """
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [], targets=["core/a.cpp"], total=77)
+    assert "core/a.cpp" in p
+    assert "증분" in p
+
+
+def test_배치_프롬프트는_범위가_없으면_전량_조사다():
+    """warmup 이 못 돌았거나 백지 실행이면 범위 지시문이 붙지 않는다."""
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [])
+    assert "증분" not in p
+
+
+def test_범위_절은_목록과_비율을_싣고_목록_밖을_읽지_말라고_한다():
+    """에이전트가 범위를 알려면 목록과 비율이 둘 다 있어야 한다."""
+    p = R.survey_batch_prompt("/r", "/root", _배치(), [], targets=["core/a.cpp", "server/b.h"], total=77)
+    assert "\n\n  core/a.cpp\n  server/b.h\n\n" in p
+    assert "**아래 2개 파일에 걸린 레코드만** 다시 만든다. 추적 파일 77개 중 2개다." in p
+    assert "읽지 마라" in p          # 목록 밖을 읽지 말라고 분명히 말한다
+
+
+def test_범위가_비었거나_없으면_범위_절이_없다():
+    assert "## 범위" not in R.survey_batch_prompt("/r", "/root", _배치(), [], targets=[], total=77)
+    assert "## 범위" not in R.survey_batch_prompt("/r", "/root", _배치(), [], targets=None, total=77)
+
+
+# ── 4. 에이전트 호출 — 하나만, 그리고 대상 저장소를 볼 수 있게
+def test_claude_argv_is_headless_json_and_names_the_model():
+    argv = R.claude_argv(model="opus", repo="/어느/저장소", extra_dirs=["/도구/뿌리"])
+    assert argv[0] == "claude"
+    assert "-p" in argv
+    assert argv[argv.index("--output-format") + 1] == "json"
+    assert argv[argv.index("--model") + 1] == "opus"
+    # 대상 저장소와 도구 저장소를 둘 다 읽어야 한다 — 한쪽만 주면 재료를 못 본다
+    dirs = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
+    assert "/어느/저장소" in dirs and "/도구/뿌리" in dirs
+
+
+def test_claude_argv_does_not_pass_the_prompt_on_the_command_line():
+    """프롬프트는 표준 입력으로 준다. 명령줄에 실으면 길이 한계와 따옴표 지옥에 걸린다."""
+    argv = R.claude_argv(model="opus", repo="/r", extra_dirs=[])
+    assert not any(len(a) > 200 for a in argv)
+
+
+def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
+    """배치 세션은 자기 심볼만 읽고 자기 샤드에만 쓴다 — terms-reading.json 을 직접
+    고치면 동시에 도는 다른 배치가 서로를 지운다.
+    """
+    p = R.survey_batch_prompt(repo="/어느/저장소", root="/도구/뿌리",
+                              batch=_배치(), deps=[{"name": "encode", "means": "바이트로 바꾼다"}])
+    assert "/어느/저장소" in p and "/도구/뿌리" in p
+    assert "L1-B00" in p
+    assert "core/net.py" in p and "42" in p
+    assert "encode — 바이트로 바꾼다" in p           # 아래층 레코드를 발췌해 준다
+    assert "_shards/L1-B00.json" in p               # 쓰는 곳은 자기 샤드뿐
+    assert "terms-reading.json" in p                # 열지도 고치지도 말라고 적혀 있다
+    assert "file_cache.py" in p                     # 통독 캐시를 먼저 본다
+    assert "이름으로 보아" in p                       # 금지표
+    assert "confidence" in p
+
+
+def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한다():
+    """층0 은 의존 대상이 없다. 빈 칸을 그냥 두면 세션이 무엇이 빠졌는지 헷갈린다."""
+    batch: PlanBatch = {"id": "L0-B00", "files": ["a.py"],
+                        "symbols": [{"id": "f", "name": "f", "file": "a.py", "line": 1,
+                                     "kind": "function", "in_cycle": False,
+                                     "depends_on": []}]}
+    assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, [])
+
+
+def test_비노드_프롬프트는_심볼이_아닌_종류만_말한다():
+    """K5 — file · module · artifact · key · concept 는 층 축이 없다.
+    심볼 레코드가 재료이므로 심볼 층이 전부 끝난 뒤에 돈다."""
+    p = R.nonnode_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    for kind in ["file", "module", "artifact", "key", "concept"]:
+        assert kind in p
+    assert "_shards/" in p
+    assert "이름으로 보아" in p
+
+
+def test_의존_발췌는_아래층에_있는_것만_낸다():
+    """전량을 주입하면 층이 올라갈수록 프롬프트가 부풀어 캐시 이점이 사라진다."""
+    merged = {"encode": {"means": "바이트로 바꾼다"}, "무관": {"means": "상관없다"}}
+    # 일부러 모자란 배치다 — `dep_excerpt` 가 보는 열쇠(`symbols[].depends_on`)만 담았다.
+    # `id` · `files` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
+    batch = cast(PlanBatch, {"symbols": [{"id": "send", "depends_on": ["C1", "C9"]}]})
+    got = R.dep_excerpt(merged, batch, {"C1": "encode", "C9": "아직없음"})   # depends_on 은 id, 표가 이름으로 건넨다
+    assert got == [{"name": "encode", "means": "바이트로 바꾼다"}]   # 무관 · 아직없음 은 빠진다
+
+
+def test_의존_발췌는_아무것도_없으면_빈_목록():
+    # 위와 같은 이유로 부분 배치다
+    assert R.dep_excerpt({}, cast(PlanBatch, {"symbols": [{"id": "a", "depends_on": []}]}), {}) == []
+
+
+# ── 5. 투영이 정적 codegraph 를 덮어쓰지 않게
+def test_terms_argv_passes_the_static_codegraph_positionally():
+    """`--reading` 만 주면 투영이 codegraph.json 을 **덮어쓴다**. 실제로 겪은 사고다.
+
+    파일 시스템을 보지 않는 순수 함수다 — 없는 파일을 거르는 것은 부르는 쪽의 일이다.
+    """
+    argv = R.terms_argv(python="/py", root="/도구/뿌리", repo="/어느/저장소",
+                        codegraph="/어느/저장소/out/codegraph-raw/codegraph.json",
+                        reading="/어느/저장소/resource/codewiki/terms-reading.json")
+    assert argv[1].endswith("terms_db.py")
+    assert "/어느/저장소/out/codegraph-raw/codegraph.json" in argv
+    assert argv[argv.index("--reading") + 1].endswith("terms-reading.json")
+    assert argv[argv.index("--repo") + 1] == "/어느/저장소"
+
+
+# ── 6. 보고 — 재는 것이 목적이므로 표에 네 값이 다 있어야 한다
+def test_report_has_a_row_per_stage_and_a_total():
+    rows: list[R.StageRow] = [
+        {"stage": "prep", "seconds": 68.4, "usage": R.normalize_usage(None),
+         "ok": True, "why": ""},
+        {"stage": "agent", "seconds": 512.0, "ok": True, "why": "",
+         "usage": R.normalize_usage({"usage": {"input_tokens": 10, "output_tokens": 20,
+                                               "cache_read_input_tokens": 30,
+                                               "cache_creation_input_tokens": 40},
+                                     "total_cost_usd": 1.5, "num_turns": 7})},
+    ]
+    text = R.format_report(rows)
+    assert "prep" in text and "agent" in text
+    assert "1분 08.4초" in text        # 초가 아니라 사람이 읽는 꼴로 낸다
+    assert "100" in text            # 10+20+30+40 = 합계 토큰
+    assert "합계" in text
+    assert "1.5" in text or "1.50" in text
+
+
+def test_report_marks_a_failed_stage():
+    text = R.format_report([{"stage": "build", "seconds": 1.0, "ok": False,
+                             "why": "산문이 없다", "usage": R.normalize_usage(None)}])
+    assert "실패" in text and "산문이 없다" in text
+
+
+def test_report_marks_a_skipped_stage():
+    """건너뜀을 '성공' 으로 그리면 시간이 확 준 이유를 읽는 사람이 알 수 없다."""
+    text = R.format_report([{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
+                             "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)}])
+    assert "건너뜀" in text
+    assert "바뀐 파일 0개" in text
+    assert "실패" not in text
+
+
+def test_a_skipped_stage_does_not_break_the_total():
+    rows: list[R.StageRow] = [{"stage": "agent", "seconds": 0.0, "ok": True, "skipped": True,
+                               "why": "바뀐 파일 0개", "usage": R.normalize_usage(None)},
+                              {"stage": "build", "seconds": 2.0, "ok": True, "why": "",
+                               "usage": R.normalize_usage(None)}]
+    assert "합계" in R.format_report(rows)
+
+
+# ── 12. 층 병렬 — 동시에 몇 개까지 뜨는가
+def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch: pytest.MonkeyPatch):
+    """K4 — 한 층에서 동시에 8배치까지. 넘으면 rate limit 에 걸려 층 전체가 무너진다.
+
+    실제로 `claude` 를 부르지 않는다. `run_agent_with` 를 바꿔 끼워 **동시에 몇 개가
+    살아 있었는지**만 센다.
+    """
+    import threading
+    lock, live, peak = threading.Lock(), [0], [0]
+
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        time.sleep(0.02)
+        with lock:
+            live[0] -= 1
+        return 0.02, 0, {"usage": {"output_tokens": 1}, "num_turns": 1}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    jobs = [("L0-B%02d" % i, "글 %d" % i) for i in range(20)]
+    got = R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs, concurrency=3)
+    assert peak[0] <= 3
+    assert len(got) == 20
+
+
+def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch: pytest.MonkeyPatch):
+    """배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다."""
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        return 0.01, 0, {"usage": {}, "num_turns": 0}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    jobs = [("L0-B02", "다"), ("L0-B00", "가"), ("L0-B01", "나")]
+    labels = [row[0] for row in R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs)]
+    assert labels == ["L0-B00", "L0-B01", "L0-B02"]
+
+
+def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatch: pytest.MonkeyPatch):
+    """배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다."""
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        if label == "L0-B01":
+            raise RuntimeError("자식이 죽었다")
+        return 0.01, 0, {"usage": {}, "num_turns": 0}
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    jobs = [("L0-B00", "가"), ("L0-B01", "나"), ("L0-B02", "다")]
+    rows = R.run_layer("claude-sonnet-5-5", "/r", "/root", jobs)
+    bad = [r for r in rows if r[0] == "L0-B01"][0]
+    assert bad[2] != 0 and bad[3] is None      # (라벨, 초, 종료코드, 결과)
+    assert len(rows) == 3
+
+
+def test_빈_층은_LLM_Model을_부르지_않는다(monkeypatch: pytest.MonkeyPatch):
+    """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
+    def fake(model: str, repo: str, root: str, prompt: str,
+             timeout: float | None = None,
+             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+        pytest.fail("빈 층에서 LLM Model을 불렀다")
+
+    monkeypatch.setattr(R, "run_agent_with", fake)
+    assert R.run_layer("claude-sonnet-5-5", "/r", "/root", []) == []
+
+
+# ── 13. 샤드 병합 — 키 충돌은 전역을 보는 쪽만 푼다
+def _shard(tmp_path: Path, name: str, payload: R.Records) -> str:
+    import json as _j
+    d = tmp_path / "_shards"
+    d.mkdir(exist_ok=True)
+    (d / (name + ".json")).write_text(_j.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return str(d)
+
+
+def test_샤드를_하나로_합친다(tmp_path: Path):
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
+    _shard(tmp_path, "L0-B01", {"나": {"where": "b.py:1"}})
+    got = R.merge_shards(d, {})
+    assert sorted(got) == ["가", "나"]
+
+
+def test_키가_겹치면_양쪽_다_개명한다(tmp_path: Path):
+    """한쪽만 한정하면 나중에 또 겹친다. `main` 이 9파일이면 9개 전부 개명이다."""
+    d = _shard(tmp_path, "L0-B00", {"main": {"where": "app/gui.py:10"}})
+    _shard(tmp_path, "L0-B01", {"main": {"where": "core/net.py:20"}})
+    got = R.merge_shards(d, {})
+    assert "main" not in got
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
+def test_아래층_레코드를_보존한다(tmp_path: Path):
+    """층 k 의 병합이 층 <k 의 결과를 지우면 조사가 층마다 초기화된다."""
+    d = _shard(tmp_path, "L1-B00", {"위": {"where": "b.py:1"}})
+    got = R.merge_shards(d, {"아래": {"where": "a.py:1"}})
+    assert sorted(got) == ["아래", "위"]
+
+
+def test_이미_있는_키와_겹쳐도_양쪽_다_개명한다(tmp_path: Path):
+    """아래층이 이미 쓴 이름과 겹치는 경우다. 새 것만 한정하면 옛 것이 계속 모호하다."""
+    d = _shard(tmp_path, "L1-B00", {"main": {"where": "core/net.py:20"}})
+    got = R.merge_shards(d, {"main": {"where": "app/gui.py:10"}})
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
+def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path: Path):
+    """배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 20분을 버리지 않는다."""
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
+    (tmp_path / "_shards" / "L0-B01.json").write_text("{ 깨진", encoding="utf-8")
+    assert sorted(R.merge_shards(d, {})) == ["가"]
+
+
+def test_샤드_폴더가_없으면_있던_것을_그대로(tmp_path: Path):
+    assert R.merge_shards(str(tmp_path / "없다"), {"가": {}}) == {"가": {}}
+
+
+# ── 14. 위키도 같은 층 순서로 (K6)
+def test_심볼_층_표를_계획에서_뽑는다():
+    """페이지 층을 매기려면 심볼마다 층이 몇인지 알아야 한다."""
+    # 일부러 모자란 계획이다 — `symbol_layers` 가 보는 것은 층 번호와 심볼 id 뿐이라
+    # `totals` 와 나머지 심볼 칸을 채워 넣으면 이 시험이 무엇을 보는지가 흐려진다.
+    plan = cast(SurveyPlan, {"layers": [
+        {"level": 0, "batches": [{"id": "L0-B00", "symbols": [{"id": "encode"}]}]},
+        {"level": 1, "batches": [{"id": "L1-B00", "symbols": [{"id": "send"}]}]},
+        {"level": 2, "kind": "non-node", "batches": []},
+    ]})
+    assert R.symbol_layers(plan) == {"encode": 0, "send": 1}
+
+
+def test_페이지_층은_인용한_심볼의_최대():
+    """가장 위층 심볼 하나가 아직 안 다뤄졌으면 그 페이지는 아직 못 쓴다."""
+    sym = {"encode": 0, "send": 1, "retry": 3}
+    pages: list[R.WikiPage] = [{"file": "protocol.md", "symbols": ["encode", "send"]},
+                               {"file": "net.md", "symbols": ["retry", "encode"]}]
+    assert R.page_layers(pages, sym) == {"protocol.md": 1, "net.md": 3}
+
+
+def test_인용_심볼이_없는_페이지는_층0():
+    """index.md 처럼 개괄만 있는 장이다. 맨 먼저 써도 아무것도 앞지르지 않는다."""
+    assert R.page_layers([{"file": "index.md", "symbols": []}], {}) == {"index.md": 0}
+
+
+def test_모르는_심볼은_층을_올리지_않는다():
+    """카탈로그가 지어낸 이름 하나로 페이지가 맨 뒤로 밀리면 안 된다."""
+    assert R.page_layers([{"file": "a.md", "symbols": ["없는것"]}], {"x": 4}) == {"a.md": 0}
+
+
+def test_카탈로그_프롬프트는_계획_파일을_내라고_말한다():
+    p = R.wiki_catalogue_prompt(repo="/어느/저장소", root="/도구/뿌리")
+    assert "/어느/저장소" in p and "/도구/뿌리" in p
+    assert "outline.json" in p
+    assert "terms-db.json" in p          # 인용 검사를 통과한 재료를 본다
+    assert "index.md" in p
+    assert "symbols" in p                # 페이지마다 인용할 심볼 키를 적게 한다
+
+
+def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한다():
+    """재설명 대신 링크하게 하는 것이 층 순서를 지키는 이유다."""
+    page: R.WikiPage = {"file": "net.md", "title": "네트워크", "symbols": ["send"]}
+    p = R.wiki_page_prompt(repo="/어느/저장소", root="/도구/뿌리", page=page,
+                           lower_pages=[{"fname": "protocol.md", "title": "프로토콜"}])
+    assert "net.md" in p and "네트워크" in p
+    assert "protocol.md — 프로토콜" in p
+    assert "deep-wiki" in p
+    assert "사이트 조립은 하지" in p       # 그건 report-wiki build 의 일이다
+    assert "(경로:줄)" in p               # 로컬 인용 규격
+    assert "Sonnet 5.5" in p                # 서브에이전트를 띄운다면 같은 계열로
+
+
+def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
+    p = R.wiki_page_prompt("/r", "/root", {"file": "index.md", "title": "머리", "symbols": []}, [])
+    assert "첫 장" in p
+
+
+def test_페이지_프롬프트는_심볼을_쉼표로_잇고_없으면_개괄이라고_적는다():
+    page: R.WikiPage = {"file": "a.md", "title": "에이", "symbols": ["f", "g"]}
+    assert "  다룰 것 f, g\n" in R.wiki_page_prompt("/r", "/root", page, [])
+    assert "  다룰 것 (개괄 — 특정 심볼 없음)\n" in R.wiki_page_prompt("/r", "/root", {"file": "i.md"}, [])
+
+
+def test_페이지_프롬프트는_이미_선_장을_줄마다_싣는다():
+    p = R.wiki_page_prompt("/r", "/root", {"file": "a.md"},
+                           [{"fname": "x.md", "title": "엑스"}, {"fname": "y.md", "title": "와이"}])
+    assert "링크한다\n\n  - x.md — 엑스\n  - y.md — 와이\n\n" in p
+
+
+# ── 15. 병렬이면 행의 초 합계는 벽시계가 아니다
+def test_보고표는_진짜_벽시계를_따로_받는다():
+    """`wall_seconds` 를 주면 합계 줄이 그 값을 쓰고, 안 주면 행의 초를 더한다 —
+    `run_mode2.py` 와 `run_mode1_5.py` 가 인자 없이 부르므로 기본값이 있어야 한다.
+    """
+    rows: list[R.StageRow] = [{"stage": "survey/L0-B00", "seconds": 100.0, "ok": True,
+                               "why": "", "usage": R.normalize_usage(None)},
+                              {"stage": "survey/L0-B01", "seconds": 100.0, "ok": True,
+                               "why": "", "usage": R.normalize_usage(None)}]
+    assert "3분 20.0초" in R.format_report(rows)              # 100+100, 예전 방식
+    assert "1분 45.0초" in R.format_report(rows, wall_seconds=105.0)
+
+
+def test_단계별_소계를_낸다():
+    """어느 단계가 비쌌는지 보려면 배치 행을 단계로 접어야 한다."""
+    rows: list[R.StageRow] = [
+        {"stage": "prep", "seconds": 1.0, "usage": R.normalize_usage(None),
+         "ok": True, "why": ""},
+        {"stage": "survey/L0-B00", "seconds": 10.0, "ok": True, "why": "",
+         "usage": R.normalize_usage({"usage": {"output_tokens": 5}, "num_turns": 2})},
+        {"stage": "survey/L1-B00", "seconds": 20.0, "ok": True, "why": "",
+         "usage": R.normalize_usage({"usage": {"output_tokens": 7}, "num_turns": 3})},
+    ]
+    got = R.stage_totals(rows)
+    assert got["survey"]["total"] == 12 and got["survey"]["turns"] == 5
+    assert got["prep"]["total"] == 0
+
+
+def test_같은_샤드를_두_번_합쳐도_개명하지_않는다(tmp_path: Path):
+    """층마다 `merge_shards` 를 부르면 샤드를 매번 다시 읽는다. `is not` 으로 충돌을
+    보면 다시 읽은 새 객체를 남으로 착각해 개명한다. 같은 입력이면 몇 번을 합쳐도
+    같은 결과여야 한다(멱등).
+    """
+    d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1", "means": "뜻"}})
+    한번 = R.merge_shards(d, {})
+    두번 = R.merge_shards(d, {})
+    assert 한번 == 두번 == {"가": {"where": "a.py:1", "means": "뜻"}}
+    # 앞선 결과를 다시 넘겨도(잘못된 사용) 최소한 개명은 일어나지 않아야 한다
+    assert R.merge_shards(d, 한번) == 한번
+
+
+def test_계획_요약은_층과_배치와_합계를_낸다():
+    """돈을 쓰기 전에 몇 세션이 뜨는지 사람이 봐야 한다."""
+    # 위와 같은 이유로 부분 계획이다 — `plan_summary` 가 읽는 열쇠만 담았다.
+    plan = cast(SurveyPlan, {"layers": [
+        {"level": 0, "symbol_count": 5, "file_count": 3,
+         "batches": [{"id": "L0-B00"}, {"id": "L0-B01"}]},
+        {"level": 1, "kind": "non-node", "batches": []},
+    ], "totals": {"symbols": 5, "levels": 1}})
+    lines = R.plan_summary(plan)
+    assert "층0 — 심볼 5 · 파일 3 · 배치 2" in lines[0]
+    assert "비노드" in lines[1]
+    assert "배치 2" in lines[-1] and "심볼 5" in lines[-1]
+
+
+def test_lang_of_maps_every_collector_language_to_declmap(tmp_path: Path) -> None:
+    """코드 지도가 적는 언어 이름 셋이 전부 declmap 이 아는 이름으로 풀려야 한다.
+
+    풀리지 않으면 lang_of 가 None 을 내고 warmup 단계가 **조용히 건너뛰어진다** — 죽지
+    않으므로 알아채기 어렵다. 수집기를 더할 때 LANG_ALIAS 를 빠뜨리면 여기서 잡힌다.
+    """
+    for lang, want in (("cpp", "cpp"), ("csharp", "cs"), ("python", "py")):
+        p = tmp_path / f"{lang}.json"
+        p.write_text(json.dumps({"language": lang}), encoding="utf-8")
+        assert R.lang_of(str(p)) == want, lang
+
+
+def test_every_runner_script_path_actually_exists() -> None:
+    """Mode 1 이 부르는 얼갈이 스크립트 셋이 **디스크에 실재하는지** 본다.
+
+    문자열만 대조하는 시험은 디렉토리가 개편돼도 초록으로 남는다. 여기서는 파일 존재를 본다.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    for script in ("prep.py", "build.py", "check.py"):
+        p = R.wiki_argv(sys.executable, root, script, "/대상")[1]
+        assert os.path.isfile(p), f"Mode 1 이 없는 파일을 가리킨다: {p}"
+
+
+def test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다() -> None:
+    """`src/codewiki/python/runner/wiki/*.py` 를 **스크립트로** 띄웠을 때 import 가 서는가.
+
+    시험이 `from runner.wiki.prep import …` 로 부르면 pytest 가 저장소 뿌리를
+    `sys.path` 에 넣어 주므로 패키지 import 가 선다. 그러나 실행기는 파일 경로로
+    띄우고, 그때 `sys.path[0]` 은 `src/codewiki/python/runner/wiki/` 라 `runner` 패키지가 보이지 않는다.
+    **존재만 보는 시험은 이 갈림을 못 잡는다** — 파일은 있는데 import 가 죽는다.
+    """
+    import subprocess
+
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    for script in ("prep.py", "build.py", "check.py"):
+        p = R.wiki_argv(sys.executable, root, script, "/없는저장소")
+        got = subprocess.run(p, capture_output=True, text=True, timeout=60)
+        assert "ModuleNotFoundError" not in got.stderr, (
+            f"{script} 를 스크립트로 띄우면 import 가 죽는다:\n{got.stderr}")
+
+
+# ── 10. 전수조사 원본의 자리 — 자기호스팅만 다르다
+def test_자기호스팅_읽기레코드_경로가_실재한다() -> None:
+    """이 저장소 자신을 조사할 때 원본은 `resource/codewiki/terms-reading.json` 이다.
+
+    없는 자리를 가리키면 `has_reading` 이 거짓이 되어 전량 재조사가 돈다 — 실패하지
+    않고 조용히 비싸진다. 그래서 문자열이 아니라 **파일 존재**를 본다.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    p = R.reading_path(root, root)
+    assert os.path.isfile(p), f"자기호스팅 읽기 레코드가 없다: {p}"
+
+
+def test_남의_저장소는_docs_codegraph_아래를_본다() -> None:
+    assert R.reading_path("/어느/저장소", "/도구/뿌리") == os.path.join(
+        "/어느/저장소", "docs", "codegraph", "terms-reading.json")
+
+
+def test_배치_프롬프트의_범위_지시문이_같은_자리를_말한다() -> None:
+    """프롬프트가 말하는 자리와 실행기가 읽고 쓰는 자리가 갈리면 세션이 없는 파일을 찾는다."""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    p = R.survey_batch_prompt(root, root, _배치(), [], targets=["src/codewiki/python/machine/warmup.py"], total=39)
+    assert "지난 조사 결과가 %s 에 이미 있다" % R.reading_path(root, root) in p

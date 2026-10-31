@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""샤드 파일 하나를 기계 검문한다. 배치 세션이 끝내기 전에 스스로 돌리는 문이다.
+
+검사는 `AnnotateSymbolsStage.check_shard` 와 같다 — 층 끝 검문과 한 검사기다.
+통과하면 0, 불평이 있으면 그것을 찍고 1.
+"""
+import os
+import sys
+from collections.abc import Sequence
+
+# 러너는 `src/codewiki/python/runner/`, 결정론 기계는 `src/codewiki/python/machine/`, 단계 기계는 `src/core/` 다. CLI 로 돌 때 못 찾으므로 여기서 넣는다.
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)), os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))]
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "machine"
+    ),
+)
+
+from core import pipeline as P  # noqa: E402
+import survey_plan  # noqa: E402
+from mode1.survey import AnnotateSymbolsStage  # noqa: E402
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 1:
+        print("사용법: check_shard.py <샤드.json>", file=sys.stderr)
+        return 2
+    try:
+        with open(args[0], "rb") as f:
+            raw = f.read()
+    except OSError as e:
+        print("✗ 파일을 못 읽었다 — %s" % e)
+        return 1
+    got = AnnotateSymbolsStage.check_shard(raw, path=args[0])
+    # 샤드 폴더 옆에 계획이 있으면 배치 id 로 찾아 coverage 까지 본다 — 층 끝 검문과 같은 검사다.
+    plan_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(args[0]))), "batches.json")
+    bid = os.path.basename(args[0]).removesuffix(".json")
+    if not got and os.path.exists(plan_path):
+        plan = P.load(plan_path, survey_plan.SurveyPlan)
+        batch = next((b for L in plan["layers"] for b in L.get("batches", []) if b["id"] == bid), None)
+        if batch is not None:
+            got = AnnotateSymbolsStage.check_coverage(raw, batch, args[0])
+    for fault in got:
+        print("✗ " + AnnotateSymbolsStage.fault_line(fault))
+    print("통과 — %s" % args[0] if not got else "불평 %d — 고치고 다시 돌린다" % len(got))
+    return 1 if got else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

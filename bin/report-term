@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+from core.dispatch import run_dispatch
+
+run_dispatch(
+    root=ROOT,
+    argv=sys.argv[1:],
+    table={
+        "collect": "src/term/python/runner/term/collect.py",
+        "grade": "src/term/python/runner/term/quiz.py",
+        "emit": "src/term/python/runner/term/emit.py",
+    },
+    usage="사용법 — report-term <collect|grade|emit> [인자]"
+)

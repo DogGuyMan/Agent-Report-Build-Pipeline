@@ -1,0 +1,19 @@
+{
+  "_주석_도구가_낸_원문": {
+    "access": "private",
+    "destination": "7546507215697875010",
+    "label": "mOwner",
+    "source": "18032677677727336093",
+    "type": "association"
+  },
+  "_참고_사람이_읽으라고_붙인_이름": {
+    "source_display_name": "SJH::Scene::Component",
+    "destination_display_name": "SJH::Scene::Actor",
+    "source_source_location": {
+      "column": 11,
+      "file": "src/scene/actor.h",
+      "line": 58,
+      "translation_unit": "src/render/mesh_renderer.cpp"
+    }
+  }
+}

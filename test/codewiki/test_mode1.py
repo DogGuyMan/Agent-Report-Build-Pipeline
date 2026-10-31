@@ -1,0 +1,2023 @@
+"""`src/codewiki/python/runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON."""
+import hashlib
+import json
+import os
+import sys
+import time
+import tomllib
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import cast, get_args
+
+import pytest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "runner"))
+sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "machine"))
+import manifest as MF  # noqa: E402
+from core import measure as M  # noqa: E402
+from core import pipeline as P  # noqa: E402
+import survey_plan  # noqa: E402
+import warmup  # noqa: E402
+from mode1 import context as X  # noqa: E402
+from mode1 import diff as D  # noqa: E402
+from mode1 import edges as E  # noqa: E402
+from mode1 import graph as G  # noqa: E402
+from mode1 import lang as LG  # noqa: E402
+from mode1 import machine_stage as MC  # noqa: E402
+from mode1 import measured as MS  # noqa: E402
+from mode1 import resume as Z  # noqa: E402
+from mode1 import scan as SC  # noqa: E402
+from mode1 import survey as SV  # noqa: E402
+from mode1 import terms as T  # noqa: E402
+from mode1 import wiki as W  # noqa: E402
+
+
+def _ctx(tmp_path: Path) -> X.Mode1Context:
+    return X.Mode1Context(root="/r", model="m", repo=str(tmp_path))
+
+
+# ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
+
+
+def test_문맥의_기본값은_전량이_아니다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert c.cold is False and c.targets is None and c.plan is None
+
+
+def test_산출물은_저장소_아래_자리를_가리킨다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert X.CODEGRAPH.locate(c).endswith(os.path.join("out", "codegraph-raw", "codegraph.json"))
+    assert X.CHANGES.locate(c).endswith("changes.json")
+    assert X.BATCHES.locate(c).endswith("batches.json")
+
+
+def test_코드지도_검사는_최상위_열쇠만_본다(tmp_path: Path):
+    p = tmp_path / "cg.json"
+    p.write_text('{"nodes": [{"file": null}], "edges": [], "language": "py"}')   # 기계축 실물처럼 null 이 있어도 통과
+    assert P.check_file(str(p), X.CodeGraphDoc) == []
+    p.write_text('{"nodes": "x"}')
+    assert P.check_file(str(p), X.CodeGraphDoc) != []
+    p.write_text('[]')
+    assert P.check_file(str(p), X.CodeGraphDoc) != []
+
+
+def test_층계획_검사는_실제_형으로_본다(tmp_path: Path):
+    p = tmp_path / "b.json"
+    p.write_text(json.dumps(_empty_plan()))
+    assert X.BATCHES.schema is not None and P.check_file(str(p), X.BATCHES.schema) == []
+    p.write_text('{"layers": {}}')
+    assert P.check_file(str(p), X.BATCHES.schema) != []
+
+
+# ── 2. 형 · 읽기 레코드 자리 · 바닥 ──────────────────────────────────────
+
+
+def test_읽기_레코드_자리는_자기호스팅만_다르다(tmp_path: Path):
+    self_hosted = X.Mode1Context(root=str(tmp_path), model="m", repo=str(tmp_path))
+    assert X.READING.locate(self_hosted) == os.path.join(str(tmp_path), "resource", "codewiki", "terms-reading.json")
+    other = _ctx(tmp_path)   # root="/r" 는 저장소가 아니다
+    assert X.READING.locate(other) == os.path.join(str(tmp_path), "docs", "codegraph", "terms-reading.json")
+
+
+def test_측정_행은_단계_이름과_토큰_0_을_담는다():
+    class T(MS.Measured):
+        name = "t"
+    r = T().row(time.monotonic(), True, "x")
+    assert r["stage"] == "t" and r["ok"] is True and r["why"] == "x" and r["usage"]["total"] == 0
+
+
+def test_기계_단계는_저장소를_cwd_로_한다(tmp_path: Path):
+    class T(MC.Mode1Machine):
+        name = "t"
+
+        def argv(self, ctx: X.Mode1Context) -> list[str]:
+            return ["true"]
+    assert T().cwd(_ctx(tmp_path)) == str(tmp_path)
+    assert MC.Mode1Machine.wiki_argv("py", "/root", "prep.py", "/repo") == ["py", "/root/src/codewiki/python/runner/wiki/prep.py", "/repo"]
+    assert os.path.isdir(os.path.join(X.ROOT, "src", "codewiki", "python", "runner", "mode1"))   # 도구 뿌리는 다섯 위다
+
+
+# ── 3. changes.json 의 꼴 ────────────────────────────────────────────────
+
+
+def _verdicts() -> dict[str, list[str]]:
+    return {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": ["gone.py"]}
+
+
+def test_diff_는_넷_갈래와_범위를_담는다(tmp_path: Path):
+    p = str(tmp_path / "changes.json")
+    D.write_diff(p, _verdicts(), targets=["b.py"], hops=1, tracked=2)
+    got = D.read_diff(p)
+    assert got is not None
+    assert got["targets"] == ["b.py"] and got["verdicts"]["삭제됨"] == ["gone.py"]
+
+
+def test_전량이면_targets_가_None_이다(tmp_path: Path):
+    p = str(tmp_path / "d.json")
+    D.write_diff(p, _verdicts(), targets=None, hops=1, tracked=2)
+    got = D.read_diff(p)
+    assert got is not None and got["targets"] is None
+
+
+def test_diff_검사는_형으로_보고_갈래_넷은_쓰는_쪽이_채운다(tmp_path: Path):
+    assert X.CHANGES.schema is D.WarmupDiff
+    p = tmp_path / "d.json"
+    p.write_text(json.dumps({"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}))
+    assert P.check_file(str(p), D.WarmupDiff) == []
+    p.write_text(json.dumps({"verdicts": {"유효": "x"}, "targets": None, "hops": 1, "tracked": 0}))
+    assert P.check_file(str(p), D.WarmupDiff) != []          # 값이 배열이 아니다
+    p.write_text(json.dumps({"verdicts": {}, "targets": "x", "hops": 1, "tracked": 0}))
+    assert P.check_file(str(p), D.WarmupDiff) != []          # targets 가 null 도 배열도 아니다
+    assert D.read_diff(str(tmp_path / "없음.json")) is None
+    got = D.write_diff(str(p), {"재읽기": ["b.py"]}, None, 1, 1)   # 갈래를 덜 줘도 넷이 채워진다
+    assert set(got["verdicts"]) == set(D.BUCKETS)
+
+
+def test_전체_파일_집합은_삭제됨을_뺀_셋의_합이다():
+    d: D.WarmupDiff = {"verdicts": _verdicts(), "targets": None, "hops": 1, "tracked": 2}
+    assert D.all_files(d) == {"a.py", "b.py"}
+
+
+# ── 4. prep 이 diff 로 재수집 여부를 정한다 ─────────────────────────────
+
+
+def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
+    sys.path.insert(0, os.path.join(ROOT, "src"))
+    from codewiki.python.runner.wiki import prep
+    fresh = {"유효": ["a.py"], "재읽기": [], "위치만": [], "삭제됨": []}
+    stale = {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": []}
+    assert prep.needs_collect(has_codegraph=True, verdicts=fresh) is False
+    assert prep.needs_collect(has_codegraph=True, verdicts=stale) is True
+    assert prep.needs_collect(has_codegraph=False, verdicts=fresh) is True
+    assert prep.needs_collect(has_codegraph=True, verdicts=None) is False
+    assert prep.needs_collect(has_codegraph=True, verdicts=None, force=True) is True
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, verdicts=stale)["steps"][0] == "griffe"
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, force=True)["steps"][0] == "griffe"
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False)["steps"] == ["facts", "render-modules"]
+
+
+# ── 5. 기계 단계와 층 계획 ──────────────────────────────────────────────
+
+
+def _plan_with(files: list[str]) -> survey_plan.SurveyPlan:
+    """배치 하나짜리 계획 — 실제 `SurveyPlan` 꼴이라 msgspec 검증을 통과한다.
+    ⚠ 이것으로 `annotate-symbols` 를 돌리면 세션이 실제로 뜬다 — 대조 시험에만 쓴다."""
+    syms: list[survey_plan.PlanSymbol] = [
+        {"id": f + ".S", "name": f + ".S", "file": f, "line": 1, "kind": "function", "in_cycle": False, "depends_on": []}
+        for f in files]
+    return {"target": 8, "layers": [{"level": 0, "symbol_count": len(syms), "file_count": len(files),
+            "batches": [{"id": "L0-B00", "files": files, "symbols": syms}]}],
+            "totals": {"symbols": len(syms), "edges": 0, "levels": 1, "cyclic_symbols": 0}}
+
+
+def test_기계_단계_다섯은_저장소를_cwd_로_한다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    for st in (G.CollectGraphStage(), T.VerifyTermsStage(), W.PublishWikiStage(), W.VerifyWikiStage()):
+        assert st.cwd(c) == c.repo
+
+
+def test_prep_은_전량이면_force_증분이면_diff_를_넘긴다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    assert "--force" in G.CollectGraphStage().argv(c) and "--diff" not in G.CollectGraphStage().argv(c)
+    c.cold = False
+    assert "--diff" in G.CollectGraphStage().argv(c) and "--force" not in G.CollectGraphStage().argv(c)
+
+
+def test_terms_argv_는_정적_지도를_위치_인자로_준다():
+    argv = T.VerifyTermsStage.terms_argv("py", "/root", "/repo", "/repo/out/codegraph-raw/codegraph.json", None)
+    assert argv[2] == "/repo/out/codegraph-raw/codegraph.json" and "--reading" not in argv
+
+
+def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+    seen: dict[str, object] = {}
+
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+        seen["only"] = only_files
+        return _plan_with([])
+    monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+    c.targets = ["x.py"]
+    out = G.ScheduleBatchesStage().perform(c)
+    assert out.kind == P.OK and seen["only"] == ["x.py"] and c.plan is not None
+    assert (raw / "batches.json").exists()
+
+
+def test_계획_요약은_층과_합계를_낸다():
+    plan = _plan_with(["a.py"])
+    lines = G.ScheduleBatchesStage.plan_summary(plan)
+    assert lines[0].startswith("  층0") and "합계" in lines[-1]
+
+
+# ── 6. 언어 제안과 결정 ──────────────────────────────────────────────────
+
+
+def test_lang_hint_는_싼_모형을_고정한다(tmp_path: Path):
+    assert LG.LangHintStage().model(_ctx(tmp_path)) == LG.LANG_SELECT_MODEL
+
+
+def test_lang_hint_는_낱말_하나만_받아들인다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    st = LG.LangHintStage()
+    out = st.harvest(c, [("lang-hint", 1.0, 0, {"result": " `Cpp`. "})], 0)
+    assert c.proposed == "cpp" and out.kind == P.OK
+    out = st.harvest(c, [("lang-hint", 1.0, 0, {"result": "rust"})], 0)
+    assert c.proposed is None and out.kind == P.SKIP
+
+
+def test_lang_hint_는_실패해도_SKIP_이지_FAIL_이_아니다(tmp_path: Path):
+    out = LG.LangHintStage().harvest(_ctx(tmp_path), [("lang-hint", 1.0, 1, None)], 0)
+    assert out.kind == P.SKIP and all(r["ok"] for r in out.rows)
+
+
+def test_lang_hint_는_문서가_없으면_세션을_띄우지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path)
+    st = LG.LangHintStage()
+    def no_docs(ctx: X.Mode1Context) -> str:
+        return "   "
+    monkeypatch.setattr(st, "docs", no_docs)
+    assert st.jobs(c, 0) == []
+    out = st.harvest(c, [], 0)
+    assert out.kind == P.SKIP and out.rows[0].get("skipped") is True
+
+
+def test_lang_hint_프롬프트는_넷_중_하나를_낱말로_답하라고_한다():
+    p = LG.LangHintStage.hint_prompt("# README\n이 저장소는 …")
+    assert "cpp" in p and "unknown" in p and p.endswith("이 저장소는 …")
+
+
+@pytest.mark.parametrize("docs", ["A", "A\n", "A\n\n"])
+def test_lang_hint_프롬프트는_docs_를_바이트_그대로_끝에_싣는다(docs: str):
+    assert LG.LangHintStage.hint_prompt(docs).endswith("`unknown` 이라고 답해라.\n\n" + docs)
+
+
+def test_lang_decide_는_제안이_있으면_넘긴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert "--propose" not in LG.LangDecideStage().argv(c)
+    c.proposed = "py"
+    assert LG.LangDecideStage().argv(c)[-2:] == ["--propose", "py"]
+    assert LG.LangDecideStage().writes(c) == [X.LANG_SELECT]
+
+
+# ── 7. 옛 지문과 지금 소스의 대조 ────────────────────────────────────────
+
+
+def _no_change() -> dict[str, list[str]]:
+    return {"유효": [], "재읽기": [], "위치만": [], "삭제됨": []}
+
+
+def test_lang_for_는_lang_select_을_먼저_보고_코드_지도로_폴백한다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    assert SC.SnapshotScan.lang_for(c) is None
+    (raw / "codegraph.json").write_text('{"language": "csharp", "nodes": [], "edges": []}')
+    assert SC.SnapshotScan.lang_for(c) == "cs"
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "griffe+pycalls"}')
+    assert SC.SnapshotScan.lang_for(c) == "py"
+
+
+def test_씨앗은_재읽기와_위치만의_합집합이다():
+    v = {"유효": ["a.py"], "재읽기": ["c.py"], "위치만": ["b.py"], "삭제됨": ["z.py"]}
+    assert SC.DetectChangesStage.changed_seed(v) == ["b.py", "c.py"]
+
+
+def test_detect_changes_는_diff_파일을_쓴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"language": "py", "nodes": [], "edges": []}')
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "griffe+pycalls"}')
+
+    def tracked(repo: str, lang: str, includes: list[str]) -> list[str]:
+        return ["a.py"]
+
+    def scan(repo: str, lang: str, includes: list[str], n: int) -> tuple[dict[str, object], None]:
+        return {}, None
+
+    def status(cache: str, repo: str, files: list[str], decls: object) -> tuple[dict[str, list[str]], dict[str, object]]:
+        return {"유효": [], "재읽기": ["a.py"], "위치만": [], "삭제됨": []}, {}
+    monkeypatch.setattr(SC.declmap, "tracked_files", tracked)
+    monkeypatch.setattr(SC.declmap, "scan", scan)
+    monkeypatch.setattr(SC.warmup, "status", status)
+    out = SC.DetectChangesStage().perform(c)
+    assert out.kind == P.OK
+    got = D.read_diff(str(raw / "changes.json"))
+    assert got is not None and got["targets"] == ["a.py"] and c.targets == ["a.py"]
+    assert c.warmup_cache == str(raw / "snapshot.json")
+
+
+def test_detect_changes_는_언어를_모르면_전량_diff_를_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    out = SC.DetectChangesStage().perform(c)
+    got = D.read_diff(X.CHANGES.locate(c))
+    assert out.kind == P.OK and got is not None and got["targets"] is None and c.targets is None
+
+
+def test_snapshot_sources_는_조사가_실패하면_쓰지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.entries = {}; c.warmup_cache = str(tmp_path / "w.json"); c.cold = False
+    wrote: list[str] = []
+
+    def save(p: str, e: dict[str, object]) -> dict[str, object]:
+        wrote.append(p)
+        return e
+    monkeypatch.setattr(SC.warmup, "save", save)
+    c.survey_ok = False
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == []
+    c.survey_ok = True
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == [c.warmup_cache]
+
+
+def test_snapshot_sources_는_전량이면_직접_훑어_찍는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.cold = True; c.survey_ok = True
+
+    def scanned(ctx: X.Mode1Context) -> tuple[dict[str, list[str]], dict[str, object], str]:
+        return _no_change(), {"a.py": {}}, str(tmp_path / "w.json")
+    monkeypatch.setattr(SC.SnapshotSourcesStage, "scan_snapshot", staticmethod(scanned))
+    wrote: list[str] = []
+
+    def save(p: str, e: dict[str, object]) -> dict[str, object]:
+        wrote.append(p)
+        return e
+    monkeypatch.setattr(SC.warmup, "save", save)
+    SC.SnapshotSourcesStage().perform(c)
+    assert wrote == [str(tmp_path / "w.json")]
+
+
+def test_지문은_옛_이름도_읽고_새_이름으로_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    assert X.snapshot_path(c).endswith("snapshot.json")
+    (raw / "warmup.json").write_text("{}")
+    assert X.snapshot_path(c).endswith("warmup.json")
+    (raw / "snapshot.json").write_text("{}")
+    assert X.snapshot_path(c).endswith("snapshot.json")
+
+
+# ── 8. 전수조사 — 계획과 diff 의 대조 · 샤드 병합 · 층 돌기 ─────────────
+
+
+def _empty_plan() -> survey_plan.SurveyPlan:
+    """층 0개 계획. `annotate-symbols` 가 세션 없이 OK 로 끝나야 하는 시험에 쓴다."""
+    return {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
+
+
+def _diff(targets: list[str] | None) -> D.WarmupDiff:
+    return {"verdicts": {"유효": ["a.py"], "재읽기": ["b.py"], "위치만": [], "삭제됨": []},
+            "targets": targets, "hops": 1, "tracked": 2}
+
+
+def test_계획이_diff_보다_넓으면_잡는다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["a.py", "b.py"]), _diff(["b.py"])) != []
+
+
+def test_계획이_diff_보다_좁으면_잡는다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["b.py"]), _diff(None)) != []
+
+
+def test_계획과_diff_가_맞으면_통과한다():
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["b.py"]), _diff(["b.py"])) == []
+    assert SV.AnnotateSymbolsStage.compare_plan(_plan_with(["a.py", "b.py"]), _diff(None)) == []
+
+
+def test_annotate_symbols_는_어긋난_계획을_돌리지_않는다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _diff(["b.py"])["verdicts"], ["b.py"], 1, 2)
+    (raw / "batches.json").write_text(json.dumps(_plan_with(["a.py", "b.py"])))
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.FAIL and "diff" in out.why
+
+
+def test_annotate_symbols_는_바뀐_것이_없고_레코드가_있으면_SKIP(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True)
+    reading.write_text("{}")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.SKIP and c.survey_ok is True
+
+
+def test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    out = SV.AnnotateSymbolsStage().perform(c)     # 층이 0개라 세션 없이 OK 로 끝난다
+    assert out.kind == P.OK and c.survey_ok is True
+
+
+def test_샤드를_합치고_충돌은_전원을_개명한다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"main": {"where": "app/gui.py:10"}}), encoding="utf-8")
+    (d / "L0-B01.json").write_text(json.dumps({"main": {"where": "app/cli.py:3"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {})
+    assert sorted(got) == ["cli.main", "gui.main"]
+
+
+def test_같은_파일의_같은_키는_개명_없이_갈아_끼운다(tmp_path: Path):
+    """증분 조사. 다시 읽은 카드는 옛 카드의 자리를 그대로 잇는다 — 코드 지도가 그 이름을 안다."""
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"m.run": {"where": "m.py:51", "means": "새"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {"m.run": {"where": "m.py:47", "means": "옛"}})
+    assert got == {"m.run": {"where": "m.py:51", "means": "새"}}
+
+
+def test_다른_파일의_같은_키는_여전히_양쪽_다_개명한다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text(json.dumps({"main": {"where": "core/net.py:20"}}), encoding="utf-8")
+    got = SV.AnnotateSymbolsStage.merge_shards(str(d), {"main": {"where": "app/gui.py:10"}})
+    assert sorted(got) == ["gui.main", "net.main"]
+
+
+def test_배치_프롬프트는_증분일_때_범위_지시문을_붙인다():
+    b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
+        {"id": "f", "name": "f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], ["a.py"], 3)
+    assert "## 범위" in p and "_shards/L1-B00.json" in p
+    assert "## 범위" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+
+
+# ── 9. 위키 목차와 장 ───────────────────────────────────────────────────
+
+
+def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세션_없이_OK(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert W.OutlineWikiStage().writes(c) == [X.OUTLINE]
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "outline.json").write_text('{"pages": []}')
+    out = W.OutlineWikiStage().perform(c)          # 이미 있으면 세션 없이 OK — SKIP 이 아니다
+    assert out.kind == P.OK and out.rows[0].get("skipped") is True
+
+
+def test_목차_프롬프트는_새_이름의_파일을_말한다():
+    p = W.OutlineWikiStage.wiki_catalogue_prompt("/repo", "/root")
+    assert "outline.json" in p and "batches.json" in p
+    assert "wiki-plan.json" not in p and "survey-plan.json" not in p
+
+
+def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "outline.json").write_text(json.dumps({"pages": [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}]}))
+    (tmp_path / "docs" / "wiki").mkdir(parents=True)
+    (tmp_path / "docs" / "wiki" / "a.md").write_text("x")
+    c.plan = {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
+    st = W.WriteWikiStage()
+    st.prepare(c)
+    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES]
+    assert W.WriteWikiStage().writes(c) == [X.WIKI_DIR]
+    assert [j[0] for j in st.jobs(c, 0)] == ["b.md"]
+
+
+def test_페이지_층은_인용한_심볼의_최대():
+    pages: list[X.WikiPage] = [{"file": "i.md", "symbols": []}, {"file": "p.md", "symbols": ["a", "b", "없음"]}]
+    assert W.WriteWikiStage.page_layers(pages, {"a": 0, "b": 2}) == {"i.md": 0, "p.md": 2}
+
+
+def test_stale_pages_는_바뀐_파일을_글자로_인용하는_장이다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("근거 `pkg/a.py:3`\n", encoding="utf-8")
+    (wiki / "b.md").write_text("근거 `pkg/b.py:1`\n", encoding="utf-8")
+    got = W.WriteWikiStage.stale_pages(str(wiki), ["a.md", "b.md", "c.md"], {"pkg/a.py"})
+    assert got == {"a.md"}
+
+
+def test_write_wiki_는_끝나면_지문을_따라잡았다고_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    snap = X.SNAPSHOT.locate(ctx)
+    os.makedirs(os.path.dirname(snap), exist_ok=True)
+    with open(snap, "w", encoding="utf-8") as f:
+        f.write('{"files": {}}')
+
+    def ok(self: P.LlmStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.OK, "", [])
+
+    def no_prepare(self: W.WriteWikiStage, c: X.Mode1Context) -> None:
+        return None
+    monkeypatch.setattr(P.LlmStage, "perform", ok)
+    monkeypatch.setattr(W.WriteWikiStage, "prepare", no_prepare)
+    ctx.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(ctx).kind == P.OK
+    state = P.load(X.WIKI_STATE.locate(ctx), MF.WikiState)
+    assert state.get("snapshot_sha256") == hashlib.sha256(open(snap, "rb").read()).hexdigest()
+    assert "pages" in state
+    assert MF.wiki_caught_up(os.path.dirname(snap))   # 봉인이 읽는 쪽과 같은 바이트를 해싱한다
+
+
+def test_edited_pages_는_적어_둔_해시와_다른_장이다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("원본\n", encoding="utf-8")
+    (wiki / "b.md").write_text("원본\n", encoding="utf-8")
+    h = hashlib.sha256("원본\n".encode()).hexdigest()
+    (wiki / "a.md").write_text("사람이 고침\n", encoding="utf-8")
+    assert W.WriteWikiStage.edited_pages(str(wiki), ["a.md", "b.md", "c.md"], {"a.md": h, "b.md": h}) == {"a.md"}
+
+
+def test_back_up_edited_는_bak_로_옮기고_목록을_돌려준다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("사람이 고침\n", encoding="utf-8")
+    assert W.WriteWikiStage.back_up_edited(str(wiki), {"a.md"}) == [os.path.join(".bak", "a.md")]
+    assert not (wiki / "a.md").exists()
+    assert (wiki / ".bak" / "a.md").read_text(encoding="utf-8") == "사람이 고침\n"
+
+
+def _snapshot(c: X.Mode1Context, hashes: dict[str, str]) -> str:
+    """지문 `snapshot.json` 을 `{경로: file_hash}` 로 쓴다. 나머지 칸은 위키 판정이 보지 않는다."""
+    entries: warmup.Manifest = {rel: {"mtime": 0.0, "size": 0, "seen": 0.0, "file_hash": h, "decl_hash": None}
+                                for rel, h in hashes.items()}
+    path = X.SNAPSHOT.locate(c)
+    warmup.save(path, entries)
+    return path
+
+
+def _outline(c: X.Mode1Context, pages: list[X.WikiPage]) -> None:
+    path = X.OUTLINE.locate(c)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"pages": pages}, f)
+
+
+def _fake_layer(fail: set[str]) -> Callable[..., list[P.JobResult]]:
+    """`run_layer` 대역. `fail` 에 든 장은 세션이 실패하고, 나머지는 장 `x.md` 에 `pkg/x.py` 인용을 쓰고 성공한다.
+
+    쓸 때마다 판 번호가 붙어 같은 장을 다시 쓴 판을 가려 볼 수 있다.
+    """
+    written = [0]
+
+    def run(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        got: list[P.JobResult] = []
+        for label, _ in jobs:
+            if label in fail:
+                got.append((label, 0.0, 1, None))
+                continue
+            path = os.path.join(repo, "docs", "wiki", label)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            written[0] += 1
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("LLM %d판 `pkg/%s.py:1`\n" % (written[0], label[:-3]))
+            got.append((label, 0.0, 0, {}))
+        return got
+    return run
+
+
+@pytest.mark.parametrize("cold", [True, False])                                     # 전량 · 증분이 같다
+def test_write_wiki_는_기준_소스와_지금_지문이_다른_파일을_인용한_장만_다시_쓴다(tmp_path: Path, cold: bool) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": n, "symbols": []} for n in ("a.md", "b.md", "g.md", "n.md")])
+    _snapshot(c, {"pkg/a.py": "새", "pkg/b.py": "같음", "pkg/new.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    for n, src in (("a.md", "pkg/a.py"), ("b.md", "pkg/b.py"), ("g.md", "pkg/gone.py")):
+        (wiki / n).write_text("`%s:1`\n" % src, encoding="utf-8")
+    state: MF.WikiState = {"snapshot_sha256": "옛", "sources": {"pkg/a.py": "옛", "pkg/b.py": "같음", "pkg/gone.py": "옛"},
+                           "pages": {n: W.WriteWikiStage.page_hash(str(wiki / n)) for n in ("a.md", "b.md", "g.md")}}
+    (tmp_path / "out" / "codegraph-raw" / "wiki-state.json").write_text(json.dumps(state))
+    (wiki / "b.md").write_text("`pkg/b.py:1` 사람이 고침\n", encoding="utf-8")   # 낡지 않은 장의 손질은 건드리지 않는다
+    c.plan = _empty_plan()
+    c.cold = cold
+    W.WriteWikiStage().prepare(c)
+    assert c.wiki_stale == {"a.md", "g.md"} and c.wiki_unknown == [] and c.wiki_backed_up == []
+    assert c.wiki_removed == ["a.md", "g.md"] and sorted(os.listdir(wiki)) == ["b.md"]
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["a.md", "g.md", "n.md"]
+
+
+def test_write_wiki_는_기준이_없으면_기존_장을_건너뛰고_따라잡았다고_적지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("옛 장\n", encoding="utf-8")
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert (wiki / "a.md").read_text(encoding="utf-8") == "옛 장\n"
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert "sources" not in state and "snapshot_sha256" not in state
+    assert set(state.get("pages", {})) == {"b.md"}
+    assert not MF.wiki_caught_up(X.raw_dir(c))
+    assert "신선도를 모르는 장 1개" in capsys.readouterr().out
+
+
+def test_write_wiki_는_빈_위키를_처음_구우면_따라잡았다고_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "새"})
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert state.get("sources") == {"pkg/a.py": "새"}
+    assert set(state.get("pages", {})) == {"a.md", "b.md"}
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_가_한_층을_쓰고_실패하면_기준은_그대로이고_다시_준비해도_LLM_이_쓴_장을_bak_로_옮기지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": ["pkg/b.py.S"]}])
+    plan = _plan_with(["pkg/b.py"])
+    plan["layers"][0]["level"] = 1                                                   # b.md 는 둘째 층
+    _snapshot(c, {"pkg/a.py": "새", "pkg/b.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    for n in ("a", "b"):
+        (wiki / (n + ".md")).write_text("LLM 옛판 `pkg/%s.py:1`\n" % n, encoding="utf-8")
+    sources = {"pkg/a.py": "옛", "pkg/b.py": "옛"}
+    state: MF.WikiState = {"snapshot_sha256": "옛", "sources": sources,
+                           "pages": {n: W.WriteWikiStage.page_hash(str(wiki / n)) for n in ("a.md", "b.md")}}
+    state_path = X.WIKI_STATE.locate(c)
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(state, f)
+    (wiki / "a.md").write_text("사람이 고침 `pkg/a.py:1`\n", encoding="utf-8")
+    monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
+    c.plan = plan
+    assert W.WriteWikiStage().perform(c).kind == P.FAIL
+    after = P.load(state_path, MF.WikiState)
+    assert after.get("sources") == sources and after.get("snapshot_sha256") == "옛"   # 실패한 실행은 기준을 옮기지 않는다
+    assert after.get("pages", {}).get("a.md") == W.WriteWikiStage.page_hash(str(wiki / "a.md"))
+    assert not (wiki / "b.md").exists()                                               # 낡은 장은 세션 전에 지웠고 세션이 실패했다
+    W.WriteWikiStage().prepare(c)                                                    # 재개든 새 실행이든 같은 기준에서 다시 준비한다
+    assert c.wiki_stale == {"a.md"} and c.wiki_backed_up == [] and c.wiki_removed == ["a.md"]
+    assert (wiki / ".bak" / "a.md").read_text(encoding="utf-8") == "사람이 고침 `pkg/a.py:1`\n"
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["a.md"] and [j[0] for j in W.WriteWikiStage().jobs(c, 1)] == ["b.md"]
+
+
+
+def _bake(c: X.Mode1Context, monkeypatch: pytest.MonkeyPatch, names: list[str], snap: dict[str, str]) -> Path:
+    """빈 위키를 처음 구워 따라잡은 상태를 만든다. 장은 모두 층0 이고 `x.md` 는 `pkg/x.py` 를 인용한다."""
+    _outline(c, [{"file": n, "symbols": []} for n in names])
+    _snapshot(c, snap)
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK and MF.wiki_caught_up(X.raw_dir(c))
+    return Path(c.repo) / "docs" / "wiki"
+
+
+def _noop_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+                concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+    """세션은 모두 성공했다고 하고 장은 하나도 건드리지 않는다."""
+    return [(label, 0.0, 0, {}) for label, _ in jobs]
+
+
+def test_changed_sources_는_바뀐_것_새로_생긴_것_지운_것을_모두_낸다() -> None:
+    prev = {"same.py": "1", "mod.py": "1", "gone.py": "1"}
+    cur = {"same.py": "1", "mod.py": "2", "new.py": "1"}
+    assert W.WriteWikiStage.changed_sources(prev, cur) == {"mod.py", "gone.py", "new.py"}
+
+
+def test_record_pages_는_앞서_적은_장을_지키고_기준은_그대로_둔다(tmp_path: Path) -> None:
+    wiki = tmp_path / "wiki"
+    wiki.mkdir()
+    for n in ("a.md", "b.md"):
+        (wiki / n).write_text(n, encoding="utf-8")
+    path = str(tmp_path / "wiki-state.json")
+    W.WriteWikiStage.write_state(path, {"snapshot_sha256": "s", "sources": {"x.py": "1"}, "pages": {"old.md": "h"}})
+    W.WriteWikiStage.record_pages(path, str(wiki), ["a.md"])
+    W.WriteWikiStage.record_pages(path, str(wiki), ["b.md"])
+    got = P.load(path, MF.WikiState)
+    assert set(got.get("pages", {})) == {"old.md", "a.md", "b.md"}
+    assert got.get("sources") == {"x.py": "1"} and got.get("snapshot_sha256") == "s"
+
+
+def test_write_state_는_끊겨도_옛_파일을_지키고_임시_파일을_남기지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = str(tmp_path / "wiki-state.json")
+    W.WriteWikiStage.write_state(path, {"pages": {"a.md": "1"}})
+
+    def boom(obj: object, fp: object, **kw: object) -> None:
+        raise KeyboardInterrupt
+    monkeypatch.setattr(W.json, "dump", boom)
+    with pytest.raises(KeyboardInterrupt):
+        W.WriteWikiStage.write_state(path, {"pages": {"a.md": "2"}})
+    assert P.load(path, MF.WikiState).get("pages") == {"a.md": "1"}
+    assert os.listdir(tmp_path) == ["wiki-state.json"]
+
+
+def test_back_up_edited_는_같은_이름이_있으면_덮지_않고_빈_이름을_찾는다(tmp_path: Path) -> None:
+    wiki = tmp_path / "wiki"
+    wiki.mkdir()
+    for i, v in enumerate(("사람 v1", "사람 v2", "반쯤 쓴 LLM")):
+        (wiki / "a.md").write_text(v, encoding="utf-8")
+        got = W.WriteWikiStage.back_up_edited(str(wiki), {"a.md"})
+        assert got == [os.path.join(".bak", "a.md" if i == 0 else "a.%d.md" % i)]
+    assert sorted(os.listdir(wiki / ".bak")) == ["a.1.md", "a.2.md", "a.md"]
+    assert (wiki / ".bak" / "a.md").read_text(encoding="utf-8") == "사람 v1"
+    assert (wiki / ".bak" / "a.1.md").read_text(encoding="utf-8") == "사람 v2"
+
+
+def test_write_wiki_는_옮긴_자리를_세션을_띄우기_전에_알린다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    wiki = _bake(c, monkeypatch, ["a.md"], {"pkg/a.py": "1판"})
+    (wiki / "a.md").write_text("사람이 고침 `pkg/a.py:1`\n", encoding="utf-8")
+    _snapshot(c, {"pkg/a.py": "2판"})
+
+    def interrupted(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+                    concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        raise KeyboardInterrupt
+    monkeypatch.setattr(P, "run_layer", interrupted)
+    capsys.readouterr()
+    with pytest.raises(KeyboardInterrupt):
+        W.WriteWikiStage().perform(c)
+    assert "  " + os.path.join("docs", "wiki", ".bak", "a.md") in capsys.readouterr().out
+
+
+def test_write_wiki_는_기준이_있으면_바뀐_파일을_인용한_개요_밖_장을_신선도_모르는_장으로_남긴다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    wiki = _bake(c, monkeypatch, ["a.md"], {"pkg/a.py": "1판", "pkg/b.py": "1판"})
+    (wiki / "old.md").write_text("옛 개요의 장 `pkg/a.py:1`\n", encoding="utf-8")
+    (wiki / "keep.md").write_text("사람이 더한 장 `pkg/b.py:1`\n", encoding="utf-8")
+    _snapshot(c, {"pkg/a.py": "2판", "pkg/b.py": "1판"})
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert c.wiki_stale == {"a.md"} and c.wiki_unknown == ["old.md"] and c.wiki_unwritten == []
+    assert not MF.wiki_caught_up(X.raw_dir(c))
+    assert "신선도를 모르는 장 1개" in capsys.readouterr().out
+
+
+def test_write_wiki_는_기준이_없으면_개요_밖_장도_기존_장으로_센다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "old.md").write_text("옛 개요의 장 `pkg/a.py:1`\n", encoding="utf-8")
+    _outline(c, [{"file": "a.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "1판"})
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert not c.wiki_first_bake and c.wiki_unknown == ["old.md"]
+    assert (wiki / "a.md").exists() and not MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_는_실패한_세션이_반쯤_쓴_장을_bak_로_옮겨_다시_쓰고_그_뒤에야_따라잡았다고_적는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "c.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "1판", "pkg/c.py": "1판"})
+    ok = _fake_layer(set())
+
+    def half(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+             concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        got = ok(model, repo, root, [j for j in jobs if j[0] == "a.md"])
+        (Path(repo) / "docs" / "wiki" / "c.md").write_text("반쯤 쓴 장", encoding="utf-8")
+        return got + [("c.md", 0.0, 1, None)]
+    monkeypatch.setattr(P, "run_layer", half)
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.FAIL
+    assert not MF.wiki_caught_up(X.raw_dir(c))
+    calls: list[str] = []
+
+    def spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        calls.extend(label for label, _ in jobs)
+        return ok(model, repo, root, jobs)
+    monkeypatch.setattr(P, "run_layer", spy)
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert calls == ["c.md"]
+    wiki = tmp_path / "docs" / "wiki"
+    assert (wiki / ".bak" / "c.md").read_text(encoding="utf-8") == "반쯤 쓴 장"
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_는_성공한_세션이_낡은_장을_다시_만들지_않으면_따라잡았다고_적지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    wiki = _bake(c, monkeypatch, ["a.md"], {"pkg/a.py": "1판"})
+    before = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    _snapshot(c, {"pkg/a.py": "2판"})
+    monkeypatch.setattr(P, "run_layer", _noop_layer)
+    capsys.readouterr()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert c.wiki_unwritten == ["a.md"] and not (wiki / "a.md").exists() and not MF.wiki_caught_up(X.raw_dir(c))
+    assert P.load(X.WIKI_STATE.locate(c), MF.WikiState) == before                    # 기준 · 해시는 있던 그대로다
+    assert "장 1개가 없다" in capsys.readouterr().out
+
+
+def test_write_wiki_는_같은_바이트로_다시_써도_따라잡았다고_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    wiki = _bake(c, monkeypatch, ["a.md"], {"pkg/a.py": "1판"})
+    same = (wiki / "a.md").read_bytes()
+    _snapshot(c, {"pkg/a.py": "2판"})                                                 # 주석만 바뀌어 고칠 것이 없는 경우
+
+    def rewrite_same(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+                     concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        for label, _ in jobs:
+            (Path(repo) / "docs" / "wiki" / label).write_bytes(same)
+        return [(label, 0.0, 0, {}) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", rewrite_same)
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert c.wiki_unwritten == [] and MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_는_낡은_장을_세션_전에_지우고_사람이_고친_장은_bak_로_옮긴다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    wiki = _bake(c, monkeypatch, ["a.md", "b.md"], {"pkg/a.py": "1판", "pkg/b.py": "1판"})
+    (wiki / "b.md").write_text("사람이 고침 `pkg/b.py:1`\n", encoding="utf-8")
+    _snapshot(c, {"pkg/a.py": "2판", "pkg/b.py": "2판"})
+    seen: list[list[str]] = []
+    ok = _fake_layer(set())
+
+    def spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        seen.append(sorted(os.listdir(Path(repo) / "docs" / "wiki")))
+        return ok(model, repo, root, jobs)
+    monkeypatch.setattr(P, "run_layer", spy)
+    capsys.readouterr()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert seen == [[".bak"]]                                                         # 세션이 뜰 때 두 장 다 비어 있다
+    assert c.wiki_removed == ["a.md"] and c.wiki_backed_up == [os.path.join(".bak", "b.md")]
+    assert (wiki / ".bak" / "b.md").read_text(encoding="utf-8") == "사람이 고침 `pkg/b.py:1`\n"
+    assert "낡은 장 1개를 지우고 다시 쓴다" in capsys.readouterr().out
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_는_성공한_세션이_장을_만들지_않아도_멈추지_않고_따라잡았다고_적지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "1판"})
+    monkeypatch.setattr(P, "run_layer", _noop_layer)
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert c.wiki_unwritten == ["a.md"] and not MF.wiki_caught_up(X.raw_dir(c))
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))      # 처음 굽기의 기준이 남아 다음 실행이 이어 굽는다
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert not c.wiki_first_bake and MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_는_증분에서도_디스크에_있는_아래층_장을_싣는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("이미 있는 아래층 장", encoding="utf-8")
+    c.wiki_pages = [{"file": "b.md"}, {"file": "a.md", "title": "에이"}, {"file": "z.md"}, {"file": "c.md"}]
+    c.wiki_level_of = {"a.md": 0, "b.md": 1, "z.md": 0, "c.md": 2}
+    c.wiki_levels = [0, 1, 2]
+    c.wiki_done = []
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["z.md"]   # a.md 는 낡지 않아 건너뛴다
+    [(_, prompt)] = W.WriteWikiStage().jobs(c, 1)
+    assert "\n  - a.md — 에이\n  - z.md — z.md\n" in prompt
+    [(_, prompt)] = W.WriteWikiStage().jobs(c, 2)
+    assert "\n  - a.md — 에이\n  - z.md — z.md\n  - b.md — b.md\n" in prompt
+
+
+# ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
+
+
+def test_증분은_열셋_전량은_열둘():
+    assert len(E.ORDER) == 13
+    assert "detect-changes" not in E.plan_stages(None, None, cold=True)
+    assert "detect-changes" in E.plan_stages(None, None, cold=False)
+    assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
+
+
+def test_순서의_불변식_셋():
+    i = E.ORDER.index
+    assert i("detect-changes") < i("collect-graph") < i("schedule-batches") < i("annotate-symbols")
+    assert i("annotate-symbols") + 1 == i("snapshot-sources") < i("verify-terms")   # 지문은 조사 바로 뒤
+    assert i("verify-terms") < i("outline-wiki") < i("write-wiki") < i("publish-wiki") < i("verify-wiki")
+
+
+def test_별명은_쪼갠_단계로_펴진다():
+    assert E.expand(["lang-select", "publish-wiki"]) == ["lang-hint", "lang-decide", "publish-wiki"]
+    assert E.expand(["wiki"]) == ["outline-wiki", "write-wiki"]
+    assert E.expand(["warmup", "survey"]) == ["detect-changes", "annotate-symbols"]
+
+
+def test_모르는_단계는_거부한다():
+    with pytest.raises(ValueError):
+        E.plan_stages(["없는-단계"], None)
+
+
+def test_전량_그래프는_이름이_다르고_표는_같다(tmp_path: Path):
+    cold = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    warm = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
+    assert E.build_mode1_graph(cold, None, None).name == "mode1-cold"
+    assert E.build_mode1_graph(warm, None, None).name == "mode1-warm"
+    assert E.EDGES.dest("annotate-symbols", P.SKIP) == P.NEXT
+
+
+def test_전량에서는_annotate_symbols_가_SKIP_을_내지_않는다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True); reading.write_text("{}")
+    assert SV.AnnotateSymbolsStage().perform(c).kind == P.OK      # 층이 0개라 세션 없이 OK. 전량은 diff 를 안 본다
+
+
+def test_증분_그래프는_diff_를_읽는_단계가_셋이다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=False)
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    readers = [n for n in g.order if X.CHANGES in g.stages[n].reads(c)]
+    assert set(readers) == {"collect-graph", "schedule-batches", "annotate-symbols"}
+
+
+def test_팩토리는_어긋난_그래프를_거부한다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path))
+    with pytest.raises(P.GraphError):
+        E.build_mode1_graph(c, only=["annotate-symbols"], skip=None)   # 계획도 diff 도 없다
+
+
+def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+    (raw / "lang-select.json").write_text('{"language": "py", "collector": "x"}')
+    g = E.build_mode1_graph(c, None, None, start_at="schedule-batches")
+    assert g.order[0] == "schedule-batches"
+
+
+# ── 11. 재개 JSON ───────────────────────────────────────────────────────
+
+
+def test_재개_문서는_어디서_왜_멈췄는지를_담는다(tmp_path: Path):
+    rows: list[M.StageRow] = [
+        {"stage": "collect-graph", "seconds": 1.0, "usage": M.normalize_usage(None), "ok": True, "why": ""},
+        {"stage": "annotate-symbols/L0-B00", "seconds": 2.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"},
+    ]
+    p = str(tmp_path / "resume.json")
+    Z.write_resume(p, graph="mode1-warm", rows=rows, order=["collect-graph", "annotate-symbols", "verify-terms"],
+                   verified={"wiki", "terms-db"})
+    got = Z.read_resume(p)
+    assert got is not None
+    assert got["failed_at"] == "annotate-symbols" and got["done"] == ["collect-graph"] and got["graph"] == "mode1-warm"
+    assert got.get("verified") == ["terms-db", "wiki"]
+    assert Z.carried_verified(got, "mode1-warm") == {"terms-db", "wiki"}
+    assert Z.carried_verified(got, "mode1-cold") == set()       # 다른 그래프의 문서는 넘겨 주지 않는다
+
+
+def test_verified_가_없는_옛_재개_문서도_읽힌다(tmp_path: Path) -> None:
+    p = tmp_path / "resume.json"
+    p.write_text(json.dumps({"graph": "mode1-warm", "failed_at": "write-wiki", "why": "x", "done": [], "rows": []}),
+                 encoding="utf-8")
+    got = Z.read_resume(str(p))
+    assert got is not None and Z.start_stage(got, "mode1-warm") == "write-wiki"
+    assert Z.carried_verified(got, "mode1-warm") == set()
+
+
+def test_실패가_없으면_재개_문서를_쓰지_않는다(tmp_path: Path):
+    p = str(tmp_path / "r.json")
+    assert Z.write_resume(p, graph="mode1-warm", rows=[], order=["collect-graph"], verified=set()) is None
+    assert not os.path.exists(p)
+
+
+def test_다른_그래프의_재개_문서는_거부한다(tmp_path: Path):
+    p = str(tmp_path / "r.json")
+    rows: list[M.StageRow] = [{"stage": "collect-graph", "seconds": 0.0, "usage": M.normalize_usage(None), "ok": False, "why": "x"}]
+    Z.write_resume(p, graph="mode1-cold", rows=rows, order=["collect-graph"], verified=set())
+    assert Z.start_stage(Z.read_resume(p), for_graph="mode1-warm") is None
+    assert Z.start_stage(Z.read_resume(p), for_graph="mode1-cold") == "collect-graph"
+
+
+# ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────────
+
+def _good_record() -> dict[str, object]:
+    return {"kind": "function", "module": "m", "where": "m.py:1", "means": "뜻", "does": "함",
+            "uses": [{"to": "g", "kind": "dependency", "label": "calls", "where": "m.py:2"}],
+            "confidence": "HIGH", "source": "reading"}
+
+
+def _one_batch_plan(bid: str = "L0-B00") -> survey_plan.SurveyPlan:
+    return {"target": 8, "totals": {"symbols": 1, "edges": 0, "levels": 1, "cyclic_symbols": 0},
+            "layers": [{"level": 0, "symbol_count": 1, "file_count": 1, "batches": [
+                {"id": bid, "files": ["m.py"], "symbols": [
+                    {"id": "f", "name": "f", "kind": "function", "file": "m.py", "line": 1,
+                     "in_cycle": False, "depends_on": []}]}]}]}
+
+
+def test_샤드_형은_계약의_칸을_전부_요구한다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    assert check(json.dumps({"f": _good_record()}).encode()) == []
+    for gone in ("kind", "module", "means", "uses", "confidence", "source"):
+        rec = {k: v for k, v in _good_record().items() if k != gone}
+        assert check(json.dumps({"f": rec}).encode()), gone
+    rec = _good_record(); del rec["does"]           # does 만 선택이다
+    assert check(json.dumps({"f": rec}).encode()) == []
+
+
+def test_샤드_형은_값의_어휘도_본다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    for field, wrong in (("kind", "helper"), ("confidence", "SURE"), ("source", "codegraph")):
+        rec = _good_record(); rec[field] = wrong
+        assert check(json.dumps({"f": rec}).encode()), field
+    rec = _good_record(); rec["kind"] = "method"    # 코드 지도가 내는 종류다
+    assert check(json.dumps({"f": rec}).encode()) == []
+    rec = _good_record(); rec["uses"] = [{"to": "g", "kind": "calls", "label": None, "where": "m.py:2"}]
+    assert check(json.dumps({"f": rec}).encode())
+
+
+def test_깨진_JSON_샤드는_결함_하나로_짚는다():
+    got = SV.AnnotateSymbolsStage.check_shard(b'{"f": {"means": "a "b" c"}}', "L1-B30", "/s/L1-B30.json")
+    assert len(got) == 1
+    f = got[0]
+    assert f["kind"] == "malformed" and f["batch"] == "L1-B30" and f["path"] == "/s/L1-B30.json"
+    assert f["at"].startswith("byte ") and "malformed" in f["detail"] and f["fix"]
+
+
+def test_결함은_네_갈래이고_갈래마다_고치는_법이_다르다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    rec = _good_record(); rec["kind"] = "helper"
+    schema = check(json.dumps({"f": rec}).encode())[0]
+    assert schema["kind"] == "schema" and "kind" in schema["at"] and "helper" in schema["detail"]
+    rec = _good_record(); del rec["where"]
+    where = check(json.dumps({"f": rec}).encode())[0]
+    assert where["kind"] == "where" and where["at"] == "f"
+    fixes = {SV.AnnotateSymbolsStage.FIX[k] for k in ("missing", "malformed", "schema", "where")}
+    assert len(fixes) == 4 and schema["fix"] == SV.AnnotateSymbolsStage.FIX["schema"]
+
+
+def test_module_과_external_만_where_없이_통과한다():
+    check = SV.AnnotateSymbolsStage.check_shard
+    for kind in ("module", "external"):
+        rec = _good_record(); rec["kind"] = kind; del rec["where"]
+        assert check(json.dumps({"f": rec}).encode()) == [], kind
+    rec = _good_record(); del rec["where"]
+    assert [f["kind"] for f in check(json.dumps({"f": rec}).encode())] == ["where"]
+
+
+def test_샤드_검문은_계획의_배치마다_파일을_찾는다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("L0-B00")
+    plan["layers"][0]["batches"].append({"id": "L0-B01", "files": ["n.py"], "symbols": []})
+    plan["layers"][0]["batches"].append({"id": "L0-B02", "files": ["o.py"], "symbols": []})
+    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    (d / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    (d / "L0-B01.json").write_text('{"g": {"means": "a "b" c"}}', encoding="utf-8")
+    (d / "NONNODE.json").write_text(json.dumps({"m.py": {**_good_record(), "kind": "file"}}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    assert sorted(bad) == ["L0-B01", "L0-B02"]
+    assert bad["L0-B01"][0]["kind"] == "malformed" and bad["L0-B02"][0]["kind"] == "missing"
+    assert bad["L0-B01"][0]["path"] == str(d / "L0-B01.json")
+
+
+def test_틀린_샤드는_격리되어_병합에서_빠지고_다음_실행에서_다시_뜬다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B01.json").write_text('{"g": {"means": "a "b" c"}}', encoding="utf-8")
+    moved = SV.AnnotateSymbolsStage.quarantine(str(d), "L0-B01")
+    assert not (d / "L0-B01.json").exists() and os.path.exists(moved) and not moved.endswith(".json")
+    assert SV.AnnotateSymbolsStage.merge_shards(str(d), {}) == {}
+    assert SV.AnnotateSymbolsStage.quarantine(str(d), "L0-B01") == moved   # 없으면 그대로 그 이름
+
+
+def test_스키마_파일은_읽기_전용이고_다시_쓸_수_있다(tmp_path: Path):
+    p = tmp_path / "record-schema.json"
+    SV.AnnotateSymbolsStage.write_schema(str(p))
+    assert os.stat(p).st_mode & 0o222 == 0
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    assert doc["examples"] and SV.AnnotateSymbolsStage.check_shard(json.dumps(doc["examples"][0]).encode()) == []
+    SV.AnnotateSymbolsStage.write_schema(str(p))                # 두 번째도 죽지 않는다
+    assert os.stat(p).st_mode & 0o222 == 0
+
+
+def test_프롬프트_둘은_스키마_파일을_가리킨다():
+    b = _one_batch_plan()["layers"][0]["batches"][0]
+    assert "record-schema.json" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    assert "record-schema.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
+
+
+def test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAIL(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")   # 샤드가 있어 세션은 안 뜬다
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.FAIL and c.survey_ok is False
+    assert not (shards / "L0-B00.json").exists() and (shards / "L0-B00.json.bad").exists()
+    assert out.rows[-1]["stage"] == "annotate-symbols/check-shards" and out.rows[-1]["ok"] is False
+    assert os.stat(X.RECORD_SCHEMA.locate(c)).st_mode & 0o222 == 0
+
+
+def test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고_OK(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.OK and c.survey_ok is True
+    assert out.rows[-1]["stage"] == "annotate-symbols/check-shards" and out.rows[-1]["ok"] is True
+
+
+# ── 오류 인계 — 격리 사유 저장 · 재조사 프롬프트 · 세션 안 자가검사 ────────
+
+def _fault(kind: X.FaultKind = "malformed", at: str = "byte 7014") -> X.ShardFault:
+    return {"kind": kind, "batch": "L1-B30", "path": "/s/L1-B30.json", "at": at,
+            "detail": "JSON is malformed: expected ',' or '}'", "fix": SV.AnnotateSymbolsStage.FIX[kind]}
+
+
+def test_격리는_결함을_JSON_으로_옆에_남기고_그대로_읽어_낸다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L1-B30.json").write_text("{", encoding="utf-8")
+    SV.AnnotateSymbolsStage.quarantine(str(d), "L1-B30", [_fault()])
+    assert SV.AnnotateSymbolsStage.load_faults(str(d), "L1-B30") == [_fault()]
+    assert json.loads((d / "L1-B30.json.bad.why").read_text(encoding="utf-8"))[0]["kind"] == "malformed"
+    assert SV.AnnotateSymbolsStage.load_faults(str(d), "L1-B31") == []
+
+
+def test_재조사_프롬프트는_지난_오류를_싣는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L1-B30")
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    first = SV.AnnotateSymbolsStage().jobs(c, 0)[0][1]
+    assert "지난 시도" not in first
+    (d / "L1-B30.json.bad").write_text("{", encoding="utf-8")
+    SV.AnnotateSymbolsStage.quarantine(str(d), "L1-B30", [_fault()])
+    again = SV.AnnotateSymbolsStage().jobs(c, 0)[0][1]
+    assert "## 지난 시도" in again and "byte 7014" in again and "L1-B30.json.bad" in again
+    assert SV.AnnotateSymbolsStage.FIX["malformed"] in again      # 갈래별 고치는 법이 실린다
+    i, j = again.index("## 지난 시도"), again.index("## 너보다 아래층")
+    assert again[:i] + again[j:] == first   # 원래 지시는 그대로, 역할 소개와 아래층 절 사이에 끼인다
+
+
+def test_프롬프트_둘은_자가검사_명령을_준다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    assert "/root/src/codewiki/python/runner/check_shard.py /repo/out/codegraph-raw/_shards/L0-B00.json" in p
+    assert "check_shard.py /repo/out/codegraph-raw/_shards/NONNODE.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
+
+
+def test_검문이_통과한_배치의_옛_격리_흔적은_치운다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    shards = raw / "_shards"; shards.mkdir()
+    (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    (shards / "L0-B00.json.bad").write_text("{", encoding="utf-8")
+    (shards / "L0-B00.json.bad.why").write_text("[]", encoding="utf-8")
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.OK
+    assert not (shards / "L0-B00.json.bad").exists() and not (shards / "L0-B00.json.bad.why").exists()
+
+
+def test_check_shard_명령은_통과_0_불평_1(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(ROOT, "src", "codewiki", "python", "runner", "check_shard.py")
+    good = tmp_path / "g.json"; good.write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    bad = tmp_path / "b.json"; bad.write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")
+    ok = subprocess.run([sys.executable, tool, str(good)], capture_output=True, text=True)
+    assert ok.returncode == 0 and "통과" in ok.stdout
+    no = subprocess.run([sys.executable, tool, str(bad)], capture_output=True, text=True)
+    assert no.returncode == 1 and "malformed" in no.stdout and SV.AnnotateSymbolsStage.FIX["malformed"] in no.stdout
+
+
+# ── 전략 스위치 — schedule-batches 의 파일 계획 ─────────────────────────────
+
+def test_전략_file_이면_schedule_batches_가_파일_계획과_우선순위_csv_를_낸다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text(json.dumps({"language": "python", "nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.f", "kind": "function", "file": "b.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+    out = G.ScheduleBatchesStage().perform(c)
+    assert out.kind == P.OK and c.plan is not None
+    assert [b["id"] for b in c.plan["layers"][0]["batches"]] == ["F00", "F01"]
+    assert c.plan["layers"][0]["batches"][0]["files"] == ["b.py"]
+    csv = Path(X.FILE_PRIORITY.locate(c)).read_text(encoding="utf-8").splitlines()
+    assert csv[0] == "file,out,into,interfaces,abstracts,weight" and csv[1].startswith("b.py,")
+
+
+def test_계획_요약은_파일_계획도_읽는다():
+    p = survey_plan.plan_by_file({"nodes": [{"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1}], "edges": []})
+    lines = G.ScheduleBatchesStage.plan_summary(p)
+    assert any("파일 1" in ln and "배치 1" in ln for ln in lines)
+
+
+def test_전략_기본값은_layer_이고_file_이면_writes_에_csv_가_있다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert c.strategy == "layer"
+    assert X.FILE_PRIORITY not in G.ScheduleBatchesStage().writes(c)
+    c.strategy = "file"
+    assert X.FILE_PRIORITY in G.ScheduleBatchesStage().writes(c)
+
+
+# ── coverage 검문 — 주문한 심볼이 왔나 ───────────────────────────────────────
+
+def test_coverage_검문은_빠진_심볼과_남의_심볼을_짚는다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("L0-B21")
+    plan["layers"][0]["batches"][0]["symbols"].append(
+        {"id": "g", "name": "m.WikiPage", "kind": "class", "file": "m.py", "line": 9, "in_cycle": False, "depends_on": []})
+    (d / "L0-B21.json").write_text(json.dumps({"f": _good_record(), "m.other": _good_record()}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    kinds = sorted((f["kind"], f["at"]) for f in bad["L0-B21"])
+    assert kinds == [("coverage", "m.WikiPage"), ("coverage", "m.other")]
+    assert "없다" in [f for f in bad["L0-B21"] if f["at"] == "m.WikiPage"][0]["detail"]
+    assert SV.AnnotateSymbolsStage.FIX["coverage"] in bad["L0-B21"][0]["fix"]
+
+
+def test_coverage_는_문법_꼴이_맞을_때만_본다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    (d / "L0-B00.json").write_text("{", encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), _one_batch_plan("L0-B00"))
+    assert [f["kind"] for f in bad["L0-B00"]] == ["malformed"]
+
+
+def test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_본다(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(ROOT, "src", "codewiki", "python", "runner", "check_shard.py")
+    raw = tmp_path / "out" / "codegraph-raw"; (raw / "_shards").mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    (raw / "_shards" / "L0-B00.json").write_text(json.dumps({"m.other": _good_record()}), encoding="utf-8")
+    r = subprocess.run([sys.executable, tool, str(raw / "_shards" / "L0-B00.json")], capture_output=True, text=True)
+    assert r.returncode == 1 and "[coverage]" in r.stdout and "f" in r.stdout
+
+
+# ── 결함 줄과 결함 설명의 바이트 ─────────────────────────────────────────────
+
+def test_결함_줄은_갈래_자리_설명_한_줄과_들여쓴_고치는_법_한_줄이다():
+    f = _fault("where", at="a.{{x}}")
+    f["detail"] = "%s 설명"
+    f["fix"] = "고친다 {0}"
+    assert SV.AnnotateSymbolsStage.fault_line(f) == "[where] a.{{x}} — %s 설명\n    → 고친다 {0}"
+
+
+def test_결함_설명_넷은_검문_결과와_격리_사유에_글자_그대로_실린다(tmp_path: Path):
+    d = tmp_path / "_shards"; d.mkdir()
+    plan = _one_batch_plan("WHE")
+    plan["layers"][0]["batches"].append({"id": "MISS", "files": ["n.py"], "symbols": []})
+    plan["layers"][0]["batches"].append({"id": "COV", "files": ["o.py"], "symbols": [
+        {"id": "w", "name": "want", "kind": "function", "file": "o.py", "line": 1, "in_cycle": False,
+         "depends_on": []}]})
+    nowhere = _good_record(); del nowhere["where"]
+    (d / "WHE.json").write_text(json.dumps({"f": nowhere, "g": {**nowhere, "kind": "class"}}), encoding="utf-8")
+    (d / "COV.json").write_text(json.dumps({"other": _good_record()}), encoding="utf-8")
+    bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+    got = {bid: [(f["kind"], f["at"], f["detail"]) for f in faults] for bid, faults in bad.items()}
+    assert got == {"MISS": [("missing", "-", "샤드 없음")],
+                   "COV": [("coverage", "want", "계획에 있는데 샤드에 없다"),
+                           ("coverage", "other", "샤드에 있는데 계획에 없다")],
+                   "WHE": [("where", "f", "where 없음 (kind function)"), ("where", "g", "where 없음 (kind class)")]}
+    for bid, faults in bad.items():
+        SV.AnnotateSymbolsStage.quarantine(str(d), bid, faults)
+        raw = (d / (bid + ".json.bad.why")).read_bytes()
+        assert json.loads(raw) == faults
+        assert all(f["detail"].encode("utf-8") in raw for f in faults)
+
+
+def test_check_shard_명령은_결함_줄과_불평_수를_그대로_찍는다(tmp_path: Path):
+    import subprocess
+    tool = os.path.join(ROOT, "src", "codewiki", "python", "runner", "check_shard.py")
+    nowhere = _good_record(); del nowhere["where"]
+    p = tmp_path / "s.json"; p.write_text(json.dumps({"f": nowhere}), encoding="utf-8")
+    r = subprocess.run([sys.executable, tool, str(p)], capture_output=True, text=True)
+    assert r.returncode == 1
+    assert r.stdout == ("✗ [where] f — where 없음 (kind function)\n    → " + SV.AnnotateSymbolsStage.FIX["where"]
+                        + "\n불평 1 — 고치고 다시 돌린다\n")
+
+
+def test_결함_표의_갈래는_FaultKind_와_같고_갈래마다_고치는_법이_있다() -> None:
+    with open(X.FAULTS_PATH, "rb") as f:
+        doc = tomllib.load(f)
+    assert set(doc["kind"]) == set(get_args(X.FaultKind))
+    assert [k for k, t in doc["kind"].items() if not (isinstance(t.get("fix"), str) and t["fix"].strip())] == []
+
+
+# ── dep_excerpt — depends_on 은 id, 레코드 키는 이름 ─────────────────────────
+
+def test_dep_excerpt_는_depends_on_의_id_를_이름으로_바꿔_찾는다():
+    b: survey_plan.PlanBatch = {"id": "L1-B00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": ["C1"]}]}
+    merged = {"b.g": {"means": "지 뜻"}}
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {"C1": "b.g"}) == [{"name": "b.g", "means": "지 뜻"}]
+    assert SV.AnnotateSymbolsStage.dep_excerpt(merged, b, {}) == []      # 이름을 모르면 못 찾는다
+
+
+def test_배치_프롬프트의_의존_줄은_id_가_아니라_이름을_보인다():
+    b: survey_plan.PlanBatch = {"id": "F00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C1", "C9"]}]}
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], name_of={"C1": "b.g"})
+    assert "\n  - a.f (function) a.py:1   의존 -> b.g, C9\n" in p   # 이름표에 없는 id 는 그대로 둔다 — 지어내지 않는다
+    assert "의존 -> C1" not in p
+    assert "uses[].to 는 이 저장소 안 심볼의 레코드 키" in p
+    assert "subprocess.run" in p                  # 외부 의존은 적지 않는다는 예시가 계약에 있다
+    pending: list[X.PendingRow] = [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
+    assert '"shallow": ["위 목록의 이름 그대로"]' in SV.AnnotateSymbolsStage.survey_batch_prompt(
+        "/repo", "/root", b, [], pending=pending)
+
+
+def test_배치_프롬프트는_이름표_없이도_돈다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    assert "의존 -> 없음" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+
+
+def test_name_of_는_계획_전체의_id_이름_표다():
+    plan = _one_batch_plan("L0-B00")
+    assert SV.AnnotateSymbolsStage.name_of(plan) == {"f": "f"}
+
+
+# ── shallow 표시와 미조사 의존 절 ────────────────────────────────────────────
+
+def test_샤드_형은_shallow_를_선택_칸으로_받는다():
+    rec = {**_good_record(), "shallow": ["b.g", "c.h"]}
+    assert SV.AnnotateSymbolsStage.check_shard(json.dumps({"f": rec}).encode()) == []
+    rec["shallow"] = "b.g"                                   # 목록이어야 한다
+    assert SV.AnnotateSymbolsStage.check_shard(json.dumps({"f": rec}).encode())[0]["kind"] == "schema"
+
+
+def test_미조사_의존_절은_아직_없는_의존_대상을_이름_종류_자리로_적는다():
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": ["C1", "C9"]}]}
+    nodes = {"C1": {"id": "C1", "name": "b.g", "kind": "function", "file": "b.py", "line": 7, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    got = SV.AnnotateSymbolsStage.pending_excerpt({"b.g": {"means": "있다"}}, b, nodes)
+    assert got == [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]   # b.g 는 이미 있으니 빠진다
+
+
+def test_미조사_의존_절은_같은_배치의_심볼을_넣지_않는다():
+    """자기 파일 안의 함수는 지금 읽고 있는 것이다 — "열지 마라" 목록에 들어가면 안 된다."""
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C3", "C9"]},
+        {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "in_cycle": False,
+         "depends_on": []}]}
+    nodes = {"C3": {"id": "C3", "name": "a.h", "kind": "function", "file": "a.py", "line": 5, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    assert SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes) == [
+        {"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
+
+
+def test_미조사_의존_줄은_id_순의_두_칸_들여쓴_줄이고_값을_다시_펴지_않는다():
+    b: survey_plan.PlanBatch = {"id": "F03", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False,
+         "depends_on": ["C9", "C8"]}]}
+    nodes = {"C8": {"id": "C8", "name": "b.{{x}}", "kind": "function", "file": "b%s.py", "line": 12, "module": "."},
+             "C9": {"id": "C9", "name": "c.h", "kind": "class", "file": "c.py", "line": 3, "module": "."}}
+    got = SV.AnnotateSymbolsStage.pending_excerpt({}, b, nodes)
+    assert [r["name"] for r in got] == ["b.{{x}}", "c.h"]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], pending=got)
+    assert "\n\n  - b.{{x}} (function) b%s.py:12\n  - c.h (class) c.py:3\n\n이것들의 모듈을" in p
+
+
+def test_파일_전략_프롬프트는_미조사_절과_shallow_지시를_싣는다():
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    pending: list[X.PendingRow] = [{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], pending=pending)
+    assert "## 아직 조사되지 않은 의존 대상" in p and "c.h (class)" in p and "shallow" in p
+    assert "## 아직 조사되지 않은 의존 대상" not in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+
+
+# ── 배치 · 비노드 · 2패스 프롬프트의 꼴 — 조건부 절의 자리 · 빈 값 대체 · 빈 줄 ───────
+
+def _all_blocks_prompt(b: survey_plan.PlanBatch) -> str:
+    """재조사 · 범위 · 미조사 의존 절이 다 실린 배치 프롬프트."""
+    return SV.AnnotateSymbolsStage.survey_batch_prompt(
+        "/repo", "/root", b, [{"name": "b.g", "means": "지 뜻"}], targets=["a.py", "c.py"], total=9,
+        pending=[{"name": "c.h", "kind": "class", "file": "c.py", "line": "3"}],
+        faults=["[where] f — where 없음 (kind function)\n    → 고친다"], bad="/s/F00.json.bad")
+
+
+def test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼_목록_아래이고_보고_뒤에는_아무것도_없다():
+    p = _all_blocks_prompt(_one_batch_plan("F00")["layers"][0]["batches"][0])
+    heads = ["## 지난 시도가 되돌려졌다", "## 너보다 아래층은 이미 끝났다", "## 네가 맡은 심볼 1개",
+             "## 범위 — 증분 조사다", "## 아직 조사되지 않은 의존 대상", "## 읽는 법"]
+    at = [p.index(h) for h in heads]
+    assert at == sorted(at) and all(p.count(h) == 1 for h in heads)
+    assert p[:at[0]].endswith("무엇이 없어 막혔는지 적고 끝낸다.\n\n")
+    assert p.endswith("\n\n보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.\n")
+
+
+def test_비노드_프롬프트도_재조사_절을_역할_소개_아래에_싣는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L0-B00")
+    c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    first = SV.AnnotateSymbolsStage().jobs(c, 1)[0][1]
+    assert "## 지난 시도" not in first
+    SV.AnnotateSymbolsStage.quarantine(str(d), "NONNODE", [_fault("missing", "-")])
+    [(label, again)] = SV.AnnotateSymbolsStage().jobs(c, 1)
+    i, j = again.index("## 지난 시도"), again.index("## 심볼은 이미 전부 끝났다")
+    assert label == "NONNODE" and again[:i] + again[j:] == first
+    assert again.endswith("\n\n보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.\n")
+
+
+def test_재조사_절은_결함_줄마다_모든_줄을_두_칸_들여_싣는다():
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    lines = [SV.AnnotateSymbolsStage.fault_line(_fault("where", "a.f")), SV.AnnotateSymbolsStage.fault_line(_fault())]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], faults=lines, bad="/s/F00.json.bad")
+    want = "".join("  " + ln.replace("\n", "\n  ") + "\n" for ln in lines)
+    assert "결함 2개를 찾아 되돌렸다:\n\n" + want + "\n- 되돌린 샤드는 /s/F00.json.bad 에" in p
+
+
+def test_배치와_비노드의_재조사_절은_글자까지_같다():
+    S = SV.AnnotateSymbolsStage
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    lines = [S.fault_line(_fault("where", "a.f")), S.fault_line(_fault())]
+    batch = S.survey_batch_prompt("/repo", "/root", b, [], faults=lines, bad="/s/F00.json.bad")
+    nonnode = S.nonnode_prompt("/repo", "/root", lines, "/s/F00.json.bad")
+
+    def retry_block(p: str, next_head: str) -> str:
+        return p[p.index("## 지난 시도가 되돌려졌다"):p.index(next_head)]
+
+    assert retry_block(batch, "## 너보다 아래층은 이미 끝났다") == retry_block(nonnode, "## 심볼은 이미 전부 끝났다")
+
+
+def test_빈_목록과_빈_값은_대체_글을_싣는다():
+    b: survey_plan.PlanBatch = {"id": "F00", "files": ["a.py"], "symbols": [
+        {"id": "C2", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "in_cycle": False, "depends_on": []}]}
+    bare = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    assert "다시 조사하지 마라\n\n  (없음 — 너는 최하층이다)\n\n## 네가 맡은" in bare
+    assert "\n  - a.f (function) a.py:1   의존 -> 없음\n\n## 읽는 법" in bare
+    no_means = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [{"name": "b.g", "means": ""}])
+    assert "다시 조사하지 마라\n\n  - b.g — (뜻 없음)\n\n## 네가 맡은" in no_means
+    p2 = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})
+    assert "이제 조사가 끝났다\n\n  (없음)\n\n## 할 일" in p2
+    p2 = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F00", "a.py", {},
+                                              {"c.k": {"means": "c 뜻"}, "b.g": {"does": "b 일"}})
+    assert "이제 조사가 끝났다\n\n  - b.g —  / b 일\n  - c.k — c 뜻 / \n\n## 할 일" in p2
+
+
+def test_빠진_절은_빈_줄을_남기지_않는다():
+    S = SV.AnnotateSymbolsStage
+    b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    bare = S.survey_batch_prompt("/repo", "/root", b, [])
+    assert "끝낸다.\n\n## 너보다 아래층" in bare and "의존 -> 없음\n\n## 읽는 법" in bare
+    fault = "[where] f — d\n    → 고친다"
+    variants = [bare, _all_blocks_prompt(b),
+                S.survey_batch_prompt("/repo", "/root", b, [], targets=["a.py"], total=2),
+                S.survey_batch_prompt("/repo", "/root", b, [], pending=[{"name": "c", "kind": "k", "file": "c.py", "line": "1"}]),
+                S.survey_batch_prompt("/repo", "/root", b, [], faults=[fault], bad="/s/b"),
+                S.nonnode_prompt("/repo", "/root"), S.nonnode_prompt("/repo", "/root", [fault], "/s/b"),
+                S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
+    assert [i for i, v in enumerate(variants) if "\n\n\n" in v or v.endswith("\n\n") or not v.endswith("\n")] == []
+
+
+# ── 미해결 표 unresolved.csv ─────────────────────────────────────────────────
+
+def test_into_of_는_다른_파일에서_들어오는_간선_수를_이름으로_센다():
+    cg: X.CodeGraphDoc = {"nodes": [{"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+                                    {"id": "b", "name": "b.g", "kind": "function", "file": "b.py", "line": 1, "module": "."},
+                                    {"id": "b2", "name": "b.h", "kind": "function", "file": "b.py", "line": 2, "module": "."}],
+                          "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1},
+                                    {"from": "b2", "to": "b", "kind": "dependency", "label": None, "file": "b.py", "line": 2}]}
+    assert SV.AnnotateSymbolsStage.into_of(cg) == {"a.f": 0, "b.g": 1, "b.h": 0}   # 같은 파일 b2→b 는 안 센다
+
+
+def test_미해결_표는_shallow_레코드마다_의존_대상_한_줄이고_상태를_가른다():
+    merged = {"a.f": {**_good_record(), "shallow": ["b.g", "z.none"]}, "b.g": _good_record()}
+    weight = {"m.py": 1.25}; into = {"a.f": 2, "b.g": 0}
+    rows = SV.AnnotateSymbolsStage.unresolved_rows(merged, weight, into, known={"b.g"})
+    assert rows == [
+        {"file": "m.py", "key": "a.f", "dep": "b.g", "priority": 1.25, "into": 2, "status": "resolved"},
+        {"file": "m.py", "key": "a.f", "dep": "z.none", "priority": 1.25, "into": 2, "status": "unknown"}]
+    rows = SV.AnnotateSymbolsStage.unresolved_rows({"a.f": {**_good_record(), "shallow": ["c.k"]}}, weight,
+                                                   {"a.f": 1, "c.k": 0}, known=set(), queued={"a.f"})
+    assert [r["status"] for r in rows] == ["queued"]
+
+
+def test_미해결_csv_머리줄():
+    text = SV.AnnotateSymbolsStage.unresolved_csv([
+        {"file": "m.py", "key": "a.f", "dep": "b.g", "priority": 1.25, "into": 2, "status": "shallow"}])
+    assert text.splitlines() == ["file,key,dep,priority,into,status", "m.py,a.f,b.g,1.250000,2,shallow"]
+
+
+# ── 2패스 — 파일을 열지 않고 shallow 레코드를 다듬어 원 샤드에 덧씌운다 ─────────
+
+def test_2패스_프롬프트는_파일을_열지_말라_하고_얕은_레코드와_의존_뜻을_준다():
+    shallow = {"a.f": {**_good_record(), "shallow": ["b.g"]}}
+    deps = {"b.g": {**_good_record(), "means": "지 뜻", "does": "지 일"}}
+    p = SV.AnnotateSymbolsStage.pass2_prompt("/repo", "/root", "F03", "a.py", shallow, deps)
+    assert "열지" in p and "a.f" in p and "지 뜻" in p and "_shards/_pass2/F03.json" in p and "shallow" in p
+
+
+def test_2패스_결과는_원_샤드의_같은_키만_덮고_shallow_를_뗀다(tmp_path: Path):
+    d = tmp_path / "_shards"; (d / "_pass2").mkdir(parents=True)
+    (d / "F03.json").write_text(json.dumps({"a.f": {**_good_record(), "shallow": ["b.g"]}, "a.h": _good_record()}), encoding="utf-8")
+    (d / "_pass2" / "F03.json").write_text(json.dumps({"a.f": {**_good_record(), "does": "다듬음"}, "a.zzz": _good_record()}), encoding="utf-8")
+    faults = SV.AnnotateSymbolsStage.apply_pass2(str(d), "F03")
+    assert faults == []
+    got = json.loads((d / "F03.json").read_text(encoding="utf-8"))
+    assert got["a.f"]["does"] == "다듬음" and "shallow" not in got["a.f"] and got["a.h"] == _good_record()
+    assert "a.zzz" not in got                                   # 계획 밖 키는 버린다
+    assert (d / "_pass2" / "F03.done.json").exists()            # 감사용으로 남긴다
+
+
+def test_2패스_결과가_깨졌으면_원_샤드를_건드리지_않는다(tmp_path: Path):
+    d = tmp_path / "_shards"; (d / "_pass2").mkdir(parents=True)
+    before = json.dumps({"a.f": {**_good_record(), "shallow": ["b.g"]}})
+    (d / "F03.json").write_text(before, encoding="utf-8")
+    (d / "_pass2" / "F03.json").write_text("{", encoding="utf-8")
+    faults = SV.AnnotateSymbolsStage.apply_pass2(str(d), "F03")
+    assert faults and faults[0]["kind"] == "malformed"
+    assert (d / "F03.json").read_text(encoding="utf-8") == before
+
+
+# ── AnnotateFilesStage — 완료 콜백이 있는 풀 ──────────────────────────────────
+
+def test_병합_보정은_id_를_이름으로_바꾸고_모르는_대상은_떼어_기록한다():
+    got: X.Records = {
+        "a.f": {**_good_record(), "where": "a.py:1", "uses": [
+            {"to": "C1", "kind": "dependency", "label": "calls", "where": "a.py:2"},
+            {"to": "subprocess.run", "kind": "dependency", "label": "runs", "where": "a.py:3"},
+            {"to": "b.g", "kind": "dependency", "label": "ok", "where": "a.py:4"},
+            {"to": "z.notyet", "kind": "dependency", "label": "later", "where": "a.py:5"}],
+         "shallow": ["C1", "os.walk"]},
+        "b.g": _good_record()}
+    out, dropped = SV.AnnotateSymbolsStage.normalize_records(got, {"C1": "b.g", "C7": "z.notyet"})
+    uses = cast(list[dict[str, object]], out["a.f"]["uses"])
+    assert [u["to"] for u in uses] == ["b.g", "b.g", "z.notyet"]      # id 는 이름으로 · 계획에 있는 미조사 이름은 산다
+    assert out["a.f"]["shallow"] == ["b.g"]
+    assert [(d["to"], d["why"]) for d in dropped if d["key"] == "a.f"] == [("subprocess.run", "unknown-target"),
+                                                                            ("os.walk", "unknown-shallow")]
+    assert dropped[0]["file"] == "a.py" and dropped[0]["key"] == "a.f" and dropped[0]["where"] == "a.py:3"
+    # _good_record() 의 uses.to 'g' 는 어느 키도 아니라 떼인다. 나머지 칸은 그대로다.
+    assert out["b.g"]["uses"] == [] and out["b.g"]["means"] == got["b.g"]["means"]
+    assert [(d["key"], d["to"]) for d in dropped if d["key"] == "b.g"] == [("b.g", "g")]
+
+
+def test_병합_보정은_shallow_가_다_떨어지면_칸을_뗀다():
+    got: X.Records = {"a.f": {**_good_record(), "uses": [], "shallow": ["os.walk"]}}
+    out, dropped = SV.AnnotateSymbolsStage.normalize_records(got, {})
+    assert "shallow" not in out["a.f"] and [d["why"] for d in dropped] == ["unknown-shallow"]
+
+
+def test_dropped_csv_머리줄과_label_의_따옴표():
+    text = SV.AnnotateSymbolsStage.dropped_csv([{"file": "a.py", "key": "a.f", "to": "subprocess.run",
+                                                 "label": 'runs "x"', "where": "a.py:3", "why": "unknown-target"}])
+    assert text.splitlines() == ["file,key,to,label,where,why",
+                                 "a.py,a.f,subprocess.run,\"runs 'x'\",a.py:3,unknown-target"]
+
+
+def test_refresh_merged_는_보정본을_reading_과_dropped_csv_로_쓴다(tmp_path: Path):
+    c = _ctx(tmp_path); c.plan = _one_batch_plan("L0-B00")
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    (d / "L0-B00.json").write_text(json.dumps({"f": {**_good_record(), "uses": [
+        {"to": "os.walk", "kind": "dependency", "label": "walks", "where": "m.py:2"}]}}), encoding="utf-8")
+    os.makedirs(os.path.dirname(X.READING.locate(c)), exist_ok=True)
+    dropped = SV.AnnotateSymbolsStage().refresh_merged(c)
+    assert [x["to"] for x in dropped] == ["os.walk"]
+    merged = json.loads(Path(X.READING.locate(c)).read_text(encoding="utf-8"))
+    assert merged["f"]["uses"] == [] and c.merged == merged
+    assert Path(X.DROPPED.locate(c)).read_text(encoding="utf-8").splitlines()[1].startswith("m.py,f,os.walk,")
+
+
+def _fake_agent(shards: dict[str, dict[str, object]], calls: list[str]):
+    """라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 '쓰는 곳' 줄에서 경로를 뽑는다."""
+    import re
+
+    def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
+            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+        calls.append(label)
+        m = re.search(r"(\S+/_shards/\S+\.json)", prompt)
+        assert m, label
+        path = m.group(1)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(shards[label], f, ensure_ascii=False)
+        return 0.01, 0, {"subtype": "success", "is_error": False, "num_turns": 2, "total_cost_usd": 0.01,
+                         "usage": {"input_tokens": 1, "output_tokens": 1,
+                                   "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}
+    return run
+
+
+def _three_file_graph() -> X.CodeGraphDoc:
+    """b.py 는 의존 없음(먼저) · a.f 가 b.g 에 의존 · c.k 가 a.f 에 의존."""
+    return {"nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.g", "kind": "function", "file": "b.py", "line": 1, "module": "."},
+        {"id": "c", "name": "c.k", "kind": "function", "file": "c.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1},
+                  {"from": "c", "to": "a", "kind": "dependency", "label": None, "file": "c.py", "line": 1}]}
+
+
+def _rec(where: str, **more: object) -> dict[str, object]:
+    return {**_good_record(), "where": where, "uses": [], **more}
+
+
+def test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면_2패스를_넣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")},
+        ids["a.py"]: {"a.f": _rec("a.py:1", shallow=["b.g"])},      # 세션이 b.g 를 얕게 썼다고 치자
+        ids["c.py"]: {"c.k": _rec("c.py:1", shallow=["a.f"])},
+        ids["a.py"] + "/p2": {"a.f": _rec("a.py:1", does="다듬음")},
+        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}},
+    }
+    calls: list[str] = []
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, calls))
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.OK, out.why
+    assert calls[:3] == [ids["b.py"], ids["a.py"], ids["c.py"]]            # 가중치 순
+    assert ids["a.py"] + "/p2" in calls                                   # a.f: into=1(c→a) · b.g 가 있다 → 2패스
+    assert ids["c.py"] + "/p2" not in calls                               # c.k: into=0 → 다듬지 않는다
+    assert calls[-1] == "NONNODE"
+    merged = json.loads(Path(X.READING.locate(c)).read_text(encoding="utf-8"))
+    assert merged["a.f"]["does"] == "다듬음" and "shallow" not in merged["a.f"]
+    assert merged["c.k"].get("shallow") == ["a.f"]                         # 남은 shallow 는 그대로
+    csv = Path(X.UNRESOLVED.locate(c)).read_text(encoding="utf-8").splitlines()
+    assert csv[0] == "file,key,dep,priority,into,status"
+    assert any(",c.k,a.f," in ln and ln.endswith(",resolved") for ln in csv)
+    stages = [r["stage"] for r in out.rows]
+    assert "annotate-symbols/%s/p2" % ids["a.py"] in stages and stages[-1] == "annotate-symbols/check-shards"
+    assert c.survey_ok is True
+
+
+def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 2
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
+        ids["c.py"]: {"wrong.key": _rec("c.py:1")}, "NONNODE": {}}
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, []))
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.FAIL and c.survey_ok is False
+    assert (raw / "_shards" / (ids["c.py"] + ".json.bad")).exists()
+    faults = SV.AnnotateSymbolsStage.load_faults(str(raw / "_shards"), ids["c.py"])
+    assert faults and faults[0]["kind"] == "coverage"
+    assert "NONNODE" not in [r["stage"].split("/")[-1] for r in out.rows]      # 실패했으면 비노드 세션을 안 띄운다
+
+
+def test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_이름이_갈린다(tmp_path: Path):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    assert isinstance(g.stages["annotate-symbols"], SF.AnnotateFilesStage) and g.name == "mode1-cold-file"
+    c.strategy = "layer"
+    g = E.build_mode1_graph(c, only=None, skip=None)
+    assert type(g.stages["annotate-symbols"]) is SV.AnnotateSymbolsStage and g.name == "mode1-cold"
+
+
+def test_설정이_정확한_모델_ID_를_준다():
+    cfg = X.load_config()
+    assert cfg["models"]["sessions"].startswith("claude-")
+    assert cfg["models"]["lang_hint"].startswith("claude-")
+    assert LG.LANG_SELECT_MODEL == cfg["models"]["lang_hint"]
+    assert 0 < cfg["estimate"]["usd_per_batch_min"] < cfg["estimate"]["usd_per_batch_max"]
+
+
+def test_write_wiki_는_다음_층_프롬프트에_아래층_장을_한_줄씩_싣는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    c.wiki_pages = [{"file": "a.md", "title": "에이"}, {"file": "b.md"}, {"file": "c.md", "title": ""}]
+    c.wiki_level_of = {"a.md": 0, "b.md": 0, "c.md": 1}
+    c.wiki_levels = [0, 1]
+    c.wiki_done = []
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["a.md", "b.md"]
+    [(label, prompt)] = W.WriteWikiStage().jobs(c, 1)
+    assert label == "c.md"
+    assert "\n  - a.md — 에이\n  - b.md — b.md\n" in prompt
+
+
+def test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다() -> None:
+    fix = SV.AnnotateSymbolsStage.FIX
+    assert set(fix) == set(get_args(X.FaultKind))
+    assert all(v.strip() and "\n" not in v for v in fix.values())
+
+
+# ── 12. 봉인 — seal-artifacts ───────────────────────────────────────────
+
+
+def _old_seal(repo: Path) -> Path:
+    """이전 실행이 남긴 봉인 하나를 `docs/codegraph/manifest.json` 에 둔다."""
+    path = repo / "docs" / "codegraph" / "manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc: MF.ArtifactManifest = {"contract": "mode1-artifacts", "version": 1, "producer_commit": "p",
+                                "source_commit": "s", "source_exts": [".py"], "skip_dirs": [],
+                                "artifacts": {}, "inputs": {}}
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def test_write_wiki_처음_굽기가_한_층을_쓰고_실패하면_다음_실행은_기준을_알고_이어_굽는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": ["pkg/b.py.S"]}])
+    plan = _plan_with(["pkg/b.py"])
+    plan["layers"][0]["level"] = 1                                                   # b.md 는 둘째 층
+    _snapshot(c, {"pkg/a.py": "1판", "pkg/b.py": "1판"})
+    monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
+    c.plan = plan
+    assert W.WriteWikiStage().perform(c).kind == P.FAIL
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert state.get("sources") == {"pkg/a.py": "1판", "pkg/b.py": "1판"} and "snapshot_sha256" not in state
+    W.WriteWikiStage().prepare(c)                                                    # 소스가 안 바뀌었으면 쓴 장은 건너뛴다
+    assert c.wiki_stale == set() and c.wiki_unknown == [] and not c.wiki_first_bake
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == [] and [j[0] for j in W.WriteWikiStage().jobs(c, 1)] == ["b.md"]
+    _snapshot(c, {"pkg/a.py": "2판", "pkg/b.py": "1판"})                              # 그 사이 소스가 바뀌었다
+    W.WriteWikiStage().prepare(c)
+    assert c.wiki_stale == {"a.md"} and c.wiki_removed == ["a.md"]
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_seal_은_검사를_통과한_것만_싣는다(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    ctx = _ctx(tmp_path)
+    snap = _snapshot(ctx, {"pkg/a.py": "새"})
+    W.WriteWikiStage.mark_caught_up(X.WIKI_STATE.locate(ctx), snap, {"pkg/a.py": "새"})
+    ctx.verified = {"wiki", "terms-db"}
+    argv = SL.SealArtifactsStage().argv(ctx)
+    assert argv[argv.index("--kinds") + 1] == "terms-db,wiki"
+
+
+def test_seal_은_따라잡지_못한_위키를_빼고_나머지만_싣는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from mode1 import seal as SL
+    ctx = _ctx(tmp_path)
+    _snapshot(ctx, {"pkg/a.py": "새"})
+    ctx.verified = {"wiki", "terms-db"}
+    argv = SL.SealArtifactsStage().argv(ctx)
+    assert argv[argv.index("--kinds") + 1] == "terms-db"
+    ctx.verified = {"wiki"}
+    out = SL.SealArtifactsStage().perform(ctx)
+    assert out.kind == P.FAIL and "따라잡지 못했다" in out.why
+    assert "위키는 봉인하지 않는다" in capsys.readouterr().err
+
+
+def test_seal_은_통과한_검사가_없으면_실패한다(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    out = SL.SealArtifactsStage().perform(_ctx(tmp_path))
+    assert out.kind == P.FAIL and "봉인할 것이 없다" in out.why
+    assert [(r["stage"], r["ok"]) for r in out.rows] == [("seal-artifacts", False)]   # 행이 없으면 종료 코드 · 재개 문서가 실패를 못 본다
+
+
+def test_seal_artifacts_는_그래프의_마지막이다() -> None:
+    assert E.ORDER[-1] == "seal-artifacts"
+
+
+def test_verify_terms_는_통과하면_verified_에_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+
+    def ok(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.OK, "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", ok)
+    assert T.VerifyTermsStage().perform(ctx).kind == P.OK
+    assert ctx.verified == {"terms-db"}
+
+
+def test_verify_wiki_는_통과할_때만_verified_에_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    kind = [P.FAIL]
+
+    def fake(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(kind[0], "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", fake)
+    assert W.VerifyWikiStage().perform(ctx).kind == P.FAIL and ctx.verified == set()
+    kind[0] = P.OK
+    assert W.VerifyWikiStage().perform(ctx).kind == P.OK and ctx.verified == {"wiki"}
+
+
+def test_verify_terms_는_실패하면_verified_에_적지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+
+    def fail(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.FAIL, "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", fail)
+    assert T.VerifyTermsStage().perform(ctx).kind == P.FAIL and ctx.verified == set()
+
+
+def test_재개가_아닌_실행은_시작할_때_옛_재개_문서를_지운다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    raw = repo / "out" / "codegraph-raw"
+    raw.mkdir(parents=True)
+    resume_path = raw / "resume.json"
+    resume_path.write_text(json.dumps({"graph": "mode1-cold", "failed_at": "write-wiki", "why": "x",
+                                       "done": [], "rows": [], "verified": ["terms-db"]}), encoding="utf-8")
+    assert R1.main([str(repo), "--cold", "--dry-run"]) == 0
+    assert resume_path.exists()                                       # 미리 보기는 재개 지점을 건드리지 않는다
+
+    def interrupted(self: P.Pipeline[X.Mode1Context], graph: P.StageDagGraph[X.Mode1Context],
+                    ctx: X.Mode1Context) -> list[M.StageRow]:
+        raise KeyboardInterrupt
+    monkeypatch.setattr(P.Pipeline, "run", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        R1.main([str(repo), "--cold"])
+    assert not resume_path.exists()
+    assert R1.main([str(repo), "--cold", "--resume"]) == 1              # 끊긴 새 실행 뒤에는 이어받을 verified 가 없다
+
+
+def test_mark_superseded_는_이전_봉인에_표식을_적고_없으면_False(tmp_path: Path) -> None:
+    from mode1 import seal as SL
+    repo = tmp_path / "대상"
+    (repo / "docs" / "codegraph").mkdir(parents=True)
+    assert SL.SealArtifactsStage.mark_superseded(str(repo), "write-wiki", "abc") is False
+    manifest = _old_seal(repo)
+    assert SL.SealArtifactsStage.mark_superseded(str(repo), "write-wiki", "abc") is True
+    got = json.loads(manifest.read_text(encoding="utf-8"))
+    assert got["superseded_by"]["stage"] == "write-wiki" and got["superseded_by"]["producer_commit"] == "abc"
+
+
+@pytest.mark.parametrize("text", ["{", '{"contract": "mode1-artifacts"}'])
+def test_mark_superseded_는_계약_꼴이_아닌_봉인이면_False_이고_건드리지_않는다(tmp_path: Path, text: str) -> None:
+    from mode1 import seal as SL
+    manifest = tmp_path / "docs" / "codegraph" / "manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(text, encoding="utf-8")
+    assert SL.SealArtifactsStage.mark_superseded(str(tmp_path), "write-wiki", "abc") is False
+    assert manifest.read_text(encoding="utf-8") == text
+
+
+def test_main_은_실패한_실행만_이전_봉인에_표식을_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    manifest = _old_seal(repo)
+
+    def failed(self: P.Pipeline[X.Mode1Context], graph: P.StageDagGraph[X.Mode1Context],
+               ctx: X.Mode1Context) -> list[M.StageRow]:
+        return [{"stage": "lang-hint/x", "seconds": 0.0, "usage": M.normalize_usage(None), "ok": False, "why": "터짐"}]
+    monkeypatch.setattr(P.Pipeline, "run", failed)
+    assert R1.main([str(repo), "--only", "lang-hint", "--dry-run"]) == 0
+    assert "superseded_by" not in json.loads(manifest.read_text(encoding="utf-8"))
+    assert R1.main([str(repo), "--only", "lang-hint"]) == 1
+    assert json.loads(manifest.read_text(encoding="utf-8"))["superseded_by"]["stage"] == "lang-hint"
+
+
+def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """write-wiki 실패 → 재개 뒤 seal 실패 → 다시 재개. 검사 단계 셋만 실제 `perform` 을 돈다."""
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    raw = repo / "out" / "codegraph-raw"
+    raw.mkdir(parents=True)
+    for name in ("lang-select.json", "snapshot.json", "batches.json", "outline.json", "terms-db.json"):
+        (raw / name).write_text("{}", encoding="utf-8")
+    # write-wiki 는 대역이라 상태를 쓰지 않는다 — 지문을 따라잡았다고 미리 적어 둔다
+    (raw / "wiki-state.json").write_text(json.dumps({"snapshot_sha256": hashlib.sha256(b"{}").hexdigest()}))
+    fail_at = [""]
+    sealed: list[str] = []
+
+    def row(name: str, ok: bool) -> M.StageRow:
+        return {"stage": name, "seconds": 0.0, "usage": M.normalize_usage(None), "ok": ok, "why": "" if ok else "터짐"}
+
+    def machine(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        if self.name == "seal-artifacts":
+            argv = self.argv(c)
+            sealed.append(argv[argv.index("--kinds") + 1])
+        ok = self.name != fail_at[0]
+        return P.Outcome(P.OK if ok else P.FAIL, "", [row(self.name, ok)])
+
+    def run(self: P.Pipeline[X.Mode1Context], graph: P.StageDagGraph[X.Mode1Context],
+            ctx: X.Mode1Context) -> list[M.StageRow]:
+        rows: list[M.StageRow] = []
+        for name in graph.order:
+            if name in ("verify-terms", "verify-wiki", "seal-artifacts"):
+                out = graph.stages[name].perform(ctx)
+            else:
+                ok = name != fail_at[0]
+                out = P.Outcome(P.OK if ok else P.FAIL, "", [row(name, ok)])
+            rows += out.rows
+            if out.kind == P.FAIL:
+                break
+        return rows
+    monkeypatch.setattr(P.MachineStage, "perform", machine)
+    monkeypatch.setattr(P.Pipeline, "run", run)
+    resume_path = raw / "resume.json"
+
+    fail_at[0] = "write-wiki"
+    assert R1.main([str(repo), "--cold"]) == 1
+    assert json.loads(resume_path.read_text(encoding="utf-8"))["verified"] == ["terms-db"]
+    fail_at[0] = "seal-artifacts"
+    assert R1.main([str(repo), "--cold", "--resume"]) == 1
+    doc = json.loads(resume_path.read_text(encoding="utf-8"))
+    assert doc["failed_at"] == "seal-artifacts" and "verify-terms" not in doc["done"]   # done 은 누적이 아니다
+    assert doc["verified"] == ["terms-db", "wiki"]
+    fail_at[0] = ""
+    assert R1.main([str(repo), "--cold", "--resume"]) == 0
+    assert sealed == ["terms-db,wiki", "terms-db,wiki"] and not resume_path.exists()
+
+
+# ── 진입 알림 — 예상 비용 한 줄과 전량 폴백 ──────────────────────────────────
+
+def test_estimate_line_은_세션_수와_비용_범위를_적는다() -> None:
+    cfg: X.EstimateConfig = {"usd_per_batch_min": 0.4, "usd_per_batch_max": 1.4}
+    assert G.ScheduleBatchesStage.estimate_line(78, cfg, full=False) == "전수조사 세션 78개 · 예상 $31~109 · 증분"
+    assert G.ScheduleBatchesStage.estimate_line(0, cfg, full=True) == "전수조사 세션 0개 · 예상 $0~0 · 전량"
+
+
+def test_session_count_는_배치가_없는_층을_한_세션으로_센다() -> None:
+    plan = _plan_with(["a.py"])
+    assert G.ScheduleBatchesStage.session_count(plan) == 1
+    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+    assert G.ScheduleBatchesStage.session_count(plan) == 2
+    assert G.ScheduleBatchesStage.session_count(_empty_plan()) == 0
+
+
+def test_계획_요약_합계는_배치와_전수조사_세션을_따로_적는다() -> None:
+    plan = _plan_with(["a.py"])
+    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+    assert G.ScheduleBatchesStage.plan_summary(plan)[-1] == "  합계 — 심볼 1 · 층 1 · 배치 1 · 전수조사 세션 2"
+
+
+def test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+        return _plan_with(["x.py"])
+    monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+    cfg = X.load_config()["estimate"]
+    c.targets = ["x.py"]
+    assert G.ScheduleBatchesStage().perform(c).kind == P.OK
+    last = capsys.readouterr().out.rstrip("\n").splitlines()[-1]
+    assert last == G.ScheduleBatchesStage.estimate_line(1, cfg, full=False) + "  (Ctrl-C 로 멈춤)"
+    assert last.startswith("전수조사 세션 1개 · 예상 $") and last.count("증분") == 1
+
+
+def test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+
+    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+        return _plan_with(["x.py"])
+    monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+    assert c.cold is False and c.targets is None        # 증분 그래프인데 diff 가 좁히지 못했다
+    G.ScheduleBatchesStage().perform(c)
+    assert "· 전량  (Ctrl-C 로 멈춤)" in capsys.readouterr().out
+    c.cold = True
+    G.ScheduleBatchesStage().perform(c)
+    assert "· 전량  (Ctrl-C 로 멈춤)" in capsys.readouterr().out
+
+
+def test_dry_run_은_층_계획_뒤에_예상_비용_한_줄을_찍는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import run_mode1 as R1
+    repo = tmp_path / "대상"
+    raw = repo / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text(json.dumps({"language": "python", "nodes": [
+        {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
+        {"id": "b", "name": "b.f", "kind": "function", "file": "b.py", "line": 1, "module": "."}],
+        "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+    cfg = X.load_config()["estimate"]
+    tail_text = "  (Ctrl-C 로 멈춤)"
+    # 심볼 층 둘(배치 하나씩)과 비노드 층(배치 없음 — 한 세션) = 세션 셋
+    assert R1.main([str(repo), "--dry-run"]) == 0       # 증분 그래프지만 changes.json 이 없어 계획이 좁혀지지 않는다
+    out = capsys.readouterr().out.rstrip("\n").splitlines()
+    assert out[-2] == "  합계 — 심볼 2 · 층 2 · 배치 2 · 전수조사 세션 3"
+    assert out[-1] == G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
+    assert R1.main([str(repo), "--dry-run", "--cold"]) == 0
+    assert capsys.readouterr().out.rstrip("\n").splitlines()[-1] == \
+        G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
+    D.write_diff(str(raw / "changes.json"), _diff(["a.py"])["verdicts"], ["a.py"], 1, 2)
+    assert R1.main([str(repo), "--dry-run"]) == 0       # diff 가 좁히면 증분이다
+    out = capsys.readouterr().out.rstrip("\n").splitlines()
+    assert "— diff 로 좁힘" in "\n".join(out)
+    assert out[-1].endswith("· 증분" + tail_text) and out[-1].startswith("전수조사 세션 ")
+
+
+def test_detect_changes_는_지문이_없으면_전량이라고_굵게_알린다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+
+    def unknown_language(c: X.Mode1Context) -> None:
+        return None
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(unknown_language))
+    SC.DetectChangesStage().perform(ctx)
+    err = capsys.readouterr().err
+    assert "⚠ 증분으로 불렸지만 전량이다 — 증분 판정을 건너뛴다(언어를 모르거나 git 이 아는 소스가 없다). " \
+           "비용은 전량과 같다" in err
+    assert err.count("증분으로 불렸지만") == 1
+
+
+def _scanned_ok(ctx: X.Mode1Context) -> tuple[dict[str, list[str]], dict[str, object], str]:
+    """`scan_snapshot` 대신 쓰는 가짜 — 언어를 아는 길의 `(판정, 새 지문, 지문 경로)`."""
+    return _no_change(), {}, X.SNAPSHOT.locate(ctx)
+
+
+def test_detect_changes_는_지난_지문_파일이_없으면_그것을_알린다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(_scanned_ok))
+    assert not os.path.exists(X.snapshot_path(ctx))
+    out = SC.DetectChangesStage().perform(ctx)
+    err = capsys.readouterr().err
+    assert out.kind == P.OK
+    assert "⚠ 증분으로 불렸지만 전량이다 — 지난 지문(snapshot.json)이 없다" in err
+    assert err.count("증분으로 불렸지만") == 1 and "건너뛴다" not in err
+
+
+@pytest.mark.parametrize("name", ["snapshot.json", "warmup.json"])
+def test_detect_changes_는_지문_파일이_있으면_전량이라고_알리지_않는다(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    ctx = _ctx(tmp_path)
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / name).write_text("{}")                         # 옛 이름(warmup.json)만 있어도 지문은 있다
+    monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(_scanned_ok))
+    assert SC.DetectChangesStage().perform(ctx).kind == P.OK
+    assert "증분으로 불렸지만" not in capsys.readouterr().err

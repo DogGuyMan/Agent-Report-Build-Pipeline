@@ -1,0 +1,23 @@
+{
+  "include": ["src", "tools", "test", "qa"],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    ".venv",
+    "src/codewiki/csharp",
+    "src/spec/typescript",
+    "test/term/test_term.py",
+    "test/spec/test_link_paths.py",
+    "qa/gates/test_docs_citations.py",
+    "qa/gates/test_prompt_resources.py"
+  ],
+
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [".", "src", "src/codewiki/python/runner", "src/codewiki/python/machine", "src/codewiki/python/viz",
+                 "src/term/python/runner", "src/spec/python/runner", "src/spec/python/viz", "src/common", "tools"],
+
+  "pythonVersion": "3.14",
+  "pythonPlatform": "All",
+  "typeCheckingMode": "strict"
+}

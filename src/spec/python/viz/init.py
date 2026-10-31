@@ -1,0 +1,198 @@
+import json
+import os
+import re
+import sys
+import subprocess
+import tomllib
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+if os.path.join(ROOT, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(ROOT, "src"))
+from common.template import render_file  # noqa: E402
+
+TEMPLATES = os.path.join(ROOT, "resource", "spec", "templates", "report")
+
+from typing import Any
+
+with open(os.path.join(ROOT, "resource", "spec", "config.toml"), "rb") as _f:
+    _CONFIG = tomllib.load(_f)
+
+DOC_DIRS: list[dict[str, Any]] = [{"dir": d["dir"], "re": re.compile(d["pattern"])}
+                                  for d in _CONFIG["doc_dirs"]]
+
+from typing import Optional
+
+def parseSpecFilename(basename: str, dir: str = "specs") -> Optional[dict[str, str]]:
+    entry = next((d for d in DOC_DIRS if d["dir"] == dir), None)
+    if not entry:
+        return None
+    m = entry["re"].match(basename)
+    if not m:
+        return None
+    return {"date": m.group(1), "slug": m.group(2)}
+
+def findSimilar(slug: str, candidates: list[str]) -> list[str]:
+    similar: list[str] = []
+    for c in candidates:
+        if c == slug:
+            continue
+        if slug in c or c in slug:
+            similar.append(c)
+        elif len(slug) >= 4 and len(c) >= 4 and slug[:4] == c[:4]:
+            similar.append(c)
+    return similar
+
+def currentBuilderVersion(root: str) -> str:
+    try:
+        res = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], cwd=root, capture_output=True, text=True)
+        if res.returncode == 0:
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return "untagged"
+
+def currentBranch(cwd: str) -> str:
+    try:
+        res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=cwd, capture_output=True, text=True)
+        if res.returncode == 0:
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+def reportDir(cwd: str, docDir: str, slug: str) -> str:
+    return os.path.join(cwd, docDir, slug)
+
+def hasReport(cwd: str, docDir: str, slug: str) -> bool:
+    return os.path.exists(os.path.join(reportDir(cwd, docDir, slug), "data.ts"))
+
+def listDocs(cwd: str) -> list[dict[str, str]]:
+    docs: list[dict[str, str]] = []
+    for entry in DOC_DIRS:
+        d = entry["dir"]
+        abs_dir = os.path.join(cwd, d)
+        if not os.path.exists(abs_dir):
+            continue
+        try:
+            files = os.listdir(abs_dir)
+            for file in files:
+                parsed = parseSpecFilename(file, d)
+                if parsed:
+                    docs.append({"file": file, "dir": d, **parsed})
+        except OSError:
+            pass
+    return docs
+
+def writeSkeleton(dir: str, slug: str, date: str, specName: str, branch: str, version: str) -> None:
+    os.makedirs(dir, exist_ok=True)
+
+    # 주입하는 다섯 값은 json.dumps 로 이스케이프한다 — 실제 spec 제목에 백틱과 따옴표가 있어
+    # 템플릿에 그대로 꽂으면 data.ts 가 문법 오류가 된다. repr 은 파이썬 표기라 계약이 아니다.
+    def q(v: str) -> str:
+        return json.dumps(v, ensure_ascii=False)
+    
+    data_ts = render_file(os.path.join(TEMPLATES, "data.ts.tmpl"), {
+        "version": q(version), "slug": q(slug), "specName": q(specName),
+        "date": q(date), "branch": q(branch)})
+    with open(os.path.join(dir, "data.ts"), "w", encoding="utf-8") as f:
+        f.write(data_ts)
+        
+    report_tsx = render_file(os.path.join(TEMPLATES, "report.tsx.tmpl"), {})
+    with open(os.path.join(dir, "report.tsx"), "w", encoding="utf-8") as f:
+        f.write(report_tsx)
+
+EVIDENCE = os.path.join(ROOT, "src", "common", "evidence.py")
+
+def repoTopLevel(cwd: str) -> str:
+    """git 최상위. git 밖이거나 git 이 없으면 cwd 그대로 — build.py 가 링크 뿌리를 찾는 것과 같은 규칙."""
+    try:
+        res = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    except OSError:
+        return cwd
+    return res.stdout.strip() if res.returncode == 0 and res.stdout.strip() else cwd
+
+def modeOneStatus(python: str, repo: str) -> str:
+    """봉인 상태 한 줄. 판정만 하고 막지 않는다 — Mode 2 는 Mode 1 과 독립이다."""
+    try:
+        res = subprocess.run([python, EVIDENCE, repo, "--need", "terms-db,wiki", "--optional", "--status"],
+                             capture_output=True, text=True)
+    except OSError:
+        return "Mode 1 봉인 — 상태를 알 수 없다 (evidence.py 를 부르지 못했다)"
+    return res.stdout.strip() or "Mode 1 봉인 — 상태를 알 수 없다 (evidence.py 가 답하지 않았다)"
+
+def main() -> None:
+    slug = sys.argv[1] if len(sys.argv) > 1 else ""
+    
+    cwd = os.getcwd()
+    
+    docs = listDocs(cwd)
+    print(modeOneStatus(sys.executable, repoTopLevel(cwd)))
+    version = currentBuilderVersion(ROOT)
+    
+    if not slug:
+        missing = [s for s in docs if not hasReport(cwd, s["dir"], s["slug"])]
+        missing.sort(key=lambda x: x["date"], reverse=True)
+        
+        if not missing:
+            print("모든 문서에 보고서가 있다.")
+            sys.exit(0)
+            
+        width = max(len(s["slug"]) for s in missing) + 3 if missing else 0
+        print("보고서가 없는 문서:")
+        for s in missing:
+            print(f"  {s['slug'].ljust(width)}{s['date']}  {s['dir']}/")
+        print("\n사용법 — report-spec init <slug>")
+        sys.exit(1)
+        
+    started = next((entry["dir"] for entry in DOC_DIRS if hasReport(cwd, entry["dir"], slug)), None)
+    if started:
+        data_file = os.path.join(reportDir(cwd, started, slug), "data.ts")
+        try:
+            with open(data_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                m = re.search(r'builderVersion:\s*"([^"]+)"', content)
+                old_version = m.group(1) if m else None
+        except OSError:
+            old_version = None
+            
+        print(f"{slug} — 기존 작업 파일이 있다. 이어서 쓴다(rev.2 방식).")
+        print(f"  자리: {started}/{slug}")
+        if old_version and old_version != version:
+            print(f"경고 — builderVersion \"{old_version}\" 이 현재 \"{version}\" 과 다르다.")
+            print(f"  옛 버전으로 빌드하려면: git worktree add /tmp/rb-{old_version} {old_version}")
+        sys.exit(0)
+        
+    match = next((s for s in docs if s["slug"] == slug), None)
+    
+    if not match:
+        print("에러 — 대응하는 원본 문서를 찾지 못했다:", file=sys.stderr)
+        print(f"  specs/*-{slug}-design.md", file=sys.stderr)
+        print(f"  plans/*-{slug}.md", file=sys.stderr)
+        
+        candidates = findSimilar(slug, [s["slug"] for s in docs])
+        if candidates:
+            width = max(len(c) for c in candidates) + 3
+            print("\n비슷한 slug:", file=sys.stderr)
+            for c in candidates:
+                s = next(x for x in docs if x["slug"] == c)
+                print(f"  {c.ljust(width)}{s['date']}  {s['dir']}/", file=sys.stderr)
+        sys.exit(1)
+        
+    dir_path = reportDir(cwd, match["dir"], slug)
+    try:
+        with open(os.path.join(cwd, match["dir"], match["file"]), "r", encoding="utf-8") as f:
+            content = f.read()
+            titleMatch = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+            specName = titleMatch.group(1).strip() if titleMatch else ""
+    except OSError:
+        specName = ""
+        
+    branch = currentBranch(cwd)
+    
+    writeSkeleton(dir_path, slug, match["date"], specName, branch, version)
+    
+    print(f"{slug} — 스켈레톤 생성: {dir_path}")
+    print(f"  근거 문서: {match['dir']}/{match['file']}")
+
+if __name__ == "__main__":
+    main()

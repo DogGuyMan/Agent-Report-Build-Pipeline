@@ -1,0 +1,173 @@
+import os
+from pathlib import Path
+import sys
+
+import pytest
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+from codewiki.python.runner.wiki.paths import wikiPaths, collectorFor
+from codewiki.python.runner.wiki.prep import prepPlan, pyRoots
+from codewiki.python.runner.wiki.build import sidebarFrom, vitepressConfig
+from codewiki.python.runner.wiki.check import checkArgs
+from codewiki.python.runner.wiki.compdb import mergeEntries, relativeFiles, clangUmlConfig, EXTERNAL_MARKERS
+from codewiki.python.runner.wiki.clang_doc import clangDocCandidates
+
+
+def test_wiki_paths():
+    p = wikiPaths("/tmp/repo")
+    assert p["wiki"] == "/tmp/repo/docs/wiki"
+    assert p["raw"] == "/tmp/repo/out/codegraph-raw"
+    assert p["built"] == "/tmp/repo/out/codegraph-raw/wiki-built"
+    assert p["site"] == "/tmp/repo/out/codegraph-raw/wiki-site"
+    assert p["codegraph"] == "/tmp/repo/out/codegraph-raw/codegraph.json"
+
+def test_collector_for():
+    assert collectorFor(["Assembly-CSharp.csproj", "Assets"]) == "roslyn-dump"
+    assert collectorFor(["StickRushGame.slnx"]) == "roslyn-dump"
+    assert collectorFor(["CMakeLists.txt", "core", "server"]) == "clang-uml"
+    assert collectorFor(["CMakeLists.txt", "Assembly-CSharp.csproj"]) == "roslyn-dump"
+    assert collectorFor(["package.json", "src"]) == "none"
+
+def test_py_roots_는_src_아래_패키지를_뿌리로_고른다(tmp_path: Path):
+    """파이썬 파일이 바로 든 최상위 폴더 · `src/` 아래의 그런 폴더를 고르고, `test` 와 숨김 폴더는 건너뛴다."""
+    for rel in ("src/pkg/__init__.py", "src/pkg/sub/a.py", "top/x.py", "test/test_x.py", ".hidden/h.py", "docs/d.py"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x = 1\n", encoding="utf-8")
+    assert pyRoots(str(tmp_path)) == ["src/pkg", "top"]
+    (tmp_path / "flat").mkdir()
+    assert pyRoots(str(tmp_path / "flat")) == ["."]
+
+
+def test_prep_plan():
+    out0 = prepPlan("clang-uml", True, True, False, False)
+    assert out0["steps"] == ["facts", "render-modules"]
+    assert out0["blocked"] is None
+
+    out1 = prepPlan("clang-uml", False, True, False, False)
+    assert out1["steps"] == ["clang-uml", "normalize", "facts", "render-modules"]
+    assert out1["blocked"] is None
+
+    out2 = prepPlan("clang-uml", False, False, False, False)
+    assert out2["steps"] == []
+    assert ".clang-uml" in out2["blocked"]
+
+    out3 = prepPlan("roslyn-dump", False, False, True, False)
+    assert out3["steps"] == ["normalize", "facts", "render-modules"]
+    assert out3["blocked"] is None
+
+    out4 = prepPlan("roslyn-dump", False, False, False, False)
+    assert out4["steps"] == []
+    assert "roslyn-dump.json" in out4["blocked"]
+
+    out5 = prepPlan("none", False, False, False, False)
+    assert out5["steps"] == []
+    assert "수집기" in out5["blocked"]
+
+    out6 = prepPlan("clang-uml", False, True, False, True)
+    assert out6["steps"] == ["clang-uml", "clang-doc", "normalize", "facts", "render-modules"]
+
+    out7 = prepPlan("clang-uml", False, True, False, False)
+    assert out7["steps"] == ["clang-uml", "normalize", "facts", "render-modules"]
+    assert out7["blocked"] is None
+
+    out8 = prepPlan("roslyn-dump", False, False, True, True)
+    assert "clang-doc" not in out8["steps"]
+
+def test_report_wiki_dispatch():
+    with open(os.path.join(ROOT, "bin", "report-wiki"), "r", encoding="utf-8") as f:
+        src = f.read()
+    assert 'prep": "src/codewiki/python/runner/wiki/prep.py"' in src or 'prep: "src/codewiki/python/runner/wiki/prep.py"' in src or 'src/codewiki/python/runner/wiki/prep.py' in src
+    assert 'build": "src/codewiki/python/runner/wiki/build.py"' in src or 'build: "src/codewiki/python/runner/wiki/build.py"' in src or 'src/codewiki/python/runner/wiki/build.py' in src
+    assert 'check": "src/codewiki/python/runner/wiki/check.py"' in src or 'check: "src/codewiki/python/runner/wiki/check.py"' in src or 'src/codewiki/python/runner/wiki/check.py' in src
+    assert "runDispatch" in src or "src/codewiki/python/runner/wiki" in src
+    assert "아직 이 진입점은 비어 있다" not in src
+
+def test_build():
+    assert sidebarFrom(["managers.md", "data.md", "index.md"]) == [{"text": "data", "link": "/data"}, {"text": "managers", "link": "/managers"}]
+    assert sidebarFrom(["index.md"]) == []
+    assert sidebarFrom(["a.md", "assets", "b.svg"]) == [{"text": "a", "link": "/a"}]
+    
+    cfg1 = vitepressConfig("StickRushGame", [{"text": "data", "link": "/data"}], "../wiki-site")
+    assert 'title: "StickRushGame 코드베이스 위키"' in cfg1
+    assert 'outDir: "../wiki-site"' in cfg1
+    assert '{ text: "data", link: "/data" }' in cfg1
+    assert 'from "vitepress"' not in cfg1
+    assert 'export default ({' in cfg1
+
+    cfg2 = vitepressConfig('Qt"Vision', [], "../wiki-site")
+    assert 'title: "Qt\\"Vision 코드베이스 위키"' in cfg2
+
+def test_위키_밖으로_나가는_링크는_죽은_링크로_치지_않는다():
+    """산문이 저장소 파일(`../../machine/CLAUDE.md`)을 가리키면 빌드가 죽으면 안 된다.
+
+    위키 페이지는 하위 폴더 없는 평평한 이름이라, `../` 가 있는 링크는 정의상 위키 밖이다.
+    VitePress 의 죽은 링크 검사는 그 바깥을 확인할 수 없어 전부 죽은 것으로 본다.
+    위키 **안**의 깨진 링크는 계속 잡혀야 하므로 검사를 통째로 끄지 않는다.
+    """
+    cfg = vitepressConfig("Repo", [], "../wiki-site")
+    assert "ignoreDeadLinks" in cfg
+    assert r"\.\./" in cfg or "../" in cfg
+    assert "ignoreDeadLinks: true" not in cfg
+
+def test_check_는_통과를_통과로_보고한다():
+    """`report-wiki check` 는 인용이 전부 통과하면 종료 코드 0 을 내야 한다.
+
+    `verify_citations.py` 는 경성 실패가 있을 때만 1 을 낸다(`return 1 if fails else 0`).
+    그 0 을 감싸는 쪽이 `r.returncode if r.returncode else 1` 로 뒤집으면 통과가 실패가 된다 —
+    게이트가 늘 빨간불이라 아무것도 지키지 못한다.
+    """
+    import subprocess
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    wiki = os.path.join(root, "docs", "wiki")
+    if not os.path.isdir(wiki) or not [f for f in os.listdir(wiki) if f.endswith(".md")]:
+        pytest.skip("산문이 없다 — report-wiki 산문 단계를 먼저 돌린다")
+    got = subprocess.run([os.path.join(root, "bin", "report-wiki"), "check", root],
+                         capture_output=True, text=True, timeout=300)
+    assert "실패 0" in got.stdout, got.stdout
+    assert got.returncode == 0, f"경성 실패가 0인데 종료 코드가 {got.returncode} 다:\n{got.stdout}"
+
+
+def test_check_args():
+    assert checkArgs("/tmp/r", "/tmp/r/cg.json", None, ["/tmp/r/docs/wiki/a.md", "/tmp/r/docs/wiki/b.md"]) == ["--repo", "/tmp/r", "--codegraph", "/tmp/r/cg.json", "/tmp/r/docs/wiki/a.md", "/tmp/r/docs/wiki/b.md"]
+    assert checkArgs("/tmp/r", "/tmp/r/cg.json", "/tmp/r/rd.json", ["/tmp/r/docs/wiki/a.md"]) == ["--repo", "/tmp/r", "--codegraph", "/tmp/r/cg.json", "--detail", "/tmp/r/rd.json", "/tmp/r/docs/wiki/a.md"]
+
+def test_compdb():
+    def e(f: str) -> dict[str, str]:
+        return {"file": f"/r/{f}", "directory": "/r/b"}
+    out0 = mergeEntries([[e("a.cpp"), e("b.cpp")], [e("b.cpp"), e("c.cpp")]], "/r")
+    assert [x["file"] for x in out0] == ["/r/a.cpp", "/r/b.cpp", "/r/c.cpp"]
+
+    out1 = mergeEntries([[{"file": "/other/x.cpp"}, {"file": "/r/y.cpp"}]], "/r")
+    assert [x["file"] for x in out1] == ["/r/y.cpp"]
+
+    out2 = mergeEntries([[{"file": "/r/src/a.cpp"}, {"file": "/r/vcpkg_installed/x.cpp"}, {"file": "/r/b/vedit_autogen/moc_x.cpp"}, {"file": "/r/build/CMakeFiles/y.cpp"}]], "/r")
+    assert [x["file"] for x in out2] == ["/r/src/a.cpp"]
+    
+    for m in ["autogen", "/vcpkg_installed/", "moc_"]:
+        assert m in EXTERNAL_MARKERS
+
+    out4 = relativeFiles([{"file": "/r/b.cpp"}, {"file": "/r/a.cpp"}, {"file": "/r/b.cpp"}], "/r")
+    assert out4 == ["a.cpp", "b.cpp"]
+
+    cfg = clangUmlConfig(
+        compdbDir="/r/out/compdb", repo="/r", outDir="/r/out",
+        files=["app/src/view/mainwindow.cpp", "core/panorama/warp.cpp"],
+        flags=["-resource-dir=/x"], paths=["app", "core"]
+    )
+    assert "*" not in cfg
+    assert "- app/src/view/mainwindow.cpp" in cfg
+    assert "- core/panorama/warp.cpp" in cfg
+    assert "- -resource-dir=/x" in cfg
+    assert "paths: [app, core]" in cfg
+
+def test_clang_doc():
+    out0 = clangDocCandidates({"CLANG_DOC": "/내가/고른/clang-doc", "PATH": ""}, [])
+    assert out0[0] == "/내가/고른/clang-doc"
+    
+    out1 = clangDocCandidates({"PATH": "/usr/bin:/bin"}, ["/opt/llvm"])
+    assert out1 == ["/opt/llvm/bin/clang-doc", "/usr/bin/clang-doc", "/bin/clang-doc"]
+    
+    out2 = clangDocCandidates({"PATH": "/usr/bin"}, [])
+    assert out2 == ["/usr/bin/clang-doc"]
+    assert not any("homebrew" in p for p in out2)

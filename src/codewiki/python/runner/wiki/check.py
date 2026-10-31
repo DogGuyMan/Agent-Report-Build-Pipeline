@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
+from typing import Any, cast
+
+# 이 파일은 <ROOT>/src/codewiki/python/runner/wiki/ 에 있다. 스크립트로 띄우면 sys.path[0] 이 그 폴더라
+# `codewiki` 도 `common` 도 보이지 않는다 — 패키지 import 보다 먼저 `src/` 를 넣는다.
+_SRC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
+
+from codewiki.python.runner.wiki.paths import wikiPaths as _wikiPaths  # noqa: E402
+from common.python import pythonPath as _pythonPath  # noqa: E402
+
+wikiPaths = cast(Any, _wikiPaths)
+pythonPath = cast(Any, _pythonPath)
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+
+def checkArgs(repo: str, codegraph: str, detail: str | None, docs: list[str]) -> list[str]:
+    out = ["--repo", repo, "--codegraph", codegraph]
+    if detail:
+        out.extend(["--detail", detail])
+    out.extend(docs)
+    return out
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("사용법 — report-wiki check <저장소 경로>", file=sys.stderr)
+        sys.exit(1)
+        
+    repoArg = sys.argv[1]
+    repo = os.path.abspath(os.path.expanduser(repoArg))
+    
+    P: dict[str, str] = wikiPaths(repo)
+    
+    if not os.path.exists(P["codegraph"]):
+        print(f"에러 — codegraph.json 이 없다: {P['codegraph']}. report-wiki prep 을 먼저 돌려라.", file=sys.stderr)
+        sys.exit(1)
+        
+    if not os.path.exists(P["wiki"]):
+        print(f"에러 — 산문이 없다: {P['wiki']}", file=sys.stderr)
+        sys.exit(1)
+        
+    docs = [os.path.join(P["wiki"], f) for f in os.listdir(P["wiki"]) if f.endswith(".md")]
+    if not docs:
+        print(f"에러 — {P['wiki']} 에 마크다운이 없다", file=sys.stderr)
+        sys.exit(1)
+        
+    detailPath = os.path.join(P["raw"], "roslyn-dump.json")
+    args = checkArgs(
+        repo=repo,
+        codegraph=P["codegraph"],
+        detail=detailPath if os.path.exists(detailPath) else None,
+        docs=docs
+    )
+    
+    r = subprocess.run([pythonPath(ROOT, sys.platform, cast(Any, os.environ)), os.path.join(ROOT, "src", "codewiki", "python", "machine", "verify_citations.py")] + args)
+    # verify_citations 는 경성 실패가 있을 때만 0 이 아닌 값을 낸다. 그 값을 그대로 넘긴다 —
+    # 0 을 1 로 바꾸면 통과가 실패로 보고되어 게이트가 늘 빨간불이 된다.
+    sys.exit(r.returncode)
