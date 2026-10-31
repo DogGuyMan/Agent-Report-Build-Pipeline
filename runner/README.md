@@ -127,6 +127,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `_no_ints` | `() -> list[int]` |  |
 | `_no_levels` | `() -> dict[str, int]` |  |
 | `_no_strs` | `() -> set[str]` |  |
+| `_no_names` | `() -> list[str]` |  |
 | **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
 | **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과 |
@@ -268,9 +269,10 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`SealArtifactsStage`** | *class* | `machine/manifest.py seal` 을 부른다. 싣는 종류는 `ctx.verified` 이고, 비었으면 부르지 않고 실패 행 하나로 `FAIL` 이다. |
+| **`SealArtifactsStage`** | *class* | `machine/manifest.py seal` 을 부른다. 싣는 종류는 `ctx.verified` 에서 따라잡지 못한 위키를 뺀 것이고, 비었으면 부르지 않고 실패 행 하나로 `FAIL` 이다. |
 | `SealArtifactsStage.producer_commit` | `(root: str) -> str` | 봉인한 도구의 판. git 밖이면 `unknown`. |
 | `SealArtifactsStage.mark_superseded` | `(repo: str, stage: str, producer_commit: str) -> bool` | 실패한 실행 뒤 **이전 봉인**에 표식을 적는다. 봉인이 없거나 계약 꼴이 아니면 False. 봉인 자체는 새로 쓰지 않는다. |
+| `SealArtifactsStage.sealable` | `(verified: Iterable[str], raw: str) -> list[str]` | 봉인할 종류. 위키는 `write-wiki` 가 지금 지문을 따라잡았다고 적었을 때만 싣는다(`manifest.wiki_caught_up`). |
 | `SealArtifactsStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `SealArtifactsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `SealArtifactsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -369,7 +371,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `OutlineWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `OutlineWikiStage.wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `OutlineWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
-| **`WriteWikiStage`** | *class* | 장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛴다. |
+| **`WriteWikiStage`** | *class* | 장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛰고, 따라잡은 기준 뒤 바뀐 파일을 인용하는 장만 다시 쓴다. 사람이 고친 장은 .bak 에 남기고 덮는다. |
 | `WriteWikiStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
 | `WriteWikiStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
 | `WriteWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -377,11 +379,21 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `WriteWikiStage.symbol_layers` | `(plan: survey_plan.SurveyPlan) -> dict[str, int]` | `batches.json` -> `{심볼 id: 층}`. 비노드 층은 심볼이 없으므로 저절로 빠진다. |
 | `WriteWikiStage.page_layers` | `(pages: Iterable[WikiPage], sym_layer: Mapping[str, int]) -> dict[str, int]` | K6 — 페이지의 층 = 그 페이지가 인용하는 심볼들의 **최대** 층. |
 | `WriteWikiStage.wiki_page_prompt` | `(repo: str, root: str, page: WikiPage, lower_pages: Sequence[X.LowerPageRow]) -> str` | 장 하나 = 세션 하나. `lower_pages` 는 이미 선 아래층 장들의 파일명과 제목이다. |
+| `WriteWikiStage.page_hash` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
+| `WriteWikiStage.stale_pages` | `(wiki_dir: str, pages: Iterable[str], changed: set[str]) -> set[str]` | 이미 쓴 장 중 바뀐 파일의 경로를 글자 그대로 담은 것. 그 장은 다시 쓴다. |
+| `WriteWikiStage.edited_pages` | `(wiki_dir: str, pages: Iterable[str], recorded: Mapping[str, str]) -> set[str]` | 지난 write-wiki 가 적어 둔 해시와 지금 해시가 다른 장 — 사람이 고친 것이다. |
+| `WriteWikiStage.back_up_edited` | `(wiki_dir: str, edited: Iterable[str]) -> list[str]` | 손댄 장을 `docs/wiki/.bak/<장>` 으로 옮긴다. 옮긴 뒤에는 없는 장이라 `jobs` 가 다시 쓴다. |
+| `WriteWikiStage.read_state` | `(path: str) -> WikiState \| None` | 지난 write-wiki 의 상태. 없거나 꼴이 틀리면 None — 그러면 기준도 손댐도 판정하지 않는다. |
+| `WriteWikiStage.write_state` | `(path: str, state: WikiState) -> None` | `wiki-state.json` 을 쓴다. 다른 산출물과 같은 꼴(들여쓰기 1, 한글 그대로)이다. |
+| `WriteWikiStage.source_hashes` | `(snapshot: str) -> dict[str, str] \| None` | 지문 파일의 `{경로: file_hash}`. 지문이 없으면 None. 못 읽은 파일(`file_hash` 가 None)은 뺀다. |
+| `WriteWikiStage.changed_sources` | `(prev: Mapping[str, str], cur: Mapping[str, str]) -> set[str]` | 기준 소스 지도와 지금 지문의 해시가 다른 경로 — 바뀐 것 · 새로 생긴 것 · 지운 것. |
+| `WriteWikiStage.record_pages` | `(state_path: str, wiki_dir: str, names: Iterable[str], sources: Mapping[str, str] \| None = None) -> None` | 방금 쓴 장들의 해시를 `pages` 에 적는다. `sources` 를 주면 기준도 바꿔 적는다. `snapshot_sha256` 은 건드리지 않는다. |
+| `WriteWikiStage.mark_caught_up` | `(state_path: str, snapshot: str, sources: Mapping[str, str]) -> None` | 위키가 이 지문을 따라잡았다고 적는다 — `sources` 와 `snapshot_sha256`. `pages` 는 그대로 둔다. |
 | `WriteWikiStage.prepare` | `(self, ctx: Mode1Context) -> None` |  |
 | `WriteWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `WriteWikiStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
 | `WriteWikiStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
-| `WriteWikiStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
+| `WriteWikiStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` | 층이 끝날 때마다 성공한 장의 해시를 바로 적는다 — 뒤 층이 실패해도 그 장은 LLM 이 쓴 것으로 남는다. |
 | **`PublishWikiStage`** | *class* |  |
 | `PublishWikiStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `PublishWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
@@ -707,6 +719,17 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_목차_프롬프트는_새_이름의_파일을_말한다` | `()` |  |
 | `test_write_wiki_는_이미_쓴_장을_건너뛴다` | `(tmp_path: Path)` |  |
 | `test_페이지_층은_인용한_심볼의_최대` | `()` |  |
+| `test_stale_pages_는_바뀐_파일을_글자로_인용하는_장이다` | `(tmp_path: Path) -> None` |  |
+| `test_write_wiki_는_끝나면_지문을_따라잡았다고_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_edited_pages_는_적어_둔_해시와_다른_장이다` | `(tmp_path: Path) -> None` |  |
+| `test_back_up_edited_는_bak_로_옮기고_목록을_돌려준다` | `(tmp_path: Path) -> None` |  |
+| `_snapshot` | `(c: X.Mode1Context, hashes: dict[str, str]) -> str` | 지문 `snapshot.json` 을 `{경로: file_hash}` 로 쓴다. 나머지 칸은 위키 판정이 보지 않는다. |
+| `_outline` | `(c: X.Mode1Context, pages: list[X.WikiPage]) -> None` |  |
+| `_fake_layer` | `(fail: set[str]) -> Callable[..., list[P.JobResult]]` | `run_layer` 대역. `fail` 에 든 장은 세션이 실패하고, 나머지는 장 `x.md` 에 `pkg/x.py` 인용을 쓰고 성공한다. |
+| `test_write_wiki_는_기준_소스와_지금_지문이_다른_파일을_인용한_장만_다시_쓴다` | `(tmp_path: Path) -> None` |  |
+| `test_write_wiki_는_기준이_없으면_기존_장을_건너뛰고_따라잡았다고_적지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_write_wiki_는_빈_위키를_처음_구우면_따라잡았다고_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
+| `test_write_wiki_가_한_층을_쓰고_실패하면_기준은_그대로이고_다시_준비해도_LLM_이_쓴_장을_bak_로_옮기지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_증분은_열셋_전량은_열둘` | `()` |  |
 | `test_순서의_불변식_셋` | `()` |  |
 | `test_별명은_쪼갠_단계로_펴진다` | `()` |  |
@@ -785,7 +808,9 @@ Mode 2 와 Mode 1.5 를 import 하는 것만으로 해석기가 바뀌거나 net
 | `test_write_wiki_는_다음_층_프롬프트에_아래층_장을_한_줄씩_싣는다` | `(tmp_path: Path) -> None` |  |
 | `test_FIX_는_결함_갈래마다_빈_줄이_아닌_한_줄이다` | `() -> None` |  |
 | `_old_seal` | `(repo: Path) -> Path` | 이전 실행이 남긴 봉인 하나를 `docs/codegraph/manifest.json` 에 둔다. |
+| `test_write_wiki_처음_굽기가_한_층을_쓰고_실패하면_다음_실행은_기준을_알고_이어_굽는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |
 | `test_seal_은_검사를_통과한_것만_싣는다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_따라잡지_못한_위키를_빼고_나머지만_싣는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None` |  |
 | `test_seal_은_통과한_검사가_없으면_실패한다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_artifacts_는_그래프의_마지막이다` | `() -> None` |  |
 | `test_verify_terms_는_통과하면_verified_에_적는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None` |  |

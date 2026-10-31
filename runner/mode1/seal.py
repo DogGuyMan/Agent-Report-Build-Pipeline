@@ -3,12 +3,13 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Iterable
 from datetime import datetime, timezone
 
 import msgspec
 
 import pipeline as P
-from manifest import ArtifactManifest
+from manifest import ArtifactManifest, wiki_caught_up
 from mode1 import context as X
 from mode1.context import Mode1Context
 from mode1.machine_stage import Mode1Machine
@@ -16,7 +17,7 @@ from mode1.measured import Measured
 
 
 class SealArtifactsStage(Measured, Mode1Machine):
-    """`machine/manifest.py seal` 을 부른다. 싣는 종류는 `ctx.verified` 이고, 비었으면 부르지 않고 실패 행 하나로 `FAIL` 이다."""
+    """`machine/manifest.py seal` 을 부른다. 싣는 종류는 `ctx.verified` 에서 따라잡지 못한 위키를 뺀 것이고, 비었으면 부르지 않고 실패 행 하나로 `FAIL` 이다."""
     name = "seal-artifacts"
 
     @staticmethod
@@ -42,9 +43,14 @@ class SealArtifactsStage(Measured, Mode1Machine):
             f.write(msgspec.json.format(msgspec.json.encode(doc), indent=2))
         return True
 
+    @staticmethod
+    def sealable(verified: Iterable[str], raw: str) -> list[str]:
+        """봉인할 종류. 위키는 `write-wiki` 가 지금 지문을 따라잡았다고 적었을 때만 싣는다(`manifest.wiki_caught_up`)."""
+        return sorted(k for k in verified if k != "wiki" or wiki_caught_up(raw))
+
     def argv(self, ctx: Mode1Context) -> list[str]:
         return [sys.executable, os.path.join(ctx.root, "machine", "manifest.py"), "seal", ctx.repo,
-                "--kinds", ",".join(sorted(ctx.verified)),
+                "--kinds", ",".join(self.sealable(ctx.verified, X.raw_dir(ctx))),
                 "--producer-commit", self.producer_commit(ctx.root)]
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
@@ -54,7 +60,11 @@ class SealArtifactsStage(Measured, Mode1Machine):
         return [X.MANIFEST]
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
-        if not ctx.verified:
-            why = "봉인할 것이 없다 — 이 실행에서 verify-terms 나 verify-wiki 가 통과하지 않았다"
+        kinds = self.sealable(ctx.verified, X.raw_dir(ctx))
+        if "wiki" in ctx.verified and "wiki" not in kinds:
+            print("위키는 봉인하지 않는다 — write-wiki 가 지난 전수조사를 따라잡았다고 적지 않았다", file=sys.stderr)
+        if not kinds:
+            why = "봉인할 것이 없다 — " + ("위키가 지난 전수조사를 따라잡지 못했다" if ctx.verified
+                                          else "이 실행에서 verify-terms 나 verify-wiki 가 통과하지 않았다")
             return P.Outcome(P.FAIL, why, [self.row(time.monotonic(), False, why)])
         return super().perform(ctx)

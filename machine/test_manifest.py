@@ -117,6 +117,17 @@ def test_seal_은_지문을_따라잡지_못한_위키를_거부한다(tmp_path:
     assert seal(repo, "wiki") == 3
 
 
+def test_wiki_caught_up_은_장_해시만_있는_상태를_따라잡지_않았다고_본다(tmp_path: Path) -> None:
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    (raw / "snapshot.json").write_text('{"files": {}}', encoding="utf-8")
+    (raw / "wiki-state.json").write_text(json.dumps({"pages": {"a.md": "h"}}), encoding="utf-8")
+    assert MF.wiki_caught_up(str(raw)) is False
+    sha = hashlib.sha256((raw / "snapshot.json").read_bytes()).hexdigest()
+    (raw / "wiki-state.json").write_text(json.dumps({"snapshot_sha256": sha, "sources": {}, "pages": {}}), encoding="utf-8")
+    assert MF.wiki_caught_up(str(raw)) is True
+
+
 def test_seal_은_모르는_종류와_빈_종류를_거부한다(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     assert seal(repo, "foo") == 2

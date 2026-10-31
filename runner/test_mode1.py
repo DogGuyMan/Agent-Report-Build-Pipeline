@@ -1,9 +1,11 @@
 """`runner/mode1/` 의 시험. 문맥 · 산출물 · diff · 단계 · 전이표 · 재개 JSON."""
+import hashlib
 import json
 import os
 import sys
 import time
 import tomllib
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import cast, get_args
 
@@ -16,6 +18,7 @@ import manifest as MF  # noqa: E402
 import measure as M  # noqa: E402
 import pipeline as P  # noqa: E402
 import survey_plan  # noqa: E402
+import warmup  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
 from mode1 import edges as E  # noqa: E402
@@ -474,6 +477,173 @@ def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
 def test_페이지_층은_인용한_심볼의_최대():
     pages: list[X.WikiPage] = [{"file": "i.md", "symbols": []}, {"file": "p.md", "symbols": ["a", "b", "없음"]}]
     assert W.WriteWikiStage.page_layers(pages, {"a": 0, "b": 2}) == {"i.md": 0, "p.md": 2}
+
+
+def test_stale_pages_는_바뀐_파일을_글자로_인용하는_장이다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("근거 `pkg/a.py:3`\n", encoding="utf-8")
+    (wiki / "b.md").write_text("근거 `pkg/b.py:1`\n", encoding="utf-8")
+    got = W.WriteWikiStage.stale_pages(str(wiki), ["a.md", "b.md", "c.md"], {"pkg/a.py"})
+    assert got == {"a.md"}
+
+
+def test_write_wiki_는_끝나면_지문을_따라잡았다고_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _ctx(tmp_path)
+    snap = X.SNAPSHOT.locate(ctx)
+    os.makedirs(os.path.dirname(snap), exist_ok=True)
+    with open(snap, "w", encoding="utf-8") as f:
+        f.write('{"files": {}}')
+
+    def ok(self: P.LlmStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.OK, "", [])
+
+    def no_prepare(self: W.WriteWikiStage, c: X.Mode1Context) -> None:
+        return None
+    monkeypatch.setattr(P.LlmStage, "perform", ok)
+    monkeypatch.setattr(W.WriteWikiStage, "prepare", no_prepare)
+    ctx.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(ctx).kind == P.OK
+    state = P.load(X.WIKI_STATE.locate(ctx), MF.WikiState)
+    assert state.get("snapshot_sha256") == hashlib.sha256(open(snap, "rb").read()).hexdigest()
+    assert "pages" in state
+    assert MF.wiki_caught_up(os.path.dirname(snap))   # 봉인이 읽는 쪽과 같은 바이트를 해싱한다
+
+
+def test_edited_pages_는_적어_둔_해시와_다른_장이다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("원본\n", encoding="utf-8")
+    (wiki / "b.md").write_text("원본\n", encoding="utf-8")
+    h = hashlib.sha256("원본\n".encode()).hexdigest()
+    (wiki / "a.md").write_text("사람이 고침\n", encoding="utf-8")
+    assert W.WriteWikiStage.edited_pages(str(wiki), ["a.md", "b.md", "c.md"], {"a.md": h, "b.md": h}) == {"a.md"}
+
+
+def test_back_up_edited_는_bak_로_옮기고_목록을_돌려준다(tmp_path: Path) -> None:
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("사람이 고침\n", encoding="utf-8")
+    assert W.WriteWikiStage.back_up_edited(str(wiki), {"a.md"}) == ["a.md"]
+    assert not (wiki / "a.md").exists()
+    assert (wiki / ".bak" / "a.md").read_text(encoding="utf-8") == "사람이 고침\n"
+
+
+def _snapshot(c: X.Mode1Context, hashes: dict[str, str]) -> str:
+    """지문 `snapshot.json` 을 `{경로: file_hash}` 로 쓴다. 나머지 칸은 위키 판정이 보지 않는다."""
+    entries: warmup.Manifest = {rel: {"mtime": 0.0, "size": 0, "seen": 0.0, "file_hash": h, "decl_hash": None}
+                                for rel, h in hashes.items()}
+    path = X.SNAPSHOT.locate(c)
+    warmup.save(path, entries)
+    return path
+
+
+def _outline(c: X.Mode1Context, pages: list[X.WikiPage]) -> None:
+    path = X.OUTLINE.locate(c)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"pages": pages}, f)
+
+
+def _fake_layer(fail: set[str]) -> Callable[..., list[P.JobResult]]:
+    """`run_layer` 대역. `fail` 에 든 장은 세션이 실패하고, 나머지는 장 `x.md` 에 `pkg/x.py` 인용을 쓰고 성공한다."""
+    def run(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        got: list[P.JobResult] = []
+        for label, _ in jobs:
+            if label in fail:
+                got.append((label, 0.0, 1, None))
+                continue
+            path = os.path.join(repo, "docs", "wiki", label)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("LLM 새판 `pkg/%s.py:1`\n" % label[:-3])
+            got.append((label, 0.0, 0, {}))
+        return got
+    return run
+
+
+def test_write_wiki_는_기준_소스와_지금_지문이_다른_파일을_인용한_장만_다시_쓴다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": n, "symbols": []} for n in ("a.md", "b.md", "g.md", "n.md")])
+    _snapshot(c, {"pkg/a.py": "새", "pkg/b.py": "같음", "pkg/new.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    for n, src in (("a.md", "pkg/a.py"), ("b.md", "pkg/b.py"), ("g.md", "pkg/gone.py")):
+        (wiki / n).write_text("`%s:1`\n" % src, encoding="utf-8")
+    state: MF.WikiState = {"snapshot_sha256": "옛", "sources": {"pkg/a.py": "옛", "pkg/b.py": "같음", "pkg/gone.py": "옛"},
+                           "pages": {n: W.WriteWikiStage.page_hash(str(wiki / n)) for n in ("a.md", "b.md", "g.md")}}
+    (tmp_path / "out" / "codegraph-raw" / "wiki-state.json").write_text(json.dumps(state))
+    (wiki / "b.md").write_text("`pkg/b.py:1` 사람이 고침\n", encoding="utf-8")   # 낡지 않은 장의 손질은 건드리지 않는다
+    c.plan = _empty_plan()
+    for cold in (True, False):                                                      # 전량 · 증분이 같다
+        c.cold = cold
+        W.WriteWikiStage().prepare(c)
+        assert c.wiki_stale == {"a.md", "g.md"} and c.wiki_unknown == [] and c.wiki_backed_up == []
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == ["a.md", "g.md", "n.md"]
+    assert not (wiki / ".bak").exists()
+
+
+def test_write_wiki_는_기준이_없으면_기존_장을_건너뛰고_따라잡았다고_적지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a.md").write_text("옛 장\n", encoding="utf-8")
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert (wiki / "a.md").read_text(encoding="utf-8") == "옛 장\n"
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert "sources" not in state and "snapshot_sha256" not in state
+    assert set(state.get("pages", {})) == {"b.md"}
+    assert not MF.wiki_caught_up(X.raw_dir(c))
+    assert "기존 장 1개의 신선도를 모른다" in capsys.readouterr().out
+
+
+def test_write_wiki_는_빈_위키를_처음_구우면_따라잡았다고_적는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": []}])
+    _snapshot(c, {"pkg/a.py": "새"})
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    c.plan = _empty_plan()
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert state.get("sources") == {"pkg/a.py": "새"}
+    assert set(state.get("pages", {})) == {"a.md", "b.md"}
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
+def test_write_wiki_가_한_층을_쓰고_실패하면_기준은_그대로이고_다시_준비해도_LLM_이_쓴_장을_bak_로_옮기지_않는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": ["pkg/b.py.S"]}])
+    plan = _plan_with(["pkg/b.py"])
+    plan["layers"][0]["level"] = 1                                                   # b.md 는 둘째 층
+    _snapshot(c, {"pkg/a.py": "새", "pkg/b.py": "새"})
+    wiki = tmp_path / "docs" / "wiki"
+    wiki.mkdir(parents=True)
+    for n in ("a", "b"):
+        (wiki / (n + ".md")).write_text("LLM 옛판 `pkg/%s.py:1`\n" % n, encoding="utf-8")
+    sources = {"pkg/a.py": "옛", "pkg/b.py": "옛"}
+    state: MF.WikiState = {"snapshot_sha256": "옛", "sources": sources,
+                           "pages": {n: W.WriteWikiStage.page_hash(str(wiki / n)) for n in ("a.md", "b.md")}}
+    state_path = X.WIKI_STATE.locate(c)
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(state, f)
+    (wiki / "a.md").write_text("사람이 고침 `pkg/a.py:1`\n", encoding="utf-8")
+    monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
+    c.plan = plan
+    assert W.WriteWikiStage().perform(c).kind == P.FAIL
+    after = P.load(state_path, MF.WikiState)
+    assert after.get("sources") == sources and after.get("snapshot_sha256") == "옛"   # 실패한 실행은 기준을 옮기지 않는다
+    assert after.get("pages", {}).get("a.md") == W.WriteWikiStage.page_hash(str(wiki / "a.md"))
+    W.WriteWikiStage().prepare(c)                                                    # 재개든 새 실행이든 같은 기준에서 다시 준비한다
+    assert c.wiki_stale == {"a.md", "b.md"} and c.wiki_backed_up == []
+    assert (wiki / ".bak" / "a.md").read_text(encoding="utf-8") == "사람이 고침 `pkg/a.py:1`\n"
+
 
 
 # ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
@@ -1305,12 +1475,51 @@ def _old_seal(repo: Path) -> Path:
     return path
 
 
+def test_write_wiki_처음_굽기가_한_층을_쓰고_실패하면_다음_실행은_기준을_알고_이어_굽는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    _outline(c, [{"file": "a.md", "symbols": []}, {"file": "b.md", "symbols": ["pkg/b.py.S"]}])
+    plan = _plan_with(["pkg/b.py"])
+    plan["layers"][0]["level"] = 1                                                   # b.md 는 둘째 층
+    _snapshot(c, {"pkg/a.py": "1판", "pkg/b.py": "1판"})
+    monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
+    c.plan = plan
+    assert W.WriteWikiStage().perform(c).kind == P.FAIL
+    state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
+    assert state.get("sources") == {"pkg/a.py": "1판", "pkg/b.py": "1판"} and "snapshot_sha256" not in state
+    _snapshot(c, {"pkg/a.py": "2판", "pkg/b.py": "1판"})                              # 그 사이 소스가 바뀌었다
+    W.WriteWikiStage().prepare(c)
+    assert c.wiki_stale == {"a.md"} and c.wiki_unknown == [] and not c.wiki_first_bake
+    _snapshot(c, {"pkg/a.py": "1판", "pkg/b.py": "1판"})                              # 안 바뀌었다
+    W.WriteWikiStage().prepare(c)
+    assert c.wiki_stale == set() and c.wiki_unknown == []
+    assert [j[0] for j in W.WriteWikiStage().jobs(c, 0)] == [] and [j[0] for j in W.WriteWikiStage().jobs(c, 1)] == ["b.md"]
+    monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
+    assert W.WriteWikiStage().perform(c).kind == P.OK
+    assert MF.wiki_caught_up(X.raw_dir(c))
+
+
 def test_seal_은_검사를_통과한_것만_싣는다(tmp_path: Path) -> None:
     from mode1 import seal as SL
     ctx = _ctx(tmp_path)
+    snap = _snapshot(ctx, {"pkg/a.py": "새"})
+    W.WriteWikiStage.mark_caught_up(X.WIKI_STATE.locate(ctx), snap, {"pkg/a.py": "새"})
     ctx.verified = {"wiki", "terms-db"}
     argv = SL.SealArtifactsStage().argv(ctx)
     assert argv[argv.index("--kinds") + 1] == "terms-db,wiki"
+
+
+def test_seal_은_따라잡지_못한_위키를_빼고_나머지만_싣는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from mode1 import seal as SL
+    ctx = _ctx(tmp_path)
+    _snapshot(ctx, {"pkg/a.py": "새"})
+    ctx.verified = {"wiki", "terms-db"}
+    argv = SL.SealArtifactsStage().argv(ctx)
+    assert argv[argv.index("--kinds") + 1] == "terms-db"
+    ctx.verified = {"wiki"}
+    out = SL.SealArtifactsStage().perform(ctx)
+    assert out.kind == P.FAIL and "따라잡지 못했다" in out.why
+    assert "위키는 봉인하지 않는다" in capsys.readouterr().err
 
 
 def test_seal_은_통과한_검사가_없으면_실패한다(tmp_path: Path) -> None:
@@ -1390,6 +1599,8 @@ def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(
     raw.mkdir(parents=True)
     for name in ("lang-select.json", "snapshot.json", "batches.json", "outline.json", "terms-db.json"):
         (raw / name).write_text("{}", encoding="utf-8")
+    # write-wiki 는 대역이라 상태를 쓰지 않는다 — 지문을 따라잡았다고 미리 적어 둔다
+    (raw / "wiki-state.json").write_text(json.dumps({"snapshot_sha256": hashlib.sha256(b"{}").hexdigest()}))
     fail_at = [""]
     sealed: list[str] = []
 

@@ -215,6 +215,10 @@ def _no_strs() -> set[str]:
     return set()
 
 
+def _no_names() -> list[str]:
+    return []
+
+
 @dataclass
 class Mode1Context(P.RunContext):
     """칸마다 이름과 형이 있다. 자루(dict)는 없다."""
@@ -237,6 +241,10 @@ class Mode1Context(P.RunContext):
     wiki_levels: list[int] = field(default_factory=_no_ints)
     wiki_level_of: dict[str, int] = field(default_factory=_no_levels)
     wiki_done: Pages = field(default_factory=_no_pages)
+    wiki_stale: set[str] = field(default_factory=_no_strs)     # 기준 소스 뒤 바뀐 파일을 인용해 다시 쓸 장
+    wiki_backed_up: list[str] = field(default_factory=_no_names)   # 손으로 고쳐서 .bak 에 남긴 장
+    wiki_unknown: list[str] = field(default_factory=_no_names)     # 기준이 없어 신선도를 모른 채 건너뛴 기존 장
+    wiki_first_bake: bool = False                                  # 기준도 기존 장도 없는 처음 굽기 — 층마다 지금 지문을 기준으로 적는다
     verified: set[str] = field(default_factory=_no_strs)     # verify-terms · verify-wiki → seal-artifacts (검사를 통과한 종류)
 
 

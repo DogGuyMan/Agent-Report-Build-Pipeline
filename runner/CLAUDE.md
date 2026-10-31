@@ -58,7 +58,7 @@ flowchart LR
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로
 갈려 있어, 어느 쪽도 상대의 메모리를 보지 않는다.
 
-**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` · `manifest`(`ArtifactManifest` 꼴만) 넷이다.
+**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` · `manifest`(꼴 `ArtifactManifest` · `WikiState` 와 판정 `wiki_caught_up`) 넷이다.
 축이 갈린 뒤로 같은 폴더가 아니게 되어 파일 머리에서 `sys.path` 에 `machine/` 을 직접 넣는다.
 다른 러너는 러너끼리만 import 하므로 그 줄이 없다.
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 | 방향 | 무엇 |
 |---|---|
 | `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `run_dispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
-| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴은 import) |
+| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/wiki.py`(warmup · manifest 꼴) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴과 `wiki_caught_up` 은 import) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
 | 여기 → `../tools/template.py` | `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다. `pipeline.py` 는 예외 `TemplateError` 만 쓴다 — 프롬프트 글은 Jinja2 로 렌더한다 |

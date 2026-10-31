@@ -65,8 +65,13 @@ class LangPick(TypedDict):
 
 
 class WikiState(TypedDict):
-    """`write-wiki` 가 따라잡은 지문(`snapshot.json` 바이트의 sha256)과 그때 쓴 장마다의 해시."""
-    snapshot_sha256: str
+    """`write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, 나머지 둘은 따라잡았을 때 함께 적는다.
+
+    `snapshot_sha256` 은 따라잡은 지문(`snapshot.json` 바이트의 sha256), `sources` 는 그 지문의 `{경로: file_hash}` 다.
+    둘이 없으면 위키는 아직 어느 지문도 따라잡지 못했다.
+    """
+    snapshot_sha256: NotRequired[str]
+    sources: NotRequired[dict[str, str]]
     pages: NotRequired[dict[str, str]]
 
 
@@ -107,11 +112,11 @@ def unsurveyed(repo: str, sources: Sequence[str], snapshot: str) -> list[str]:
 
 
 def wiki_caught_up(raw: str) -> bool:
-    """`wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하면 아니다."""
+    """`wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하거나 따라잡은 적이 없으면 아니다."""
     try:
         with open(os.path.join(raw, "wiki-state.json"), "rb") as f:
             state = msgspec.json.decode(f.read(), type=WikiState)
-        return state["snapshot_sha256"] == sha256_of(os.path.join(raw, "snapshot.json"))
+        return state.get("snapshot_sha256") == sha256_of(os.path.join(raw, "snapshot.json"))
     except (OSError, msgspec.DecodeError):
         return False
 

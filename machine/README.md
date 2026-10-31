@@ -180,13 +180,13 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | **`SupersededBy`** | *class* | 이 봉인 뒤의 Mode 1 실행이 실패했다는 표식. 봉인 자체는 그대로다 — 읽는 쪽이 경고로 본다. |
 | **`ArtifactManifest`** | *class* | `docs/codegraph/manifest.json` 의 꼴. `inputs` 는 봉인 시점 소스 파일마다의 git blob id 다. |
 | **`LangPick`** | *class* | `lang-select.json` 에서 봉인이 읽는 칸. 언어를 못 골랐으면 None 이다. |
-| **`WikiState`** | *class* | `write-wiki` 가 따라잡은 지문(`snapshot.json` 바이트의 sha256)과 그때 쓴 장마다의 해시. |
+| **`WikiState`** | *class* | `write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, 나머지 둘은 따라잡았을 때 함께 적는다. |
 | `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
 | `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
 | `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
 | `missing` | `(repo: str, sources: Sequence[str]) -> list[str]` | git 이 추적하는데 작업 트리에 없는 소스. 지운 것을 아직 커밋하지 않은 상태다. |
 | `unsurveyed` | `(repo: str, sources: Sequence[str], snapshot: str) -> list[str]` | 지난 전수조사의 지문과 다른 소스. 지문에 없는 새 파일도 넣는다. |
-| `wiki_caught_up` | `(raw: str) -> bool` | `wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하면 아니다. |
+| `wiki_caught_up` | `(raw: str) -> bool` | `wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하거나 따라잡은 적이 없으면 아니다. |
 | `entries` | `(repo: str, kind: str) -> list[ArtifactEntry]` | 봉인한 종류의 파일 목록과 sha256. terms-db 는 `docs/codegraph/` 의 사본, wiki 는 `docs/wiki/*.md` 다. |
 | `refuse` | `(head: str, rels: Sequence[str]) -> int` | 봉인을 거부한 이유를 stderr 에 적고 종료 코드 3 을 낸다. 파일은 스무 개까지 보인다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` | `seal` 명령. 거부 조건을 모두 지나야 `docs/codegraph/` 에 쓴다. |
@@ -452,6 +452,7 @@ clang-doc 적재기의 회귀 시험.
 | `test_seal_은_조사되지_않은_추적_파일도_거부한다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_작업_트리에서_지워진_추적_소스를_거부한다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_지문을_따라잡지_못한_위키를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_wiki_caught_up_은_장_해시만_있는_상태를_따라잡지_않았다고_본다` | `(tmp_path: Path) -> None` |  |
 | `test_seal_은_모르는_종류와_빈_종류를_거부한다` | `(tmp_path: Path) -> None` |  |
 
 ---
