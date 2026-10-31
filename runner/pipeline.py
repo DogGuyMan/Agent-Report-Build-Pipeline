@@ -388,8 +388,9 @@ class Pipeline(Generic[C]):
 class MachineStage(Stage[C]):
     """자식 프로세스 하나. LLM 을 부르지 않으므로 토큰은 늘 0이고 행도 하나다.
 
-    `perform` 을 재정의하지 않는다 — 자식 프로세스를 띄우는 방식이 갈리면
-    측정이 모드마다 달라진다.
+    자식 프로세스를 띄우고 재는 코드는 이 `perform` 한 벌이다 — 갈리면 측정이 모드마다 달라진다.
+    하위 클래스가 `perform` 을 재정의할 때는 `super().perform()` 을 감싸 앞뒤에 문맥만 붙이거나,
+    부르기 전에 가로채 실패를 낸다. 가로챌 때는 측정 표의 행을 스스로 하나 낸다.
     """
     emits = OK | FAIL
 
@@ -596,7 +597,9 @@ class LlmStage(PromptResource, Stage[C]):
     팬아웃은 단일 호출의 일반화다 — 세션 하나짜리 단계는 `jobs` 의 기본값이
     자기 이름 하나를 담은 목록을 내므로 훅을 하나도 더 구현하지 않는다.
 
-    `perform` 을 재정의하지 않는다 — 층을 도는 방식과 측정이 갈리면 안 된다.
+    층을 돌고 재는 코드는 이 `perform` 한 벌이다 — 갈리면 측정이 모드마다 달라진다.
+    하위 클래스가 `perform` 을 재정의할 때는 `super().perform()` 을 감싸 앞뒤에 문맥만 붙이거나(`WriteWikiStage`),
+    부르기 전에 가로채 OK 를 낸다(`OutlineWikiStage`). 가로챌 때는 측정 표의 행을 스스로 하나 낸다.
     """
     emits = OK | FAIL
 

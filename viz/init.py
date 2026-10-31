@@ -104,12 +104,32 @@ def writeSkeleton(dir: str, slug: str, date: str, specName: str, branch: str, ve
     with open(os.path.join(dir, "report.tsx"), "w", encoding="utf-8") as f:
         f.write(report_tsx)
 
+EVIDENCE = os.path.join(ROOT, "machine", "evidence.py")
+
+def repoTopLevel(cwd: str) -> str:
+    """git 최상위. git 밖이거나 git 이 없으면 cwd 그대로 — build.py 가 링크 뿌리를 찾는 것과 같은 규칙."""
+    try:
+        res = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    except OSError:
+        return cwd
+    return res.stdout.strip() if res.returncode == 0 and res.stdout.strip() else cwd
+
+def modeOneStatus(python: str, repo: str) -> str:
+    """봉인 상태 한 줄. 판정만 하고 막지 않는다 — Mode 2 는 Mode 1 과 독립이다."""
+    try:
+        res = subprocess.run([python, EVIDENCE, repo, "--need", "terms-db,wiki", "--optional", "--status"],
+                             capture_output=True, text=True)
+    except OSError:
+        return "Mode 1 봉인 — 상태를 알 수 없다 (evidence.py 를 부르지 못했다)"
+    return res.stdout.strip() or "Mode 1 봉인 — 상태를 알 수 없다 (evidence.py 가 답하지 않았다)"
+
 def main() -> None:
     slug = sys.argv[1] if len(sys.argv) > 1 else ""
     
     cwd = os.getcwd()
     
     docs = listDocs(cwd)
+    print(modeOneStatus(sys.executable, repoTopLevel(cwd)))
     version = currentBuilderVersion(ROOT)
     
     if not slug:

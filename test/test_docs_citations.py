@@ -23,6 +23,7 @@ def contextDocs(root=ROOT, exists=os.path.exists):
             ".claude/agents/mode-2-spec-report.md",
             ".claude/skills/spec-review-dashboard/SKILL.md",
             ".claude/skills/term-benchmark/SKILL.md",
+            "docs/contract-mode1-artifacts.md",
             ".agents/skills/codebase-terms-survey/SKILL.md"]
     return [d for d in docs if exists(os.path.join(root, d))]
 

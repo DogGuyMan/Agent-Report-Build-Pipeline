@@ -8,8 +8,8 @@
 ## 0. 한눈에 (TL;DR)
 
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
-- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · R12 ✅(R12a `a6e484d` + 보강 `46b9f5b` · b `60c500c` · c `644f6f0` · d `aae87e4` · e `47b8f56` · f `22d67e0` `082a1d3` · 결정 0012 확정) · A2 ✅ `f1355c7` · A3 ✅ `77fe047` · **K1~K8 ⬜ · M1 · M2 ⬜**.
-- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 ~~(2) R12 · (3) A2 · A3~~ 끝 (4) Phase K (5) M1 · M2.
+- **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · R12 ✅(R12a `a6e484d` + 보강 `46b9f5b` · b `60c500c` · c `644f6f0` · d `aae87e4` · e `47b8f56` · f `22d67e0` `082a1d3` · 결정 0012 확정) · A2 ✅ `f1355c7` · A3 ✅ `77fe047` · **K ✅**(K1 `5c88f2d` · K2 `813ffb1` · K2b `3691fe7` · K3 `cefaed9` · K4 `88c6d52` · K5 `e171e9d` · 생산자 검토 보강 `8945e62` · K6 `f223170` · K7 `fd3b8d5` · 상태 줄 `bda0584` · K7b `ec7314b` · K8 `59674d0` · 소비자 검토 보강 `90f5843` `82c10b0`) · **M1 ✅ · M2 ✅**(사용자 승인 — `main` 에 문서 커밋 24개가 먼저 들어와 있어 브랜치에 병합 `a2cc27b` 뒤 fast-forward · 태그 `split-base-2026-10-24` 는 로컬에만 — 클라우드에서 태그 push 가 막혔다, 아래 §10).
+- **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 ~~(2) R12 · (3) A2 · A3~~ 끝 ~~(4) Phase K~~ 끝 ~~(5) M1 · M2~~ 끝. **남은 것: 태그 `split-base-2026-10-24` 를 `a2cc27b` 에 달아 push**(사용자 기계에서 `git tag split-base-2026-10-24 a2cc27b && git push origin split-base-2026-10-24`). 그 뒤는 rev.4 Phase B · C · E(별 세션).
 - **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
@@ -106,8 +106,8 @@ Phase A
 | A2 | Mode 1.5 · 2 시험이 `measure` 를 import | ✅ `f1355c7` | 실행기 독스트링은 `5837c32` 에서 끝났다. §5 (3) |
 | A3 | 실행기 스크립트 실재 시험 셋 | ✅ `77fe047` | 시험만. §5 (3) |
 | A4 | `split_reading.py` | ✅ 커밋 없음 | 1,318 = mode1 1,025 + mode2 463 − 둘 다 176 + 버림 6. rev.4 어림(960 · 500)보다 갈림이 크지만 경로별 분류는 목록대로다 |
-| K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 · 형 생성 · 판정+collect · run_mode2 근거 · init 상태 줄 · 문서/스킬 | ⬜ | rev.4 :1473-3234 · **정정표 §4 가 이긴다** · §5 (4) |
-| M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 | ⬜ | rev.4 :3235-3259. **`main` 에 미는 것은 사용자에게 먼저 묻는다** |
+| K1 → K8 | 봉인 · seal 단계 · 진입 알림 · 위키 부분 재작성 · 계약 · 형 생성 · 판정+collect · run_mode2 근거 · init 상태 줄 · 문서/스킬 | ✅ §0 의 커밋 · 생산자 · 소비자 검토 각 1회 + 보강 · 사용자 승인(본체 전부) | 계획과 다르게 한 것과 남은 것은 §4.3 |
+| M1 · M2 | 게이트 여섯 · `main` ff 병합 + 태그 | M1 ✅(pytest 874 · 2 · 19 · `npm test` 8 · tsc · pyright 0 · README 4 · 계약 `--check` 둘 · doctor · `evidence.py . --need terms-db` → `manifest.json 이 없다` exit 1 — Phase E 까지 정상) · M2 ⬜ | rev.4 :3235-3259. **`main` 에 미는 것은 사용자에게 먼저 묻는다** |
 
 ## 3. 문서 색인
 
@@ -195,6 +195,26 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 - `.tmpl` 은 인용 검사기의 `PATH_REF` 가 확장자를 몰라 폴더째 인용하지 못한다 — 문서에 "`viz/templates/report/` 의 `data.ts.tmpl`" 꼴로 적는다.
 - `WriteWikiStage.jobs` 의 `wiki_done` 은 이번 실행에서 쓴 장만 담는다 — `--resume` 으로 첫 층이 이미 있으면 둘째 층 프롬프트가 "(없음 — 네가 첫 장이다)" 라고 말한다(R10 이전부터).
 - 게이트가 아직 못 보는 꼴은 R9 재검토가 판정했다 — 닫지 않는다(위 *상태*).
+
+### 4.3 Phase K 에서 계획과 다르게 한 것 · 남은 것 (2026-10-31 클라우드 세션)
+
+**계획과 다르게 한 것**(전부 사용자 승인)
+- K2 — 재개 문서(`resume.json`)가 통과한 검사 목록 `verified` 를 싣는다(없으면 `write-wiki` 실패 뒤 재개한 봉인에서 terms-db 가 빠진다). 재개가 아닌 실제 실행은 시작할 때 옛 `resume.json` 을 지운다(끊긴 실행이 옛 `verified` 를 남기지 않게).
+- K2b — 비용 줄은 `전수조사 세션 N개 · 예상 $lo~hi · 증분|전량` · 꼬리는 "계획이 diff 로 좁혀졌는가". 합계 줄도 배치 · 전수조사 세션을 따로. 지문 없음 알림은 `DetectChangesStage`(전량 경로에서 거짓말 방지).
+- K3 — 낡은 장 판정 기준은 `changes.json` 이 아니라 `wiki-state.json` 의 `sources`(위키가 따라잡은 시점의 소스 지도) — 전량 · 증분 같음. 기준이 없으면(이 저장소의 위키 21장) 기존 장은 건너뛰고 따라잡았다고 적지 않는다(사용자 결정) → 봉인은 terms-db 만. 낡은 장은 세션 전에 지우고(사람이 고친 · 출처 모를 장은 `docs/wiki/.bak/<stem>.N.md` 로) 세션 뒤 "장이 있는가" 로 판정. 장 해시는 층마다 적고 처음 굽기면 기준도. 위 층 프롬프트의 아래층 장 목록은 디스크에 있는 것.
+- K6 — 소스 집합 사본은 `declmap.tracked_files` 와 같은 규칙 · `-z` 로 비ASCII 경로까지(생산자도 함께). `collect` 는 봉인 자리(`<대상>/docs/codegraph/terms-db.json`)의 파일만 받는다. `evidence.py --optional`(봉인된 종류만 판정 — Mode 2 · init 이 쓴다), `--status` 는 `--need` 오류(exit 2) 말고는 늘 exit 0.
+- K7 — 근거는 절 셋이 아니라 `agent.md` 의 `main` 안 `{% if evidence %}` 블록(R12 규칙). `--dry-run` 은 `evidence.py` 를 부르지 않는다.
+- K8 — 스킬 **원본**(`~/.claude/skills/term-benchmark` · `spec-review-dashboard`)이 클라우드에 없어 **저장소 사본만 고쳤다 — Mac 에서 원본 동기화 필요**(사본 → 원본 복사).
+
+**남은 것(기록만 — 고치지 않았다)**
+- 산출물 sha256 을 날 바이트로 잰다 — 줄끝을 바꾸는 `.gitattributes` 저장소의 새 클론에서 "봉인 뒤 바뀌었다". 고치려면 계약 v2(산출물도 blob id).
+- `write-wiki` 의 기준이 장마다가 아니라 하나라서 되돌린 소스가 낡은 장을 숨기고, 층 중간 실패 뒤 재개하면 이미 다시 쓴 장을 또 쓴다. 세션이 실패하면 지운 낡은 장은 다음 실행까지 빠진 채다.
+- 사람이 고친 장이 쌓이는 `docs/wiki/.bak/` 은 이 저장소 `.gitignore` 에만 있다(다른 대상 저장소에서는 git 에 보인다). 정리는 사람 몫.
+- 지문이 없을 때 비용 줄 꼬리가 `증분` 으로 찍힐 수 있다(targets 가 전체 목록). 빈 저장소에서 `--skip verify-terms` 류는 `seal-artifacts` 의 읽기 때문에 `GraphError` — `--skip seal-artifacts` 로 우회.
+- UTF-8 이 아닌 파일 이름이면 생산자 · 소비자 둘 다 디코드 오류. `ts` 대상 저장소에서는 보고서 원고(`data.ts` · `report.tsx`)가 낡음(`생김`)으로 잡힌다(경고뿐).
+- Mode 2 한 번 실행에 봉인 상태 줄이 두 번(실행기 · init 자식). `stale` 목록 길이 상한 없음.
+- `90f5843` 하나는 시험 둘이 빨간 채로 push 됐다(프롬프트 문구를 고친 뒤 배치 시험 기대값을 못 맞춤) — 다음 커밋 `82c10b0` 이 맞췄다. 이력은 고치지 않는다.
+- 이 저장소에는 봉인이 없다 — Phase E(위키 재굽기 · Mode 1 자기 실행) 전까지 Mode 1.5 는 `collect` 에서 멈추고, Mode 2 · init 은 `Mode 1 봉인 — 없음` 을 찍는다.
 
 **기록만**
 - `agent_prompt` · `ask_argv` 는 모듈 함수가 `AgentStage.load_prompt` · `AskStage.load_prompt` 를 부른다(단계 소유 `@staticmethod` 꼴과 다르다). 범위 밖.
@@ -404,3 +424,5 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24 | 클라우드 세션 — R12a ✅ `a6e484d`(`jinja2==3.1.6` · `PROMPT_ENV` · `PromptResource.render_text` · 엄격 검사는 자유 변수 = 넘긴 값 이름. capture 31 · edge_dump 209 바이트 동일 · pytest 728/2/19). MarkupSafe 는 고정하지 않았다(직접 의존만 고정하는 관례). R12a 품질 검토와 R12b 구현을 띄웠다 |
 | 2026-10-24 | 클라우드 세션 — R12a 품질 검토에서 결함 셋을 재현했다. 사전 열쇠가 dict 메서드에 가려졌고, `None` 이 "None" 으로 찍혔고, 안 타는 갈래의 없는 필터가 통과했다. 렌더 중 생 예외도 새어 나왔다. 보강 `46b9f5b` 으로 고쳤다(`PromptEnvironment.getattr` · `finalize` · AST 의 필터 · 검사 대조). R12b ✅ `60c500c` — `runner/mode1/faults.toml`(`line` + `[kind.<갈래>]`) · `context.load_fault_table` · `AnnotateSymbolsStage.FAULTS` · `fault_detail`. edge_dump 209 · 캡처 바이트 동일 · pytest 735/2/19. R12f 에 줄 끝 공백 · `{#` 게이트를 더했다. 다음은 R12c |
 | 2026-10-24~25 | 클라우드 세션 — R12 끝. R12c `644f6f0` 은 annotate-symbols 절을 13 → 3 으로 줄였다(batch · nonnode · pass2). 재조사 절은 역할 소개 아래에, 범위 · 미조사 절은 심볼 목록과 읽는 법 사이에 둔다. stage 가 행(TypedDict)을 넘긴다. 재조사 절은 batch 와 nonnode 에 복제하고 같음 시험을 둔다(사용자 결정). 개수는 파이썬이 넘긴다(사용자 결정, `|length` 안 씀). `split-work/edge_dump.py` 은퇴, 검토는 capture + diff 다. R12d `aae87e4` 은 write-wiki 절을 4 → 1 로 줄였다(바이트 동일). R12e `47b8f56` 은 agent 의 terms 절을 `{% if %}` 로 바꿨다(바이트 동일). R12f `22d67e0` 에서 게이트가 Jinja2 컴파일 · 줄 끝 공백 · `{#` 를 보고, `PromptResource.free_names` 가 생겼다. `082a1d3` 에서 루트 규약 문장을 고치고 0012 를 확정했다. A2 `f1355c7` · A3 `77fe047`(Mode 1 시험 docstring 의 경위 문장은 주석 규약대로 뺐다). A2 확인 grep 에 `test/test_no_any.py:17` · `test/test_prompt_resources.py:17` 두 줄이 걸린다. 둘 다 파일 목록이라 import 가 아니다. 게이트 pytest 747/2/19 · pyright 0 · npm test 8 · README 4 · doctor OK. 다음은 Phase K(§5 (4)) — 시작 전에 `before/` 를 HEAD 에서 다시 찍는다 |
+| 2026-10-31 | 클라우드 세션 — Phase K 끝(§0 커밋 열넷). 대조 기준 `split-work/before/` 를 `0be86cd` 에서 다시 찍었다(31 · 결정적). 생산자(K1 ~ K3) · 소비자(K6 ~ K8) 검토 각 1회 — Critical 1 · Important 7 을 보강으로 고쳤다. capture 31 중 다른 것은 `mode1_5-ask` 둘(`--terms-db` 한 조각 — 정정 ⑤ 의 의도된 차이)뿐 · `report.html` · DOT 같음. M1 ✅. 계획과 다른 것 · 남은 것은 §4.3. 다음은 M2(사용자 승인) |
+| 2026-10-31 | 클라우드 세션 — M2. `main` 에 이 브랜치에 없는 [docs] 커밋 24개(ko-dev-terms 계획 · 용어 근거 리서치 · 결정 0013 · 루트 CLAUDE.md 두 파일 규약)가 있어 fast-forward 불가 → 사용자 결정으로 `origin/main` 을 브랜치에 병합(`a2cc27b`, 충돌 0 · 게이트 그대로) 뒤 `main` fast-forward push. 태그는 로컬에 달았지만 push 가 "Everything up-to-date" · 503 으로 원격에 닿지 않았다 — 사용자 기계에서 단다. 이 줄의 커밋은 브랜치에만 있다(`main` 보다 하나 앞) |

@@ -9,10 +9,10 @@
 
 | 자리 | 하는 일 |
 |---|---|
-| `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열두 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
-| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 14개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 일곱 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에, 샤드 검문의 결함 문구(결함 줄 꼴 · 고치는 법 · 결함 설명)는 결함 표 `mode1/faults.toml` 에 산다 |
+| `run_mode1.py` | Mode 1 의 `main` 과 옛 이름 재수출 파사드. 열세 단계 — `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
+| `mode1/` | Mode 1 의 단계 기계 — `context`(문맥 · 형 · 산출물 16개 `ARTIFACTS`) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff`(`changes.json` 꼴) · `resume`(재개 JSON 꼴) · 단계 모듈 여덟 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file` 의 `annotate-symbols`) · `terms` · `wiki` · `seal`(`seal-artifacts` — 이 실행에서 검사를 통과한 것만 `docs/codegraph/` 에 봉인) · `edges`(전이표 하나 · `ALIASES` · 팩토리). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다 — 단계 모듈에는 최상위 `def` 가 없다. 프롬프트 글은 `mode1/prompts/*.md` 에, 샤드 검문의 결함 문구(결함 줄 꼴 · 고치는 법 · 결함 설명)는 결함 표 `mode1/faults.toml` 에 산다 |
 | `run_mode1_5.py` | Mode 1.5 — `collect→gate→[사람]→grade→emit`. `gate` 가 `GATE` 갈래로 멈춘다. `author` 단계는 없다 |
-| `run_mode2.py` | Mode 2 — `init→[LLM]→build→check` |
+| `run_mode2.py` | Mode 2 — `init→[LLM]→build→check`. 대상 저장소에 Mode 1 봉인이 있으면 에이전트 프롬프트에 근거로 싣는다(`machine/evidence.py`). 없어도 돈다 |
 | `measure.py` | 세 실행기가 함께 쓰는 **재는 코드** — LLM 결과의 꼴(`ClaudeResult`) · `parse_result` · 측정 표 · 하트비트. **`machine/` 을 import 하지 않는다** |
 | `pipeline.py` | 세 실행기가 함께 쓰는 **단계 기계** — 갈래 넷 · `Stage` · `Artifact(schema · check)` · `load` · 전이표 · `StageDagGraph` · 시뮬레이터 · 드라이버 한 벌 · 팬아웃 호출 · `PromptResource`(프롬프트 파일을 읽는 믹스인). `measure.py` 와 같이 **`machine/` 을 import 하지 않는다** |
 | `dispatch.py` | `bin/` 진입점 셋이 공유하는 명령 갈림길 (`run_dispatch`). `report` 만 예외다 |
@@ -30,7 +30,7 @@ cd $REPO_ROOT
 .venv/bin/python runner/run_mode1.py <저장소> --dry-run          # 자식 프로세스 0개. 폴백 간선까지 실제 흐름을 찍는다
 .venv/bin/python runner/run_mode1.py <저장소> --only collect-graph --cold
 .venv/bin/python runner/run_mode1.py <저장소> --resume --json evals/runs/$(date +%F)-mode1-<대상>-<조건>.json
-.venv/bin/python runner/run_mode1_5.py <plan.md> --dry-run
+.venv/bin/python runner/run_mode1_5.py <plan.md> --terms-db <저장소>/docs/codegraph/terms-db.json --dry-run
 .venv/bin/python runner/run_mode2.py <프로젝트> <slug> --dry-run
 .venv/bin/python -m pytest runner/ -q                             # 러너 시험만
 .venv/bin/python -m pytest runner/test_import_isolation.py -q     # measure.py · pipeline.py 가 machine/ 을 물지 않는가
@@ -58,7 +58,7 @@ flowchart LR
 그 아래 한 단계다. 같은 프로세스 안에서 import 로 얽히는 것이 아니라 **자식 프로세스 경계**로
 갈려 있어, 어느 쪽도 상대의 메모리를 보지 않는다.
 
-**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` 셋이다.
+**Gotcha — `run_mode1.py` 와 `mode1/` 만 `machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` · `manifest`(꼴 `ArtifactManifest` · `WikiState` 와 판정 `wiki_caught_up`) 넷이다.
 축이 갈린 뒤로 같은 폴더가 아니게 되어 파일 머리에서 `sys.path` 에 `machine/` 을 직접 넣는다.
 다른 러너는 러너끼리만 import 하므로 그 줄이 없다.
 
@@ -92,7 +92,8 @@ flowchart LR
 `--only warmup,prep` 이나 `--only prep --cold` 로 간다. 옛 단계 이름은 `mode1.edges.ALIASES` 로 `--only` · `--skip` 에서 산다.
 
 **선택 입력은 `reads` 에 넣지 않는다.** `reads` 는 없으면 죽는 것만 담는다. 없어도
-정상인 것(`terms-db.json` · `terms.json` · `term-answer-key.json`)은 단계 안에서 본다.
+정상인 것(`terms.json` · `term-answer-key.json` · 대상 저장소의 Mode 1 봉인)은 단계 안에서 본다.
+Mode 1.5 의 용어 사전은 필수지만 `--terms-db`(argparse)와 `report-term collect` 의 봉인 관문이 막는다.
 
 ## `.py` 는 직접 실행 가드를 둔다 — 규약
 
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 | 방향 | 무엇 |
 |---|---|
 | `../bin/*` → 여기 | `report-wiki` · `report-spec` · `report-term` 셋이 `dispatch.py` 의 `run_dispatch` 를 쓴다. `report` 만 `report-spec` 을 자식 프로세스로 띄운다 |
-| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) |
+| 여기 → `../machine/*` | `wiki/prep.py`(normalize·facts) · `wiki/check.py`(verify_citations) · `mode1/terms.py`(terms_db) · `mode1/scan.py`(declmap · warmup) · `mode1/wiki.py`(warmup · manifest 꼴) · `mode1/seal.py`(manifest — `seal` 은 자식 프로세스, 꼴과 `wiki_caught_up` 은 import) · `term/collect.py` · `run_mode2.py`(evidence — 자식 프로세스, 봉인 판정) |
 | 여기 → `../viz/*` | `wiki/build.py`(demermaid) · `wiki/prep.py`(render_modules) · `dispatch` 표(init·build·check) |
 | 여기 → `../tools/python.py` | 파이썬 해석기를 찾는다. 경로를 박지 않는다 |
 | 여기 → `../tools/template.py` | `wiki/build.py`(위키 설정) 가 `{{이름}}` 자리를 채운다. `pipeline.py` 는 예외 `TemplateError` 만 쓴다 — 프롬프트 글은 Jinja2 로 렌더한다 |

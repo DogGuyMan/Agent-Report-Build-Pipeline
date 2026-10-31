@@ -10,9 +10,13 @@
 | [`__init__.py`](__init__.py) | — |
 | [`doctor.py`](doctor.py) | — |
 | [`doctor_packages.py`](doctor_packages.py) | `doctor.py` 가 고른 파이썬으로 띄우는 패키지 확인 — 인자로 받은 배포 이름 중 깔리지 않은 것을 한 줄로 낸다. |
+| [`gen_contract.py`](gen_contract.py) | 계약 리소스 `contracts/mode1-artifacts.v1.json` 과 지문 `.sha256` 을 Mode 1 의 형에서 낸다. |
+| [`gen_contract_types.py`](gen_contract_types.py) | 계약 리소스(JSON Schema)에서 소비자 형을 낸다 — 생성물 `machine/contract_types.py`. `--check` 면 낡았을 때 exit 1. |
 | [`gen_readme.py`](gen_readme.py) | 소스에서 디렉토리별 README.md 를 생성한다. |
 | [`python.py`](python.py) | — |
 | [`template.py`](template.py) | 리소스 파일의 `{{이름}}` 자리를 채운다. 자리와 값이 하나라도 어긋나면 예외다. |
+| [`test_gen_contract.py`](test_gen_contract.py) | 계약 리소스가 Mode 1 의 형에서 나온 것과 같은지, 이름 떼기가 스키마의 이름만 떼는지 본다. |
+| [`test_gen_contract_types.py`](test_gen_contract_types.py) | 계약에서 낸 소비자 형이 계약과 같은지, 모르는 꼴을 거부하는지, 형의 스키마가 계약으로 돌아오는지 본다. |
 | [`test_gen_readme.py`](test_gen_readme.py) | README 가 소스와 어긋나지 않는지 본다. |
 | [`test_template.py`](test_template.py) | 리소스 자리 채우기가 자리와 값의 어긋남을 예외로 막는지 본다. |
 
@@ -43,6 +47,33 @@
 |---|---|---|
 | `missing` | `(names: list[str]) -> list[str]` | 깔리지 않은 배포 이름들. 순서는 받은 그대로. |
 | `main` | `() -> int` | `전부 있다` 또는 `빠짐: <이름>, …` 한 줄을 낸다. 빠진 것이 있어도 exit 0 — 판정은 `doctor.py` 가 그 줄로 한다. |
+
+---
+
+## `gen_contract.py`
+
+계약 리소스 `contracts/mode1-artifacts.v1.json` 과 지문 `.sha256` 을 Mode 1 의 형에서 낸다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `strip_names` | `(node: object) -> object` | 스키마 객체에서 `title` · `description` 을 뗀다. `properties` · `$defs` 안의 칸 이름은 남긴다. |
+| `contract_text` | `() -> str` | 계약 JSON 본문. 열쇠를 정렬해 같은 형이면 같은 바이트다. |
+| `sha_text` | `(text: str) -> str` | `sha256sum -c` 가 읽는 한 줄 — 계약 본문의 지문과 파일 이름. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | 계약 리소스와 지문을 쓴다. `--check` 면 쓰지 않고 파일이 형과 같은지만 본다. |
+
+---
+
+## `gen_contract_types.py`
+
+계약 리소스(JSON Schema)에서 소비자 형을 낸다 — 생성물 `machine/contract_types.py`. `--check` 면 낡았을 때 exit 1.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `py_type` | `(s: Schema) -> str` | 스키마 하나를 파이썬 형 표기로. 모르는 꼴이면 ValueError. |
+| `refs` | `(node: object) -> set[str]` | 스키마 안의 `$ref` 가 가리키는 이름 전부. |
+| `class_text` | `(name: str, s: Schema) -> str` | 객체 스키마 하나를 TypedDict 클래스 글로. 칸은 이름순이고 `required` 에 없는 칸은 `NotRequired` 다. |
+| `module_text` | `(doc: Mapping[str, object]) -> str` | 계약 문서 전체를 `contract_types.py` 의 글로. 클래스는 참조되는 것이 먼저 오게 늘어놓는다. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | 계약에서 `machine/contract_types.py` 를 쓴다. `--check` 면 쓰지 않고 파일이 계약과 같은지만 본다. |
 
 ---
 
@@ -80,6 +111,31 @@
 | **`TemplateError`** | *class* | 템플릿의 자리와 넘긴 값이 맞지 않는다. |
 | `render` | `(text: str, values: Mapping[str, str]) -> str` | `{{이름}}` 을 값으로 바꾼다. 값이 없는 자리 · 자리가 없는 값 · 자리가 못 된 `{{…` 는 모두 `TemplateError`. |
 | `render_file` | `(path: str, values: Mapping[str, str]) -> str` | 파일 하나를 UTF-8 로 읽어 `render` 한다. |
+
+---
+
+## `test_gen_contract.py`
+
+계약 리소스가 Mode 1 의 형에서 나온 것과 같은지, 이름 떼기가 스키마의 이름만 떼는지 본다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `test_계약_파일이_형과_같다` | `()` |  |
+| `test_strip_names_는_스키마의_title_description_만_뗀다` | `()` |  |
+
+---
+
+## `test_gen_contract_types.py`
+
+계약에서 낸 소비자 형이 계약과 같은지, 모르는 꼴을 거부하는지, 형의 스키마가 계약으로 돌아오는지 본다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `strip_names` | `(node: object) -> object` | 생산자 `tools/gen_contract.py` 와 같은 규칙 — 칸 이름은 남기고 스키마의 title · description 만 뗀다. |
+| `test_py_type_은_계약이_쓰는_꼴을_옮긴다` | `()` |  |
+| `test_py_type_은_모르는_꼴을_거부한다` | `()` |  |
+| `test_생성물이_계약과_같고_형의_스키마가_계약으로_돌아온다` | `()` |  |
+| `test_계약_리소스가_지문과_같다` | `()` |  |
 
 ---
 

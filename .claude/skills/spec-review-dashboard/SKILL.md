@@ -39,6 +39,13 @@ Plan/Spec 을 **사용자가 수용 판정을 내리기 좋은 계기판**으로
 산출물이 함께 살아 접미사가 **오타 가드** 노릇을 하기 때문이다. `plans/` 는 계획서만 있어 필요 없다.
 이 규칙은 `config/report.toml` 한 곳에 있고, `viz/init.py` 와 `runner/run_mode2.py` 가 함께 읽는다.
 
+## 근거 — 봉인된 Mode 1 실측이 있으면 그것을
+
+Mode 2 는 Mode 1 과 독립이다. 대상 저장소에 봉인(`<저장소>/docs/codegraph/manifest.json`)이 있으면 실행기가 위키와 용어 DB 를
+근거 자리로 프롬프트에 싣고, 봉인 뒤 바뀐 파일은 코드를 직접 읽어 확인하라고 덧붙인다. 봉인이 없어도 보고서는 만든다 —
+`report-spec init` 과 실행기가 봉인 상태 한 줄(`Mode 1 봉인 — 없음` 등)만 찍는다.
+**에이전트는 Mode 1 을 대신 돌리지 않는다.** 계약은 `docs/contract-mode1-artifacts.md`.
+
 ## Workflow
 
 1. **스켈레톤**

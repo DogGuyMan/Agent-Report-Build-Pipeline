@@ -101,13 +101,17 @@ DOC_MAX_LINES = 14   # 선언 위로 이만큼만 거슬러 올라간다
 # 훑어볼 소스 파일 목록을 골라내는 함수다.
 # 쓰는 것: machine.declmap.LANGS · 쓰이는 곳: machine.declmap.scan, machine.warmup.main, runner.run_mode1.run_warmup
 def tracked_files(repo: str, lang: str, includes: list[str]) -> list[str]:
-    """git 이 아는 파일만 본다 — 빌드 산출물과 캐시를 걸러 내는 가장 싼 방법이다."""
-    r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
+    """git 이 아는 파일만 본다 — 빌드 산출물과 캐시를 걸러 내는 가장 싼 방법이다.
+
+    경로는 `-z` 로 받아 따옴표 없이 그대로다 — 비ASCII 이름도 빠지지 않는다.
+    """
+    r = subprocess.run(["git", "-c", "core.quotePath=false", "ls-files", "-z"],
+                       cwd=repo, capture_output=True, text=True)
     if r.returncode != 0:
         return []
     exts = LANGS[lang]["exts"]
     out: list[str] = []
-    for rel in r.stdout.split("\n"):
+    for rel in r.stdout.split("\0"):
         if not rel or not rel.endswith(exts):
             continue
         if any(part in SKIP_DIRS for part in rel.split("/")):

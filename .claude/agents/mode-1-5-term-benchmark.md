@@ -25,7 +25,7 @@ tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill, TodoWrite
 ## 절차 — CLI 3단계 + Skill 1단계
 
 ```
-report-term collect <plan.md> [terms-db.json]   → term-candidates.json
+report-term collect <plan.md> <terms-db.json>   → term-candidates.json
     코드베이스 용어 ∩ Plan 본문  +  Plan 신규 개념
         ↓
   [Skill] 신규 개념의 정답을 Plan 저자에게 묻는다. LLM 이 지어내지 않는다
@@ -96,6 +96,8 @@ report-term emit term-grades.json               → terms.json + term-study-note
 ## 전제
 
 `terms-db.json` 이 없으면 — 즉 Mode 1 이 WarmUp 되지 않았으면 — **중단하고 보고한다.** 우회하지 않는다.
+봉인(`<저장소>/docs/codegraph/manifest.json`)이 없거나 깨졌어도 `collect` 가 exit 1 로 멈춘다 — Mode 1 을 대신 돌리지 않는다.
+계약은 `docs/contract-mode1-artifacts.md`.
 
 ## 진입점
 

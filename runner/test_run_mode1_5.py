@@ -493,13 +493,10 @@ def test_collect_argv_names_the_plan_and_the_term_database():
     assert argv[2] == "/계획/plan.md" and argv[3] == "/어느/terms-db.json"
 
 
-# <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_collect_argv_works_without_a_term_database']"/>
-# 용어 DB 가 없어도 collect 명령줄이 만들어진다는 것을 확인하는 시험 함수다.
-# 쓰는 것: runner.run_mode1_5.collect_argv · 쓰이는 곳: 없음
-def test_collect_argv_works_without_a_term_database():
-    """DB 가 없으면 코드베이스 용어는 0개다 — 그래도 신규 개념은 잡힌다."""
-    assert R.collect_argv(root="/r", plan="/p.md", terms_db=None) == [
-        "python3", os.path.join("/r", "runner", "term", "collect.py"), "/p.md"]
+def test_collect_argv_always_names_the_term_database():
+    """용어 사전은 필수다 — Mode 1.5 는 Mode 1 결과 없이 돌지 않는다."""
+    argv = R.collect_argv(root="/r", plan="/p.md", terms_db="/db.json")
+    assert argv[-2:] == ["/p.md", "/db.json"]
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.test_run_mode1_5.test_grade_and_emit_argv_point_at_the_right_scripts']"/>
@@ -711,19 +708,20 @@ def test_ask_는_LLM_을_부르는_유일한_단계다():
 
 
 def test_ask_명령줄은_대화형_claude_에_스킬_호출을_첫_프롬프트로_준다(tmp_path: Path):
-    argv = R.ask_argv("/root", "/plans/p.md", str(tmp_path), "/root/.venv/bin/python")
+    argv = R.ask_argv("/root", "/plans/p.md", str(tmp_path), "/root/.venv/bin/python", "/대상/docs/codegraph/terms-db.json")
     assert argv[0] == "claude" and "-p" not in argv and "--print" not in argv
     prompt = argv[-1]
     assert prompt.startswith("/term-benchmark ") and "/plans/p.md" in prompt and str(tmp_path) in prompt
     assert R.ANSWERS in prompt and R.QUESTIONS in prompt and "run_mode1_5.py" in prompt
+    assert "--terms-db" in prompt
     assert "--add-dir" in argv and str(tmp_path) in argv
 
 
 def test_ask_첫_프롬프트는_한_줄이고_기입란_명령과_산출물_자리를_그대로_싣는다(tmp_path: Path):
     w = str(tmp_path)
-    prompt = R.ask_argv("/root", "/plans/p.md", w, "/py")[-1]
+    prompt = R.ask_argv("/root", "/plans/p.md", w, "/py", "/db.json")[-1]
     assert "\n" not in prompt
-    assert "`/py /root/runner/run_mode1_5.py /plans/p.md --workdir %s` 를 돌려 %s 로 깔고" % (w, os.path.join(w, R.SHEET)) in prompt
+    assert "`/py /root/runner/run_mode1_5.py /plans/p.md --workdir %s --terms-db /db.json` 를 돌려 %s 로 깔고" % (w, os.path.join(w, R.SHEET)) in prompt
     assert "후보는 %s 에 이미 있다" % os.path.join(w, R.CANDIDATES) in prompt
     assert "채운 것을 %s 으로 둔 뒤" % os.path.join(w, R.ANSWERS) in prompt
 

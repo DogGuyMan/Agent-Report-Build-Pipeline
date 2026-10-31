@@ -122,6 +122,18 @@ def test_skip_dirs_covers_build_and_cache() -> None:
         assert d in D.SKIP_DIRS
 
 
+def test_tracked_files_는_비ASCII_이름도_따옴표_없이_싣는다(tmp_path: Path) -> None:
+    """`git ls-files` 의 기본 출력은 비ASCII 경로를 따옴표로 감싼다 — 그래도 소스 집합에 그대로 든다."""
+    import subprocess
+    (tmp_path / "pkg").mkdir()
+    for name in ("a.py", "한글.py"):
+        (tmp_path / "pkg" / name).write_text("x = 1\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "core.quotePath", "true"], check=True)   # 기계 설정과 무관하게
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+    assert D.tracked_files(str(tmp_path), "py", []) == ["pkg/a.py", "pkg/한글.py"]
+
+
 # ── 4. 1차 판정의 git 추적 거름망 (normalize.py)
 import normalize as N  # noqa: E402
 

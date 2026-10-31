@@ -24,6 +24,11 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 
 - **코드베이스 용어 DB(`terms-db.json`)가 없을 때.** 정답지가 없으면 시험을 낼 수 없다.
   Mode 1(코드베이스 위키)을 먼저 완료하라고 안내하고 **멈춘다.** 정답을 LLM 이 지어내서 채우지 않는다
+- **봉인이 없을 때도 멈춘다.** `report-term collect` 가 `machine/evidence.py` 로 판정해 봉인(`<저장소>/docs/codegraph/manifest.json`)이
+  없거나 깨졌으면, 또는 받은 용어 사전이 봉인 자리의 것이 아니면 exit 1 로 멈춘다. 에이전트는 Mode 1 을 대신 돌리지 않는다 —
+  사용자에게 아래 생성 명령을 알리고 끝낸다. 봉인 뒤 소스가 움직였다는 경고는 시험을 막지 않는다. 대신 `term-candidates.json` 의
+  `evidence.stale` 을 첫 줄로 사용자에게 알리고, `known` 중 `stale: true` 인 용어는 **출제하지 않거나** 문항 `source` 뒤에
+  `(낡음 — 봉인 뒤 파일이 바뀜)` 을 붙인다. `evidence.uncommitted` 가 참이면 "이 정답지는 이 기계에만 있다" 도 알린다
 - 단순히 낱말 뜻을 설명해 달라는 요청일 때. 그건 시험이 아니라 답변이다
 
 ## 전제 — 하나라도 없으면 착수하지 않는다
@@ -31,15 +36,17 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 | 전제 | 확인 방법 | 없을 때 무엇을 하는가 |
 |---|---|---|
 | `report-term` CLI | `which report-term` | PATH 에 없다. 사용자에게 보고하고 **중단.** 경로를 지어내지 않는다 |
-| 코드베이스 용어 DB | `ls <경로>/terms-db.json` | Mode 1 을 먼저 돌리라고 안내하고 **중단.** 아래 생성 명령을 함께 알려 준다 |
+| 봉인된 코드베이스 용어 DB | `ls <저장소>/docs/codegraph/terms-db.json <저장소>/docs/codegraph/manifest.json` | Mode 1 을 먼저 돌리라고 안내하고 **중단.** 아래 생성 명령을 함께 알려 준다 |
 | 검토할 Plan 파일 | `ls <plan.md>` | 어느 Plan 을 볼지 사용자에게 묻는다. 저장소를 뒤져 임의로 고르지 않는다 |
 | Plan 저자가 답할 수 있는 상태 | 사용자가 지금 대화에 있는가 | **중단.** 이 스킬은 처음부터 끝까지 사람에게 묻는 절차다. 사람이 없으면 할 일이 없다 |
 
-코드베이스 용어 DB 를 만드는 명령(Mode 1 의 마지막 단계):
+코드베이스 용어 DB 는 Mode 1 이 만들고 마지막 단계 `seal-artifacts` 가 봉인한다. 사람이 Mode 1 저장소의 뿌리에서 돌린다
+(두 저장소로 갈리기 전에는 이 저장소, 갈린 뒤에는 codebase-wiki):
 
 ```bash
-.venv/bin/python machine/terms_db.py <codegraph.json> --repo <저장소> -o <출력디렉토리>
-# → <출력디렉토리>/terms-db.json
+.venv/bin/python runner/run_mode1.py <저장소>
+# → <저장소>/docs/codegraph/terms-db.json + manifest.json   (계약: docs/contract-mode1-artifacts.md)
+#   끝나면 docs/codegraph/ 를 커밋한다
 ```
 
 ## Workflow — 7단계
@@ -48,7 +55,7 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 그 위에 실행기가 따로 있어 기계 단계를 이어 돌린다:
 
 ```bash
-.venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업 디렉토리> --terms-db <terms-db.json>
+.venv/bin/python runner/run_mode1_5.py <plan.md> --workdir <작업 디렉토리> --terms-db <저장소>/docs/codegraph/terms-db.json
 ```
 
 `runner/run_mode1_5.py` 의 단계는 `collect → [사람 차례] → grade → emit` 이다. 실행기에는 출제 칸이 없다 —
@@ -63,7 +70,7 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 
 ```bash
 which report-term
-ls <plan.md> <terms-db.json>
+ls <plan.md> <저장소>/docs/codegraph/terms-db.json
 ```
 
 네 전제를 위 표대로 확인한다. 하나라도 없으면 **여기서 멈추고 보고한다.** 다음 단계로 넘어가지 않는다.
@@ -72,7 +79,7 @@ ls <plan.md> <terms-db.json>
 
 ```bash
 cd <작업 디렉토리>          # 산출 파일이 여기 쌓인다
-report-term collect <plan.md> <terms-db.json>
+report-term collect <plan.md> <저장소>/docs/codegraph/terms-db.json
 # → <작업 디렉토리>/term-candidates.json
 ```
 

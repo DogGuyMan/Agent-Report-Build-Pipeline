@@ -10,7 +10,8 @@
 | [`viz/CLAUDE.md`](viz/CLAUDE.md) | **시각축** — 렌더 경로 · 다이어그램 · 직접 실행 가드 |
 | [`viz/src/CLAUDE.md`](viz/src/CLAUDE.md) | 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
 | [`tools/CLAUDE.md`](tools/CLAUDE.md) | 어느 축도 아닌 것 — 해석기 탐색 · 템플릿 채우기 · 환경 점검 · 경로 세척 · README 생성 |
-| [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 의 Model id · Mode 2 의 Model 별명(`opus`) · 원본 문서 자리 규칙 · 비용 어림(`[estimate]` — 형만 있고 읽는 운영 코드는 아직 없다). 코드는 읽기만 한다 |
+| [`config/mode1.toml`](config/mode1.toml) · [`config/report.toml`](config/report.toml) | **설정값** — Mode 1 의 Model id · Mode 2 의 Model 별명(`opus`) · 원본 문서 자리 규칙 · 비용 어림(`[estimate]` — Mode 1 이 시작할 때 예상 비용 한 줄로 읽는다). 코드는 읽기만 한다 |
+| [`docs/contract-mode1-artifacts.md`](docs/contract-mode1-artifacts.md) · `contracts/` | **Mode 1 산출물 계약** — Mode 1 이 대상 저장소 `docs/codegraph/` 에 봉인하고(`machine/manifest.py`) Mode 1.5 · 2 가 판정한다(`machine/evidence.py`). 계약 JSON 은 형에서 생성한다(`tools/gen_contract.py`) |
 | [`split-work/`](split-work/README.md) | **두 저장소 분리 작업 동안만** 쓰는 바이트 대조 도구. 제품 코드가 아니고 산출물은 git 밖이다. 분리가 끝나면 지운다 |
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 축을 가로지르는 시험 — 문서 게이트 · Node 렌더 시험 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
@@ -179,7 +180,7 @@ report-spec check                      # script 수 · tsc · 링크 무결성 �
 용어 이해도 점검은 Plan 하나를 놓고 돈다. 사람에게 묻는 절차는 CLI 가 아니라 `term-benchmark` 스킬이 맡는다:
 
 ```bash
-report-term collect <plan.md> [terms-db.json]   # → term-candidates.json
+report-term collect <plan.md> <terms-db.json>   # → term-candidates.json. 용어 사전은 봉인 자리(<저장소>/docs/codegraph/)의 것만 받는다
 #   (`term-benchmark` 스킬이 questions.json 을 내고, 실행기는 그것을 기계로 검사해
 #    정답을 뺀 기입란 answer-sheet.json 을 깐다. 실행기에는 LLM Model을 부르는 칸이 없다)
 #   (사람 또는 스킬이 칸마다 UserAns 에 보기 번호를 적어 answers.json 으로 둔다)

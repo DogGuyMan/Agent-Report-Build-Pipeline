@@ -3,7 +3,7 @@
 > 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 이 문서는 **계산하는 쪽만** 다룬다.
 > 부르는 쪽은 [`../runner/CLAUDE.md`](../runner/CLAUDE.md), 그리는 쪽은 [`../viz/CLAUDE.md`](../viz/CLAUDE.md), 컴포넌트는 [`../viz/src/CLAUDE.md`](../viz/src/CLAUDE.md).
 
-이 저장소에서 가장 큰 모듈이다(파이썬 27파일 — 본체 16 · 시험 11). **정적 수집 · 인용 검증 · 측정**을 맡는다.
+이 저장소에서 가장 큰 모듈이다(파이썬 32파일 — 본체 19 · 시험 13). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
 
 ## 무엇이 여기 있나
@@ -72,8 +72,8 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 ```
 Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
 #            LLM        lang_select.py   warmup.py        normalize.py 등    survey_plan.py        LLM 층별
-          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki
-#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py
+          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
+#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py   manifest.py
 Mode 1.5  collect ─▶ gate ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ [LLM] ─▶ build ─▶ check
 ```
@@ -235,7 +235,8 @@ cd $REPO_ROOT
 |---|---|
 | `runner/wiki/prep.py` → 여기 | `pycalls.py` · `normalize.py` · `facts.py` 를 자식 프로세스로 부른다 |
 | `runner/wiki/check.py` → 여기 | `verify_citations.py` 를 부른다 |
-| `runner/run_mode1.py` · `runner/mode1/*` → 여기 | `survey_plan`(`run_mode1` · `graph` · `survey` · `context` · `wiki`) · `warmup`(`scan` · `diff` · `context`) · `declmap`(`scan`) 을 import 하고, `runner/mode1/terms.py` 가 `terms_db.py` 를 자식 프로세스로 부른다 |
+| `runner/run_mode1.py` · `runner/mode1/*` → 여기 | `survey_plan`(`run_mode1` · `graph` · `survey` · `context` · `wiki`) · `warmup`(`scan` · `diff` · `context` · `wiki`) · `declmap`(`scan`) · `manifest`(`context` · `wiki` · `seal`) 을 import 하고, `runner/mode1/terms.py` 가 `terms_db.py` 를 자식 프로세스로 부른다 |
+| `runner/term/collect.py` · `runner/run_mode2.py` · `viz/init.py` → 여기 | `evidence.py` 를 자식 프로세스로 부른다 — 봉인된 Mode 1 산출물 판정 |
 | 여기 → 바깥 | **없다.** 이 모듈은 아무도 부르지 않는다 — 불려 가기만 한다 |
 
 ⚠ **`render_modules.py`(prep) 와 `demermaid.py`(build) 는 여기 없다.** 그림을 그리므로

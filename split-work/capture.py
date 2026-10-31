@@ -48,7 +48,7 @@ put("write-wiki", WriteWikiStage.wiki_page_prompt(
 put("mode2-agent.bare", run_mode2.agent_prompt("/프로젝트", "슬러그", "2026-01-01-슬러그-design.md", "/도구"))
 put("mode2-agent.terms", run_mode2.agent_prompt("/프로젝트", "슬러그", "2026-01-01-슬러그-design.md", "/도구",
                                                 terms_json="/프로젝트/specs/슬러그/terms.json"))
-put("mode1_5-ask", run_mode1_5.ask_argv("/도구", "/계획.md", "/작업", "/py")[-1])
+put("mode1_5-ask", run_mode1_5.ask_argv("/도구", "/계획.md", "/작업", "/py", "/대상/docs/codegraph/terms-db.json")[-1])
 put("vitepress-config", vitepressConfig("대상", sidebarFrom(["index.md", "a.md"]), "/out"))
 with tempfile.TemporaryDirectory() as d:
     writeSkeleton(d, "슬러그", "2026-01-01", "제목 `백틱`", "main", "v1")

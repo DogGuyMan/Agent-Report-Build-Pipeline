@@ -10,11 +10,14 @@
 | [`clang_doc.py`](clang_doc.py) | clang-doc 이 흩뿌린 JSON 을 평평한 심볼 목록 하나로 모은다. |
 | [`clangd_refs.py`](clangd_refs.py) | clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6). |
 | [`codegraph_types.py`](codegraph_types.py) | `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳. |
+| [`contract_types.py`](contract_types.py) | 생성물 — tools/gen_contract_types.py 가 contracts/mode1-artifacts.v1.json 에서 낸다. 손대지 마라. |
 | [`declmap.py`](declmap.py) | 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다. |
+| [`evidence.py`](evidence.py) | 대상 저장소에 봉인된 Mode 1 산출물이 계약대로 있는지 판정하고, 봉인 뒤 소스가 움직였는지 알린다. |
 | [`facts.py`](facts.py) | codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다. |
 | [`file_cache.py`](file_cache.py) | 파일 통독 캐시. |
 | [`fix_citation_paths.py`](fix_citation_paths.py) | 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다. |
 | [`lang_select.py`](lang_select.py) | 어떤 정적 수집기를 돌릴지 고른다. |
+| [`manifest.py`](manifest.py) | Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다. |
 | [`normalize.py`](normalize.py) | 언어별 정적 분석 산출물을 codegraph.json(스키마 v2)으로 바꾼다. |
 | [`pycalls.py`](pycalls.py) | 파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기. |
 | [`reverse_refs.py`](reverse_refs.py) | 1차 심볼 전수 역참조를 뽑는다 (E6 + 전수 확정). |
@@ -22,9 +25,11 @@
 | [`terms_db.py`](terms_db.py) | 코드베이스 용어 전수 수집. |
 | [`test_clang_doc.py`](test_clang_doc.py) | clang-doc 적재기의 회귀 시험. |
 | [`test_declmap.py`](test_declmap.py) | 선언·문서주석 추출기의 회귀 시험. |
+| [`test_evidence.py`](test_evidence.py) | 봉인 판정(`evidence.py`)의 구조 문제 · 낡음 · 한 줄 상태 시험. |
 | [`test_external_contracts.py`](test_external_contracts.py) | 바깥 도구의 동작에 기대는 주장을 고정한다. |
 | [`test_file_cache.py`](test_file_cache.py) | 파일 캐시의 회귀 시험. |
 | [`test_lang_select.py`](test_lang_select.py) | 언어 판별의 회귀 시험. |
+| [`test_manifest.py`](test_manifest.py) | 봉인(`manifest.py seal`)이 낸 꼴과 거부 조건의 시험. |
 | [`test_normalize.py`](test_normalize.py) | 정규화 계층의 회귀 시험. |
 | [`test_pycalls.py`](test_pycalls.py) | AST 호출 수집기의 회귀 시험. |
 | [`test_survey_plan.py`](test_survey_plan.py) | 층 계획기의 회귀 시험. |
@@ -90,6 +95,20 @@ clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6
 
 ---
 
+## `contract_types.py`
+
+생성물 — tools/gen_contract_types.py 가 contracts/mode1-artifacts.v1.json 에서 낸다. 손대지 마라.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`ArtifactEntry`** | *class* |  |
+| **`SupersededBy`** | *class* |  |
+| **`ArtifactManifest`** | *class* |  |
+| **`DbUse`** | *class* |  |
+| **`TermRecord`** | *class* |  |
+
+---
+
 ## `declmap.py`
 
 선언과 그 위의 문서 주석을 뽑아 한 장으로 만든다.
@@ -104,6 +123,29 @@ clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6
 | `scan` | `(repo: str, lang: str, includes: list[str], doc_chars: int) -> tuple[dict[str, FileDecls], dict[str, int]]` |  |
 | `render` | `(result: dict[str, FileDecls]) -> str` | 사람과 LLM 이 그대로 읽을 수 있는 글자로. JSON 보다 짧다. |
 | `main` | `() -> int` |  |
+
+---
+
+## `evidence.py`
+
+대상 저장소에 봉인된 Mode 1 산출물이 계약대로 있는지 판정하고, 봉인 뒤 소스가 움직였는지 알린다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
+| `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
+| `source_files` | `(repo: str, exts: Sequence[str], skip: Sequence[str]) -> list[str]` | git 이 추적하는 파일 중 확장자가 맞고, 경로의 어느 성분(파일 이름 포함)도 `skip` 에 없는 것. 정렬해 낸다. |
+| `missing` | `(repo: str, sources: Sequence[str]) -> list[str]` | git 이 추적하는데 작업 트리에 없는 소스. 지운 것을 아직 커밋하지 않은 상태다. |
+| `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
+| `load_manifest` | `(repo: str) -> tuple[ArtifactManifest \| None, str]` | 매니페스트와 빈 글, 또는 None 과 읽지 못한 이유. |
+| `judged` | `(m: ArtifactManifest, need: Sequence[str], optional: bool) -> list[str]` | 판정할 종류. `optional` 이면 봉인에 있는 것만 남기고, 하나도 없으면 `need` 그대로다 — 없다는 문제가 나오게. |
+| `entry_fits` | `(kind: str, path: str) -> bool` | 봉인 항목 경로가 종류의 자리인가 — terms-db 는 `docs/codegraph/terms-db.json` 하나, wiki 는 `docs/wiki/` 바로 아래 `*.md`. |
+| `problems` | `(repo: str, need: Sequence[str], optional: bool = False) -> list[str]` | 구조 문제. 비면 봉인을 근거로 쓸 수 있다. `optional` 이면 봉인에 없는 종류는 묻지 않는다(`judged`). |
+| `staleness` | `(repo: str) -> list[str]` | 봉인 뒤 소스의 움직임. 매니페스트에 적힌 규칙으로 다시 모은다 — Mode 1 을 몰라도 된다. |
+| `uncommitted` | `(repo: str, m: ArtifactManifest) -> list[str]` | 매니페스트와 거기 적힌 산출물 전부 중 커밋된 내용과 다른 것 — 바뀜 · 추적 안 됨 · 무시됨. 비면 커밋된 봉인이다. |
+| `warnings` | `(repo: str, m: ArtifactManifest) -> list[str]` | 낡음 — 멈추지 않는 것들. 소스 움직임 · 미커밋 · 뒤 실행 실패. |
+| `status_line` | `(repo: str, need: Sequence[str], optional: bool = False) -> str` | `--status` 의 한 줄. 어느 경우든 예외 없이 글 하나를 돌려준다. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | 구조 문제면 1 과 사람이 칠 명령, 아니면 낡음을 경고로 찍고 0. `--status` 는 늘 0, `--need` 가 틀리면 2 다. |
 
 ---
 
@@ -165,6 +207,29 @@ codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든�
 | `read_docs` | `(repo: str, limit: int = 6000) -> str` | 루트 문서 몇 개를 앞부분만 잘라 잇는다. 없으면 빈 문자열이다. |
 | `select` | `(repo: str, proposed: str \| None = None) -> LangSelect` | 제안이 검사를 통과하면 그것을, 아니면 파일 수가 가장 많은 언어를 고른다. |
 | `main` | `() -> int` |  |
+
+---
+
+## `manifest.py`
+
+Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`ArtifactEntry`** | *class* | 봉인된 산출물 파일 하나. `path` 는 대상 저장소 뿌리 기준. |
+| **`SupersededBy`** | *class* | 이 봉인 뒤의 Mode 1 실행이 실패했다는 표식. 봉인 자체는 그대로다 — 읽는 쪽이 경고로 본다. |
+| **`ArtifactManifest`** | *class* | `docs/codegraph/manifest.json` 의 꼴. `inputs` 는 봉인 시점 소스 파일마다의 git blob id 다. |
+| **`LangPick`** | *class* | `lang-select.json` 에서 봉인이 읽는 칸. 언어를 못 골랐으면 None 이다. |
+| **`WikiState`** | *class* | `write-wiki` 의 상태. `pages` 는 장마다 마지막으로 쓴 해시, `sources` 는 낡음 판정의 기준, `snapshot_sha256` 은 따라잡은 지문이다. |
+| `git` | `(repo: str, *args) -> str` | 대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다. |
+| `sha256_of` | `(path: str) -> str` | 파일 바이트 그대로의 sha256. |
+| `blob_ids` | `(repo: str, rels: Sequence[str]) -> dict[str, str]` | 작업 트리 내용 그대로의 blob id. `git hash-object` 는 인자 순서대로 한 줄씩 낸다. |
+| `missing` | `(repo: str, sources: Sequence[str]) -> list[str]` | git 이 추적하는데 작업 트리에 없는 소스. 지운 것을 아직 커밋하지 않은 상태다. |
+| `unsurveyed` | `(repo: str, sources: Sequence[str], snapshot: str) -> list[str]` | 지난 전수조사의 지문과 다른 소스. 지문에 없는 새 파일도 넣는다. |
+| `wiki_caught_up` | `(raw: str) -> bool` | `wiki-state.json` 이 지금 `snapshot.json` 의 지문을 가리키는가. 둘 중 하나라도 읽지 못하거나 따라잡은 적이 없으면 아니다. |
+| `entries` | `(repo: str, kind: str) -> list[ArtifactEntry]` | 봉인한 종류의 파일 목록과 sha256. terms-db 는 `docs/codegraph/` 의 사본, wiki 는 `docs/wiki/*.md` 다. |
+| `refuse` | `(head: str, rels: Sequence[str]) -> int` | 봉인을 거부한 이유를 stderr 에 적고 종료 코드 3 을 낸다. 파일은 스무 개까지 보인다. |
+| `main` | `(argv: Sequence[str] \| None = None) -> int` | `seal` 명령. 거부 조건을 모두 지나야 `docs/codegraph/` 에 쓴다. |
 
 ---
 
@@ -350,8 +415,52 @@ clang-doc 적재기의 회귀 시험.
 | `test_doc_stops_at_code` | `() -> None` | 주석이 아닌 코드 줄을 만나면 멈춘다 — 위쪽 딴 함수의 주석을 끌어오지 않는다. |
 | `test_doc_has_a_ceiling` | `() -> None` | 아무리 긴 주석 더미라도 정해진 줄 수까지만 거슬러 올라간다. |
 | `test_skip_dirs_covers_build_and_cache` | `() -> None` | 빌드 산출물과 캐시 디렉토리가 거름망에 들어 있다. |
+| `test_tracked_files_는_비ASCII_이름도_따옴표_없이_싣는다` | `(tmp_path: Path) -> None` | `git ls-files` 의 기본 출력은 비ASCII 경로를 따옴표로 감싼다 — 그래도 소스 집합에 그대로 든다. |
 | `test_first_party_rejects_qt_type_seen_inside_repo` | `() -> None` | 저장소 안에서 보였어도 git 이 추적하지 않는 파일의 타입은 1차가 아니다. |
 | `test_first_party_accepts_tracked_global_namespace_type` | `(tmp_path: Path) -> None` | git 이 추적하는 파일에서 정의된 전역 네임스페이스 타입은 1차다. |
+
+---
+
+## `test_evidence.py`
+
+봉인 판정(`evidence.py`)의 구조 문제 · 낡음 · 한 줄 상태 시험.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> None` |  |
+| `read_json` | `(path: str) -> dict[str, Any]` |  |
+| `write_json` | `(path: str, doc: dict[str, Any]) -> None` |  |
+| `append` | `(path: str, text: str) -> None` |  |
+| `sha` | `(path: str) -> str` | 판정 쪽 함수를 쓰지 않고 잰 sha256 — 준비가 판정과 같은 구멍을 갖지 않게. |
+| `blob` | `(repo: str, rel: str) -> str` | 판정 쪽 함수를 쓰지 않고 `git hash-object` 로 잰 blob id. |
+| `sealed` | `(tmp_path: Path, kinds: tuple[str, ...] = ('terms-db', 'wiki'), files: dict[str, str] \| None = None, exts: tuple[str, ...] = ('.py',), skip: tuple[str, ...] = SKIP, inputs: tuple[str, ...] = ('pkg/a.py',)) -> str` | 봉인까지 커밋한 대상 저장소. 매니페스트는 손으로 적은 기대값이다 — `inputs` 에 적은 파일만 소스다. |
+| `test_봉인이_맞으면_문제도_낡음도_없다` | `(tmp_path: Path)` |  |
+| `test_봉인이_없으면_문제다` | `(tmp_path: Path)` |  |
+| `test_계약_판이_다르면_문제다` | `(tmp_path: Path)` |  |
+| `test_필요한_종류가_봉인에_없으면_문제다` | `(tmp_path: Path)` |  |
+| `test_봉인_뒤_산출물을_고치거나_장을_더하면_문제다` | `(tmp_path: Path)` |  |
+| `test_소스가_움직이면_낡음이지_문제가_아니다` | `(tmp_path: Path)` |  |
+| `test_미추적_파일은_낡음에_넣지_않는다` | `(tmp_path: Path)` |  |
+| `test_추적되는데_지운_파일은_사라짐이다` | `(tmp_path: Path)` |  |
+| `test_hash_object_가_실패한_파일은_읽기실패다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)` |  |
+| `test_원고_커밋은_낡음이_아니다` | `(tmp_path: Path)` |  |
+| `test_terms_db_가_계약_꼴이_아니면_문제다` | `(tmp_path: Path)` |  |
+| `test_main_은_낡음을_경고로만_찍고_목록에_싣는다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_main_은_구조_문제면_1_과_사람이_칠_명령을_낸다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_미커밋_봉인은_경고다` | `(tmp_path: Path)` |  |
+| `test_뒤_실행_실패_표식은_경고다` | `(tmp_path: Path)` |  |
+| `test_status_는_있음_깨짐_없음을_한_줄로_내고_늘_0이다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_status_는_꼴이_깨진_봉인을_없음이_아니라_깨짐으로_낸다` | `(tmp_path: Path)` |  |
+| `test_status_는_git_밖이어도_한_줄을_내고_0이다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
+| `test_부분_봉인은_optional_이면_있는_종류만_판정한다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str], kind: str)` |  |
+| `test_optional_이라도_봉인에_아무_종류도_없으면_문제다` | `(tmp_path: Path)` |  |
+| `test_건너뛸_폴더_안의_추적_파일은_소스가_아니다` | `(tmp_path: Path)` | 경로 중간의 폴더 성분과 파일 이름 성분 둘 다 `skip_dirs` 에 걸린다. |
+| `test_매니페스트의_source_exts_를_그대로_따른다` | `(tmp_path: Path)` |  |
+| `test_비ASCII_이름의_소스도_소스_집합에_든다` | `(tmp_path: Path)` |  |
+| `test_봉인된_terms_db_의_내용만_고쳐도_문제다` | `(tmp_path: Path)` | 계약 꼴은 지키고 뜻만 바꾼 용어 사전 — 해시가 잡는다. |
+| `test_봉인_항목_경로가_종류와_맞지_않으면_문제다` | `(tmp_path: Path)` |  |
+| `test_위키_장만_커밋되지_않아도_미커밋이다` | `(tmp_path: Path)` |  |
+| `test_gitignore_로_무시된_봉인은_미커밋이다` | `(tmp_path: Path)` |  |
 
 ---
 
@@ -406,6 +515,30 @@ clang-doc 적재기의 회귀 시험.
 | `test_empty_repo_selects_nothing` | `(tmp_path: Path) -> None` | 소스가 하나도 없으면 고르지 않는다 — 지어내지 않는다. |
 | `test_collector_names_match_prep` | `(tmp_path: Path) -> None` | 여기서 내는 수집기 이름이 prep 이 아는 이름과 같아야 한다. |
 | `test_read_docs_picks_root_documents` | `(tmp_path: Path) -> None` | LLM Model에게는 루트 문서만 준다. 없는 것은 조용히 건너뛴다. |
+
+---
+
+## `test_manifest.py`
+
+봉인(`manifest.py seal`)이 낸 꼴과 거부 조건의 시험.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `git` | `(repo: str, *args) -> None` |  |
+| `entry` | `(path: str) -> warmup.Entry` |  |
+| `make_repo` | `(tmp_path: Path) -> str` | 조사가 끝난 직후의 대상 저장소 — 지문과 위키 상태가 지금 소스와 맞는다. |
+| `seal` | `(repo: str, kinds: str = 'terms-db,wiki') -> int` |  |
+| `read_manifest` | `(repo: str) -> MF.ArtifactManifest` |  |
+| `test_미추적_파일은_소스에_넣지_않는다` | `(tmp_path: Path) -> None` |  |
+| `test_blob_ids_는_git_hash_object_와_같다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_docs_codegraph_에_계약_꼴로_낸다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_다시_읽지_않은_소스를_봉인하지_않는다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_조사되지_않은_추적_파일도_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_작업_트리에서_지워진_추적_소스를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_위키만_봉인할_때도_지문_뒤_바뀐_소스를_거부한다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None` |  |
+| `test_seal_은_지문을_따라잡지_못한_위키를_거부한다` | `(tmp_path: Path) -> None` |  |
+| `test_wiki_caught_up_은_장_해시만_있는_상태를_따라잡지_않았다고_본다` | `(tmp_path: Path) -> None` |  |
+| `test_seal_은_모르는_종류와_빈_종류를_거부한다` | `(tmp_path: Path) -> None` |  |
 
 ---
 

@@ -27,11 +27,14 @@ COVERED = [
     "runner/mode1/wiki.py",
     "runner/mode1/edges.py",
     "runner/mode1/resume.py",
+    "runner/mode1/seal.py",
     "runner/run_mode1_5.py",
     "runner/run_mode2.py",
     "runner/run_grade.py",
     "runner/dispatch.py",
     "tools/template.py",
+    "machine/contract_types.py",
+    "machine/evidence.py",
 ]
 
 # 낱말 경계로 본다 — `Anything` 같은 이름을 잘못 잡지 않는다.
