@@ -10,7 +10,7 @@
 - **무엇을**: `docs/superpowers/plans/2026-10-22-split-mode1-and-report.md`(rev.4) 의 Phase **R → A → K → M** 을 이 저장소에서 실행해 `main` 에 fast-forward 한다. 두 저장소로 가르는 B · C 와 위키 재굽기 E 는 그 뒤 별 세션.
 - **진척**: R1~R10 ✅ · R9 보강 ✅(`0ba79a3` `a7a66c4` `3c4c4e8` `bae47de` `44b55c5` · 재검토 Ready: Yes · 문서 정리 `128c25b`) · R10 품질 ✅ + 보강 `6e9cc72` · A1 ✅ · A4 ✅ · R11 폐기(→ R12, 시험 커밋 `8d71d38` 만 남김) · R12 ✅(R12a `a6e484d` + 보강 `46b9f5b` · b `60c500c` · c `644f6f0` · d `aae87e4` · e `47b8f56` · f `22d67e0` `082a1d3` · 결정 0012 확정) · A2 ✅ `f1355c7` · A3 ✅ `77fe047` · **K ✅**(K1 `5c88f2d` · K2 `813ffb1` · K2b `3691fe7` · K3 `cefaed9` · K4 `88c6d52` · K5 `e171e9d` · 생산자 검토 보강 `8945e62` · K6 `f223170` · K7 `fd3b8d5` · 상태 줄 `bda0584` · K7b `ec7314b` · K8 `59674d0` · 소비자 검토 보강 `90f5843` `82c10b0`) · **M1 ✅ · M2 ✅**(사용자 승인 — `main` 에 문서 커밋 24개가 먼저 들어와 있어 브랜치에 병합 `a2cc27b` 뒤 fast-forward · 태그 `split-base-2026-10-24` 는 로컬에만 — 클라우드에서 태그 push 가 막혔다, 아래 §10).
 - **바로 다음**(§5 순서): (0) §6 으로 `split-work/` 와 `before/` 준비 (1) ~~R9 보강 · R10 검토~~ 끝 ~~(2) R12 · (3) A2 · A3~~ 끝 ~~(4) Phase K~~ 끝 ~~(5) M1 · M2~~ 끝. **남은 것: 태그 `split-base-2026-10-24` 를 `a2cc27b` 에 달아 push**(사용자 기계에서 `git tag split-base-2026-10-24 a2cc27b && git push origin split-base-2026-10-24`). 그 뒤는 rev.4 Phase B · C · E(별 세션).
-- **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. **본체 `.py` 는 사용자가 diff 를 보고 승인한다**(§7 — 클라우드는 질문 창).
+- **방법**: Task 마다 구현자 1 → spec 검토 → 품질 검토 1. 한 Task 한 커밋(검토 보강은 별 커밋). spec 검토가 "계획서 코드 블록이 글자 그대로 들어갔는가" 면 오케스트레이터가 기계 대조로 한다. 본체 `.py` 승인 규칙은 2026-10-31 에 폐지됐다(§7 · §10).
 - **모델(사용자 동의 2026-10-24)**: 오케스트레이터 Opus 5.5 · 구현자 `sonnet` · 검토자 `opus`. 여러 파일을 엮거나 설계 판단이 드는 Task(K2 · K3 · K6 · R11)는 구현자도 `opus`.
 - **정본**: rev.4(Task 본문) · 정정표(§4) · 이월 사항(§4.2) · 대조 도구 `split-work/`(§6) · 원격 세션용 스킬 사본 `.claude/skills/`(§3).
 
@@ -24,7 +24,7 @@
 | 저장소 `.claude/settings.json` 의 **훅이 돌지 않는다** — `tools/setup.sh`(`.venv` · `node_modules` · `.tmp/lib.mjs` · doctor)가 자동으로 안 돈다 | 시작할 때 `bash tools/setup.sh` 를 직접 돌린다. Graphviz 는 프로젝트의 Cloud environment 설정 스크립트(`tools/cloud_env.sh` 를 붙여 넣은 것)가 깐다 |
 | 루트 `CLAUDE.md` · `.claude/CLAUDE.md` 만 읽힌다 — **하위 폴더 `CLAUDE.md` 는 안 읽힌다** | `runner/` · `viz/` · `machine/` · `tools/` · `test/` · `docs/` 를 고치기 전에 그 폴더의 `CLAUDE.md` 를 직접 읽는다. 서브에이전트 brief 에도 "해당 폴더의 CLAUDE.md 를 먼저 읽어라" 를 넣는다 |
 | 저장소 `.claude/skills/` · `.claude/agents/` · 플러그인 설정이 **안 읽힌다** | superpowers 는 Project settings > Plugins 에서 켠다(사용자). 스킬 사본 다섯(`personal-commit-messages` 등)은 claude.ai 계정의 스킬로 켜야 보인다 — 안 켜도 커밋 형식은 루트 `CLAUDE.md` 와 §7 에 글자로 있다 |
-| 저장소 권한 규칙이 적용되지 않는다 · 스레드는 auto mode | 승인 창은 **그 스레드 안에** 뜨고 스레드는 거기서 기다린다. 프로젝트 대화에서 "진행해" 라고 해도 스레드에 닿지 않는다. 본체 `.py` 승인(§7)도 스레드 안의 질문 창으로 받는다 — `AskUserQuestion` 은 **이 claude.ai/code 원격 세션에서는 떴다(5회 — R2 · R1 수정 · R2 보강 · R4 승인, M2)**. 프로젝트 스레드에서 뜨는지는 문서로 확인하지 못했다. 안 뜨면 diff 경로와 요약을 남기고 멈춰 사용자 답을 기다린다 |
+| 저장소 권한 규칙이 적용되지 않는다 · 스레드는 auto mode | 승인 창은 **그 스레드 안에** 뜨고 스레드는 거기서 기다린다. 프로젝트 대화에서 "진행해" 라고 해도 스레드에 닿지 않는다. `AskUserQuestion` 은 **이 claude.ai/code 원격 세션에서는 떴다(5회 — R2 · R1 수정 · R2 보강 · R4 승인, M2)**. 프로젝트 스레드에서 뜨는지는 문서로 확인하지 못했다. 안 뜨면 diff 경로와 요약을 남기고 멈춰 사용자 답을 기다린다 |
 | `env` 가 적용되지 않는다 | 이 작업에 필요한 환경변수는 없다(`TOOLS_ROOT` 는 `split-work/capture.sh` 가 스스로 잡는다) |
 
 **클라우드 세션 실측(2026-10-24 13:40 UTC, 넘김 문서 `HANDOFF-2026-10-24-cloud-thread-to-local.md` §3).** ⚠ 이 세션이 프로젝트 스레드인지는 확인하지 못했다 — R1 검토 ~ R4 를 한 **같은 claude.ai/code 원격 세션**이 컨테이너 재시작으로 이어진 것이고, 프로젝트 지시문은 자동으로 들어오지 않아 사용자가 대화에 붙여 넣었다. 그래서 아래는 위 표가 틀렸다는 뜻이 아니라 "이 종류의 세션에서는 이렇다" 는 기록이다.
@@ -47,7 +47,7 @@
 - 재개 진입점은 docs/handoffs/RESUME-2026-10-24-split-rev4-execution.md 하나다. §0 → §0.1 → §1 → §6 → §5 순서로 간다.
 - 하위 폴더의 CLAUDE.md 는 자동으로 읽히지 않는다. 그 폴더를 고치기 전에 직접 읽는다.
 - 커밋은 [tag] : 한국어 제목 한 줄, 본문 · 트레일러 없음, 파일을 이름으로 git add 한다(루트 CLAUDE.md).
-- 본체 .py 는 diff 를 보여 승인받은 뒤 적용한다(재개 문서 §7). main 에 push 하기 전에는 묻는다.
+- main 에 push 하기 전에는 묻는다(본체 .py 승인 규칙은 2026-10-31 폐지 — §7).
 ```
 
 ## 1. 상태 (Mac 실측 2026-10-24 — 다시 잰다)
@@ -119,7 +119,7 @@ Phase A
 | 플러그인 superpowers | `.claude/settings.json` 의 `enabledPlugins`(`superpowers@claude-plugins-official`) | 추적 | **로컬 세션용이다.** 공식 문서(code.claude.com — cloud-environments "What carries over")에 따르면 클라우드 세션은 저장소가 켜는 플러그인을 설치하지 않는다. 클라우드에서는 서브에이전트 주도 절차를 이 문서 §5 · §7 에 풀어 적은 대로 따른다(플러그인 없이 된다). 클라우드에도 꼭 있어야 하면 — 일반 세션은 필요한 스킬을 MIT 사본으로 `.claude/skills/` 에 넣는다 · 프로젝트 스레드는 claude.ai 의 Project settings > Plugins 에서 켠다 · 조직이면 서버 관리 설정 |
 | 결정 기록 | `docs/decisions/0011-split-mode1-and-report.md` | 추적 | A1 |
 | 실행 계획(plan mode) | `~/.claude/plans/docs-superpowers-plans-2026-10-22-split-sprightly-codd.md` | Mac 만 | 내용은 §4 에 들어 있다 |
-| 메모리 | `~/.claude/projects/<이 저장소>/memory/` | Mac 만 | 사용자 결정 요약 · 승인 규칙 |
+| 메모리 | `~/.claude/projects/<이 저장소>/memory/` | Mac 만 | 사용자 결정 요약 |
 
 Task 본문 떼기(계획서 줄 범위는 `grep -n "^#### Task" <rev.4>`):
 ```bash
@@ -138,7 +138,7 @@ PY
 
 ## 4. 확정된 결정 (다시 논쟁하지 않는다) + 정정표
 
-**사용자 결정** — 경계는 A3 데이터 계약(스키마 사본 + `docs/codegraph/manifest.json` 봉인) · Mode 1 은 **사람이 부를 때만** 돌고 **묻지 않는다**(예상 비용 한 줄만) · Mode 1.5 는 봉인 없으면 멈추고 낡음 · 미커밋은 경고 · Mode 2 는 Mode 1 과 독립(봉인 있으면 근거) · 프롬프트는 단계당 한 파일 + `<!-- section: 이름 -->` 절 · 소비자 형은 계약 JSON 에서 생성 · 손댄 위키 장은 `.bak` · 범위 R→A→K→M · 서브에이전트 주도 · **본체 .py 승인 규칙 유지**.
+**사용자 결정** — 경계는 A3 데이터 계약(스키마 사본 + `docs/codegraph/manifest.json` 봉인) · Mode 1 은 **사람이 부를 때만** 돌고 **묻지 않는다**(예상 비용 한 줄만) · Mode 1.5 는 봉인 없으면 멈추고 낡음 · 미커밋은 경고 · Mode 2 는 Mode 1 과 독립(봉인 있으면 근거) · 프롬프트는 단계당 한 파일 + `<!-- section: 이름 -->` 절 · 소비자 형은 계약 JSON 에서 생성 · 손댄 위키 장은 `.bak` · 범위 R→A→K→M · 서브에이전트 주도 · 본체 .py 승인 규칙은 2026-10-31 폐지(§7).
 2026-10-24 Mac 세션에서 더해진 결정 — 파이썬에 남은 LLM 글(빈 값 문구 · 목록 줄 꼴 · 고침 안내)도 리소스로(R10 끝) · 목록 밖에서 더 찾은 글도 같은 방식으로(R11) · R7 도움말은 실효값 · R6 `str(lang)`.
 2026-10-24 클라우드 세션에서 더해진 결정(결정 0012, 제안됨) — 프롬프트의 동적 부분(반복 · 빈 값 대체 · 조건부 절 · 잇기 · 들여쓰기)은 프롬프트 파일 안 **Jinja2**(명시 의존) · 파일은 **마크다운 그대로, 절 표식 유지** · YAML 은 쓰지 않는다 · **엄격 검사**(빠진 값 · 남는 값 둘 다 오류) · 공백 `trim_blocks` · `lstrip_blocks` · `keep_trailing_newline` · 결함 문구 9개는 **`runner/mode1/faults.toml`** · **프롬프트만**(파일 템플릿 일곱은 `tools/template.py` 그대로) · **템플릿은 꼴만, 데이터 결정은 단계** · 바이트 대조는 합격 기준이 아니다(바뀐 글은 diff 로 사람이 본다) · R11 후보 폐기.
 
@@ -224,7 +224,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 ## 5. 남은 일 — 순서와 brief 요지
 
-공통: 서브에이전트 brief 에 (가) 이 프로젝트가 무엇이고 Phase R 이 무엇을 했는지 두세 줄 (나) 떼어 둔 Task 본문 파일 경로 (다) 그 Task 에 걸리는 정정표 · 이월 항목 (라) §7 의 승인 프로토콜 (마) worktree `.venv` 꼴(§6-4) (바) 검증 명령과 기대값 (사) 커밋 메시지 글자 그대로 (아) `docs/handoffs/` · `docs/superpowers/` · `docs/my.self/` 를 열지 말 것 을 넣는다.
+공통: 서브에이전트 brief 에 (가) 이 프로젝트가 무엇이고 Phase R 이 무엇을 했는지 두세 줄 (나) 떼어 둔 Task 본문 파일 경로 (다) 그 Task 에 걸리는 정정표 · 이월 항목 (라) §7 의 규약 (마) worktree `.venv` 꼴(§6-4) (바) 검증 명령과 기대값 (사) 커밋 메시지 글자 그대로 (아) `docs/handoffs/` · `docs/superpowers/` · `docs/my.self/` 를 열지 말 것 을 넣는다.
 
 **(0) 준비** — §6.
 
@@ -286,7 +286,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
   - 엄격 검사와 바이트 안정을 기본으로 주는 기성 라이브러리는 그 범위에서 못 찾았다 — Jinja2 를 엄격하게 설정해 직접 쓰는 것이 가장 가깝다.
   - YAML 안의 Jinja2 는 Ansible 이 대표 사례다(일반 지식).
 
-*이행 단계(Task 마다 한 커밋 · 본체 `.py` 는 승인).*
+*이행 단계(Task 마다 한 커밋).*
 - **R12a 의존과 렌더.**
   - `requirements.txt` 에 `jinja2` 를 더한다. 판은 설치되는 판으로 고정한다(2026-10-24 실측 — `.venv` 에 Jinja2 · MarkupSafe · PyYAML 모두 없다).
   - `PromptResource.load_prompt` 가 절 글을 Jinja2 로 렌더한다. 설정: `StrictUndefined`, 남는 값은 `meta.find_undeclared_variables` 로 대조해 오류, `trim_blocks` · `lstrip_blocks` · `keep_trailing_newline`, `autoescape` 끔.
@@ -350,7 +350,7 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | K7b `viz/init.py` 상태 한 줄 | sonnet | ⑭ | `pytest test/test_init.py` |
 | K8 계약 문서 · 스킬 둘 | sonnet | 스킬 원본은 `~/.claude/skills/*/SKILL.md` — 클라우드에 없으면 저장소 사본만 고치고 "원본 동기화 필요" 를 이 문서에 남긴다 | `pytest test/test_docs_citations.py` |
 
-각 Task 뒤 spec 대조 · 품질 검토. 본체 `.py` 는 §7 승인.
+각 Task 뒤 spec 대조 · 품질 검토.
 
 **(5) M1 · M2** — M1 은 rev.4 의 게이트 묶음(`gen_contract.py --check` · `gen_contract_types.py --check` · `npm run doctor` · `machine/evidence.py . --need terms-db,wiki --status` → `Mode 1 봉인 — 없음` 포함). M2 는 `main` fast-forward + 태그 `split-base-2026-10-24` — **push 전에 사용자에게 묻는다**. `Fast-forward` 가 아니면 멈추고 알린다.
 
@@ -381,17 +381,14 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 
 ## 7. 가드레일 · 규약
 
-- **본체 `.py` 승인(사용자 규칙)**: 구현자는 시험 파일 · `.md` · `.toml` · `.tmpl` · 생성물(`contracts/*` · `machine/contract_types.py` · `*/README.md`)은 직접 쓴다. 본체 `.py`(새 파일 포함)는 **저장소에 쓰지 않고** `split-work/patches/<Task>/`(git 밖) 에 완성본(경로의 `/` → `__`)과 `diff -u`(묶음 diff 하나 포함)를 두고, 임시 worktree 에서 후보를 검증한 뒤 `DONE_WITH_CONCERNS — 본체 파일 적용 대기` 로 멈춘다.
-  - **클라우드 · auto mode(권한 창이 안 뜬다)**: 오케스트레이터가 diff 를 직접 읽고 spec 대조를 한 뒤 `AskUserQuestion` 으로 승인을 받는다. **미리보기 꼴(사용자가 요구한 것)**: 무엇을 옮기거나 바꾸나(전 → 후 표) · 파이썬 쪽 대표 hunk · **"이전에는 안 되던 것 → 이제 되는 것"** · 확인한 것(시험 · 바이트 대조 수치) · 계획과 다른 점. 선택지는 적용(권장) · 보류 — diff 를 직접 본다 · 거부. 승인 뒤 `cp` + `cmp` 또는 `git apply` 로 적용하고 본 저장소에서 다시 검증한다.
-  - Mac(권한 창이 뜨는 세션)이면 `Edit`/`Write` 로 적용해 권한 창에 diff 를 띄운다.
-  - 적용 뒤 마무리(전량 pytest · pyright · README 재생성 · 이름으로 `git add` · 커밋 · push)는 오케스트레이터가 직접 해도 된다.
+- **본체 `.py` 승인 규칙 — 폐지(2026-10-31, 사용자 결정)**: 편집 도구의 권한 모드(shift+tab)가 하네스 기능으로 이미 있어 규칙을 걷었다. 구현자는 본체 `.py` 도 저장소에 직접 쓴다. `split-work/patches/<Task>/` 에 후보를 두는 절차와 `AskUserQuestion` 승인 미리보기는 더 쓰지 않는다. 적용 뒤 마무리(전량 pytest · pyright · README 재생성 · 이름으로 `git add` · 커밋 · push)는 오케스트레이터가 한다.
 - **커밋**: `[tag] : 한국어 제목` 한 줄. **본문 · 트레일러 없음**(루트 `CLAUDE.md` · `personal-commit-messages` 가 하네스의 `Co-Authored-By` 안내를 이긴다). 파일을 **이름으로** `git add`. `git add -A` 금지. 커밋마다 `git push -u origin survey-per-file-2pass`.
 - **커밋 제목은 ASCII 구두점만**(`personal-commit-messages` 의 "제목에는 ASCII 구두점만" 절). 가운뎃점 `·` 는 두 항목이면 `&`, 셋 이상이면 `,` 로 쓰고 `—` · `→` 도 쓰지 않는다. 문서 본문은 이 규칙 밖이다. 분리 작업(`fdb1c3a..`)에서 이 규칙을 어긴 커밋이 **16개**다 — 클라우드 세션 둘(`83eb828` · `b6bd0a4`), 로컬 Mac 세션 열넷(`082d3a9` ~ `04796fe`). 넘김 문서는 "둘뿐" 이라 적었지만 로컬 쪽을 세지 않았다. 이미 push 된 이력이라 고치지 않는다. 서브에이전트에게 주는 제안 커밋 제목도 이 규칙으로 쓴다.
 - **검증 명령**: `.venv/bin/python -m pytest -q`(저장소 루트에서) · `npm run typecheck:py` · `npm test` · `npm run typecheck` · `.venv/bin/python tools/gen_readme.py --check machine runner viz tools` · `.venv/bin/python -m pytest test/test_prompt_resources.py -q`.
 - **TDD**: rev.4 Task 마다 "실패하는 시험 → 구현 → 통과". 옮기기 Task 는 바이트 대조가 합격 기준.
 - **코드 규약**: 주석 · 독스트링 한국어 · 지금 무엇인지만(날짜 · 확신도 · 설계 서사 금지) · `# <include …/>` 블록은 새로 심지도 고치지도 않는다 · `Any` 금지(`test/test_no_any.py`) · 자유 함수 모음 금지(계산은 단계의 `@staticmethod`, 둘 이상이면 믹스인) · LLM 이 읽는 글은 리소스로.
 - **검토 발견**: Important 이상은 그 Task 안에서 고친다. Minor 는 묶어 보강하거나 §4.2 로.
-- **멈추지 않는다**: Task 사이에 "계속할까요" 를 묻지 않는다. 멈추는 이유는 BLOCKED · 진짜 모호함 · 전부 완료 · 본체 `.py` 승인 대기.
+- **멈추지 않는다**: Task 사이에 "계속할까요" 를 묻지 않는다. 멈추는 이유는 BLOCKED · 진짜 모호함 · 전부 완료.
 - **병렬**: 구현자는 한 번에 하나. 검토자(읽기 전용)는 다음 구현자와 같이 돌려도 된다 — 단 다음 구현자가 건드릴 파일과 검토 대상이 겹치지 않을 때만, 그리고 검토 보강 커밋이 다음 Task 커밋보다 먼저.
 
 ## 8. 병렬 트랙 / 충돌
@@ -426,3 +423,4 @@ pyright strict 가 `machine/ runner/ viz/ tools/` 를 포함하므로 그 아래
 | 2026-10-24~25 | 클라우드 세션 — R12 끝. R12c `644f6f0` 은 annotate-symbols 절을 13 → 3 으로 줄였다(batch · nonnode · pass2). 재조사 절은 역할 소개 아래에, 범위 · 미조사 절은 심볼 목록과 읽는 법 사이에 둔다. stage 가 행(TypedDict)을 넘긴다. 재조사 절은 batch 와 nonnode 에 복제하고 같음 시험을 둔다(사용자 결정). 개수는 파이썬이 넘긴다(사용자 결정, `|length` 안 씀). `split-work/edge_dump.py` 은퇴, 검토는 capture + diff 다. R12d `aae87e4` 은 write-wiki 절을 4 → 1 로 줄였다(바이트 동일). R12e `47b8f56` 은 agent 의 terms 절을 `{% if %}` 로 바꿨다(바이트 동일). R12f `22d67e0` 에서 게이트가 Jinja2 컴파일 · 줄 끝 공백 · `{#` 를 보고, `PromptResource.free_names` 가 생겼다. `082a1d3` 에서 루트 규약 문장을 고치고 0012 를 확정했다. A2 `f1355c7` · A3 `77fe047`(Mode 1 시험 docstring 의 경위 문장은 주석 규약대로 뺐다). A2 확인 grep 에 `test/test_no_any.py:17` · `test/test_prompt_resources.py:17` 두 줄이 걸린다. 둘 다 파일 목록이라 import 가 아니다. 게이트 pytest 747/2/19 · pyright 0 · npm test 8 · README 4 · doctor OK. 다음은 Phase K(§5 (4)) — 시작 전에 `before/` 를 HEAD 에서 다시 찍는다 |
 | 2026-10-31 | 클라우드 세션 — Phase K 끝(§0 커밋 열넷). 대조 기준 `split-work/before/` 를 `0be86cd` 에서 다시 찍었다(31 · 결정적). 생산자(K1 ~ K3) · 소비자(K6 ~ K8) 검토 각 1회 — Critical 1 · Important 7 을 보강으로 고쳤다. capture 31 중 다른 것은 `mode1_5-ask` 둘(`--terms-db` 한 조각 — 정정 ⑤ 의 의도된 차이)뿐 · `report.html` · DOT 같음. M1 ✅. 계획과 다른 것 · 남은 것은 §4.3. 다음은 M2(사용자 승인) |
 | 2026-10-31 | 클라우드 세션 — M2. `main` 에 이 브랜치에 없는 [docs] 커밋 24개(ko-dev-terms 계획 · 용어 근거 리서치 · 결정 0013 · 루트 CLAUDE.md 두 파일 규약)가 있어 fast-forward 불가 → 사용자 결정으로 `origin/main` 을 브랜치에 병합(`a2cc27b`, 충돌 0 · 게이트 그대로) 뒤 `main` fast-forward push. 태그는 로컬에 달았지만 push 가 "Everything up-to-date" · 503 으로 원격에 닿지 않았다 — 사용자 기계에서 단다. 이 줄의 커밋은 브랜치에만 있다(`main` 보다 하나 앞) |
+| 2026-10-31 | 로컬 세션 — 사용자 결정으로 본체 `.py` 승인 규칙 폐지(§0 · §0.1 · §3 · §4 · §5 · §7 의 승인 문구 정리). 디렉토리 정리 설계 확정 — `docs/superpowers/specs/2026-10-31-directory-reorg-design.md` · 결정 0014. K · M 이 끝났으므로 **Phase B 앞에** 실행한다(계획서 `docs/superpowers/plans/2026-10-31-directory-reorg.md`). 그 뒤 Phase B 는 `codewiki/` 를 통째로 떼어내는 것이 된다. 로컬 `main` 은 브랜치 병합 `6c4009d` 로 `origin/main` 보다 앞서 있고 태그 `split-base-2026-10-24` 는 아직 없다 — 둘 다 사용자 push |
