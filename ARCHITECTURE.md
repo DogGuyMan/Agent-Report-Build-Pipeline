@@ -153,6 +153,7 @@ Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 �
 | `wiki`        | **LLM 층별 N회** | `claude -p` 목차 1 + 장마다     | `terms-db.json` + `facts/*.md` → `wiki-plan.json` → `docs/wiki/*.md`                                |
 | `build`       | 기계            | `runner/wiki/build.py`   | `docs/wiki/*.md` → VitePress 정적 사이트                                                                 |
 | `check`       | 기계            | `runner/wiki/check.py`   | 산문 → 인용 판정 표 (표준 출력)                                                                                |
+| `seal-artifacts` | 기계         | `machine/manifest.py`    | 이 실행에서 검사를 통과하고 지금 소스를 다시 읽은 것만 → `<대상>/docs/codegraph/manifest.json` · `terms-db.json` 사본 (계약: `docs/contract-mode1-artifacts.md`) |
 
 
 **Mode 2 단계별로**
@@ -348,7 +349,8 @@ graph LR
 | `out/codegraph-raw/codegraph.json`              | `machine/normalize.py` (`runner/wiki/prep.py:131`) | `facts.py` · `render_modules.py` · `terms_db.py` · `verify_citations.py` |
 | `out/codegraph-raw/facts/*.md` · `ranking.json` | `machine/facts.py` (`runner/wiki/prep.py:135`)     | LLM 이 프롬프트로 받는다                                                          |
 | `machine/terms-reading.json`             | LLM (`agent` 단계)                                       | `machine/terms_db.py`                                                  |
-| `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `runner/term/collect.py`                                               |
+| `out/codegraph-raw/terms-db.json`               | `machine/terms_db.py`                                | `machine/manifest.py` (봉인 사본으로 복사)                              |
+| `<대상>/docs/codegraph/terms-db.json` · `manifest.json` | `machine/manifest.py` (`seal-artifacts`)   | `machine/evidence.py` · `runner/term/collect.py` · `runner/run_mode2.py` · `viz/init.py` |
 | `term-candidates.json`                          | `runner/term/collect.py:26` · `:45`                  | 사람 / 출제 LLM Model                                                               |
 | `answers.json`                                  | **사람**                                                 | `runner/term/quiz.py` (`report-term grade`)                              |
 | `term-grades.json`                              | `runner/term/quiz.py`                                | `runner/term/emit.py`                                                  |

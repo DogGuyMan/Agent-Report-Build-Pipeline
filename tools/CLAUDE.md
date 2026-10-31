@@ -11,6 +11,8 @@
 | `doctor.py` | 이 컴퓨터에 무엇이 있고 없는지 한 화면. 필수가 없거나 하한보다 낮으면 exit 1. 하한은 `package.json` 의 `engines` · `PYTHON_MIN` · `DOT_MIN`, 파이썬 패키지 목록은 `requirements.txt` 에서 읽는다 | `npm run doctor` · `setup.sh` |
 | `doctor_packages.py` | 받은 배포 이름 중 깔리지 않은 것을 한 줄로(`전부 있다` · `빠짐: …`). 이 저장소의 어느 것도 import 하지 않는다 | `doctor.py` 가 고른 파이썬의 자식 프로세스로 |
 | `gen_readme.py` | 소스 독스트링에서 디렉토리별 `README.md` 를 생성한다. `--check` 면 낡았을 때 exit 1 | 게이트 "README 표류" · `test_gen_readme.py` |
+| `gen_contract.py` | 계약 리소스 `contracts/mode1-artifacts.v1.json` 과 지문 `.sha256` 을 생산자 형(`machine/manifest.py` · `machine/terms_db.py`)에서 낸다. `--check` 면 낡았을 때 exit 1 | 사람 · `test_gen_contract.py` |
+| `gen_contract_types.py` | 계약 JSON 에서 소비자 형 `machine/contract_types.py` 를 낸다(생성물 — 손대지 않는다). `--check` 면 낡았을 때 exit 1 | 사람 · `test_gen_contract_types.py` |
 | `scrub_local_paths.py` | 홈 아래 경로와 개인 식별자를 작업 트리·git 이력에서 지운다 | **아무 데서도 안 부른다** — 손으로 돌린다 |
 | `setup.sh` | 저장소 의존성을 고정된 판으로 깐다 — `.venv` + `requirements.txt`, `npm@11.11.0 ci`. 끝에 doctor 를 돌린다. 시스템 도구는 깔지 않는다 | `npm run setup` · `.claude/settings.json` 의 SessionStart 훅(클라우드에서만) |
 | `cloud_env.sh` | 클라우드 환경 설정 스크립트의 원본 — Graphviz 공식 `.deb` 와 그 라이브러리. 저장소에서는 아무도 부르지 않는다 | **claude.ai/code 환경 설정의 Setup script 칸에 손으로 붙여 넣는다** |
@@ -47,5 +49,5 @@ npm run doctor                                                        # 필수 �
 | `../runner/dispatch.py` · `../runner/wiki/*.py` · `../runner/run_mode1_5.py` → 여기 | `pythonPath()` 로 해석기를 찾는다 |
 | `../viz/*.py` · `../runner/wiki/build.py` → 여기 | `template.py` 의 `render_file` 로 리소스 파일의 `{{이름}}` 자리를 채운다 — 보고서 뼈대 · DOT 머리 · 위키 사이트 설정 |
 | `../runner/pipeline.py` → 여기 | 프롬프트 렌더 오류를 `template.py` 의 `TemplateError` 로 낸다. 프롬프트 글 자체는 Jinja2 가 렌더한다 |
-| 여기 → `../machine/pycalls.py` | `gen_readme.py` 가 `signature_of` 를 import 한다. 셋 축 중 기계축으로 가는 유일한 화살표다 |
+| 여기 → `../machine/*` | `gen_readme.py` 가 `pycalls.signature_of` 를, `gen_contract.py` 가 `manifest` · `terms_db` 의 형을 import 한다. `gen_contract_types.py` 는 `machine/contract_types.py` 를 쓴다 |
 | 여기 → 바깥 | `git` · `dot` · `dotnet` · `clangd` 를 PATH 로 찾는다. **경로를 박지 않는다** |

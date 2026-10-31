@@ -3,7 +3,7 @@
 > 루트 나침반은 [`../CLAUDE.md`](../CLAUDE.md). 이 문서는 **계산하는 쪽만** 다룬다.
 > 부르는 쪽은 [`../runner/CLAUDE.md`](../runner/CLAUDE.md), 그리는 쪽은 [`../viz/CLAUDE.md`](../viz/CLAUDE.md), 컴포넌트는 [`../viz/src/CLAUDE.md`](../viz/src/CLAUDE.md).
 
-이 저장소에서 가장 큰 모듈이다(파이썬 27파일 — 본체 16 · 시험 11). **정적 수집 · 인용 검증 · 측정**을 맡는다.
+이 저장소에서 가장 큰 모듈이다(파이썬 32파일 — 본체 19 · 시험 13). **정적 수집 · 인용 검증 · 측정**을 맡는다.
 산문을 쓰지 않고 판정하지 않는다 — 기계가 아는 사실만 결정론으로 낸다.
 
 ## 무엇이 여기 있나
@@ -72,8 +72,8 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 ```
 Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
 #            LLM        lang_select.py   warmup.py        normalize.py 등    survey_plan.py        LLM 층별
-          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki
-#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py
+          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
+#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py   manifest.py
 Mode 1.5  collect ─▶ gate ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ [LLM] ─▶ build ─▶ check
 ```
