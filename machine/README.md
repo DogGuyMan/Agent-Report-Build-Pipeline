@@ -445,6 +445,7 @@ clang-doc 적재기의 회귀 시험.
 | `test_미커밋_봉인은_경고다` | `(tmp_path: Path)` |  |
 | `test_뒤_실행_실패_표식은_경고다` | `(tmp_path: Path)` |  |
 | `test_status_는_있음_깨짐_없음을_한_줄로_내고_늘_0이다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_status_는_꼴이_깨진_봉인을_없음이_아니라_깨짐으로_낸다` | `(tmp_path: Path)` |  |
 | `test_status_는_git_밖이어도_한_줄을_내고_0이다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 
 ---

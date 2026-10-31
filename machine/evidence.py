@@ -184,9 +184,9 @@ def status_line(repo: str, need: Sequence[str]) -> str:
     없음 · 깨짐(첫 문제) · 있음(낡음 · 미커밋 · 뒤 실행 실패를 덧붙인다) · 판정 못 함(파일을 읽지 못했다) 넷 중 하나다.
     """
     try:
-        m, _ = load_manifest(repo)
+        m, why = load_manifest(repo)
         if m is None:
-            return "Mode 1 봉인 — 없음"
+            return "Mode 1 봉인 — " + ("깨짐: " + why if os.path.isfile(os.path.join(repo, MANIFEST)) else "없음")
         got = problems(repo, need)
         if got:
             return "Mode 1 봉인 — 깨짐: " + got[0]

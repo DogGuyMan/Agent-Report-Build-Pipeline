@@ -204,6 +204,13 @@ def test_status_는_있음_깨짐_없음을_한_줄로_내고_늘_0이다(tmp_pa
     assert capsys.readouterr().out.strip() == "Mode 1 봉인 — 없음"
 
 
+def test_status_는_꼴이_깨진_봉인을_없음이_아니라_깨짐으로_낸다(tmp_path: Path):
+    repo = sealed(tmp_path)
+    with open(os.path.join(repo, E.MANIFEST), "w", encoding="utf-8") as f:
+        f.write("{broken")
+    assert E.status_line(repo, ["terms-db"]).startswith("Mode 1 봉인 — 깨짐: manifest.json 이 계약 꼴이 아니다")
+
+
 def test_status_는_git_밖이어도_한_줄을_내고_0이다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
                                               capsys: pytest.CaptureFixture[str]):
     repo = sealed(tmp_path)
