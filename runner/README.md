@@ -561,10 +561,13 @@ Mode 2(설계 검토 보고서) 파이프라인을 한 번에 돌리고 단계�
 | `manuscript_is_written` | `(data_source: str \| None, report_source: str \| None) -> bool` | 원고가 이미 채워졌는가. 뼈대와 채워진 글을 **글자로** 가른다. |
 | `find_spec` | `(filenames: Iterable[str], slug: str, doc_dir: str = 'specs') -> dict[str, str] \| None` | 한 자리의 파일 목록에서 이 slug 의 원본 문서를 찾는다. 없으면 `None`. |
 | `script_argv` | `(root: str, stage: str, slug: str) -> list[str]` | `viz/<단계>.py` 하나를 부른다. |
-| `agent_prompt` | `(project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, doc_dir: str = 'specs') -> str` | 원고를 쓰는 한 세션이 할 일 전부. |
-| `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None, doc_dir: str = 'specs') -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
+| `agent_prompt` | `(project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, doc_dir: str = 'specs', evidence: Sequence[str] = (), manifest: str = '', stale: Sequence[str] = (), uncommitted: bool = False) -> str` | 원고를 쓰는 한 세션이 할 일 전부. |
+| `run_agent` | `(model: str, project: str, slug: str, spec_file: str, root: str, terms_json: str \| None = None, timeout: float \| None = None, doc_dir: str = 'specs', evidence: Sequence[str] = (), manifest: str = '', stale: Sequence[str] = (), uncommitted: bool = False) -> tuple[int, M.AgentResult \| None]` | `claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`. |
 | `run_machine` | `(argv: Sequence[str], label: str, cwd: str) -> int` | 기계 단계 하나. 출력은 그대로 흘려보낸다 — 진행 상황이 곧 그 명령의 출력이다. |
 | `_read` | `(path: str) -> str \| None` | 파일을 읽어 문자열로. 없으면 `None` — 순수 함수에 존재 여부를 떠넘기지 않는다. |
+| **`SealedEvidence`** | *class* | `machine/evidence.py --list` 가 stdout 에 내는 JSON 중 여기서 읽는 칸. 나머지 칸은 버린다. |
+| `no_seal` | `() -> SealedEvidence` | 봉인을 쓰지 않는 값. 근거 절이 프롬프트에 실리지 않는다. |
+| `read_seal` | `(project: str) -> SealedEvidence` | 프로젝트가 든 저장소에 봉인된 Mode 1 산출물을 읽는다. 상태 한 줄을 찍고, 못 읽으면 `no_seal()` 이다. |
 | **`Mode2Context`** | *class* | Mode 2 의 단계 사이를 건너다니는 값. 칸마다 이름과 형이 있다. |
 | **`Mode2Machine`** | *class* | `init` · `build` · `check` — 셋 다 `viz/` 의 스크립트를 자식 프로세스로 부른다. |
 | `Mode2Machine.argv` | `(self, ctx: Mode2Context) -> list[str]` |  |
@@ -1180,6 +1183,27 @@ Mode 2 실행기의 회귀 시험.
 | `test_build_만_고르면_이미_있는_파일이_given_이_된다` | `(tmp_path: Path)` |  |
 | `test_build_만_고르는데_파일이_없으면_팩토리가_죽는다` | `(tmp_path: Path)` |  |
 | `test_viz_script_paths_actually_exist` | `() -> None` | Mode 2 가 부르는 viz 스크립트 셋이 디스크에 실재하는가. |
+| `_sealed_prompt` | `(terms_json: str \| None = None, stale: Sequence[str] = (), uncommitted: bool = False) -> str` | 봉인이 있는 프롬프트. 시험마다 바꾸는 칸만 이름 인자로 준다. |
+| `test_prompt_names_mode1_evidence_when_sealed` | `()` |  |
+| `test_prompt_lists_stale_files_when_sources_moved` | `()` |  |
+| `test_prompt_has_no_evidence_block_without_seal` | `()` |  |
+| `test_prompt_notes_an_uncommitted_seal` | `()` |  |
+| `test_봉인이_없으면_낡음과_미커밋_값이_와도_글에_아무것도_더하지_않는다` | `()` |  |
+| `test_봉인_글은_용어집_글을_쓰지_않는다` | `()` |  |
+| `test_근거_절은_용어집_뒤_규율_앞에_빈_줄_하나씩을_두고_들어간다` | `(tj: str \| None)` |  |
+| `test_근거_절_안의_순서는_목록_낡음_미커밋이고_빈_줄_하나로_갈린다` | `()` |  |
+| `test_낡음이_없고_미커밋만_있으면_낡음_문단은_없다` | `()` |  |
+| `test_AgentStage_는_문맥의_봉인_칸을_프롬프트로_넘긴다` | `()` |  |
+| `test_문맥의_봉인_칸은_비어_있는_것이_기본이다` | `()` |  |
+| **`_FakeRun`** | *class* | `subprocess.run` 자리에 끼우는 가짜. `evidence.py` 호출만 답하고 부른 명령줄을 모은다. |
+| `_FakeRun.__init__` | `(self, status: str, list_code: int, listed: str) -> None` |  |
+| `_FakeRun.__call__` | `(self, argv: list[str], **kw) -> 'subprocess.CompletedProcess[str]'` |  |
+| `test_봉인을_읽으면_상태_한_줄을_찍고_목록을_받는다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
+| `test_목록이_실패하면_멈추지_않고_빈_값이다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
+| `test_목록이_꼴에_안_맞아도_멈추지_않고_빈_값이다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
+| `test_상태_줄이_비면_알_수_없다고_찍는다` | `(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
+| `test_봉인이_없는_저장소에서_진짜_evidence_py_가_빈_값을_낸다` | `(tmp_path: Path, capsys: pytest.CaptureFixture[str])` |  |
+| `test_dry_run_은_자식_프로세스를_하나도_띄우지_않는다` | `(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str])` |  |
 
 ---
 

@@ -11,7 +11,9 @@
   .venv/bin/python -m pytest runner/test_run_mode2.py -q
 """
 import os
+import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -441,3 +443,174 @@ def test_viz_script_paths_actually_exist() -> None:
     for stage in ("init", "build", "check"):
         p = R.script_argv(root, stage, "슬러그")[1]
         assert os.path.isfile(p), f"Mode 2 가 없는 파일을 가리킨다: {p}"
+
+
+# ── 8. Mode 1 봉인 — 있으면 근거로 싣고, 없어도 진행한다 ───────────────────
+SEALED = ["/프로젝트/docs/wiki/index.md", "/프로젝트/docs/codegraph/terms-db.json"]
+MANIFEST = "/프로젝트/docs/codegraph/manifest.json"
+
+
+def _sealed_prompt(terms_json: str | None = None, stale: Sequence[str] = (),
+                   uncommitted: bool = False) -> str:
+    """봉인이 있는 프롬프트. 시험마다 바꾸는 칸만 이름 인자로 준다."""
+    return R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구", terms_json=terms_json,
+                          evidence=SEALED, manifest=MANIFEST, stale=stale, uncommitted=uncommitted)
+
+
+def test_prompt_names_mode1_evidence_when_sealed():
+    got = R.agent_prompt("/프로젝트", "슬러그", "2026-01-01-슬러그-design.md", "/도구",
+                         evidence=["/프로젝트/docs/wiki/index.md", "/프로젝트/docs/codegraph/terms-db.json"],
+                         manifest="/프로젝트/docs/codegraph/manifest.json")
+    assert "## Mode 1 실측 자료" in got and "  /프로젝트/docs/wiki/index.md" in got
+    assert "(/프로젝트/docs/codegraph/manifest.json)" in got
+    assert "봉인 뒤 소스가 움직였다" not in got and "봉인이 커밋되지 않았다" not in got
+
+
+def test_prompt_lists_stale_files_when_sources_moved():
+    got = R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구",
+                         evidence=["/프로젝트/docs/wiki/index.md"], manifest="/m",
+                         stale=["바뀜 pkg/a.py"])
+    assert "봉인 뒤 소스가 움직였다" in got and "  바뀜 pkg/a.py" in got
+
+
+def test_prompt_has_no_evidence_block_without_seal():
+    got = R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구")
+    assert "## Mode 1 실측 자료" not in got
+
+
+def test_prompt_notes_an_uncommitted_seal():
+    got = R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구",
+                         evidence=["/프로젝트/docs/wiki/index.md"], manifest="/m", uncommitted=True)
+    assert "봉인이 커밋되지 않았다" in got
+
+
+def test_봉인이_없으면_낡음과_미커밋_값이_와도_글에_아무것도_더하지_않는다():
+    base = R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구")
+    got = R.agent_prompt("/프로젝트", "슬러그", "x-design.md", "/도구",
+                         manifest="/m", stale=["바뀜 pkg/a.py"], uncommitted=True)
+    assert got == base
+
+
+def test_봉인_글은_용어집_글을_쓰지_않는다():
+    assert "terms.json" not in _sealed_prompt(stale=["바뀜 pkg/a.py"], uncommitted=True)
+
+
+@pytest.mark.parametrize("tj", [None, "/t/terms.json"])
+def test_근거_절은_용어집_뒤_규율_앞에_빈_줄_하나씩을_두고_들어간다(tj: str | None):
+    p = _sealed_prompt(terms_json=tj)
+    before = '그대로 실린다.\n\n' if tj else '이라고 쓰지 마라.**\n\n'
+    assert before + '## Mode 1 실측 자료 — 이 저장소에 봉인돼 있다\n\n  ' + SEALED[0] + '\n  ' + SEALED[1] \
+        + '\n\n형제 저장소' in p
+    assert '(' + MANIFEST + '). 코드의 뜻' in p
+    assert '으로 적는다.\n\n## 규율\n' in p
+    if tj:
+        assert p.index('## 용어집 재료') < p.index('## Mode 1 실측 자료') < p.index('## 규율')
+    else:
+        assert '## 용어집 재료' not in p
+
+
+def test_근거_절_안의_순서는_목록_낡음_미커밋이고_빈_줄_하나로_갈린다():
+    p = _sealed_prompt(stale=["바뀜 pkg/a.py", "생김 pkg/b.py"], uncommitted=True)
+    assert '적는다.\n\n**봉인 뒤 소스가 움직였다**' in p
+    assert '확인한다.\n\n  바뀜 pkg/a.py\n  생김 pkg/b.py\n\n**봉인이 커밋되지 않았다**' in p
+    assert '달라질 수 있다.\n\n## 규율\n' in p
+    assert (p.index('## Mode 1 실측 자료') < p.index('봉인 뒤 소스가 움직였다')
+            < p.index('봉인이 커밋되지 않았다') < p.index('## 규율'))
+
+
+def test_낡음이_없고_미커밋만_있으면_낡음_문단은_없다():
+    p = _sealed_prompt(uncommitted=True)
+    assert '적는다.\n\n**봉인이 커밋되지 않았다**' in p
+    assert "봉인 뒤 소스가 움직였다" not in p
+
+
+def test_AgentStage_는_문맥의_봉인_칸을_프롬프트로_넘긴다():
+    ctx = R.Mode2Context(root="/도구", model="opus", project="/프로젝트", slug="슬러그",
+                         folder="/프로젝트/specs/슬러그", spec_file="x-design.md",
+                         evidence=("/프로젝트/docs/wiki/index.md",), manifest="/m",
+                         stale=("바뀜 pkg/a.py",), uncommitted=True)
+    got = R.AgentStage().prompt(ctx)
+    assert "  /프로젝트/docs/wiki/index.md" in got and "  바뀜 pkg/a.py" in got
+    assert "봉인이 커밋되지 않았다" in got
+
+
+def test_문맥의_봉인_칸은_비어_있는_것이_기본이다():
+    ctx = R.Mode2Context(root="/도구", model="opus", project="/프로젝트", slug="슬러그",
+                         folder="/f", spec_file="x-design.md")
+    assert (ctx.evidence, ctx.manifest, ctx.stale, ctx.uncommitted) == ((), "", (), False)
+    assert "## Mode 1 실측 자료" not in R.AgentStage().prompt(ctx)
+
+
+class _FakeRun:
+    """`subprocess.run` 자리에 끼우는 가짜. `evidence.py` 호출만 답하고 부른 명령줄을 모은다."""
+
+    def __init__(self, status: str, list_code: int, listed: str) -> None:
+        self.status, self.list_code, self.listed = status, list_code, listed
+        self.argvs: list[list[str]] = []
+
+    def __call__(self, argv: list[str], **kw: object) -> "subprocess.CompletedProcess[str]":
+        self.argvs.append(list(argv))
+        if argv[0] == "git":
+            return subprocess.CompletedProcess(argv, 0, stdout="/저장소\n", stderr="")
+        if "--status" in argv:
+            return subprocess.CompletedProcess(argv, 0, stdout=self.status, stderr="")
+        return subprocess.CompletedProcess(argv, self.list_code, stdout=self.listed, stderr="")
+
+
+def test_봉인을_읽으면_상태_한_줄을_찍고_목록을_받는다(monkeypatch: pytest.MonkeyPatch,
+                                  capsys: pytest.CaptureFixture[str]):
+    fake = _FakeRun("Mode 1 봉인 — 있음 · 낡음 1건\n", 0,
+                    '{"manifest": "/저장소/docs/codegraph/manifest.json", "artifacts": ["/저장소/docs/wiki/index.md"],'
+                    ' "stale": ["바뀜 a.py"], "stale_files": ["a.py"], "uncommitted": true, "superseded_by": null}')
+    monkeypatch.setattr(R.subprocess, "run", fake)
+    got = R.read_seal("/프로젝트")
+    assert got == {"manifest": "/저장소/docs/codegraph/manifest.json", "artifacts": ["/저장소/docs/wiki/index.md"],
+                   "stale": ["바뀜 a.py"], "uncommitted": True}
+    assert capsys.readouterr().out == "Mode 1 봉인 — 있음 · 낡음 1건\n"
+    evidence_calls = [a for a in fake.argvs if a[0] != "git"]
+    assert [a[-1] for a in evidence_calls] == ["--status", "--list"]
+    assert all(a[1] == R.EVIDENCE and a[2] == "/저장소" and a[3:5] == ["--need", "terms-db,wiki"]
+               for a in evidence_calls)
+
+
+def test_목록이_실패하면_멈추지_않고_빈_값이다(monkeypatch: pytest.MonkeyPatch,
+                           capsys: pytest.CaptureFixture[str]):
+    monkeypatch.setattr(R.subprocess, "run", _FakeRun("Mode 1 봉인 — 없음\n", 1, ""))
+    assert R.read_seal("/프로젝트") == R.no_seal()
+    assert capsys.readouterr().out == "Mode 1 봉인 — 없음\n"
+
+
+def test_목록이_꼴에_안_맞아도_멈추지_않고_빈_값이다(monkeypatch: pytest.MonkeyPatch,
+                              capsys: pytest.CaptureFixture[str]):
+    monkeypatch.setattr(R.subprocess, "run", _FakeRun("Mode 1 봉인 — 있음\n", 0, '{"manifest": 1}'))
+    assert R.read_seal("/프로젝트") == R.no_seal()
+    assert "꼴에 안 맞는다" in capsys.readouterr().err
+
+
+def test_상태_줄이_비면_알_수_없다고_찍는다(monkeypatch: pytest.MonkeyPatch,
+                         capsys: pytest.CaptureFixture[str]):
+    monkeypatch.setattr(R.subprocess, "run", _FakeRun("", 1, ""))
+    R.read_seal("/프로젝트")
+    assert capsys.readouterr().out == "Mode 1 봉인 — 상태를 알 수 없다\n"
+
+
+def test_봉인이_없는_저장소에서_진짜_evidence_py_가_빈_값을_낸다(tmp_path: Path,
+                                           capsys: pytest.CaptureFixture[str]):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    assert R.read_seal(str(tmp_path)) == R.no_seal()
+    assert capsys.readouterr().out == "Mode 1 봉인 — 없음\n"
+
+
+def test_dry_run_은_자식_프로세스를_하나도_띄우지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+                                  capsys: pytest.CaptureFixture[str]):
+    (tmp_path / "specs").mkdir()
+    (tmp_path / "specs" / "2026-01-01-슬러그-design.md").write_text("# 설계\n", encoding="utf-8")
+
+    def boom(*a: object, **kw: object) -> None:
+        raise AssertionError("--dry-run 이 자식 프로세스를 띄웠다: %r" % (a,))
+
+    monkeypatch.setattr(R.subprocess, "run", boom)
+    assert R.main([str(tmp_path), "슬러그", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "Mode 1 자료 확인 안 함 — --dry-run" in out
+    assert "Mode 1 봉인 —" not in out

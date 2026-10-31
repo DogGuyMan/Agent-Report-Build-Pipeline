@@ -37,6 +37,8 @@
   각자 세면 같은 이름의 숫자가 두 실행기에서 서로 다른 뜻을 갖는다.
 - **Mode 1.5 의 `terms.json` 을 기계로 병합하지 않는다.** 있으면 프롬프트에 **알려 주기만**
   하고, 옮겨 적는 것은 LLM Model의 일이다.
+- **Mode 1 봉인은 근거일 뿐 문이 아니다.** 있으면 프롬프트에 경로를 싣고, 없거나 깨졌어도 설계 문서만으로
+  진행한다. 판정은 `machine/evidence.py` 가 하고 여기서는 읽기만 한다. `--dry-run` 은 그것도 부르지 않는다.
 
 ## 쓰는 법
 
@@ -236,10 +238,14 @@ def script_argv(root: str, stage: str, slug: str) -> list[str]:
 # 쓰는 것: runner.run_mode2.report_dir · 쓰이는 곳: runner.run_mode2.run_agent, runner.test_run_mode2._prompt
 # ── 4. 에이전트 프롬프트 — 검사가 잡아주지 않는 규율은 `runner/prompts/agent.md` 에 있다 ──
 def agent_prompt(project: str, slug: str, spec_file: str, root: str,
-                 terms_json: str | None = None, doc_dir: str = "specs") -> str:
+                 terms_json: str | None = None, doc_dir: str = "specs",
+                 evidence: Sequence[str] = (), manifest: str = "",
+                 stale: Sequence[str] = (), uncommitted: bool = False) -> str:
     """원고를 쓰는 한 세션이 할 일 전부.
 
     글은 `runner/prompts/agent.md` 의 `main` 절이다. 용어집 재료 절은 `terms_json` 이 있을 때만 실린다(`{% if %}`).
+    Mode 1 실측 자료 절은 `evidence`(봉인된 파일 경로) 가 비지 않았을 때만 실린다 — `manifest` 는 봉인 목록 파일의 경로,
+    `stale` 은 봉인 뒤 움직인 소스(`바뀜 …` 꼴), `uncommitted` 는 봉인이 커밋되지 않았다는 뜻이고 둘은 그 절 안의 덧붙임이다.
     **그 글이 기계 검사가 잡는 것과 잡지 못하는 것을 나눠 적는다.** `<script>` 수와 링크
     무결성은 `check` 가 잡지만, 판정을 LLM Model이 채웠는지 · D축 필드를 넣었는지는
     아무도 잡아주지 않는다.
@@ -249,7 +255,9 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
     """
     folder = report_dir(project, slug, doc_dir)
     return AgentStage.load_prompt("agent#main", project=project, spec_file=spec_file, folder=folder,
-                                  root=root, terms_json=terms_json, doc_dir=doc_dir)
+                                  root=root, terms_json=terms_json, doc_dir=doc_dir,
+                                  evidence=list(evidence), manifest=manifest, stale=list(stale),
+                                  uncommitted=uncommitted)
 
 
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.run_agent']"/>
@@ -259,14 +267,17 @@ def agent_prompt(project: str, slug: str, spec_file: str, root: str,
 def run_agent(model: str, project: str, slug: str, spec_file: str, root: str,
               terms_json: str | None = None,
               timeout: float | None = None,
-              doc_dir: str = "specs") -> tuple[int, M.AgentResult | None]:
+              doc_dir: str = "specs",
+              evidence: Sequence[str] = (), manifest: str = "",
+              stale: Sequence[str] = (), uncommitted: bool = False) -> tuple[int, M.AgentResult | None]:
     """`claude -p` 를 한 번 부르고 결과 JSON 을 돌려준다. `(종료코드, 결과 또는 None)`.
 
     `--add-dir` 로 프로젝트와 도구 저장소를 둘 다 열어 준다 — 한쪽만 주면 LLM Model이
     설계 문서나 컴포넌트 규약 중 하나를 못 본다.
     """
     argv = claude_argv(model=model, repo=project, extra_dirs=[root])
-    prompt = agent_prompt(project, slug, spec_file, root, terms_json, doc_dir)
+    prompt = agent_prompt(project, slug, spec_file, root, terms_json, doc_dir,
+                          evidence=evidence, manifest=manifest, stale=stale, uncommitted=uncommitted)
     with Heartbeat("agent"):
         p = subprocess.run(argv, input=prompt, cwd=project,
                            capture_output=True, text=True, timeout=timeout)
@@ -302,6 +313,48 @@ def _read(path: str) -> str | None:
         return None
 
 
+EVIDENCE = os.path.join(ROOT, "machine", "evidence.py")
+EVIDENCE_NEED = "terms-db,wiki"
+
+
+class SealedEvidence(TypedDict):
+    """`machine/evidence.py --list` 가 stdout 에 내는 JSON 중 여기서 읽는 칸. 나머지 칸은 버린다."""
+    manifest: str
+    artifacts: list[str]
+    stale: list[str]
+    uncommitted: bool
+
+
+def no_seal() -> SealedEvidence:
+    """봉인을 쓰지 않는 값. 근거 절이 프롬프트에 실리지 않는다."""
+    return {"manifest": "", "artifacts": [], "stale": [], "uncommitted": False}
+
+
+def read_seal(project: str) -> SealedEvidence:
+    """프로젝트가 든 저장소에 봉인된 Mode 1 산출물을 읽는다. 상태 한 줄을 찍고, 못 읽으면 `no_seal()` 이다.
+
+    `machine/evidence.py` 를 자식 프로세스로 두 번 부른다 — `--status`(한 줄) 와 `--list`(JSON). 봉인이 없거나 깨졌거나
+    꼴이 안 맞아도 멈추지 않는다. 구조 문제의 이유는 `--list` 의 stderr 가 그대로 터미널에 흘러 보인다.
+    """
+    try:
+        top = subprocess.run(["git", "-C", project, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True).stdout.strip() or project
+    except OSError:
+        top = project
+    got = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--status"],
+                         stdout=subprocess.PIPE, text=True)
+    print(got.stdout.strip() or "Mode 1 봉인 — 상태를 알 수 없다")
+    listed = subprocess.run([sys.executable, EVIDENCE, top, "--need", EVIDENCE_NEED, "--list"],
+                            stdout=subprocess.PIPE, text=True)
+    if listed.returncode != 0:
+        return no_seal()
+    try:
+        return msgspec.json.decode(listed.stdout, type=SealedEvidence)
+    except msgspec.DecodeError as e:
+        print("Mode 1 봉인 목록이 꼴에 안 맞는다 — %s" % e, file=sys.stderr)
+        return no_seal()
+
+
 # <include file="machine/comments.xml" path="//term[@id='runner.run_mode2.main']"/>
 # Mode 2(설계 검토 보고서) 파이프라인의 진입점. 스펙 문서를 찾아서 보고서를 만드는 네 단계(init→agent→build→check)를 순서대로 돌린다.
 # 쓰는 것: runner.run_mode2.find_spec, runner.run_mode2.report_dir, runner.run_mode2.manuscript_is_written, runner.run_mode2.plan_stages, runner.run_mode2.stage_cwd (+7) · 쓰이는 곳: 없음
@@ -316,6 +369,10 @@ class Mode2Context(P.RunContext):
     spec_file: str = ""
     doc_dir: str = "specs"
     terms_json: str | None = None
+    evidence: tuple[str, ...] = ()
+    manifest: str = ""
+    stale: tuple[str, ...] = ()
+    uncommitted: bool = False
 
 
 # Mode 2 의 산출물은 셋 다 JSON 이 아니다 — TypeScript 소스와 HTML 이다.
@@ -372,7 +429,8 @@ class AgentStage(P.LlmStage[Mode2Context]):
 
     def prompt(self, ctx: Mode2Context) -> str:
         return agent_prompt(ctx.project, ctx.slug, ctx.spec_file, ctx.root,
-                            ctx.terms_json, ctx.doc_dir)
+                            ctx.terms_json, ctx.doc_dir, evidence=ctx.evidence, manifest=ctx.manifest,
+                            stale=ctx.stale, uncommitted=ctx.uncommitted)
 
     def repo(self, ctx: Mode2Context) -> str:
         return ctx.project
@@ -454,9 +512,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     terms_json: str | None = os.path.join(folder, "terms.json")
     terms_json = terms_json if os.path.exists(terms_json) else None
 
+    # `--dry-run` 은 자식 프로세스를 띄우지 않는다 — 봉인 판정도 부르지 않는다.
+    sealed = no_seal() if a.dry_run else read_seal(project)
+
     ctx = Mode2Context(root=ROOT, model=a.model, timeout=a.timeout,
                        project=project, slug=a.slug, folder=folder,
-                       spec_file=spec_file, doc_dir=doc_dir, terms_json=terms_json)
+                       spec_file=spec_file, doc_dir=doc_dir, terms_json=terms_json,
+                       evidence=tuple(sealed["artifacts"]), manifest=sealed["manifest"],
+                       stale=tuple(sealed["stale"]), uncommitted=sealed["uncommitted"])
     try:
         graph = build_mode2_graph(
             ctx, has_manuscript=has_manuscript,
@@ -470,8 +533,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("보고서   %s" % folder)
     print("설계문서 %s" % spec_file)
     print("LLM Model %s · 단계 %s" % (a.model, " -> ".join(graph.order) or "(없음)"))
-    print("이미 있는 것 — 뼈대 %s · 채워진 원고 %s · 용어집 재료 %s"
-          % (data_src is not None, has_manuscript, bool(terms_json)))
+    if a.dry_run:
+        seal_note = "확인 안 함 — --dry-run"
+    elif sealed["artifacts"]:
+        seal_note = "%d건 (낡음 %d)" % (len(sealed["artifacts"]), len(sealed["stale"]))
+    else:
+        seal_note = "없음 — 근거 자리 없이 진행"
+    print("이미 있는 것 — 뼈대 %s · 채워진 원고 %s · 용어집 재료 %s · Mode 1 자료 %s"
+          % (data_src is not None, has_manuscript, bool(terms_json), seal_note))
     if a.dry_run:
         for s_name in graph.order:
             print("  %-6s cwd=%s" % (s_name, stage_cwd(s_name, project, folder)))
