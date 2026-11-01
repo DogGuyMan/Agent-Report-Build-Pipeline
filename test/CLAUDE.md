@@ -20,13 +20,32 @@ npm test                                            # pretest 가 src/spec/types
 GRAPHICS_REPO=… CSHARP_REPO=… .venv/bin/python -m pytest -q   # 골든 19개까지 돈다
 ```
 
+## 이 모듈이 소유하는 것 (Owns)
+
+`test/**`. 소유하지 않는 것 — 저장소 규약 게이트(`qa/`)와 시험이 import 하는 코드(`src/`). 코드가 맞는가는 여기, 저장소가 규약을 지키는가는 [`../qa/CLAUDE.md`](../qa/CLAUDE.md) 다.
+
+## 새 시험을 더하는 법 (How to)
+
+1. 위 표에서 mode 폴더를 고르고 `test_*.py` 를 둔다. `core/` · `common/` · `tools/` 는 mode 가 아닌 것의 몫이다.
+2. 파일 첫머리에서 그 폴더 줄의 `sys.path` 를 직접 넣는다. 다른 시험이 먼저 넣어 준 것에 기대지 않는다.
+3. 골든 저장소가 필요하면 `test/codewiki/test_normalize.py` 의 `CPP_REPO` 처럼 환경변수에서 읽는다. 환경변수가 없는 기계에서 실패하지 않게 한다.
+
 ## 비직관적인 것 (Gotchas)
 
-- **건너뜀 19개는 실패가 아니다.** 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가 없어서다. 전부 `test/codewiki/` 쪽이다.
+- **Note:** 건너뜀 19개는 실패가 아니다. 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가 없어서다. 전부 `test/codewiki/` 쪽이다.
 - **pytest 설정 파일이 없다.** 저장소 루트에서 `test_*.py` 를 전부 모은다. 루트 밖에서 돌리면 import 경로가 어긋난다.
 - **시험 파일마다 자기 `sys.path` 를 넣는다.** 다른 시험이 먼저 넣은 폴더에 기대면 그 파일만 따로 돌릴 때 깨진다 — 위 표의 줄을 쓴다.
   코드는 `src/` 아래 있고 `src/` 는 패키지가 아니다 — `from core import …` · `from spec.python.viz.… import …` 는 `os.path.join(ROOT, "src")` 가 있어야 된다.
-- **`node --test test/` 는 Node v25 에서 죽는다.** 인자 없는 `node --test` 를 쓴다.
+- **주의:** `node --test test/` 는 Node v25 에서 죽는다. 인자 없는 `node --test` 를 쓴다.
 - **렌더 시험은 임시 파일을 `ROOT` 에 쓴다**(`.tmp-eval.mjs` · `.tmp-eval-math.ts`). 동적 `import()` 가 파일 위치 기준으로 `react` 를 찾는다.
 - **`src/spec/typescript/src/` 를 고쳤는데 시험이 옛 동작을 보인다** — `.tmp/` 의 `lib.mjs` 가 낡았다. `npm test` 로 다시 굽는다.
 - **pyright 가 보지 않는 시험 넷** — `test/term/test_term.py` · `test/spec/test_link_paths.py` · `qa/gates/test_docs_citations.py` · `qa/gates/test_prompt_resources.py` 는 형 주석이 없어 `pyrightconfig.json` 의 `exclude` 에 있다. 넷 다 정리 전의 `test/` 에 있던 파일이라 처음부터 검사 밖이었다.
+
+## 다른 모듈과의 의존 (Cross-module dependencies)
+
+| 방향 | 무엇 |
+|---|---|
+| 여기 → `../src/` | 위 표의 `sys.path` 줄로 넣어 import 한다. `src/` 는 시험을 import 하지 않는다 |
+| 여기 → `../src/spec/typescript/` | `test/spec/` 의 렌더 시험이 Node 자식 프로세스로 `.tmp/` 의 `lib.mjs` 를 렌더한다 |
+| 여기 → `../tools/` | `test/tools/` 가 생성기 · `doctor` 를 시험한다 |
+| `../qa/` ↔ 여기 | 다른 폴더지만 pytest 가 `test/` 와 `qa/` 를 함께 모은다 |

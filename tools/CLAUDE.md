@@ -29,11 +29,18 @@ npm run doctor                                                        # 필수 �
 .venv/bin/python -m pytest test/tools -q
 ```
 
+## 새 도구를 더하는 법 (How to)
+
+1. `tools/` 에 파일을 두고 위 표에 행을 더한다. 실행 중에 mode 가 부르는 코드라면 여기가 아니라 `src/common/` 이다.
+2. 모듈 독스트링과 함수마다 한 줄 요약을 쓴다. `tools/README.md` 는 그것에서 생성된다.
+3. 시험은 `test/tools/` 에 둔다.
+4. `gen_readme.py` 로 README 를 다시 쓰고 `--check` 로 일치를 확인한다(아래 "자주 쓰는 명령").
+
 ## 왜 여기 모였나
 
 - `gen_readme.py` 는 **문서 생성기**다. 시그니처는 `src/codewiki/python/machine/pycalls.py` 의 `signature_of` 를 그대로 쓴다 — 두 곳에서 만들면 어긋난다.
 - `scrub_local_paths.py` 는 **저장소 위생 도구**다. 코드 지도도 HTML 도 만들지 않는다.
-  `git-filter-repo` 로 이력을 다시 쓰므로 **되돌릴 수 없다** — 돌리기 전에 안전 번들을 만든다.
+  **Warning:** `git-filter-repo` 로 이력을 다시 쓰므로 되돌릴 수 없다 — 돌리기 전에 안전 번들을 만든다.
 
 ## 이 모듈이 소유하는 것 (Owns)
 

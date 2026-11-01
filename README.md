@@ -33,6 +33,8 @@
 
 macOS 예시 — `brew install node python graphviz clang-uml`
 
+**주의:** Graphviz 가 10.0.1 보다 낮으면 보고서 빌드가 `Format: "svg_inline" not recognized` 로 실패한다. 3단계의 `npm run doctor` 가 먼저 막는다.
+
 ### 2. 설치
 
 ```bash
@@ -87,5 +89,6 @@ report-spec check         # script 수 · 타입 · 링크 무결성 · 용어�
 
 ## 더 읽을 것
 
-- `CLAUDE.md` — 저장소 규약, 확정된 결정, 함정
-- `ARCHITECTURE.md` — 두 저장소에 걸친 구조와 데이터 흐름
+- [`CLAUDE.md`](CLAUDE.md) — 저장소 규약, 확정된 결정, 함정
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — 두 저장소에 걸친 구조와 데이터 흐름
+- [`src/CLAUDE.md`](src/CLAUDE.md) — 코드가 사는 `src/` 의 길잡이. mode 별 문서로 이어진다

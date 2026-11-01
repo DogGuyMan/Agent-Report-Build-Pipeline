@@ -1,6 +1,9 @@
 # qa/evals/ — 실행기가 잰 값을 쌓는 곳
 
-**왜 있는가.** 세 mode 실행기(`runner/run_mode*.py`)가 `--json` 으로 단계별 시간·토큰·비용을
+> 규약 게이트는 [`../CLAUDE.md`](../CLAUDE.md), 루트 나침반은 [`../../CLAUDE.md`](../../CLAUDE.md).
+
+**왜 있는가.** 세 mode 실행기(`src/codewiki/python/runner/run_mode1.py` · `src/term/python/runner/run_mode1_5.py` ·
+`src/spec/python/runner/run_mode2.py`)가 `--json` 으로 단계별 시간·토큰·비용을
 낸다. 그 값을 버리면 "개선했다" 를 숫자로 말할 수 없다. 여기 쌓아 두고 **전후를 대조한다.**
 
 **이 폴더는 판정하지 않는다.** 원본 측정값과 그 조건만 적는다. 좋아졌는지 나빠졌는지는
@@ -33,13 +36,13 @@ Mode 1 은 99.1%, Mode 2 는 99.2%. 기계 단계 합은 각각 15.2초 · 1.1�
 
 ## 다음에 잴 것
 
-`docs/superpowers/plans/2026-08-30-warmup-mode1-wiring.md` 의 Task 9.
+warmup 배선 계획의 Task 9 였다(그 계획서는 저장소에 없다).
 warmup 을 끼운 뒤 같은 대상을 다시 재서 위 첫 줄과 대조한다.
 **대조는 `total`(캐시 포함)로 한다** — 캐시가 97.3% 라 `input` 만 보면 절감이 안 보인다.
 
 ## 배선 연습 값을 실사용으로 읽지 마라
 
-haiku 두 줄은 **배선이 도는지**만 본 것이다. 🔵 그 산출물은 품질 검사를 통과하지 못했다 —
+**주의:** haiku 두 줄은 **배선이 도는지**만 본 것이다. 🔵 그 산출물은 품질 검사를 통과하지 못했다 —
 Mode 1.5 는 정답을 24문항 모두 첫 번째 자리에 놓았고(`validate_questions` 가 잡는다),
 Mode 2 는 `<Section>` 을 자식 없이 내서 `tsc` 가 잡았다. 실사용에는 상위 LLM Model이 필요해 보인다.
 💭 표본이 각각 1건이라 그 이상은 말할 수 없다.

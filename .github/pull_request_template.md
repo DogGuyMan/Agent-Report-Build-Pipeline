@@ -24,7 +24,7 @@ CI 의 `docs-gates` 는 위 중 문서 둘(인용 · README)만 돌린다. 나�
 ## 문서
 
 - [ ] 파일을 옮기거나 지웠다면 컨텍스트 문서의 경로도 같이 고쳤다
-      (`test/test_docs_citations.py` 가 인용과 맨 경로를 둘 다 본다 — 새 컨텍스트 문서는 `contextDocs()` 에 올린다)
+      (`qa/gates/test_docs_citations.py` 가 인용과 맨 경로를 둘 다 본다 — 새 컨텍스트 문서는 `contextDocs()` 에 올린다)
 - [ ] 홈 아래 경로를 적지 않았다 — `$REPO_ROOT` 같은 변수를 썼다
 - [ ] `# <include …/>` 블록을 새로 심거나 고치지 않았다 (폐지된 잔재 — `docs/decisions/0010`)
 

@@ -16,6 +16,19 @@ Plan 하나를 놓고 돈다 — 필요한 용어를 모으고(collect), 사람�
 
 전량 목록은 `python/runner/README.md` 에 있다(`tools/gen_readme.py` 가 생성).
 
+## 돌리는 법
+
+저장소 루트에서 세 명령이 차례로 돈다. 사이의 문항 만들기와 기입란 채우기는 `term-benchmark` 스킬의 몫이다:
+
+```bash
+report-term collect <plan.md> <terms-db.json>   # → term-candidates.json
+report-term grade answers.json questions.json   # → term-grades.json
+report-term emit term-grades.json               # → terms.json + term-study-note.md
+.venv/bin/python -m pytest test/term -q         # 이 mode 의 시험
+```
+
+**주의:** `collect` 가 받는 용어 사전은 봉인 자리(`<저장소>/docs/codegraph/`)의 것뿐이다. 봉인 판정(`../common/evidence.py`)을 거치지 않은 사전은 쓰지 않는다.
+
 ## 이 모듈이 소유하는 것 (Owns)
 
 `src/term/**` · `resource/term/**` · `test/term/**`. 소유하지 않는 것 — 용어 DB 의 꼴(`src/codewiki/python/machine/terms_db.py`)과 봉인(결정 0011).

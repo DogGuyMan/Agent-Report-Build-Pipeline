@@ -5,6 +5,7 @@
 
 | 어디 | 무엇 |
 |---|---|
+| [`src/CLAUDE.md`](src/CLAUDE.md) | **`src/` 의 길잡이** — import 뿌리라는 것 · 새 코드를 어디에 둘까 · 폴더 사이 import 방향 |
 | [`src/codewiki/CLAUDE.md`](src/codewiki/CLAUDE.md) | **Mode 1** — 정적 수집 · 정규화 · 전수조사 레코드 · warmup · 실행기와 단계 · 코드 지도 그림 |
 | [`src/term/CLAUDE.md`](src/term/CLAUDE.md) | **Mode 1.5** — 용어 모으기 · 채점 · 내보내기 |
 | [`src/spec/CLAUDE.md`](src/spec/CLAUDE.md) · [`src/spec/typescript/CLAUDE.md`](src/spec/typescript/CLAUDE.md) | **Mode 2** — 렌더 경로 · 직접 실행 가드 · 컴포넌트 17개 · 테마 · 용어집과 관계 그래프 |
@@ -200,7 +201,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 `$REPO_ROOT` · `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` · `REPORT_PYTHON`.
 **전체 표와 골든 상수의 함정은 [`src/codewiki/CLAUDE.md`](src/codewiki/CLAUDE.md) 의 "경로 변수" 절에 있다.**
 
-`qa/gates/test_docs_citations.py` 가 컨텍스트 문서(서브에이전트 · 이 저장소의 스킬 포함)의 인용을 검사하며
+**Gotcha:** `qa/gates/test_docs_citations.py` 가 컨텍스트 문서(서브에이전트 · 이 저장소의 스킬 포함)의 인용을 검사하며
 `$` · `~` 로 시작하는 경로는 바깥으로 보고 건너뛴다. 그 규약을 어기면 게이트에 걸린다.
 
 ## 아키텍처 — 두 저장소에 걸쳐 있다는 것이 전부다
@@ -394,3 +395,6 @@ Track 별 참조 스킬 목록은 결정 0008 끝에 있다.
 - codegraph · 같은 뜻의 다른 표기 code graph (새로 쓸 때는 codegraph)
 - deep-wiki · 같은 뜻의 다른 표기 DeepWiki (새로 쓸 때는 deep-wiki)
 - run_dispatch · 같은 뜻의 다른 표기 runDispatch (새로 쓸 때는 run_dispatch)
+- TypeScript · 같은 뜻의 다른 표기 typescript (새로 쓸 때는 TypeScript)
+- one_line · 같은 뜻의 다른 표기 one-line (새로 쓸 때는 one_line)
+- warmup · 같은 뜻의 다른 표기 WarmUp (새로 쓸 때는 warmup)

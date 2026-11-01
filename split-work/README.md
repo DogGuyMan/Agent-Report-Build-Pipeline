@@ -4,6 +4,8 @@
 `pyright` · `gen_readme` · 게이트 시험의 대상이 아니다. 산출물(`before*/` · `after*/` · `fixture-shards/` · `patches/` ·
 `frag/` · `reading-mode*.json`)은 이 기계의 절대 경로가 실려 git 밖이다(`.gitignore`). 분리가 끝나면(Phase B 뒤) 지운다.
 
+> 이 폴더를 고칠 때 먼저 읽는 짧은 규칙은 [`CLAUDE.md`](CLAUDE.md), 저장소 전체는 [`../CLAUDE.md`](../CLAUDE.md).
+
 저장소 뿌리에서 돌린다. `capture.sh` 는 자기 폴더의 부모(= 저장소 뿌리)를 `TOOLS_ROOT` 로 잡는다 — rev.4 본문의
 `$TOOLS_ROOT/split-work/…` 는 `TOOLS_ROOT=$PWD` 로 읽는다.
 
@@ -16,6 +18,8 @@
 | `r9-gate-proto/` | R9 품질 검토가 남긴 게이트 강화 원형 — 아래 |
 
 ## 쓰는 꼴
+
+기준을 먼저 찍고, 고친 뒤 다시 찍어 `diff` 로 비교한다. 코드 지도가 없으면 `prep` 이 먼저다:
 
 ```bash
 .venv/bin/python bin/report-wiki prep .                      # out/codegraph-raw/codegraph.json 이 없으면 먼저

@@ -14,6 +14,7 @@ PATH_REF = re.compile(
 
 def contextDocs(root=ROOT, exists=os.path.exists):
     docs = ["CLAUDE.md", "README.md", "ARCHITECTURE.md",
+            "src/CLAUDE.md", "split-work/CLAUDE.md",
             "src/codewiki/CLAUDE.md", "src/term/CLAUDE.md", "src/spec/CLAUDE.md", "src/spec/typescript/CLAUDE.md",
             "src/core/CLAUDE.md", "tools/CLAUDE.md", "test/CLAUDE.md", "qa/CLAUDE.md", "resource/CLAUDE.md",
             "docs/CLAUDE.md",
