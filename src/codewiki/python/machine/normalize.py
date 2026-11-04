@@ -980,10 +980,13 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
 
     1차/외부 판정에 별도 규칙이 없다 — griffe 는 지정한 패키지만 로드하므로 덤프에 나온
     클래스가 곧 1차이고, 주석·상속에서 참조되지만 덤프에 없는 이름이 외부다.
+    다만 `repo` 가 git 저장소면 git 이 추적하지 않는 모듈 파일의 클래스는 버린다 — griffe 는
+    패키지 폴더를 디스크에서 훑으므로 추적 밖 사본까지 싣는다.
 
     `calls` 를 주면 `pycalls.py` 의 심볼과 호출을 합친다. 주지 않으면 그 병합만 건너뛴다.
     """
     stats: Counter[str] = Counter()
+    tracked = tracked_set(repo)
 
     # ── 0패스: 모듈 트리를 평평하게 편다.
     #    griffe 는 완전 수식 이름을 주지 않고 members 를 이름으로 키질한 dict 로만 준다.
@@ -1001,13 +1004,19 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
         #   griffe(해소된 경로)와 repo(해소 안 된 경로)를 그냥 relpath 하면 "../.." 가 나오고
         #   모듈 이름이 ".." 가 된다.
         rel = os.path.relpath(os.path.realpath(fp), os.path.realpath(repo)) if fp else None
-        mods[path] = (obj, rel)
+        # 네임스페이스 패키지(rel 이 디렉토리)는 거르지 않는다 — 그 아래 모듈이 각자 판정받는다.
+        untracked = (tracked is not None and rel is not None and rel.endswith(".py")
+                     and os.path.abspath(os.path.join(repo, rel)) not in tracked)
+        if untracked:
+            stats["git 추적 밖 모듈"] += 1
+        else:
+            mods[path] = (obj, rel)
         members: dict[str, GriffeObject] = obj.get("members") or {}
         for name, m in members.items():
             child = f"{path}.{name}"
             if m.get("kind") == "module":
                 walk_module(m, child)
-            elif m.get("kind") == "class":
+            elif m.get("kind") == "class" and not untracked:
                 walk_class(m, child, path)
 
     def walk_class(cls: GriffeObject, qname: str, mod_path: str) -> None:

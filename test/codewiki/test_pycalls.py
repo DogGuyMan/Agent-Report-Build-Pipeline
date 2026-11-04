@@ -45,6 +45,19 @@ def test_flat_import_across_directories_is_resolved(tmp_path: Path) -> None:
     assert ("pkgb.app.run", "pkga.util.helper") in got
 
 
+def test_git_이_추적하지_않는_파일은_읽지_않는다(tmp_path: Path) -> None:
+    """저장소면 git 이 아는 파일만 읽는다 — 추적 밖 사본이 노드가 되거나 이름을 겹치게 하지 않는다.
+
+    `m/old/a.py` 를 읽으면 `a` 가 두 디렉토리에 있게 되어 `m/a.py` 쪽 호출 해석까지 빠진다.
+    """
+    _write(tmp_path, {"m/a.py": "def f():\n    return 1\n",
+                      "m/old/a.py": "def g():\n    return 2\n"})
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "m/a.py"], cwd=tmp_path, check=True)
+    d = P.collect(str(tmp_path), ["m"])
+    assert [s["name"] for s in d["symbols"]] == ["m.a.f"]
+
+
 def test_builtin_and_external_calls_are_dropped(tmp_path: Path) -> None:
     """빌트인(`len`)과 저장소 밖(`json.dumps`)은 간선이 아니다 — 양끝이 다 우리 것이어야 한다."""
     _write(tmp_path, {"m/a.py": (

@@ -17,6 +17,7 @@ import ast
 import builtins
 import json
 import os
+import subprocess
 import sys
 from typing import Literal, NotRequired, TypedDict
 
@@ -199,14 +200,32 @@ def scan_module(tree: ast.Module, mod: str, rel: str,
     return syms, resolved
 
 
+# git 이 추적하는 파일의 저장소 상대경로. 봉인(manifest.py)의 소스 집합과 같은 기준이다.
+# 쓰는 것: — · 쓰이는 곳: collect
+def tracked_paths(repo: str) -> set[str] | None:
+    """git 이 아는 파일의 저장소 상대경로 집합. 저장소가 아니거나 git 이 없으면 None 이다."""
+    try:
+        r = subprocess.run(["git", "-c", "core.quotePath=false", "ls-files", "-z"],
+                           cwd=repo, capture_output=True, text=True)
+    except OSError:
+        return None
+    if r.returncode != 0:
+        return None
+    return {p for p in r.stdout.split("\0") if p}
+
+
 # 여러 뿌리 아래의 파이썬 파일을 전부 훑어 심볼과 호출을 낸다.
-# 쓰는 것: module_path, scan_module · 쓰이는 곳: pycalls.main
+# 쓰는 것: tracked_paths, module_path, scan_module · 쓰이는 곳: pycalls.main
 def collect(repo: str, roots: list[str]) -> PyCallsDump:
-    """`roots` 아래 `*.py` 를 전부 읽어 심볼과 해석된 호출을 낸다.
+    """`roots` 아래 `*.py` 를 읽어 심볼과 해석된 호출을 낸다.
+
+    `repo` 가 git 저장소면 git 이 추적하는 파일만 읽는다 — 추적 밖 사본은 노드를 늘리고
+    파일 이름을 겹치게 해 진짜 호출의 해석까지 지운다. 저장소가 아니면 전부 읽는다.
 
     호출은 양끝이 모두 이 저장소의 정의일 때만 남긴다. 바깥 라이브러리로 나가는 호출은
     버린다 — `_assemble` 의 R1 이 어차피 지운다.
     """
+    tracked = tracked_paths(repo)
     files: list[tuple[str, str]] = []             # (저장소 상대경로, 절대경로)
     for root in roots:
         base = os.path.join(repo, root)
@@ -215,7 +234,9 @@ def collect(repo: str, roots: list[str]) -> PyCallsDump:
             for fn in sorted(filenames):
                 if fn.endswith(".py"):
                     ap = os.path.join(dirpath, fn)
-                    files.append((os.path.relpath(ap, repo), ap))
+                    rel = os.path.relpath(ap, repo)
+                    if tracked is None or rel in tracked:
+                        files.append((rel, ap))
     files.sort()
 
     # ── 0패스: import 에 쓰일 수 있는 점 경로 -> 모듈 점 경로. 모듈과 그것을 담은 패키지마다 점 경로의

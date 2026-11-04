@@ -763,6 +763,17 @@ def test_python_nodes_are_classes_with_qualified_names(tmp_path: Path) -> None:
     assert g["schema_version"] == 2
 
 
+def test_python_drops_modules_git_does_not_track(tmp_path: Path) -> None:
+    """저장소면 git 이 추적하지 않는 모듈의 클래스는 노드가 아니다 — 봉인의 소스 집합과 같은 기준이다."""
+    for rel in ("pyfx/__init__.py", "pyfx/base.py", "pyfx/core.py"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "pyfx/__init__.py", "pyfx/base.py"], cwd=tmp_path, check=True)
+    g, _ = N.normalize_python(_pyfx_dump(str(tmp_path)), str(tmp_path), "griffe test")
+    assert {n["name"] for n in g["nodes"] if n["kind"] != "external"} == {"pyfx.base.Node"}
+
+
 def test_python_has_no_ownership_kinds(tmp_path: Path) -> None:
     """파이썬에는 값 멤버/포인터 멤버 구분이 없다 — C# 과 같이 소유 간선이 0이어야 한다."""
     g, _ = N.normalize_python(_pyfx_dump(str(tmp_path)), str(tmp_path), "griffe test")
