@@ -755,7 +755,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     help="산출 파일이 쌓일 폴더 (기본: out/mode1_5/<계획서 slug>/, 없으면 만든다). "
                          "스크립트가 cwd 에 쓰기 때문에 필요하다")
     ap.add_argument("--terms-db", dest="terms_db", required=True,
-                    help="코드베이스 용어 사전. 대상 저장소 docs/codegraph/terms-db.json (codebase-wiki 가 봉인한다)")
+                    help="코드베이스 용어 사전. 대상 저장소 docs/codegraph/terms-db.json (Mode 1 이 봉인한다)")
     ap.add_argument("--only", help="이 단계들만. 쉼표로 나눈다: " + ",".join(STAGES))
     ap.add_argument("--skip", help="이 단계들을 뺀다")
     ap.add_argument("--json", dest="json_out", help="측정값을 JSON 으로도 쓸 경로")

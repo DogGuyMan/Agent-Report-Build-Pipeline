@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """계약 리소스(JSON Schema)에서 소비자 형을 낸다 — 생성물 `src/common/contract_types.py`. `--check` 면 낡았을 때 exit 1.
 
-계약 `contracts/mode1-artifacts.v1.json` 은 codebase-wiki 가 형에서 생성해 보낸 사본이다. 여기서 그 스키마를
+계약 `contracts/mode1-artifacts.v1.json` 은 `tools/gen_contract.py` 가 Mode 1 의 형에서 생성한다. 여기서 그 스키마를
 TypedDict 로 되돌린다 — 소비자 형을 손으로 쓰지 않는다. 다루는 꼴은 계약이 실제로 쓰는 것뿐이다:
 object(properties · required) · dict[str, T](additionalProperties) · array · string · integer · boolean · null · anyOf · $ref.
 """

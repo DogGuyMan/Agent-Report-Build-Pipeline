@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """계약 리소스 `contracts/mode1-artifacts.v1.json` 과 지문 `.sha256` 을 Mode 1 의 형에서 낸다.
 
-두 저장소에 같은 사본으로 산다. report-builder 는 이 파일에서 자기 형을 생성한다(`tools/gen_contract_types.py`).
+소비자(Mode 1.5 · 2)는 이 파일에서 자기 형을 생성한다(`tools/gen_contract_types.py`).
 `title` · `description`(클래스 이름 · 독스트링)은 뗀다. `types` 가 파일마다의 최상위 형 이름을 알려 준다.
 
     python tools/gen_contract.py            # 쓴다
