@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "src", "term", "python", "runner"), os.path.join(ROOT, "src", "codewiki", "python", "machine")]
+sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "src", "term", "python", "runner")]
 from core import measure as M  # noqa: E402
 from core import pipeline as P  # noqa: E402
 import run_mode1_5 as R  # noqa: E402
