@@ -77,7 +77,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1188"
+  "where": "src/codewiki/python/machine/normalize.py:1197"
  },
  "data.ts": {
   "confidence": "HIGH",
@@ -1264,7 +1264,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1172"
+  "where": "src/codewiki/python/machine/normalize.py:1181"
  },
  "codewiki.python.machine.normalize.cs_asm2pkg": {
   "confidence": "HIGH",
@@ -1385,40 +1385,40 @@
     "kind": "dependency",
     "label": "명령줄 옵션 파싱기 생성",
     "to": "codewiki.python.machine.normalize.build_parser",
-    "where": "src/codewiki/python/machine/normalize.py:1193"
+    "where": "src/codewiki/python/machine/normalize.py:1202"
    },
    {
     "kind": "dependency",
     "label": "clang-uml 산출물 읽기",
     "to": "codewiki.python.machine.normalize.load_clang_uml",
-    "where": "src/codewiki/python/machine/normalize.py:1205"
+    "where": "src/codewiki/python/machine/normalize.py:1214"
    },
    {
     "kind": "dependency",
     "label": "C++ 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_cpp",
-    "where": "src/codewiki/python/machine/normalize.py:1210"
+    "where": "src/codewiki/python/machine/normalize.py:1219"
    },
    {
     "kind": "dependency",
     "label": "C# 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_csharp",
-    "where": "src/codewiki/python/machine/normalize.py:1214"
+    "where": "src/codewiki/python/machine/normalize.py:1223"
    },
    {
     "kind": "dependency",
     "label": "Python 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_python",
-    "where": "src/codewiki/python/machine/normalize.py:1229"
+    "where": "src/codewiki/python/machine/normalize.py:1238"
    },
    {
     "kind": "dependency",
     "label": "clang-doc 산출물 읽기(선택)",
     "to": "codewiki.python.machine.clang_doc.load_clang_doc",
-    "where": "src/codewiki/python/machine/normalize.py:1208"
+    "where": "src/codewiki/python/machine/normalize.py:1217"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1192"
+  "where": "src/codewiki/python/machine/normalize.py:1201"
  },
  "codewiki.python.machine.normalize.member_location": {
   "confidence": "HIGH",
@@ -1477,10 +1477,10 @@
     "kind": "dependency",
     "label": "새 노드의 모듈 이름 계산",
     "to": "codewiki.python.machine.normalize.module_of",
-    "where": "src/codewiki/python/machine/normalize.py:1150"
+    "where": "src/codewiki/python/machine/normalize.py:1159"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1120"
+  "where": "src/codewiki/python/machine/normalize.py:1129"
  },
  "codewiki.python.machine.normalize.module_of": {
   "confidence": "HIGH",
@@ -1614,37 +1614,37 @@
     "kind": "dependency",
     "label": "노드의 모듈 이름 계산",
     "to": "codewiki.python.machine.normalize.module_of",
-    "where": "src/codewiki/python/machine/normalize.py:1034"
+    "where": "src/codewiki/python/machine/normalize.py:1043"
    },
    {
     "kind": "dependency",
     "label": "interface/abstract 표시 붙이기",
     "to": "codewiki.python.machine.normalize.py_abstraction",
-    "where": "src/codewiki/python/machine/normalize.py:1036"
+    "where": "src/codewiki/python/machine/normalize.py:1045"
    },
    {
     "kind": "dependency",
     "label": "외부 노드 그룹 이름(내부 to_node 를 통해)",
     "to": "codewiki.python.machine.normalize.py_external_group",
-    "where": "src/codewiki/python/machine/normalize.py:1047"
+    "where": "src/codewiki/python/machine/normalize.py:1056"
    },
    {
     "kind": "dependency",
     "label": "베이스/속성/시그니처 주석에서 관계 이름 뽑기",
     "to": "codewiki.python.machine.normalize.py_walk_expr",
-    "where": "src/codewiki/python/machine/normalize.py:1085"
+    "where": "src/codewiki/python/machine/normalize.py:1094"
    },
    {
     "kind": "dependency",
     "label": "pycalls 호출 정보 합치기",
     "to": "codewiki.python.machine.normalize.merge_py_calls",
-    "where": "src/codewiki/python/machine/normalize.py:1110"
+    "where": "src/codewiki/python/machine/normalize.py:1119"
    },
    {
     "kind": "dependency",
     "label": "완성된 코드 지도로 마무리",
     "to": "codewiki.python.machine.normalize._assemble",
-    "where": "src/codewiki/python/machine/normalize.py:1115"
+    "where": "src/codewiki/python/machine/normalize.py:1124"
    }
   ],
   "where": "src/codewiki/python/machine/normalize.py:977"
@@ -1737,7 +1737,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/pycalls.py:37"
+  "where": "src/codewiki/python/machine/pycalls.py:38"
  },
  "codewiki.python.machine.pycalls.PyCallsDump": {
   "confidence": "HIGH",
@@ -1751,16 +1751,16 @@
     "kind": "composition",
     "label": "symbols 필드가 이 타입의 목록",
     "to": "codewiki.python.machine.pycalls.PySymbol",
-    "where": "src/codewiki/python/machine/pycalls.py:48"
+    "where": "src/codewiki/python/machine/pycalls.py:49"
    },
    {
     "kind": "composition",
     "label": "calls 필드가 이 타입의 목록",
     "to": "codewiki.python.machine.pycalls.PyCall",
-    "where": "src/codewiki/python/machine/pycalls.py:49"
+    "where": "src/codewiki/python/machine/pycalls.py:50"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:46"
+  "where": "src/codewiki/python/machine/pycalls.py:47"
  },
  "codewiki.python.machine.pycalls.PySymbol": {
   "confidence": "HIGH",
@@ -1770,11 +1770,11 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/pycalls.py:26"
+  "where": "src/codewiki/python/machine/pycalls.py:27"
  },
  "codewiki.python.machine.pycalls.collect": {
   "confidence": "HIGH",
-  "does": "roots 아래 `*.py` 파일을 전부 찾고(__pycache__ 는 뺀다), 0패스로 모듈과 그것을 담은 패키지의 점 경로 꼬리(끝 조각 하나 · 둘 · … · 전체) -> 모듈 점 경로 표를 만든다(한 꼬리가 둘 이상을 가리키면 표에서 빼 호출 해석에서 뺀다). 각 파일을 ast.parse 로 파싱해(문법 오류는 조용히 건너뜀) scan_module 로 심볼과 미해석 호출을 모으고, caller/callee 가 둘 다 이 저장소에서 정의된 심볼일 때만, 자기 자신을 부르는 경우를 빼고 PyCall 로 확정해 정렬된 PyCallsDump 를 반환한다.",
+  "does": "roots 아래 `*.py` 파일을 찾되 repo 가 git 저장소면 tracked_paths 가 낸 추적 파일만 남기고(__pycache__ 는 뺀다. 저장소가 아니면 전부 읽는다), 0패스로 모듈과 그것을 담은 패키지의 점 경로 꼬리(끝 조각 하나 · 둘 · … · 전체) -> 모듈 점 경로 표를 만든다(한 꼬리가 둘 이상을 가리키면 표에서 빼 호출 해석에서 뺀다). 각 파일을 ast.parse 로 파싱해(문법 오류는 조용히 건너뜀) scan_module 로 심볼과 미해석 호출을 모으고, caller/callee 가 둘 다 이 저장소에서 정의된 심볼일 때만, 자기 자신을 부르는 경우를 빼고 PyCall 로 확정해 정렬된 PyCallsDump 를 반환한다.",
   "kind": "function",
   "means": "여러 디렉토리 아래의 모든 파이썬 파일을 읽어서 함수/클래스 정의 목록과 함수 호출 관계 목록을 만들어 내는 함수.",
   "module": "codewiki.python.machine",
@@ -1784,16 +1784,22 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.module_path",
-    "where": "src/codewiki/python/machine/pycalls.py:226"
+    "where": "src/codewiki/python/machine/pycalls.py:247"
    },
    {
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.scan_module",
-    "where": "src/codewiki/python/machine/pycalls.py:249"
+    "where": "src/codewiki/python/machine/pycalls.py:270"
+   },
+   {
+    "kind": "dependency",
+    "label": "calls",
+    "to": "codewiki.python.machine.pycalls.tracked_paths",
+    "where": "src/codewiki/python/machine/pycalls.py:228"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:204"
+  "where": "src/codewiki/python/machine/pycalls.py:219"
  },
  "codewiki.python.machine.pycalls.import_table": {
   "confidence": "HIGH",
@@ -1803,7 +1809,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/pycalls.py:103"
+  "where": "src/codewiki/python/machine/pycalls.py:104"
  },
  "codewiki.python.machine.pycalls.main": {
   "confidence": "HIGH",
@@ -1817,10 +1823,10 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "src/codewiki/python/machine/pycalls.py:277"
+    "where": "src/codewiki/python/machine/pycalls.py:298"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:270"
+  "where": "src/codewiki/python/machine/pycalls.py:291"
  },
  "codewiki.python.machine.pycalls.module_path": {
   "confidence": "HIGH",
@@ -1830,7 +1836,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/pycalls.py:58"
+  "where": "src/codewiki/python/machine/pycalls.py:59"
  },
  "codewiki.python.machine.pycalls.scan_module": {
   "confidence": "HIGH",
@@ -1844,16 +1850,16 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.import_table",
-    "where": "src/codewiki/python/machine/pycalls.py:141"
+    "where": "src/codewiki/python/machine/pycalls.py:142"
    },
    {
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.signature_of",
-    "where": "src/codewiki/python/machine/pycalls.py:169"
+    "where": "src/codewiki/python/machine/pycalls.py:170"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:134"
+  "where": "src/codewiki/python/machine/pycalls.py:135"
  },
  "codewiki.python.machine.pycalls.signature_of": {
   "confidence": "HIGH",
@@ -1863,7 +1869,17 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/pycalls.py:70"
+  "where": "src/codewiki/python/machine/pycalls.py:71"
+ },
+ "codewiki.python.machine.pycalls.tracked_paths": {
+  "confidence": "HIGH",
+  "does": "repo 에서 `git -c core.quotePath=false ls-files -z` 를 돌려 저장소 상대경로 집합을 낸다. git 이 없거나 저장소가 아니면 None 을 낸다.",
+  "kind": "function",
+  "means": "git 이 추적하는 파일 목록을 얻는 함수. 코드 지도의 소스 집합을 봉인과 같은 기준으로 맞추는 데 쓴다.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/pycalls.py:205"
  },
  "codewiki.python.machine.reverse_refs.ReverseRefs": {
   "confidence": "HIGH",
@@ -3930,10 +3946,10 @@
     "kind": "dependency",
     "label": "runs griffe dump",
     "to": "griffe (external tool)",
-    "where": "test/codewiki/test_normalize.py:867"
+    "where": "test/codewiki/test_normalize.py:878"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:855"
+  "where": "test/codewiki/test_normalize.py:866"
  },
  "test.codewiki.test_normalize._load": {
   "confidence": "HIGH",
@@ -4219,10 +4235,10 @@
     "kind": "dependency",
     "label": "calls build_parser",
     "to": "C220",
-    "where": "test/codewiki/test_normalize.py:826"
+    "where": "test/codewiki/test_normalize.py:837"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:824"
+  "where": "test/codewiki/test_normalize.py:835"
  },
  "test.codewiki.test_normalize.test_cli_griffe_dump_is_a_third_source": {
   "confidence": "HIGH",
@@ -4239,10 +4255,10 @@
     "kind": "dependency",
     "label": "calls build_parser",
     "to": "C220",
-    "where": "test/codewiki/test_normalize.py:819"
+    "where": "test/codewiki/test_normalize.py:830"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:817"
+  "where": "test/codewiki/test_normalize.py:828"
  },
  "test.codewiki.test_normalize.test_containment_is_not_mapped": {
   "confidence": "HIGH",
@@ -4680,16 +4696,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:900"
+    "where": "test/codewiki/test_normalize.py:911"
    },
    {
     "kind": "dependency",
     "label": "calls _griffe_dump",
     "to": "C380",
-    "where": "test/codewiki/test_normalize.py:899"
+    "where": "test/codewiki/test_normalize.py:910"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:897"
+  "where": "test/codewiki/test_normalize.py:908"
  },
  "test.codewiki.test_normalize.test_golden_python_fixture_counts": {
   "confidence": "HIGH",
@@ -4707,16 +4723,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:877"
+    "where": "test/codewiki/test_normalize.py:888"
    },
    {
     "kind": "dependency",
     "label": "calls _griffe_dump",
     "to": "C380",
-    "where": "test/codewiki/test_normalize.py:876"
+    "where": "test/codewiki/test_normalize.py:887"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:874"
+  "where": "test/codewiki/test_normalize.py:885"
  },
  "test.codewiki.test_normalize.test_golden_python_marks_interface_and_abstract_classes": {
   "confidence": "HIGH",
@@ -4734,16 +4750,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:995"
+    "where": "test/codewiki/test_normalize.py:1006"
    },
    {
     "kind": "dependency",
     "label": "calls _griffe_dump",
     "to": "C380",
-    "where": "test/codewiki/test_normalize.py:994"
+    "where": "test/codewiki/test_normalize.py:1005"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:992"
+  "where": "test/codewiki/test_normalize.py:1003"
  },
  "test.codewiki.test_normalize.test_golden_python_ownership_edges_are_absent": {
   "confidence": "HIGH",
@@ -4761,16 +4777,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:910"
+    "where": "test/codewiki/test_normalize.py:921"
    },
    {
     "kind": "dependency",
     "label": "calls _griffe_dump",
     "to": "C380",
-    "where": "test/codewiki/test_normalize.py:909"
+    "where": "test/codewiki/test_normalize.py:920"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:907"
+  "where": "test/codewiki/test_normalize.py:918"
  },
  "test.codewiki.test_normalize.test_golden_python_r5_recovered_first_party_through_containers": {
   "confidence": "HIGH",
@@ -4788,16 +4804,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:889"
+    "where": "test/codewiki/test_normalize.py:900"
    },
    {
     "kind": "dependency",
     "label": "calls _griffe_dump",
     "to": "C380",
-    "where": "test/codewiki/test_normalize.py:888"
+    "where": "test/codewiki/test_normalize.py:899"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:886"
+  "where": "test/codewiki/test_normalize.py:897"
  },
  "test.codewiki.test_normalize.test_golden_r4_no_edges_out_of_island": {
   "confidence": "HIGH",
@@ -5124,10 +5140,10 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:957"
+    "where": "test/codewiki/test_normalize.py:968"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:938"
+  "where": "test/codewiki/test_normalize.py:949"
  },
  "test.codewiki.test_normalize.test_python_edge_kinds_and_labels": {
   "confidence": "HIGH",
@@ -5145,16 +5161,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:775"
+    "where": "test/codewiki/test_normalize.py:786"
    },
    {
     "kind": "dependency",
     "label": "calls _pyfx_dump",
     "to": "C371",
-    "where": "test/codewiki/test_normalize.py:775"
+    "where": "test/codewiki/test_normalize.py:786"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:773"
+  "where": "test/codewiki/test_normalize.py:784"
  },
  "test.codewiki.test_normalize.test_python_external_is_folded_and_marked": {
   "confidence": "HIGH",
@@ -5172,16 +5188,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:790"
+    "where": "test/codewiki/test_normalize.py:801"
    },
    {
     "kind": "dependency",
     "label": "calls _pyfx_dump",
     "to": "C371",
-    "where": "test/codewiki/test_normalize.py:790"
+    "where": "test/codewiki/test_normalize.py:801"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:788"
+  "where": "test/codewiki/test_normalize.py:799"
  },
  "test.codewiki.test_normalize.test_python_has_no_ownership_kinds": {
   "confidence": "HIGH",
@@ -5199,13 +5215,13 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:766"
+    "where": "test/codewiki/test_normalize.py:777"
    },
    {
     "kind": "dependency",
     "label": "calls _pyfx_dump",
     "to": "C371",
-    "where": "test/codewiki/test_normalize.py:766"
+    "where": "test/codewiki/test_normalize.py:777"
    }
   ],
   "where": "test/codewiki/test_normalize.py:764"
@@ -5226,16 +5242,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:810"
+    "where": "test/codewiki/test_normalize.py:821"
    },
    {
     "kind": "dependency",
     "label": "calls _pyfx_dump",
     "to": "C371",
-    "where": "test/codewiki/test_normalize.py:810"
+    "where": "test/codewiki/test_normalize.py:821"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:808"
+  "where": "test/codewiki/test_normalize.py:819"
  },
  "test.codewiki.test_normalize.test_python_nodes_are_classes_with_qualified_names": {
   "confidence": "HIGH",
@@ -5280,16 +5296,16 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:803"
+    "where": "test/codewiki/test_normalize.py:814"
    },
    {
     "kind": "dependency",
     "label": "calls _pyfx_dump",
     "to": "C371",
-    "where": "test/codewiki/test_normalize.py:803"
+    "where": "test/codewiki/test_normalize.py:814"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:801"
+  "where": "test/codewiki/test_normalize.py:812"
  },
  "test.codewiki.test_normalize.test_r5_cpp_is_list_based_not_all_std_templates": {
   "confidence": "HIGH",
@@ -5366,10 +5382,10 @@
     "kind": "dependency",
     "label": "calls normalize_python",
     "to": "C218",
-    "where": "test/codewiki/test_normalize.py:929"
+    "where": "test/codewiki/test_normalize.py:940"
    }
   ],
-  "where": "test/codewiki/test_normalize.py:914"
+  "where": "test/codewiki/test_normalize.py:925"
  },
  "test.codewiki.test_normalize.test_terms_db_extracts_modules_and_classes": {
   "confidence": "HIGH",
@@ -5536,16 +5552,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:48"
+    "where": "test/codewiki/test_pycalls.py:61"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:53"
+    "where": "test/codewiki/test_pycalls.py:66"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:46"
+  "where": "test/codewiki/test_pycalls.py:59"
  },
  "test.codewiki.test_pycalls.test_cli_runs_end_to_end": {
   "confidence": "HIGH",
@@ -5559,10 +5575,10 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:146"
+    "where": "test/codewiki/test_pycalls.py:159"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:144"
+  "where": "test/codewiki/test_pycalls.py:157"
  },
  "test.codewiki.test_pycalls.test_flat_import_across_directories_is_resolved": {
   "confidence": "HIGH",
@@ -5606,22 +5622,22 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:102"
+    "where": "test/codewiki/test_pycalls.py:115"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:103"
+    "where": "test/codewiki/test_pycalls.py:116"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.normalize.normalize_python",
-    "where": "test/codewiki/test_pycalls.py:105"
+    "where": "test/codewiki/test_pycalls.py:118"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:100"
+  "where": "test/codewiki/test_pycalls.py:113"
  },
  "test.codewiki.test_pycalls.test_merge_is_opt_in": {
   "confidence": "HIGH",
@@ -5638,10 +5654,10 @@
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.normalize.normalize_python",
-    "where": "test/codewiki/test_pycalls.py:118"
+    "where": "test/codewiki/test_pycalls.py:131"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:115"
+  "where": "test/codewiki/test_pycalls.py:128"
  },
  "test.codewiki.test_pycalls.test_merge_never_makes_ownership_kinds": {
   "confidence": "HIGH",
@@ -5659,22 +5675,22 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:124"
+    "where": "test/codewiki/test_pycalls.py:137"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:125"
+    "where": "test/codewiki/test_pycalls.py:138"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.normalize.normalize_python",
-    "where": "test/codewiki/test_pycalls.py:127"
+    "where": "test/codewiki/test_pycalls.py:140"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:122"
+  "where": "test/codewiki/test_pycalls.py:135"
  },
  "test.codewiki.test_pycalls.test_methods_and_classes_become_symbols": {
   "confidence": "HIGH",
@@ -5691,16 +5707,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:60"
+    "where": "test/codewiki/test_pycalls.py:73"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:67"
+    "where": "test/codewiki/test_pycalls.py:80"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:58"
+  "where": "test/codewiki/test_pycalls.py:71"
  },
  "test.codewiki.test_pycalls.test_same_stem_in_two_directories_is_dropped_not_guessed": {
   "confidence": "HIGH",
@@ -5717,16 +5733,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:75"
+    "where": "test/codewiki/test_pycalls.py:88"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:80"
+    "where": "test/codewiki/test_pycalls.py:93"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:73"
+  "where": "test/codewiki/test_pycalls.py:86"
  },
  "test.codewiki.test_pycalls.test_selfhost_smoke": {
   "confidence": "HIGH",
@@ -5743,10 +5759,10 @@
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:135"
+    "where": "test/codewiki/test_pycalls.py:148"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:132"
+  "where": "test/codewiki/test_pycalls.py:145"
  },
  "test.codewiki.test_pycalls.test_signature_covers_star_and_kwargs": {
   "confidence": "HIGH",
@@ -5763,16 +5779,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:159"
+    "where": "test/codewiki/test_pycalls.py:172"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:163"
+    "where": "test/codewiki/test_pycalls.py:176"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:157"
+  "where": "test/codewiki/test_pycalls.py:170"
  },
  "test.codewiki.test_pycalls.test_signature_is_captured": {
   "confidence": "HIGH",
@@ -5789,16 +5805,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:86"
+    "where": "test/codewiki/test_pycalls.py:99"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:87"
+    "where": "test/codewiki/test_pycalls.py:100"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:84"
+  "where": "test/codewiki/test_pycalls.py:97"
  },
  "test.codewiki.test_pycalls.test_syntax_error_file_is_skipped_not_fatal": {
   "confidence": "HIGH",
@@ -5815,16 +5831,16 @@
     "kind": "dependency",
     "label": "테스트용 파일을 디스크에 써서 픽스처를 준비한다",
     "to": "test.codewiki.test_pycalls._write",
-    "where": "test/codewiki/test_pycalls.py:93"
+    "where": "test/codewiki/test_pycalls.py:106"
    },
    {
     "kind": "dependency",
     "label": "호출",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "test/codewiki/test_pycalls.py:95"
+    "where": "test/codewiki/test_pycalls.py:108"
    }
   ],
-  "where": "test/codewiki/test_pycalls.py:91"
+  "where": "test/codewiki/test_pycalls.py:104"
  },
  "test.codewiki.test_survey_plan._cg": {
   "confidence": "HIGH",
@@ -5844,7 +5860,7 @@
   "module": "test.codewiki.test_survey_plan",
   "source": "reading",
   "uses": [],
-  "where": "test/codewiki/test_survey_plan.py:160"
+  "where": "test/codewiki/test_survey_plan.py:176"
  },
  "test.codewiki.test_survey_plan.test_external_은_제외": {
   "confidence": "HIGH",
@@ -5908,22 +5924,22 @@
     "kind": "dependency",
     "label": "가중치 csv 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:226"
+    "where": "test/codewiki/test_survey_plan.py:242"
    },
    {
     "kind": "dependency",
     "label": "파일별 가중치 계산",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "test/codewiki/test_survey_plan.py:227"
+    "where": "test/codewiki/test_survey_plan.py:243"
    },
    {
     "kind": "dependency",
     "label": "가중치 표를 CSV 문자열로 변환",
     "to": "codewiki.python.machine.survey_plan.weights_csv",
-    "where": "test/codewiki/test_survey_plan.py:227"
+    "where": "test/codewiki/test_survey_plan.py:243"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:225"
+  "where": "test/codewiki/test_survey_plan.py:241"
  },
  "test.codewiki.test_survey_plan.test_간선은_from_이_의존하는_쪽이다": {
   "confidence": "HIGH",
@@ -5940,10 +5956,10 @@
     "kind": "dependency",
     "label": "층 번호 계산",
     "to": "codewiki.python.machine.survey_plan.layer_of",
-    "where": "test/codewiki/test_survey_plan.py:142"
+    "where": "test/codewiki/test_survey_plan.py:158"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:136"
+  "where": "test/codewiki/test_survey_plan.py:152"
  },
  "test.codewiki.test_survey_plan.test_같은_파일은_한_배치에": {
   "confidence": "HIGH",
@@ -6026,10 +6042,10 @@
     "kind": "dependency",
     "label": "이름의 공개 여부 판정",
     "to": "codewiki.python.machine.survey_plan.is_public",
-    "where": "test/codewiki/test_survey_plan.py:173"
+    "where": "test/codewiki/test_survey_plan.py:189"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:172"
+  "where": "test/codewiki/test_survey_plan.py:188"
  },
  "test.codewiki.test_survey_plan.test_마지막은_비노드_층": {
   "confidence": "HIGH",
@@ -6144,10 +6160,10 @@
     "kind": "dependency",
     "label": "실제 코드 지도로 층·배치 계획 생성",
     "to": "codewiki.python.machine.survey_plan.plan",
-    "where": "test/codewiki/test_survey_plan.py:125"
+    "where": "test/codewiki/test_survey_plan.py:146"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:123"
+  "where": "test/codewiki/test_survey_plan.py:144"
  },
  "test.codewiki.test_survey_plan.test_증분은_층_번호를_보존한다": {
   "confidence": "HIGH",
@@ -6190,10 +6206,10 @@
     "kind": "dependency",
     "label": "층 번호 계산",
     "to": "codewiki.python.machine.survey_plan.layer_of",
-    "where": "test/codewiki/test_survey_plan.py:149"
+    "where": "test/codewiki/test_survey_plan.py:165"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:147"
+  "where": "test/codewiki/test_survey_plan.py:163"
  },
  "test.codewiki.test_survey_plan.test_층_안에서_한_파일은_한_배치에만_있다": {
   "confidence": "HIGH",
@@ -6276,16 +6292,16 @@
     "kind": "dependency",
     "label": "파일 가중치 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:179"
+    "where": "test/codewiki/test_survey_plan.py:195"
    },
    {
     "kind": "dependency",
     "label": "파일별 out/into 가중치 계산",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "test/codewiki/test_survey_plan.py:183"
+    "where": "test/codewiki/test_survey_plan.py:199"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:177"
+  "where": "test/codewiki/test_survey_plan.py:193"
  },
  "test.codewiki.test_survey_plan.test_파일_가중치_수식은_세_항의_합이고_큰_순으로_난다": {
   "confidence": "HIGH",
@@ -6302,16 +6318,16 @@
     "kind": "dependency",
     "label": "파일 가중치 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:190"
+    "where": "test/codewiki/test_survey_plan.py:206"
    },
    {
     "kind": "dependency",
     "label": "파일별 가중치 계산 및 정렬",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "test/codewiki/test_survey_plan.py:192"
+    "where": "test/codewiki/test_survey_plan.py:208"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:189"
+  "where": "test/codewiki/test_survey_plan.py:205"
  },
  "test.codewiki.test_survey_plan.test_파일_가중치_최대값이_0이면_그_항은_0이_아니라_정의대로": {
   "confidence": "HIGH",
@@ -6328,16 +6344,16 @@
     "kind": "dependency",
     "label": "파일 가중치 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:204"
+    "where": "test/codewiki/test_survey_plan.py:220"
    },
    {
     "kind": "dependency",
     "label": "파일별 가중치 계산",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "test/codewiki/test_survey_plan.py:205"
+    "where": "test/codewiki/test_survey_plan.py:221"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:203"
+  "where": "test/codewiki/test_survey_plan.py:219"
  },
  "test.codewiki.test_survey_plan.test_파일_계획은_결정론": {
   "confidence": "HIGH",
@@ -6354,16 +6370,16 @@
     "kind": "dependency",
     "label": "파일 계획 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:221"
+    "where": "test/codewiki/test_survey_plan.py:237"
    },
    {
     "kind": "dependency",
     "label": "파일 단위 층·배치 계획 생성",
     "to": "codewiki.python.machine.survey_plan.plan_by_file",
-    "where": "test/codewiki/test_survey_plan.py:222"
+    "where": "test/codewiki/test_survey_plan.py:238"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:220"
+  "where": "test/codewiki/test_survey_plan.py:236"
  },
  "test.codewiki.test_survey_plan.test_파일_계획은_파일_하나가_배치_하나이고_가중치_내림차순": {
   "confidence": "HIGH",
@@ -6380,16 +6396,16 @@
     "kind": "dependency",
     "label": "파일 계획 시험용 가짜 코드 지도 생성",
     "to": "test.codewiki.test_survey_plan._cg2",
-    "where": "test/codewiki/test_survey_plan.py:210"
+    "where": "test/codewiki/test_survey_plan.py:226"
    },
    {
     "kind": "dependency",
     "label": "파일 단위 층·배치 계획 생성",
     "to": "codewiki.python.machine.survey_plan.plan_by_file",
-    "where": "test/codewiki/test_survey_plan.py:211"
+    "where": "test/codewiki/test_survey_plan.py:227"
    }
   ],
-  "where": "test/codewiki/test_survey_plan.py:209"
+  "where": "test/codewiki/test_survey_plan.py:225"
  },
  "test.codewiki.test_terms_db._graph": {
   "confidence": "HIGH",
@@ -13412,7 +13428,7 @@
   "module": "term.python.runner.term.collect",
   "source": "reading",
   "uses": [],
-  "where": "src/term/python/runner/term/collect.py:7"
+  "where": "src/term/python/runner/term/collect.py:32"
  },
  "term.python.runner.term.collect.find_new_concepts": {
   "confidence": "HIGH",
@@ -13422,7 +13438,7 @@
   "module": "term.python.runner.term.collect",
   "source": "reading",
   "uses": [],
-  "where": "src/term/python/runner/term/collect.py:25"
+  "where": "src/term/python/runner/term/collect.py:44"
  },
  "term.python.runner.term.collect.pick_terms": {
   "confidence": "HIGH",
@@ -13436,10 +13452,10 @@
     "kind": "dependency",
     "label": "이름을 정규식 안전 문자열로 이스케이프한다",
     "to": "term.python.runner.term.collect.escape_re",
-    "where": "src/term/python/runner/term/collect.py:17"
+    "where": "src/term/python/runner/term/collect.py:24"
    }
   ],
-  "where": "src/term/python/runner/term/collect.py:13"
+  "where": "src/term/python/runner/term/collect.py:35"
  },
  "term.python.runner.term.emit.to_study_note": {
   "confidence": "HIGH",
@@ -21450,10 +21466,10 @@
     "kind": "dependency",
     "label": "만든다",
     "to": "spec.python.runner.run_mode2.Mode2Context",
-    "where": "test/spec/test_run_mode2.py:290"
+    "where": "test/spec/test_run_mode2.py:296"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:289"
+  "where": "test/spec/test_run_mode2.py:295"
  },
  "test.spec.test_run_mode2._prompt": {
   "confidence": "HIGH",
@@ -21527,10 +21543,10 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "codewiki.python.runner.run_mode1.normalize_usage",
-    "where": "test/spec/test_run_mode2.py:273"
+    "where": "test/spec/test_run_mode2.py:279"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:272"
+  "where": "test/spec/test_run_mode2.py:278"
  },
  "test.spec.test_run_mode2.test_build_and_check_run_inside_the_report_folder": {
   "confidence": "HIGH",
@@ -21567,22 +21583,22 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "spec.python.runner.run_mode2.build_mode2_graph",
-    "where": "test/spec/test_run_mode2.py:321"
+    "where": "test/spec/test_run_mode2.py:327"
    },
    {
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._ctx",
-    "where": "test/spec/test_run_mode2.py:321"
+    "where": "test/spec/test_run_mode2.py:327"
    },
    {
     "kind": "dependency",
     "label": "예외로 받는다",
     "to": "core.pipeline.GraphError",
-    "where": "test/spec/test_run_mode2.py:320"
+    "where": "test/spec/test_run_mode2.py:326"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:319"
+  "where": "test/spec/test_run_mode2.py:325"
  },
  "test.spec.test_run_mode2.test_build_만_고르면_이미_있는_파일이_given_이_된다": {
   "confidence": "HIGH",
@@ -21599,16 +21615,16 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "spec.python.runner.run_mode2.build_mode2_graph",
-    "where": "test/spec/test_run_mode2.py:314"
+    "where": "test/spec/test_run_mode2.py:320"
    },
    {
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._ctx",
-    "where": "test/spec/test_run_mode2.py:314"
+    "where": "test/spec/test_run_mode2.py:320"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:311"
+  "where": "test/spec/test_run_mode2.py:317"
  },
  "test.spec.test_run_mode2.test_decisions_without_matching_sections_is_not_a_manuscript": {
   "confidence": "HIGH",
@@ -22066,28 +22082,28 @@
     "kind": "dependency",
     "label": "동일 객체인지 비교한다",
     "to": "codewiki.python.runner.run_mode1.normalize_usage",
-    "where": "test/spec/test_run_mode2.py:266"
+    "where": "test/spec/test_run_mode2.py:272"
    },
    {
     "kind": "dependency",
     "label": "동일 객체인지 비교한다",
     "to": "codewiki.python.runner.run_mode1.sum_usage",
-    "where": "test/spec/test_run_mode2.py:267"
+    "where": "test/spec/test_run_mode2.py:273"
    },
    {
     "kind": "dependency",
     "label": "동일 객체인지 비교한다",
     "to": "codewiki.python.runner.run_mode1.agent_verdict",
-    "where": "test/spec/test_run_mode2.py:268"
+    "where": "test/spec/test_run_mode2.py:274"
    },
    {
     "kind": "dependency",
     "label": "동일 객체인지 비교한다",
     "to": "codewiki.python.runner.run_mode1.format_report",
-    "where": "test/spec/test_run_mode2.py:269"
+    "where": "test/spec/test_run_mode2.py:275"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:266"
+  "where": "test/spec/test_run_mode2.py:272"
  },
  "test.spec.test_run_mode2.test_the_prompt_forbids_committing": {
   "confidence": "HIGH",
@@ -22101,10 +22117,10 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._prompt",
-    "where": "test/spec/test_run_mode2.py:243"
+    "where": "test/spec/test_run_mode2.py:249"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:242"
+  "where": "test/spec/test_run_mode2.py:248"
  },
  "test.spec.test_run_mode2.test_the_prompt_forbids_the_d_axis": {
   "confidence": "HIGH",
@@ -22152,10 +22168,10 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "codewiki.python.runner.run_mode1.claude_argv",
-    "where": "test/spec/test_run_mode2.py:259"
+    "where": "test/spec/test_run_mode2.py:265"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:257"
+  "where": "test/spec/test_run_mode2.py:263"
  },
  "test.spec.test_run_mode2.test_the_prompt_mentions_the_glossary_source_only_when_it_exists": {
   "confidence": "HIGH",
@@ -22169,10 +22185,10 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._prompt",
-    "where": "test/spec/test_run_mode2.py:248"
+    "where": "test/spec/test_run_mode2.py:254"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:246"
+  "where": "test/spec/test_run_mode2.py:252"
  },
  "test.spec.test_run_mode2.test_the_prompt_names_the_canonical_procedure_skill": {
   "confidence": "HIGH",
@@ -22203,10 +22219,10 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._prompt",
-    "where": "test/spec/test_run_mode2.py:236"
+    "where": "test/spec/test_run_mode2.py:242"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:235"
+  "where": "test/spec/test_run_mode2.py:241"
  },
  "test.spec.test_run_mode2.test_the_prompt_states_the_single_script_invariant": {
   "confidence": "HIGH",
@@ -22237,7 +22253,7 @@
     "kind": "dependency",
     "label": "호출한다",
     "to": "test.spec.test_run_mode2._prompt",
-    "where": "test/spec/test_run_mode2.py:231"
+    "where": "test/spec/test_run_mode2.py:237"
    }
   ],
   "where": "test/spec/test_run_mode2.py:230"
@@ -22254,86 +22270,22 @@
     "kind": "dependency",
     "label": "행의 usage 칸을 만든다",
     "to": "codewiki.python.runner.run_mode1.normalize_usage",
-    "where": "test/spec/test_run_mode2.py:281"
+    "where": "test/spec/test_run_mode2.py:287"
    },
    {
     "kind": "dependency",
     "label": "호출한다",
     "to": "codewiki.python.runner.run_mode1.format_report",
-    "where": "test/spec/test_run_mode2.py:286"
+    "where": "test/spec/test_run_mode2.py:292"
    }
   ],
-  "where": "test/spec/test_run_mode2.py:280"
+  "where": "test/spec/test_run_mode2.py:286"
  },
  "test.spec.test_run_mode2.test_그래프는_고른_단계만_담는다": {
   "confidence": "HIGH",
   "does": "R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False, only=None, skip=[\"check\"]) 를 불러 g.order 가 [\"init\", \"agent\", \"build\"] 와 같은지 assert 한다.",
   "kind": "function",
   "means": "skip 옵션으로 뺀 단계는 그래프의 실행 순서에도 빠져야 한다는 것을 확인하는 시험 함수다.",
-  "module": "test.spec.test_run_mode2",
-  "shallow": [
-   "runner.run_mode2.build_mode2_graph"
-  ],
-  "source": "reading",
-  "uses": [
-   {
-    "kind": "dependency",
-    "label": "호출한다",
-    "to": "spec.python.runner.run_mode2.build_mode2_graph",
-    "where": "test/spec/test_run_mode2.py:295"
-   },
-   {
-    "kind": "dependency",
-    "label": "호출한다",
-    "to": "test.spec.test_run_mode2._ctx",
-    "where": "test/spec/test_run_mode2.py:295"
-   }
-  ],
-  "where": "test/spec/test_run_mode2.py:294"
- },
- "test.spec.test_run_mode2.test_그래프의_실패는_전부_멈춤이다": {
-  "confidence": "HIGH",
-  "does": "R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False, only=None, skip=None) 을 불러 g.next_of(\"build\", P.FAIL) 이 None 이고 g.next_of(\"build\", P.OK) 는 \"check\" 인지 assert 한다.",
-  "kind": "function",
-  "means": "그래프 위 어느 단계가 실패해도 다음 단계로 넘어가지 않고 멈춰야 한다는 것을 확인하는 시험 함수다.",
-  "module": "test.spec.test_run_mode2",
-  "shallow": [
-   "runner.run_mode2.build_mode2_graph"
-  ],
-  "source": "reading",
-  "uses": [
-   {
-    "kind": "dependency",
-    "label": "호출한다",
-    "to": "spec.python.runner.run_mode2.build_mode2_graph",
-    "where": "test/spec/test_run_mode2.py:306"
-   },
-   {
-    "kind": "dependency",
-    "label": "호출한다",
-    "to": "test.spec.test_run_mode2._ctx",
-    "where": "test/spec/test_run_mode2.py:306"
-   },
-   {
-    "kind": "dependency",
-    "label": "갈래 값으로 쓴다",
-    "to": "core.pipeline.FAIL",
-    "where": "test/spec/test_run_mode2.py:307"
-   },
-   {
-    "kind": "dependency",
-    "label": "갈래 값으로 쓴다",
-    "to": "core.pipeline.OK",
-    "where": "test/spec/test_run_mode2.py:308"
-   }
-  ],
-  "where": "test/spec/test_run_mode2.py:305"
- },
- "test.spec.test_run_mode2.test_원고가_있으면_그래프에_agent_가_없다": {
-  "confidence": "HIGH",
-  "does": "R.build_mode2_graph(_ctx(tmp_path), has_manuscript=True, only=None, skip=None) 을 불러 \"agent\" 가 g.order 에 없는지 assert 한다.",
-  "kind": "function",
-  "means": "원고가 이미 있으면 그래프의 실행 순서에도 agent 단계가 빠져야 한다는 것을 확인하는 시험 함수다.",
   "module": "test.spec.test_run_mode2",
   "shallow": [
    "runner.run_mode2.build_mode2_graph"
@@ -22354,6 +22306,70 @@
    }
   ],
   "where": "test/spec/test_run_mode2.py:300"
+ },
+ "test.spec.test_run_mode2.test_그래프의_실패는_전부_멈춤이다": {
+  "confidence": "HIGH",
+  "does": "R.build_mode2_graph(_ctx(tmp_path), has_manuscript=False, only=None, skip=None) 을 불러 g.next_of(\"build\", P.FAIL) 이 None 이고 g.next_of(\"build\", P.OK) 는 \"check\" 인지 assert 한다.",
+  "kind": "function",
+  "means": "그래프 위 어느 단계가 실패해도 다음 단계로 넘어가지 않고 멈춰야 한다는 것을 확인하는 시험 함수다.",
+  "module": "test.spec.test_run_mode2",
+  "shallow": [
+   "runner.run_mode2.build_mode2_graph"
+  ],
+  "source": "reading",
+  "uses": [
+   {
+    "kind": "dependency",
+    "label": "호출한다",
+    "to": "spec.python.runner.run_mode2.build_mode2_graph",
+    "where": "test/spec/test_run_mode2.py:312"
+   },
+   {
+    "kind": "dependency",
+    "label": "호출한다",
+    "to": "test.spec.test_run_mode2._ctx",
+    "where": "test/spec/test_run_mode2.py:312"
+   },
+   {
+    "kind": "dependency",
+    "label": "갈래 값으로 쓴다",
+    "to": "core.pipeline.FAIL",
+    "where": "test/spec/test_run_mode2.py:313"
+   },
+   {
+    "kind": "dependency",
+    "label": "갈래 값으로 쓴다",
+    "to": "core.pipeline.OK",
+    "where": "test/spec/test_run_mode2.py:314"
+   }
+  ],
+  "where": "test/spec/test_run_mode2.py:311"
+ },
+ "test.spec.test_run_mode2.test_원고가_있으면_그래프에_agent_가_없다": {
+  "confidence": "HIGH",
+  "does": "R.build_mode2_graph(_ctx(tmp_path), has_manuscript=True, only=None, skip=None) 을 불러 \"agent\" 가 g.order 에 없는지 assert 한다.",
+  "kind": "function",
+  "means": "원고가 이미 있으면 그래프의 실행 순서에도 agent 단계가 빠져야 한다는 것을 확인하는 시험 함수다.",
+  "module": "test.spec.test_run_mode2",
+  "shallow": [
+   "runner.run_mode2.build_mode2_graph"
+  ],
+  "source": "reading",
+  "uses": [
+   {
+    "kind": "dependency",
+    "label": "호출한다",
+    "to": "spec.python.runner.run_mode2.build_mode2_graph",
+    "where": "test/spec/test_run_mode2.py:307"
+   },
+   {
+    "kind": "dependency",
+    "label": "호출한다",
+    "to": "test.spec.test_run_mode2._ctx",
+    "where": "test/spec/test_run_mode2.py:307"
+   }
+  ],
+  "where": "test/spec/test_run_mode2.py:306"
  },
  "codewiki.python.runner.wiki.build.run": {
   "confidence": "HIGH",
@@ -23043,7 +23059,7 @@
   "module": "src/term/python/runner/term",
   "source": "reading",
   "uses": [],
-  "where": "src/term/python/runner/term/collect.py:61"
+  "where": "src/term/python/runner/term/collect.py:63"
  },
  "term-study-note.md": {
   "confidence": "HIGH",
@@ -24663,7 +24679,7 @@
   "module": "src/spec/typescript/src/components",
   "source": "reading",
   "uses": [],
-  "where": "src/spec/typescript/CLAUDE.md:18"
+  "where": "src/spec/typescript/CLAUDE.md:16"
  },
  "src/spec/typescript/src/components/BeforeAfter.tsx": {
   "confidence": "MEDIUM",
