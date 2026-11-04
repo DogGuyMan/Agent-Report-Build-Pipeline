@@ -227,7 +227,13 @@ def test_the_prompt_names_the_canonical_procedure_skill():
 
 def test_the_prompt_uses_korean_status_tags_only():
     p = _prompt()
-    assert "[제안됨]" in p and "[잠정됨]" in p and "[검증됨]" in p
+    assert "[제안됨]" in p and "[검증됨]" in p
+    assert "`[잠정됨]` 은 이름과 범위가 미결정이라 쓰지 않는다" in p
+
+
+def test_the_prompt_bans_the_word_verified_only_outside_the_tag():
+    p = _prompt()
+    assert "상태 태그 `[검증됨]` 밖의 문장에서" in p
 
 
 def test_the_prompt_names_the_paths_the_model_must_touch():
