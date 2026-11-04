@@ -37,18 +37,18 @@
 뜻으로만 남고 옛 HTML 은 **"옛 출력"** 이라 부른다. 세 Phase 가 이 한 결함으로 정리된 경위와
 Track A/B 의 순서는 결정 0008 에 있다.
 
-## 이 저장소의 현재 상태 (🔵 2026-10-21 클라우드 실측 — 커밋 · 테스트 · 타입 · 버전 행. 나머지 행은 2026-09-13)
+## 이 저장소의 현재 상태 (🔵 2026-11-04 클라우드 실측 — 커밋 · 테스트 · 타입 · 버전 행. 나머지 행은 2026-09-13)
 
 파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
-| 측정 기준 커밋 / 태그 | 옛 저장소(report-builder)의 `1d54b69` / `v1` — API 는 추가만이라 태그 그대로. **이 저장소에는 둘 다 없다** — 이력은 2026-11-01 의 `[init]` 커밋 둘(`a511224` · `7e73103`)에서 새로 시작했고 태그는 아직 없다. 아래 값을 이 저장소에서 다시 재지는 않았다 |
-| 테스트 | `pytest` **660 통과 · 2 실패 · 19 건너뜀** · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만). 실패 2건은 아래 "게이트 여섯" 의 위키 표류와 층 분포 고정값이다 |
+| 측정 기준 커밋 / 태그 | `b8a9775`(`main`) / 태그 없음. 이력은 2026-11-01 의 `[init]` 커밋 둘(`a511224` · `7e73103`)에서 새로 시작했다. 옛 저장소(report-builder)의 마지막 측정은 `1d54b69` / `v1` 이었고 **둘 다 이 저장소에는 없다** |
+| 테스트 | `pytest` — 새 클론 그대로면 **865 통과 · 0 실패 · 21 건너뜀**, `report-wiki prep .` 뒤에는 **865 통과 · 1 실패 · 20 건너뜀** · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만). 실패 1건은 아래 "게이트 여섯" 의 층 분포 고정값이고, 위키 표류는 클라우드에서 잴 수 없어 건너뜀에 들어간다 |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
-| Node / TypeScript / Graphviz | Mac v25.8.0 / 7.0.2 / 15.1.1 (2026-09-13) · 클라우드 v22.22.0 / 7.0.2 / 15.1.1 (2026-10-22). 클라우드 Ubuntu 의 apt 판(2.43)은 `-Tsvg_inline` 을 모르므로(`Format: "svg_inline" not recognized`) 환경 설정 스크립트 `tools/cloud_env.sh` 가 공식 `.deb` 를 깐다. `doctor` 는 10.0.1 미만을 낮음으로 막는다 |
+| Node / TypeScript / Graphviz | Mac v25.8.0 / 7.0.2 / 15.1.1 (2026-09-13) · 클라우드 v22.23.4 / 7.0.2 / 15.1.1 (2026-11-04). 클라우드 Ubuntu 의 apt 판(2.43)은 `-Tsvg_inline` 을 모르므로(`Format: "svg_inline" not recognized`) 환경 설정 스크립트 `tools/cloud_env.sh` 가 공식 `.deb` 를 깐다. `doctor` 는 10.0.1 미만을 낮음으로 막는다 |
 
 **"검증됨" 이라고 쓰지 말 것 — D축 예측력.** 평가 없이 보류다(결정 0004).
 
@@ -119,19 +119,20 @@ npm run typecheck        # tsc --noEmit (이 저장소의 src/spec/typescript/sr
 npm run typecheck:py     # pyright strict
 ```
 
-### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-10-21 실측 — 지금 둘이 빨강)
+### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-11-04 클라우드 실측 — 잰 것 중 하나가 빨강, 위키 표류는 여기서 잴 수 없다)
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 660 통과 · **2 실패** · 19 건너뜀 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 `report-wiki prep .` 뒤 865 통과 · **1 실패** · 20 건너뜀. prep 전에는 865 통과 · 0 실패 · 21 건너뜀이지만 초록이 아니다 — 입력이 없어 빨강이 건너뜀으로 숨은 것이다 |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check src/codewiki/python/runner src/codewiki/python/machine src/codewiki/python/viz src/term/python/runner src/spec/python/runner src/spec/python/viz src/core src/common tools` | 9개 일치 |
 | 환경 | `npm run doctor` | 필수 전부 있다 |
 
-**건너뛰는 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
-없어서다. 실패가 아니다.**
+**건너뛰는 것 중 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
+없어서다. 실패가 아니다.** 나머지 둘은 입력이 없는 시험이다 — 위키 게이트(`docs/wiki/` 없음)와
+층 분포(`out/codegraph-raw/codegraph.json` 없음 · `report-wiki prep .` 을 돌리면 돈다).
 
 **빨강 하나 — 위키 표류.** 2026-09-08~11 의 러너 단계 기계 리팩터링이 `src/codewiki/python/runner/run_mode1.py` 의 심볼을
 `src/codewiki/python/runner/mode1/` 로 옮겼는데(파일이 281줄로 줄었다) 위키를 다시 굽지 않았다.
@@ -140,12 +141,15 @@ npm run typecheck:py     # pyright strict
 손으로 고치지 않는다. 🔵 2026-10-21 클라우드에서도 L2 실패는 같은 43건이고, 그 위에 L1 실패 18건이 더 나온다 —
 전부 `tools/` 의 `scrub_local_paths.py` 인용인데 이 파일은 git 밖(`.gitignore:28`)이라 그 파일이 없는 클론에서만 난다.
 `out/` 이 없는 새 클론에서는 `report-wiki prep .` 을 먼저 돌려야 이 실패가 보인다 — 안 돌리면 `codegraph.json` 이
-없다는 다른 이유로 실패한다. `RESUME-2026-09-11-runner-stage-machine.md` 의 "바로 다음 할 일" 중
+없다는 다른 이유로 실패한다. 🔵 2026-11-04 이 저장소의 클라우드 클론에는 `docs/wiki/` 가 없어(`docs/` 는 git 밖)
+이 시험이 실패가 아니라 건너뜀(`산문이 없다`)이다 — prep 을 돌려도 같다. 이 빨강은 `docs/wiki/` 가 있는 기계에서만 보인다.
+`RESUME-2026-09-11-runner-stage-machine.md` 의 "바로 다음 할 일" 중
 1번(xmldoc 재주입)은 결정 0010 으로 **무효**, 2번(위키)부터다.
 
 **빨강 둘 — 층 분포 고정값.** `test/codewiki/test_survey_plan.py::test_이_저장소_실측` 이 이 저장소 코드 지도의 층 분포를
 `[514, 323, 161, 96, 23, 14]`(합 1131, 옛 저장소 커밋 `943f3fc` 2026-09-19)로 못박는다. 🔵 2026-10-21 클라우드에서 `report-wiki prep .` 을
 새로 돌리면 `[544, 347, 167, 104, 23, 15]`(합 1200)이다. 같은 날 사용자 Mac 에서도 실패하는데 값이 `[538, 342, …]` 로 또 다르다.
+🔵 2026-11-04 이 저장소 `b8a9775` 의 클라우드에서 prep 뒤에는 `[496, 107, 54, 22, 14, 6]`(합 699)으로, 앞의 어느 값과도 다르다.
 기계마다 다른 이유는 확인하지 못했다 — 기대값을 고치기 전에 그것부터 본다. `out/codegraph-raw/codegraph.json` 이 없으면
 이 시험은 건너뛴다.
 
