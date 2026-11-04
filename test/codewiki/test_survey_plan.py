@@ -117,22 +117,38 @@ def test_증분은_층_번호를_보존한다():
     assert p["totals"]["symbols"] == 1 and p["layers"][0]["level"] == 2
 
 
-REAL = os.path.join(ROOT,
-                    "out", "codegraph-raw", "codegraph.json")
+SNAPSHOT = os.path.join(ROOT, "test", "codewiki", "fixtures", "codegraph-self.json")
+REAL = os.path.join(ROOT, "out", "codegraph-raw", "codegraph.json")
+
+
+def _layer_files_overlap(p: SP.SurveyPlan) -> list[str]:
+    """한 층 안에서 두 배치 이상에 나오는 파일. lock 없는 설계의 전제라 비어 있어야 한다."""
+    return [f for L in p["layers"]
+            for f, n in collections.Counter(f for b in L.get("batches", []) for f in b["files"]).items()
+            if n > 1]
+
+
+def test_실제_지도_스냅샷의_층_분포():
+    """이 저장소의 실제 지도를 얼린 스냅샷으로 층 분포를 못박는다 — 계획기가 바뀔 때만 깨진다.
+
+    스냅샷은 `report-wiki prep .` 의 `codegraph.json` 에서 `plan` 이 읽는 열쇠
+    (id · name · kind · file · line · from · to)만 남긴 것이다. 코드가 바뀌어도 스냅샷은 그대로다.
+    """
+    p = plan(json.load(open(SNAPSHOT, encoding="utf-8")))
+    sizes = [L["symbol_count"] for L in p["layers"] if L.get("kind") != "non-node"]
+    assert sizes == [497, 107, 54, 22, 14, 6]
+    # ⚠ cast — `symbol_count` 가 None 인 것은 비노드 층뿐이고 그것은 바로 위 조건이 걸렀다.
+    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 700
+    assert _layer_files_overlap(p) == []
 
 
 @pytest.mark.skipif(not os.path.exists(REAL), reason="out/codegraph-raw/codegraph.json 이 없다")
-def test_이_저장소_실측():
-    """이 저장소의 실제 지도로 층 분포를 못박는다 — 코드가 바뀌면 기대값을 함께 고친다."""
+def test_이_기계의_지도도_층_안_파일이_배타적이다():
+    """지금 이 기계의 지도에서도 층 안 배치끼리 파일이 겹치지 않는다. 분포는 코드와 함께 움직여 보지 않는다."""
     p = plan(json.load(open(REAL, encoding="utf-8")))
     sizes = [L["symbol_count"] for L in p["layers"] if L.get("kind") != "non-node"]
-    assert sizes == [514, 323, 161, 96, 23, 14]
-    # ⚠ cast — `symbol_count` 가 None 인 것은 비노드 층뿐이고 그것은 바로 위 조건이 걸렀다.
-    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"] == 1131
-    # lock 없는 설계의 전제 — 실제 지도에서도 층 안 파일이 배타적이어야 한다
-    for L in p["layers"]:
-        seen = collections.Counter(f for b in L.get("batches", []) for f in b["files"])
-        assert [f for f, n in seen.items() if n > 1] == []
+    assert sum(cast(list[int], sizes)) == p["totals"]["symbols"]
+    assert _layer_files_overlap(p) == []
 
 
 def test_간선은_from_이_의존하는_쪽이다():
