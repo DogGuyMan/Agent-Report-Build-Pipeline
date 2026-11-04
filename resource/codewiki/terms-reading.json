@@ -1774,7 +1774,7 @@
  },
  "codewiki.python.machine.pycalls.collect": {
   "confidence": "HIGH",
-  "does": "roots 아래 `*.py` 파일을 전부 찾고(__pycache__ 는 뺀다), 0패스로 파일 이름(stem) -> 모듈 점 경로 표를 만든다(이름이 겹치면 그 stem 은 표에서 지워 호출 해석에서 뺀다). 각 파일을 ast.parse 로 파싱해(문법 오류는 조용히 건너뜀) scan_module 로 심볼과 미해석 호출을 모으고, caller/callee 가 둘 다 이 저장소에서 정의된 심볼일 때만, 자기 자신을 부르는 경우를 빼고 PyCall 로 확정해 정렬된 PyCallsDump 를 반환한다.",
+  "does": "roots 아래 `*.py` 파일을 전부 찾고(__pycache__ 는 뺀다), 0패스로 모듈과 그것을 담은 패키지의 점 경로 꼬리(끝 조각 하나 · 둘 · … · 전체) -> 모듈 점 경로 표를 만든다(한 꼬리가 둘 이상을 가리키면 표에서 빼 호출 해석에서 뺀다). 각 파일을 ast.parse 로 파싱해(문법 오류는 조용히 건너뜀) scan_module 로 심볼과 미해석 호출을 모으고, caller/callee 가 둘 다 이 저장소에서 정의된 심볼일 때만, 자기 자신을 부르는 경우를 빼고 PyCall 로 확정해 정렬된 PyCallsDump 를 반환한다.",
   "kind": "function",
   "means": "여러 디렉토리 아래의 모든 파이썬 파일을 읽어서 함수/클래스 정의 목록과 함수 호출 관계 목록을 만들어 내는 함수.",
   "module": "codewiki.python.machine",
@@ -1790,14 +1790,14 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.scan_module",
-    "where": "src/codewiki/python/machine/pycalls.py:243"
+    "where": "src/codewiki/python/machine/pycalls.py:249"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:202"
+  "where": "src/codewiki/python/machine/pycalls.py:204"
  },
  "codewiki.python.machine.pycalls.import_table": {
   "confidence": "HIGH",
-  "does": "AST 를 훑어 ImportFrom 과 Import 노드를 찾고, 그 파일에서 쓰는 지역 이름을 완전 점 경로로 매핑한다. 이 저장소가 패키지 import 없이 `sys.path` 로 평평한 이름을 쓰는 관습 때문에 파일 이름(stem)을 열쇠로 하는 `stem_to_module` 표를 받아 head(첫 조각)를 그 표에서 찾는다. 저장소 밖 라이브러리는 담지 않는다.",
+  "does": "AST 를 훑어 ImportFrom 과 Import 노드를 찾고, 그 파일에서 쓰는 지역 이름을 완전 점 경로로 매핑한다. import 에 쓰인 점 경로를 통째로 `name_to_module` 표에서 찾는다 — 그 표의 열쇠가 이 저장소의 모듈·패키지 점 경로의 꼬리라서, 평평한 이름(`import warmup`) · `sys.path` 에 넣은 디렉토리 아래 패키지(`from mode1.context import …`) · `src/` 뿌리부터 쓴 패키지(`from core import pipeline`)가 한 규칙으로 풀린다. `import a.b` 는 `a` 를, `import a.b as z` 는 `z` 를 묶는다. 저장소 밖 라이브러리는 담지 않는다.",
   "kind": "function",
   "means": "한 파이썬 파일 안의 import 문들을 읽어서, 파일 안에서 짧게 부르는 이름이 실제로는 어느 모듈의 무엇을 가리키는지 알려주는 사전을 만드는 함수.",
   "module": "codewiki.python.machine",
@@ -1817,10 +1817,10 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.collect",
-    "where": "src/codewiki/python/machine/pycalls.py:271"
+    "where": "src/codewiki/python/machine/pycalls.py:277"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:264"
+  "where": "src/codewiki/python/machine/pycalls.py:270"
  },
  "codewiki.python.machine.pycalls.module_path": {
   "confidence": "HIGH",
@@ -1844,16 +1844,16 @@
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.import_table",
-    "where": "src/codewiki/python/machine/pycalls.py:139"
+    "where": "src/codewiki/python/machine/pycalls.py:141"
    },
    {
     "kind": "dependency",
     "label": "calls",
     "to": "codewiki.python.machine.pycalls.signature_of",
-    "where": "src/codewiki/python/machine/pycalls.py:167"
+    "where": "src/codewiki/python/machine/pycalls.py:169"
    }
   ],
-  "where": "src/codewiki/python/machine/pycalls.py:132"
+  "where": "src/codewiki/python/machine/pycalls.py:134"
  },
  "codewiki.python.machine.pycalls.signature_of": {
   "confidence": "HIGH",

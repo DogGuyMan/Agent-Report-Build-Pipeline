@@ -242,8 +242,8 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | **`PyCallsDump`** | *class* |  |
 | `module_path` | `(rel: str) -> str` | `machine/normalize.py` -> `machine.normalize`. |
 | `signature_of` | `(fn: ast.FunctionDef \| ast.AsyncFunctionDef) -> str` | `(a, b=..., *args, **kw) -> T` 꼴. 주석은 원문 그대로 살린다. |
-| `import_table` | `(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, str]` | `from warmup import status` -> {"status": "machine.warmup.status"}. |
-| `scan_module` | `(tree: ast.Module, mod: str, rel: str, stem_to_module: dict[str, str]) -> tuple[list[PySymbol], list[tuple[str, str, int]]]` | 한 모듈의 (심볼, 미해석 호출) 을 낸다. 호출의 대상은 아직 쓰인 그대로다. |
+| `import_table` | `(tree: ast.Module, name_to_module: dict[str, str]) -> dict[str, str]` | `from mode1.context import RunContext` -> {"RunContext": "codewiki.python.runner.mode1.context.RunContext"}. |
+| `scan_module` | `(tree: ast.Module, mod: str, rel: str, name_to_module: dict[str, str]) -> tuple[list[PySymbol], list[tuple[str, str, int]]]` | 한 모듈의 (심볼, 미해석 호출) 을 낸다. 호출의 대상은 아직 쓰인 그대로다. |
 | `collect` | `(repo: str, roots: list[str]) -> PyCallsDump` | `roots` 아래 `*.py` 를 전부 읽어 심볼과 해석된 호출을 낸다. |
 | `main` | `() -> None` |  |
 

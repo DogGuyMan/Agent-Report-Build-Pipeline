@@ -83,6 +83,54 @@ def test_same_stem_in_two_directories_is_dropped_not_guessed(tmp_path: Path) -> 
     assert not [c for c in d["calls"] if c["callee"].endswith("dup.f")]
 
 
+# ── 패키지 꼴 — `src/` 뿌리부터 쓴 점 경로와, `sys.path` 에 넣은 디렉토리 아래 패키지의 점 경로
+PACKAGED = {
+    "src/core/__init__.py": "",
+    "src/core/pipeline.py": "def run():\n    return 1\n",
+    "src/common/__init__.py": "",
+    "src/common/python.py": "def pythonPath():\n    return 'py'\n",
+    "src/cw/runner/mode1/__init__.py": "",
+    "src/cw/runner/mode1/context.py": "def make():\n    return 2\n\ndef other():\n    return 3\n",
+    "src/cw/runner/run.py": (
+        "from core import pipeline as P\n"
+        "from common.python import pythonPath\n"
+        "from mode1.context import make\n"
+        "import mode1.context as ctx\n"
+        "\n"
+        "def go():\n"
+        "    P.run()\n"
+        "    pythonPath()\n"
+        "    make()\n"
+        "    return ctx.other()\n"
+    ),
+}
+
+
+def test_package_imports_are_resolved(tmp_path: Path) -> None:
+    """import 에 쓴 점 경로가 모듈 · 패키지 점 경로의 꼬리와 하나로 맞으면 그 모듈로 푼다.
+
+    `src/` 뿌리부터 쓴 경로(`from core import pipeline` · `from common.python import pythonPath`)와
+    `sys.path` 에 넣은 디렉토리 아래 패키지 경로(`from mode1.context import make` · `import mode1.context as ctx`)가
+    같은 규칙이다.
+    """
+    _write(tmp_path, PACKAGED)
+    d = P.collect(str(tmp_path), ["src/core", "src/common", "src/cw"])
+    got = {c["callee"] for c in d["calls"] if c["caller"] == "cw.runner.run.go"}
+    assert got == {"core.pipeline.run", "common.python.pythonPath",
+                   "cw.runner.mode1.context.make", "cw.runner.mode1.context.other"}
+
+
+def test_dotted_path_matching_two_packages_is_dropped_not_guessed(tmp_path: Path) -> None:
+    """점 경로의 꼬리가 두 패키지와 맞으면 **버린다** — 파일 이름이 겹칠 때와 같다."""
+    _write(tmp_path, {
+        "a/mode1/context.py": "def make():\n    return 1\n",
+        "b/mode1/context.py": "def make():\n    return 2\n",
+        "c/run.py": "from mode1.context import make\n\ndef go():\n    return make()\n",
+    })
+    d = P.collect(str(tmp_path), ["a", "b", "c"])
+    assert [c for c in d["calls"] if c["caller"] == "c.run.go"] == []
+
+
 def test_signature_is_captured(tmp_path: Path) -> None:
     """시그니처를 원문 주석 그대로 살린다 — 위키가 읽는 자리다."""
     _write(tmp_path, {"m/a.py": "def f(a: int, b: str = 'x') -> bool:\n    return True\n"})
@@ -147,6 +195,9 @@ def test_selfhost_smoke() -> None:
     cross = [c for c in d["calls"]
              if c["caller"].rsplit(".", 1)[0] != c["callee"].rsplit(".", 1)[0]]
     assert len(cross) > 100
+    # `src/` 뿌리부터 쓴 패키지 꼴 import(`from core import pipeline`)로 이어진 간선이 있어야 한다.
+    assert [c for c in d["calls"]
+            if c["callee"].startswith("core.") and not c["caller"].startswith("core.")]
 
 
 def test_cli_runs_end_to_end(tmp_path: Path) -> None:

@@ -100,12 +100,14 @@ def signature_of(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 
 # 모듈 하나의 import 표를 만든다. 지역 이름 -> 완전 점 경로.
 # 쓰는 것: 없음 · 쓰이는 곳: scan_module
-def import_table(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, str]:
-    """`from warmup import status` -> {"status": "machine.warmup.status"}.
+def import_table(tree: ast.Module, name_to_module: dict[str, str]) -> dict[str, str]:
+    """`from mode1.context import RunContext` -> {"RunContext": "codewiki.python.runner.mode1.context.RunContext"}.
 
-    이 저장소는 패키지 import 를 쓰지 않는다. `sys.path` 에 형제 디렉토리를 넣고
-    `import warmup` 처럼 평평한 이름으로 부른다. 디렉토리 뿌리로 걸러서는 이 꼴을 못 풀어
-    모듈을 넘는 호출이 거의 사라지므로, 여기서는 파일 이름(stem)을 열쇠로 잡는다.
+    import 에 쓰인 점 경로를 통째로 `name_to_module` 에서 찾는다. 그 표의 열쇠는 이 저장소의
+    모듈 · 패키지 점 경로의 꼬리(끝 조각 하나 · 둘 · … · 전체)다. 그래서 세 꼴이 한 규칙으로 풀린다 —
+    `sys.path` 에 형제 디렉토리를 넣고 부르는 평평한 이름(`import warmup`), 그렇게 넣은 디렉토리 아래의
+    패키지(`from mode1.context import …`), `src/` 뿌리부터 쓴 패키지(`from core import pipeline` ·
+    `from common.python import pythonPath`).
 
     저장소 밖 라이브러리(`json` · `subprocess`)는 담지 않는다 — 호출 해석이 밖으로 새면
     그 노드는 `_assemble` 의 R1 이 어차피 지운다.
@@ -113,30 +115,30 @@ def import_table(tree: ast.Module, stem_to_module: dict[str, str]) -> dict[str, 
     out: dict[str, str] = {}
     for n in ast.walk(tree):
         if isinstance(n, ast.ImportFrom):
-            # `from warmup import status` 도 `from machine.warmup import status` 도 받는다.
-            head = (n.module or "").split(".")[0]
-            target = stem_to_module.get(head)
+            target = name_to_module.get(n.module or "")
             if target is not None:
                 for al in n.names:
                     out[al.asname or al.name] = f"{target}.{al.name}"
         elif isinstance(n, ast.Import):
             for al in n.names:
-                target = stem_to_module.get(al.name.split(".")[0])
+                # `import a.b` 는 `a` 를 묶고, `import a.b as z` 는 `a.b` 를 `z` 로 묶는다.
+                bound = al.asname or al.name.split(".")[0]
+                target = name_to_module.get(al.name if al.asname else bound)
                 if target is not None:
-                    out[al.asname or al.name] = target
+                    out[bound] = target
     return out
 
 
 # 한 소스 트리에서 정의와 호출을 뽑는다.
 # 쓰는 것: signature_of, import_table · 쓰이는 곳: collect
 def scan_module(tree: ast.Module, mod: str, rel: str,
-                stem_to_module: dict[str, str]) -> tuple[list[PySymbol], list[tuple[str, str, int]]]:
+                name_to_module: dict[str, str]) -> tuple[list[PySymbol], list[tuple[str, str, int]]]:
     """한 모듈의 (심볼, 미해석 호출) 을 낸다. 호출의 대상은 아직 쓰인 그대로다.
 
     해석(이름 -> 완전 점 경로)은 전체 정의 표가 모인 뒤에 `collect` 가 한다 —
     같은 모듈 안의 앞뒤 참조를 놓치지 않기 위해서다.
     """
-    alias = import_table(tree, stem_to_module)
+    alias = import_table(tree, name_to_module)
     syms: list[PySymbol] = []
     raw: list[tuple[str, str, int]] = []          # (부르는 쪽, 쓰인 그대로의 이름, 줄)
     local_names: set[str] = set()
@@ -216,21 +218,25 @@ def collect(repo: str, roots: list[str]) -> PyCallsDump:
                     files.append((os.path.relpath(ap, repo), ap))
     files.sort()
 
-    # ── 0패스: 파일 이름 -> 모듈 점 경로. 이 저장소의 평평한 import 관습을 푸는 표다.
-    #    이름이 겹치면 어느 쪽인지 알 수 없다. 조용히 하나를 고르지 않고 둘 다 버린다 —
+    # ── 0패스: import 에 쓰일 수 있는 점 경로 -> 모듈 점 경로. 모듈과 그것을 담은 패키지마다 점 경로의
+    #    꼬리를 전부 열쇠로 넣는다 — `src/codewiki/python/runner/mode1/context.py` 는 `context` ·
+    #    `mode1.context` · … · `codewiki.python.runner.mode1.context` 로 찾힌다.
+    #    한 열쇠가 둘 이상을 가리키면 어느 쪽인지 알 수 없다. 조용히 하나를 고르지 않고 버린다 —
     #    잘못 이은 간선은 없는 간선보다 나쁘다.
-    stem_to_module: dict[str, str] = {}
-    collided: set[str] = set()
-    for rel, _ in files:
-        stem = os.path.basename(rel)[:-3]
-        mod = module_path(rel)
-        if stem in stem_to_module and stem_to_module[stem] != mod:
-            collided.add(stem)
-        stem_to_module[stem] = mod
-    for stem in collided:
-        del stem_to_module[stem]
-        print(f"경고 — 파일 이름 '{stem}' 이 여러 디렉토리에 있어 호출 해석에서 뺐다.",
-              file=sys.stderr)
+    modules = {module_path(rel) for rel, _ in files}
+    known = {".".join(m.split(".")[:i]) for m in modules for i in range(1, m.count(".") + 2)}
+    candidates: dict[str, set[str]] = {}
+    for path in known:
+        parts = path.split(".")
+        for i in range(len(parts)):
+            candidates.setdefault(".".join(parts[i:]), set()).add(path)
+    name_to_module: dict[str, str] = {}
+    for name, paths in sorted(candidates.items()):
+        if len(paths) == 1:
+            name_to_module[name] = next(iter(paths))
+        elif "." not in name and len(paths & modules) > 1:
+            print(f"경고 — 파일 이름 '{name}' 이 여러 디렉토리에 있어 호출 해석에서 뺐다.",
+                  file=sys.stderr)
 
     symbols: list[PySymbol] = []
     pending: list[tuple[str, str, int, str]] = []  # (부르는 쪽, 대상, 줄, 파일)
@@ -240,7 +246,7 @@ def collect(repo: str, roots: list[str]) -> PyCallsDump:
         except SyntaxError:
             continue                               # 문법이 깨진 파일은 조용히 지나간다
         mod = module_path(rel)
-        syms, raw = scan_module(tree, mod, rel, stem_to_module)
+        syms, raw = scan_module(tree, mod, rel, name_to_module)
         symbols.extend(syms)
         pending.extend((owner, target, line, rel) for owner, target, line in raw)
 

@@ -72,10 +72,13 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 | (strict 전환 이전, griffe 만) | 2 | 0 |
 
 **함정 — 이름 해소가 이 수집기의 급소다.** 틀려도 오류가 나지 않고 간선이 조용히 사라진다.
-이 저장소는 `import machine.warmup` 이 아니라 `sys.path` 를 조작한 뒤 **`import warmup`**
-이라는 평평한 이름을 쓴다. 개발 중 디렉토리 뿌리로 걸렀더니 모듈을 넘는 호출이
-**338개에서 1개로** 떨어졌다. 그래서 `import_table` 은 **파일 이름(stem)** 을 열쇠로 잡고,
-이름이 겹치면 조용히 고르지 않고 **둘 다 버린다**(`test/codewiki/test_pycalls.py` 가 고정한다).
+이 저장소의 import 는 세 꼴이 섞여 있다 — `sys.path` 에 형제 디렉토리를 넣고 부르는 평평한 이름(**`import warmup`**),
+그렇게 넣은 디렉토리 아래의 패키지(**`from mode1.context import …`**), `src/` 뿌리부터 쓴 패키지
+(**`from core import pipeline`** · `from common.python import pythonPath`). 그래서 `import_table` 은 import 에 쓰인
+**점 경로를 통째로** 모듈 · 패키지 점 경로의 **꼬리**(끝 조각 하나 · 둘 · … · 전체)와 맞춰 찾고, 한 꼬리가 둘 이상과
+맞으면 조용히 고르지 않고 **버린다**(`test/codewiki/test_pycalls.py` 가 고정한다). 파일 이름 하나는 그 꼬리의 가장 짧은 경우다.
+개발 중 디렉토리 뿌리로 걸렀더니 모듈을 넘는 호출이 **338개에서 1개로** 떨어졌다. 🔵 2026-11-04 — 파일 이름(stem) 하나만
+열쇠로 잡던 판은 `src/` 로 옮긴 뒤의 이 저장소에서 모듈을 넘는 호출을 **61개**만 잡았고, 점 경로 꼬리로 바꾼 뒤 **171개**다.
 
 **호출의 kind 는 `dependency` 다.** 8종 enum 안에 있고 "부른다" 의 UML 대응이다.
 소유(composition/aggregation)로 올리지 않는다 — 부른다고 갖는 것이 아니다.

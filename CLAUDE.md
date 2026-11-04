@@ -43,8 +43,8 @@ Track A/B 의 순서는 결정 0008 에 있다.
 
 | 항목 | 실측값 |
 |---|---|
-| 측정 기준 커밋 / 태그 | `b8a9775`(`main`) / 태그 없음. 이력은 2026-11-01 의 `[init]` 커밋 둘(`a511224` · `7e73103`)에서 새로 시작했다. 옛 저장소(report-builder)의 마지막 측정은 `1d54b69` / `v1` 이었고 **둘 다 이 저장소에는 없다** |
-| 테스트 | `pytest` — 새 클론 그대로면 **865 통과 · 0 실패 · 21 건너뜀**, `report-wiki prep .` 뒤에는 **865 통과 · 1 실패 · 20 건너뜀** · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만). 실패 1건은 아래 "게이트 여섯" 의 층 분포 고정값이고, 위키 표류는 클라우드에서 잴 수 없어 건너뜀에 들어간다 |
+| 측정 기준 커밋 / 태그 | `720fb3a` 바로 다음 커밋(`main` · `pycalls` 의 `import_table` 고침) / 태그 없음. 이력은 2026-11-01 의 `[init]` 커밋 둘(`a511224` · `7e73103`)에서 새로 시작했다. 옛 저장소(report-builder)의 마지막 측정은 `1d54b69` / `v1` 이었고 **둘 다 이 저장소에는 없다** |
+| 테스트 | `pytest` — 새 클론 그대로면 **867 통과 · 0 실패 · 21 건너뜀**, `report-wiki prep .` 뒤에는 **867 통과 · 1 실패 · 20 건너뜀** · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만). 실패 1건은 아래 "게이트 여섯" 의 층 분포 고정값이고, 위키 표류는 클라우드에서 잴 수 없어 건너뜀에 들어간다 |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
@@ -123,7 +123,7 @@ npm run typecheck:py     # pyright strict
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 `report-wiki prep .` 뒤 865 통과 · **1 실패** · 20 건너뜀. prep 전에는 865 통과 · 0 실패 · 21 건너뜀이지만 초록이 아니다 — 입력이 없어 빨강이 건너뜀으로 숨은 것이다 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 `report-wiki prep .` 뒤 867 통과 · **1 실패** · 20 건너뜀. prep 전에는 867 통과 · 0 실패 · 21 건너뜀이지만 초록이 아니다 — 입력이 없어 빨강이 건너뜀으로 숨은 것이다 |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
@@ -150,8 +150,14 @@ npm run typecheck:py     # pyright strict
 `[514, 323, 161, 96, 23, 14]`(합 1131, 옛 저장소 커밋 `943f3fc` 2026-09-19)로 못박는다. 🔵 2026-10-21 클라우드에서 `report-wiki prep .` 을
 새로 돌리면 `[544, 347, 167, 104, 23, 15]`(합 1200)이다. 같은 날 사용자 Mac 에서도 실패하는데 값이 `[538, 342, …]` 로 또 다르다.
 🔵 2026-11-04 이 저장소 `b8a9775` 의 클라우드에서 prep 뒤에는 `[496, 107, 54, 22, 14, 6]`(합 699)으로, 앞의 어느 값과도 다르다.
-기계마다 다른 이유는 확인하지 못했다 — 기대값을 고치기 전에 그것부터 본다. `out/codegraph-raw/codegraph.json` 이 없으면
-이 시험은 건너뛴다.
+`src/codewiki/python/machine/pycalls.py` 의 `import_table` 이 패키지 꼴 import 를 풀게 고친 뒤에는 `[465, 119, 57, 30, 16, 9, 3]`(합 699, 층 일곱)이다.
+**값이 갈리는 까닭** (🔵 2026-11-04 클라우드에서 잼) — 같은 파일 묶음이면 값은 하나다. `PYTHONHASHSEED` · 파이썬 3.11~3.13 ·
+노드 순서 · 추적 파일만 있는 클론으로 바꿔도 같았다. 값을 바꾸는 것은 **입력 파일 묶음**이다 — `report-wiki prep` 은 뿌리를
+git 이 아니라 디스크(`os.listdir` · `os.walk`)에서 고르므로 git 밖 파일(Mac 에만 있는 `tools/` 의 `scrub_local_paths.py`)과 커밋하지 않은
+수정이 들어가고, 같은 이름의 파일 하나가 그 이름의 import 를 통째로 버리게 해 간선까지 바꾼다(`tools/` 에 둔 두 줄짜리 `survey_plan.py`
+하나로 `[496, …, 22, …]` 가 `[499, …, 20, …]` 이 됐다). 네 값은 잰 커밋도 서로 다르다. 10-21 의 클라우드와 Mac 이 어느 파일에서
+갈렸는지는 확인하지 못했다 — Mac 에서 `git status --porcelain --ignored -uall -- split-work src tools` 의 `.py` 줄을 본다.
+기대값을 어느 값으로 고칠지는 아직 정하지 않았다. `out/codegraph-raw/codegraph.json` 이 없으면 이 시험은 건너뛴다.
 
 **`xmldoc check` 는 게이트가 아니다 (2026-09-13).** 주석 주입은 폐지됐다 — 결정 0010.
 
