@@ -11,6 +11,13 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.
 EVIDENCE = os.path.join(_ROOT, "src", "common", "evidence.py")
 SEALED_DB = os.path.join("docs", "codegraph", "terms-db.json")
 
+# 본문에서 잡는 식별자 꼴 셋 — 결정 코드 · 산출물 파일명 · 배열 필드. `src/spec/python/viz/check.py` 에 같은 사본이 있다(`qa/gates/test_rule_copies.py`).
+TERM_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b", re.ASCII),
+    re.compile(r"\b[a-z][a-z0-9_-]*\.json\b", re.ASCII),
+    re.compile(r"\b[a-z][A-Za-z0-9_]*\[\]", re.ASCII),
+]
+
 
 class EvidenceList(TypedDict):
     """`src/common/evidence.py --list` 가 stdout 에 내는 JSON. `stale_files` 는 봉인 뒤 움직인 소스 경로다."""
@@ -37,13 +44,8 @@ def pick_terms(db: dict[str, Any], plan_text: str) -> dict[str, Any]:
 def find_new_concepts(db: dict[str, Any], plan_text: str) -> list[str]:
     known = set(db.keys())
     found: set[str] = set()
-    patterns = [
-        r"\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b",
-        r"\b[a-z][a-z0-9_-]*\.json\b",
-        r"\b[a-z][A-Za-z0-9_]*\[\]",
-    ]
-    for pattern in patterns:
-        for m in re.finditer(pattern, plan_text, re.ASCII):
+    for pat in TERM_PATTERNS:
+        for m in pat.finditer(plan_text):
             if m.group(0) not in known:
                 found.add(m.group(0))
     return sorted(list(found))
@@ -54,7 +56,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 3:
         print("사용법 — report-term collect <plan.md> <terms-db.json>", file=sys.stderr)
-        print("  terms-db.json 은 codebase-wiki 의 Mode 1 이 대상 저장소 docs/codegraph/ 에 봉인해 낸다",
+        print("  terms-db.json 은 Mode 1 이 대상 저장소 docs/codegraph/ 에 봉인해 낸다",
               file=sys.stderr)
         sys.exit(1)
 

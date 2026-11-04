@@ -27,11 +27,11 @@ from contract_types import CONTRACT, VERSION, ArtifactManifest, TermsDb  # noqa:
 KINDS = ("terms-db", "wiki")
 MANIFEST = os.path.join("docs", "codegraph", "manifest.json")
 TERMS_DB = os.path.join("docs", "codegraph", "terms-db.json")
-FIX = ("사람이 Mode 1 을 돌린다 — Mode 1 저장소 뿌리에서 .venv/bin/python src/codewiki/python/runner/run_mode1.py <이 저장소>"
+FIX = ("사람이 Mode 1 을 돌린다 — report-builder 뿌리에서 .venv/bin/python src/codewiki/python/runner/run_mode1.py <이 저장소>"
        " · 끝나면 docs/codegraph/ 를 커밋한다")
 
 
-# ── 봉인 계산 — 생산자 src/codewiki/python/machine/manifest.py(소스 집합은 declmap.tracked_files)와 같은 규칙의 사본. import 하지 않는다 ──
+# ── 봉인 계산 — 생산자 src/codewiki/python/machine/manifest.py(소스 집합은 declmap.tracked_files)와 같은 규칙의 사본. import 하지 않는다(qa/gates/test_rule_copies.py) ──
 def git(repo: str, *args: str) -> str:
     """대상 저장소에서 git 을 부르고 stdout 을 낸다. 실패하면 CalledProcessError 다."""
     return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, check=True).stdout

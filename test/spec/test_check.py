@@ -53,3 +53,8 @@ def test_undefinedTerms_skips_imports_and_section_titles():
 
 def test_undefinedTerms_skips_decision_ids():
     assert undefinedTerms("D1 과 D12 는 결정 번호다.", [])["ok"] is True
+    assert undefinedTerms("결정D1은 붙어 있어도 결정 번호다.", [])["ok"] is True
+
+def test_undefinedTerms_finds_ids_attached_to_korean():
+    r = undefinedTerms("결정C-21 과 산출물terms-db.json 과 배열calls[] 와 C-20은 정의가 없다.", [])
+    assert r["missing"] == ["C-20", "C-21", "calls[]", "terms-db.json"]

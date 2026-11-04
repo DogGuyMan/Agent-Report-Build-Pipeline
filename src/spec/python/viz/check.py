@@ -41,11 +41,11 @@ def linkIntegrity(decisionIds: list[str], reportSource: str) -> LinkResult:
             "missingSections": missingSections, "orphanSections": orphanSections}
 
 
-# 본문에서 잡는 식별자 꼴 셋. `src/term/python/runner/term/collect.py` 의 find_new_concepts 와 같은 값이어야 한다.
+# 본문에서 잡는 식별자 꼴 셋. `src/term/python/runner/term/collect.py` 의 `TERM_PATTERNS` 와 같은 사본이다(`qa/gates/test_rule_copies.py`).
 TERM_PATTERNS = [
-    re.compile(r"\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b"),
-    re.compile(r"\b[a-z][a-z0-9_-]*\.json\b"),
-    re.compile(r"\b[a-z][A-Za-z0-9_]*\[\]"),
+    re.compile(r"\b(?!D\d)[A-Z]{1,3}-?\d{1,3}\b", re.ASCII),
+    re.compile(r"\b[a-z][a-z0-9_-]*\.json\b", re.ASCII),
+    re.compile(r"\b[a-z][A-Za-z0-9_]*\[\]", re.ASCII),
 ]
 
 
