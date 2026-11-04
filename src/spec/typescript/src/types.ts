@@ -9,9 +9,9 @@ export type StatusVariant = "proposed" | "accepted" | "superseded";
 
 export interface Conf {
   tier: ConfTier;
-  /** 정수 앵커. 정본에 "실측" 같은 문자열 사례가 있어 string 도 허용한다. */
+  /** 정수 앵커. 옛 출력에 "실측" 같은 문자열 사례가 있어 string 도 허용한다. */
   anchor: number | string;
-  /** tier 가 함의하는 이모지를 덮어쓴다. 정본의 tier/이모지 불일치 2건 재현용. */
+  /** tier 가 함의하는 이모지를 덮어쓴다. 옛 출력 재현용. */
   emoji?: string;
 }
 

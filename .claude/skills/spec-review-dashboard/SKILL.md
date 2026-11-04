@@ -120,13 +120,13 @@ Mode 2 는 Mode 1 과 독립이다. 대상 저장소에 봉인(`<저장소>/docs
 | `EvidenceNote` | `measured: ReactNode[]`, `judged?: ReactNode[]` |
 | `BeforeAfter` | `id`, `before: DiagramPanel`, `after: DiagramPanel`, `legend: LegendItem[]` |
 | `VerdictFooter` | `note?: string` |
-| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **2026-08-29 부터 선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`src/spec/python/viz/wrap_terms.py`). 손으로 `<T id>` 를 심지 않는다 |
+| `defineTerms` | `(terms: Term[]) => 인라인 참조 컴포넌트`. **선택** — `report-spec build` 가 본문의 용어를 자동으로 감싼다(`src/spec/python/viz/wrap_terms.py`). 손으로 `<T id>` 를 심지 않는다 |
 | `Glossary` | `terms: Term[]` — 이해도 그룹 아코디언(모름 → 애매 → 확실 → 미측정, 모름만 열림) |
 | `TermGraph` | `terms: Term[]`, `height?: number` |
 
 `Conf` = `{ tier: "green"|"amber"|"red"; anchor: number|string; emoji?: string }`.
-`anchor` 는 정수가 기본이나 `"실측"` 같은 문자열도 정본 사례가 있어 허용된다.
-`emoji` 는 tier 가 함의하는 기본값(🔵/🟡/💭)을 덮어쓴다 — **정본 재현 목적으로만 쓴다.**
+`anchor` 는 정수가 기본이나 `"실측"` 같은 문자열도 옛 출력에 사례가 있어 허용된다.
+`emoji` 는 tier 가 함의하는 기본값(🔵/🟡/💭)을 덮어쓴다 — **옛 출력 재현 목적으로만 쓴다.**
 
 `Term` = `{ id; label; short; body?; kind: "decision"|"artifact"|"concept"|"tool"; links?: string[] }`.
 **정의는 `data.ts` 의 `terms` 배열 한 곳에만 쓴다.** 본문 인라인 참조·용어집 표·관계 그래프가

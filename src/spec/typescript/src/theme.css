@@ -103,7 +103,7 @@ tr.row-recommended td:first-child { border-left: 3px solid var(--accent); }
   .newstruct-note .note-row { grid-template-columns: 1fr; gap: 6px; }
 }
 
-/* 번복·정정 기록 — 정본의 "⚠ rev.1 번복 기록" / "⚠ 2차 정정" 블록에 대응 */
+/* 번복·정정 기록 — 옛 출력의 "⚠ rev.1 번복 기록" / "⚠ 2차 정정" 블록에 대응 */
 .reversal-note, .correction-note { margin-top: 10px; padding: 12px 14px; border-radius: 6px;
   font-size: 12px; line-height: 1.7; background: var(--amber-soft);
   border-left: 3px solid var(--amber); color: var(--text-2); }
