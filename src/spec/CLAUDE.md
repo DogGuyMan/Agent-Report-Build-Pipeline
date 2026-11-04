@@ -87,8 +87,7 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 
 ## `report-spec init` 의 slug 검증
 
-인계 문서에 없던 요구로, 사용자 지적에 의해 추가됐다. 초기 구현은 아무 문자열이나 받아 조용히 빈
-디렉토리를 만들었다.
+아무 문자열이나 받아 빈 디렉토리를 만들지 않는다.
 
 - 인자 없음 → 보고서 없는 문서 나열 후 exit 1. 줄 끝에 어느 자리인지를 함께 낸다
 - 대응 문서 없음 → 거부 + 비슷한 slug 제시 후 exit 1
@@ -135,7 +134,7 @@ esbuild 가 번들 시점에 읽으므로 파이썬으로 옮기면 파싱하지
 | 여기 → `../../resource/spec/config.toml` | `init.py` 와 `run_mode2.py` 가 원본 문서 자리 규칙을 읽는다 |
 | 여기 → `typescript/src/` | `build.py` 의 esbuild `alias`, `check.py` 의 임시 tsconfig `paths` |
 | 여기 → 바깥 명령 | `dot`(Graphviz) · `npx esbuild` 를 PATH 로 부른다 |
-| 여기 → `../codewiki/` | **import 하지 않는다.** 봉인된 산출물만 근거로 읽는다(결정 0011) |
+| 여기 → `../codewiki/` | **import 하지 않는다.** 봉인된 산출물만 근거로 읽는다 |
 
 ## 흔한 변경 패턴 (Common modification patterns)
 

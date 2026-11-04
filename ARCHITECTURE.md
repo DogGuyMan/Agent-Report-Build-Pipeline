@@ -149,15 +149,16 @@ Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 �
 
 | 단계            | 기계/LLM        | 부르는 것                      | 읽는 것 → 쓰는 것                                                                                         |
 | ------------- | ------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
-| `prep`        | 기계            | `src/codewiki/python/runner/wiki/prep.py`    | 대상 저장소 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg`      |
-| `warmup`      | 기계            | `src/codewiki/python/machine/warmup.py`      | 소스 + `warmup.json` + `codegraph.json` → (판정만. 파일을 쓰지 않는다)                                           |
-| `survey-plan` | 기계            | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/survey-plan.json` (층·배치. **LLM Model을 부르지 않는다**)                     |
-| `survey`      | **LLM 층별 N회** | `claude -p` 배치마다           | 소스 + `facts/*.md` + `survey-plan.json` → `_shards/*.json` → 합쳐서 `resource/codewiki/terms-reading.json` |
-| `warmup-save` | 기계            | `src/codewiki/python/machine/warmup.py`      | 앞칸의 판정 → `out/codegraph-raw/warmup.json` (**전수조사가 성공했을 때만**)                                        |
-| `terms`       | 기계            | `src/codewiki/python/machine/terms_db.py`    | 읽기 레코드 + `codegraph.json` → `terms-db.json`                                                         |
-| `wiki`        | **LLM 층별 N회** | `claude -p` 목차 1 + 장마다     | `terms-db.json` + `facts/*.md` → `wiki-plan.json` → `docs/wiki/*.md`                                |
-| `build`       | 기계            | `src/codewiki/python/runner/wiki/build.py`   | `docs/wiki/*.md` → VitePress 정적 사이트                                                                 |
-| `check`       | 기계            | `src/codewiki/python/runner/wiki/check.py`   | 산문 → 인용 판정 표 (표준 출력)                                                                                |
+| `lang-hint` · `lang-decide` | LLM 1회 · 기계 | `claude -p` · `src/codewiki/python/machine/lang_select.py` | 저장소 파일 목록 → 제안 → 결정론 검사 → `out/codegraph-raw/lang-select.json` |
+| `detect-changes` | 기계 | `src/codewiki/python/machine/warmup.py` | 소스 + `snapshot.json` + `codegraph.json` → `changes.json` (판정만) |
+| `collect-graph` | 기계 | `src/codewiki/python/runner/wiki/prep.py` | 대상 저장소의 git 추적 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
+| `schedule-batches` | 기계 | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/batches.json` (층·배치. **LLM Model을 부르지 않는다**) |
+| `annotate-symbols` | **LLM 층별 N회** | `claude -p` 배치마다 | 소스 + `facts/*.md` + `batches.json` → `_shards/*.json` → 합쳐서 `terms-reading.json` |
+| `snapshot-sources` | 기계 | `src/codewiki/python/machine/warmup.py` | 앞칸의 판정 → `out/codegraph-raw/snapshot.json` (**전수조사가 성공했을 때만**) |
+| `verify-terms` | 기계 | `src/codewiki/python/machine/terms_db.py` | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
+| `outline-wiki` · `write-wiki` | **LLM 목차 1 + 층별 N회** | `claude -p` | `terms-db.json` + `facts/*.md` → `outline.json` → `docs/wiki/*.md` |
+| `publish-wiki` | 기계 | `src/codewiki/python/runner/wiki/build.py` | `docs/wiki/*.md` → VitePress 정적 사이트 |
+| `verify-wiki` | 기계 | `src/codewiki/python/runner/wiki/check.py` | 산문 → 인용 판정 표 (표준 출력) |
 | `seal-artifacts` | 기계         | `src/codewiki/python/machine/manifest.py`    | 이 실행에서 검사를 통과하고 지금 소스를 다시 읽은 것만 → `<대상>/docs/codegraph/manifest.json` · `terms-db.json` 사본 (계약: `contracts/`, 설명 문서 `contract-mode1-artifacts.md` 는 git 밖) |
 
 
@@ -190,7 +191,7 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 
 ## 3. 비대칭 — LLM 한 칸이 시간의 99% 를 쓴다
 
-🔵 실측 (2026-08-30, 대상 QtVisionEdit, 백지 상태. 근거: git 밖 계획서 `2026-08-30-warmup-mode1-wiring.md` 18행)
+🔵 실측 (2026-08-30, 대상 QtVisionEdit, 백지 상태)
 
 
 | Mode 1 단계   | 벽시계           | 토큰             |

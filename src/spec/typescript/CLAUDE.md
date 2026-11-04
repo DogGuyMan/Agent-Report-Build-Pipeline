@@ -5,23 +5,18 @@
 
 ## 무엇이 여기 있나
 
-컴포넌트 **17개** 를 내보낸다(인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종).
+컴포넌트 **17개** 를 내보낸다(보고서 블록 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종).
 `theme.css` 는 옛 출력에서 추출한 뒤 B1 패치를 얹은 것이다.
 `src/runtime/term-graph.ts` 하나만 **산출물에 실리는 클라이언트 코드**다.
 
 **React 훅을 쓰지 않는다.** 클라이언트 상태는 용어 그래프 안에만 있고 그것은 d3 + 바닐라다.
 
-## 컴포넌트 — 인계 문서의 예시를 그대로 쓰지 말 것
+## 컴포넌트 — 기준은 지금의 구현이다
 
-인계 문서 §B-4 의 예시 코드는 실제로 필요한 것과 다르다. **인계 문서보다 실측이 앞선다** — 여기서
-실측이란 옛 출력을 읽어 확인한 것이고, 그것이 컴포넌트 설계의 *출발점*이 됐다. 지금 기준은
-`src/spec/typescript/src/components/` 의 현재 구현이다.
+기준은 `src/spec/typescript/src/components/` 의 현재 구현이다. 옛 출력을 읽어 확인한 것이 설계의 *출발점*이었다.
 
 ```tsx
-// 인계 문서 예시 (틀림) — 이모지가 빠지고 anchor: number 는 "실측" 을 표현 못 한다
-<span className={`conf-badge conf-${tier}`}>{anchor}</span>
-
-// 실제 — tier 는 green|amber|red, anchor 는 number|string
+// tier 는 green|amber|red, anchor 는 number|string
 <span className="conf-badge conf-green">🔵 99</span>
 <span className="conf-badge conf-green">🔵 실측</span>
 ```
@@ -41,9 +36,9 @@
 
 ## B1 — 다이어그램 가독성은 CSS 만으로 고쳐졌다
 
-인계 문서가 예측한 결함(`.svg-wrap svg { max-width: 100% }` 가 `overflow-x: auto` 를 무력화해 원본
-1961pt SVG 의 10pt 글꼴이 화면상 2.5px 로 축소)은 실재했고, 해결은 **인계 문서가 예상한 pan/zoom
-스크립트가 아니라 체크박스 토글**이었다.
+결함(`.svg-wrap svg { max-width: 100% }` 가 `overflow-x: auto` 를 무력화해 원본
+1961pt SVG 의 10pt 글꼴이 화면상 2.5px 로 축소)의 해결은 pan/zoom
+스크립트가 아니라 **체크박스 토글**이다.
 
 - `.zoom-toggle:checked ~ .diagram-grid` — 형제 결합자만 쓴다. 기본은 병치, 켜면 1열 + 원본 픽셀 + 스크롤.
 - **`--svg-w` 가 이 복구의 급소다.** `width`/`height` 를 제거한 인라인 SVG 는 고유 크기가 없어 브라우저가
@@ -61,7 +56,7 @@
 
 | 컴포넌트 | 하는 일 |
 |---|---|
-| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다.** 2026-08-29 부터 빌드가 본문 용어를 **자동으로** 감싸므로 저자가 직접 쓸 일은 드물다 (`src/spec/python/viz/wrap_terms.py`) |
+| `defineTerms(terms)` | 용어 목록을 묶어 인라인 참조 컴포넌트를 돌려준다. **전역 변수도 React 컨텍스트도 쓰지 않는다.** 빌드가 본문 용어를 **자동으로** 감싸므로 저자가 직접 쓸 일은 드물다 (`src/spec/python/viz/wrap_terms.py`) |
 | `<Glossary terms>` | 정의 전량을 **이해도 그룹 아코디언**(`<details>`, 모름 → 애매 → 확실 → 미측정, 모름만 열림)으로 보인다. 보고서 맨 앞에 놓는다 |
 | `<TermGraph terms>` | 용어 관계를 그물로 그린다. 좌표 계산·드래그·확대·hover 는 런타임이 한다. **물리 상수는 `src/spec/typescript/src/runtime/term-graph.ts` 머리의 `KNOBS`** — 2026-08-29 사용자가 슬라이더로 육안 확정한 값(덩어리 사이 척력은 `REPEL_MAX_DIST` 밖 0, 덩어리 경계 사각형 충돌 `GROUP_PAD`, 상자 `BOUNDS_SCALE` 2.5). 다시 조정하려면 `<TermGraph terms tune />` 로 슬라이더 패널을 켠다(임시용, 산출물에 남기지 않는다) |
 
@@ -130,5 +125,4 @@ grep -c '<script' out/report.html     # 용어집 없으면 0, 있으면 1. 2 �
 - **Gotcha — 용어 데이터는 `data-terms` 속성으로 넘긴다.** `<script type="application/json">` 을
   쓰면 `countScripts` 가 2로 세어 불변식이 깨진다.
 - **Note — 번들 코드 안의 `</script>` 문자열을 이스케이프한다.** 안 하면 HTML 파서가 조기 종료한다.
-- **Why — D축 필드를 `types.ts` 에 넣지 않는다.** 평가 없이 보류된 상태다
-  (결정 0004).
+- **Why — D축 필드를 `types.ts` 에 넣지 않는다.** 평가 없이 보류된 상태다.

@@ -1,7 +1,7 @@
 # src/codewiki/ — Mode 1. 코드베이스를 읽어 코드 지도와 위키를 만든다
 
 > 루트 나침반은 [`../../CLAUDE.md`](../../CLAUDE.md). 단계 기계는 [`../core/CLAUDE.md`](../core/CLAUDE.md), 리소스는 [`../../resource/CLAUDE.md`](../../resource/CLAUDE.md).
-> 분리 계획(결정 0011)의 Phase B 는 이 폴더를 통째로 codebase-wiki 저장소로 떼어낸다.
+> 이 폴더가 Mode 1 의 프로젝트 단위다. 다른 mode 와는 봉인한 산출물과 `contracts/` 로만 주고받는다.
 
 이 저장소에서 가장 큰 모듈이다 — `python/machine/`(정적 수집 · 인용 검증) · `python/runner/`(실행기와 단계) ·
 `python/viz/`(그림) · `csharp/roslyn-dump/`(C# 수집기). 시험은 `test/codewiki/`.
@@ -36,7 +36,7 @@
 | `clangd_refs.py` · `reverse_refs.py` | clangd 에 직접 말해 역방향 참조를 받는다 |
 | `terms_db.py` | 용어 사전 병합과 **인용 검사 L1/L2/L3**. 투영이 코드 지도를 덮는다 |
 | `verify_citations.py` | 위키 산문의 `파일:줄` 인용을 3값으로 판정 |
-| `reading_types.py` | `Use` · `Term` · `Terms` 형 — `terms-reading.json` 레코드의 모양. `terms_db.py` 가 import 한다. 주석 주입기 `xmldoc.py` 와 그 산출물 `comments.xml` 은 2026-10-31 에 지웠다(`docs/decisions/0010` · `0014`) |
+| `reading_types.py` | `Use` · `Term` · `Terms` 형 — `terms-reading.json` 레코드의 모양. `terms_db.py` 가 import 한다. 주석 주입기와 그 산출물은 없다 — 소스에 주석 블록을 박지 않는다 |
 | `warmup.py` | 전수조사 증분 캐시 — 무엇을 다시 읽어야 하는지 가려낸다 |
 | `survey_plan.py` | 코드 지도를 의존 위상 층과 배치로 나눈다. **판정하지 않는다** |
 | `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
@@ -83,6 +83,10 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 **호출의 kind 는 `dependency` 다.** 8종 enum 안에 있고 "부른다" 의 UML 대응이다.
 소유(composition/aggregation)로 올리지 않는다 — 부른다고 갖는 것이 아니다.
 
+**git 이 추적하지 않는 파일은 읽지 않는다.** 대상이 git 저장소면 `pycalls.collect` 와 `normalize_python` 이
+추적되는 파일만 싣는다 — 봉인(`manifest.py`)의 소스 집합과 같은 기준이다. 추적 밖 사본은 노드를 늘리고, 같은 파일
+이름으로 위 이름 해소에서 진짜 호출까지 지운다(`test/codewiki/test_pycalls.py` · `test_normalize.py` 가 고정한다).
+
 ## 위키 그림 사전 렌더 (`python/viz/demermaid.py`)
 
 - **사전 렌더가 핵심이다.** VitePress 의 mermaid 플러그인은 브라우저에서 그린다.
@@ -97,7 +101,7 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 ## 세 mode 의 흐름 — Mode 1 만 여기 산다
 
 **Mode 1 의 실행기는 `python/runner/` 에 있다.** Mode 1.5 · 2 의 실행기는 `../term/` · `../spec/` 에 있고
-이 폴더를 import 하지 않는다 — 봉인된 산출물만 읽는다(결정 0011). 단계 기계 자체는 `../core/CLAUDE.md`.
+이 폴더를 import 하지 않는다 — 봉인된 산출물만 읽는다. 단계 기계 자체는 `../core/CLAUDE.md`.
 
 ```
 Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
@@ -126,7 +130,7 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 - **`where` 는 실제 `파일:줄`** — `terms_db.py` 가 L1(파일) L2(줄) L3(근처에 그 이름) 로 검사한다
 - `kind` 가 `file` `artifact` `key` `concept` `module` 이면 **이름이 그 줄에 글자 그대로** 있어야 한다
   (`terms_db.py` 의 `_stem` — `codegraph.json` 을 `.` 로 쪼개면 안 되기 때문)
-- 새 함수를 만들면 그 자리에서 레코드를 쓴다. **주석 블록은 박지 않는다** — 주입은 폐지됐다(`docs/decisions/0010`)
+- 새 함수를 만들면 그 자리에서 레코드를 쓴다. **주석 블록은 박지 않는다**
 - 코드가 움직여 줄이 밀리면 `where` 는 낡는다. 자동 재계산은 없다 — `terms_db.py` 의 L2 가 잡고, Mode 1 증분(`detect-changes`)이
   그 파일을 다시 읽거나 손으로 고친다. `uses[].where` 도 같다(L3 경고)
 
@@ -144,25 +148,21 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 🔵 2026-08-30 실측으로 확인했다. **그래서 에이전트에 먹일 목록은 `재읽기` 가 아니라
 `blast_radius(재읽기 ∪ 위치만)` 이어야 한다** — `warmup.py` 의 CLI 도 그렇게 한다.
 
-**배선돼 있다.** `warmup`(판정만)과 `warmup-save`(확정)가 `survey` 앞뒤에 각각 자기 칸으로
+**배선돼 있다.** `detect-changes`(판정만)와 `snapshot-sources`(확정)가 `annotate-symbols` 앞뒤에 각각 자기 칸으로
 붙어 있다. **둘로 가른 것이 급소다** — 한 칸이면 에이전트가 실패해도
 그 파일이 `유효` 로 기록되어 읽지 않은 파일이 읽은 것으로 남는다. 씨앗은 `changed_seed` 가 만들고
-위 경고대로 `재읽기 ∪ 위치만` 이다. 판정을 못 하면 옛 동작인 전량 조사로 되돌아가고, 대조군은
-`--skip warmup,warmup-save` 로 만든다.
+위 경고대로 `재읽기 ∪ 위치만` 이다. 판정을 못 하면 전량 조사로 돌아가고, 대조군은
+`--skip detect-changes,snapshot-sources` 로 만든다.
 
-계획서는 git 밖 `2026-08-30-warmup-mode1-wiring.md` 다. **Task 9(실측 대조)만 미실행** —
-국소 변경을 준 증분 실행의 절감폭은 아직 숫자가 없다.
+국소 변경을 준 증분 실행의 절감폭은 아직 숫자가 없다 — 실측 대조를 돌리지 않았다.
 
-## Bottom-Up 층 병렬 — 2026-08-30 에 뒤집힌 결정
+## Bottom-Up 층 병렬
 
-이 문서의 이전 판과 `run_mode1.py` 는 **"에이전트를 하나로 묶은 것이 이 설계의 급소"** 라고
-적고 있었다. 이유는 캐시였다. **사용자가 2026-08-30 에 그 결정을 뒤집었다.**
-`agent` 한 칸이 `survey`(전수조사)와 `wiki`(산문) 둘로 갈리고, 각각 **층 오름차순으로 여러
-세션**을 띄운다. `warmup-save` 는 **레코드를 만드는 `survey` 바로 뒤**에 있다 — `wiki` 뒤에
+LLM 칸은 전수조사(`annotate-symbols`)와 산문(`outline-wiki` · `write-wiki`)으로 갈리고, 각각 **층 오름차순으로 여러
+세션**을 띄운다. 에이전트 한 세션으로 묶는 안(캐시에 유리하다)은 쓰지 않는다.
+`snapshot-sources` 는 **레코드를 만드는 `annotate-symbols` 바로 뒤**에 있다 — 산문 단계 뒤에
 두면 산문 실패가 다음 실행의 전량 재조사를 부른다.
 
-| # | 결정 |
-|---|---|
 **⚠ 간선 방향** — `codegraph.json` 의 `{from: A, to: B}` 는 **"A 가 B 에 의존"** 이다
 (레코드의 `uses[].to` 가 그대로 `to` 다). 🔵 2026-08-30 실측 — 105건 전부 이 방향, 반대 0건.
 그러므로 **`out_deg` = 내가 끌어오는 수**(0이면 층0, 여기서 시작), **`in_deg` = 남이 나를
@@ -170,8 +170,10 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
 **`in_deg` 0 부터 시작하면 top-down 이 되어 이 도구가 막으려는 사고가 그대로 난다** —
 `main` 이 부르는 것들이 아직 안 읽힌 채로 `main` 의 뜻을 적게 된다.
 
+| # | 결정 |
+|---|---|
 | K1 | 정렬 축은 **위상 깊이**. 🔵 out_deg 로는 안 된다 — 이 저장소 실측에서 out_deg 1 무리(31개)와 2 무리(15개) 안에 깊이 1·2·3·4 가 전부 섞여 있었다. 의존 하나만 가져도 그 하나가 3층이면 4층이다 |
-| — | 층 매기기는 **기계**다(`survey_plan.py`). `survey-plan` 이 `STAGES` 에서 자기 칸을 갖는 이유 — 한 칸에 묶으면 층 오름차순이 LLM Model의 판단처럼 읽힌다 |
+| — | 층 매기기는 **기계**다(`survey_plan.py`). `schedule-batches` 가 `STAGES` 에서 자기 칸을 갖는 이유 — 한 칸에 묶으면 층 오름차순이 LLM Model의 판단처럼 읽힌다 |
 | K2 | 층 안은 병렬, 층 사이는 순차 |
 | K3 · K4 | 배치는 8심볼, 한 층에 동시 8배치 |
 | K5 | 비노드 용어(file · module · artifact · key · concept)는 맨 마지막 별도 층 |
@@ -237,7 +239,7 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 **코드에도 경로를 박지 않는다.** 파이썬 해석기는 `src/common/python.py` 의 `pythonPath()` 로 찾고,
 바깥 명령(`git` · `dot` · `clang-uml` · `dotnet` · `clangd` · `mmdc`)은 PATH 로 부른다.
 새 기계에서 무엇이 빠졌는지는 **`npm run doctor`** 가 한 화면으로 말한다 — 필수가 없으면 exit 1.
-파이썬 의존성은 `requirements.txt` 에 있다 — `networkx` `numpy` `scipy` `pytest` `griffe` `msgspec` 여섯이면 전량이 돈다.
+파이썬 의존성은 `requirements.txt` 에 판까지 고정돼 있다 — 그 목록만 깔면 전량이 돈다.
 설치 절차는 `README.md` 에 있다.
 
 ## 검증
@@ -251,8 +253,7 @@ cd $REPO_ROOT
 .venv/bin/python src/codewiki/python/runner/run_mode1.py <저장소> --dry-run   # 자식 프로세스 0개. 시뮬레이터의 다섯 검사가 돈다
 ```
 
-**파이썬 의존성은 여섯이면 전량이 돈다** — `networkx` `numpy` `scipy` `pytest` `griffe` `msgspec`
-(`requirements.txt`). 표준 라이브러리로 풀 수 있으면 새 의존성을 더하지 마라.
+**파이썬 의존성은 `requirements.txt` 의 목록이 전부다.** 표준 라이브러리로 풀 수 있으면 새 의존성을 더하지 마라.
 
 ## 이 모듈이 소유하는 것 (Owns)
 
@@ -267,7 +268,7 @@ Mode 2 의 것(`src/spec/typescript/src/*` · `src/spec/python/viz/build.py` · 
 | 여기 → `../core/` | `pipeline` · `measure` 를 import 한다 |
 | 여기 → `../common/` | `python.py`(해석기 탐색) · `template.py`(`{{이름}}` 자리 채우기) |
 | `bin/report-wiki` → 여기 | `prep` · `build` · `check` 를 자식 프로세스로 띄운다 |
-| `../term/` · `../spec/` → 여기 | **import 하지 않는다.** 이 폴더가 대상 저장소에 봉인한 산출물을 `../common/evidence.py` 로 판정해 읽을 뿐이다(결정 0011) |
+| `../term/` · `../spec/` → 여기 | **import 하지 않는다.** 이 폴더가 대상 저장소에 봉인한 산출물을 `../common/evidence.py` 로 판정해 읽을 뿐이다 |
 
 안에서의 화살표:
 
@@ -291,7 +292,7 @@ Mode 2 의 것(`src/spec/typescript/src/*` · `src/spec/python/viz/build.py` · 
 #   src/codewiki/python/runner/mode1/edges.py    ORDER 에 자리 · STAGES 에 인스턴스 · SKIP 을 내면 EDGES 에 그 갈래 · 옛 이름은 ALIASES
 .venv/bin/python src/codewiki/python/runner/run_mode1.py <저장소> --dry-run    # 시뮬레이터의 다섯 검사가 여기서 돈다
 
-# 새 함수를 더했다 — 레코드도 그 자리에서 쓴다. 주석 블록은 박지 않는다 (0010)
+# 새 함수를 더했다 — 레코드도 그 자리에서 쓴다. 주석 블록은 박지 않는다
 $EDITOR resource/codewiki/terms-reading.json     # {kind, module, where, means, does, uses[], confidence}
 .venv/bin/python src/codewiki/python/machine/terms_db.py out/codegraph-raw/codegraph.json --repo . --reading resource/codewiki/terms-reading.json
 

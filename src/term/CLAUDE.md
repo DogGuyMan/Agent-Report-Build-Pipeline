@@ -18,7 +18,7 @@ Plan 하나를 놓고 돈다 — 필요한 용어를 모으고(collect), 사람�
 
 ## 이 모듈이 소유하는 것 (Owns)
 
-`src/term/**` · `resource/term/**` · `test/term/**`. 소유하지 않는 것 — 용어 DB 의 꼴(`src/codewiki/python/machine/terms_db.py`)과 봉인(결정 0011).
+`src/term/**` · `resource/term/**` · `test/term/**`. 소유하지 않는 것 — 용어 DB 의 꼴(`src/codewiki/python/machine/terms_db.py`)과 봉인.
 
 ## 다른 모듈과의 의존 (Cross-module dependencies)
 
@@ -27,5 +27,5 @@ Plan 하나를 놓고 돈다 — 필요한 용어를 모으고(collect), 사람�
 | 여기 → `../core/` | `pipeline` · `measure` 를 import 한다 |
 | 여기 → `../common/python.py` | 해석기 탐색 |
 | 여기 → `../common/evidence.py` | `collect.py` 가 자식 프로세스로 불러 봉인된 Mode 1 산출물을 판정한다 |
-| 여기 → `../codewiki/` | **import 하지 않는다.** 봉인된 `terms-db.json` 을 읽을 뿐이다(결정 0011) — `test/core/test_import_isolation.py` 가 잰다 |
+| 여기 → `../codewiki/` | **import 하지 않는다.** 봉인된 `terms-db.json` 을 읽을 뿐이다 — `test/core/test_import_isolation.py` 가 잰다 |
 | `bin/report-term` → 여기 | 세 명령을 자식 프로세스로 띄운다 |

@@ -4,11 +4,11 @@
 
 | 폴더 | 무엇을 | `sys.path` 에 넣는 것 |
 |---|---|---|
-| `codewiki/` | Mode 1 — 수집기 · 정규화 · 용어 DB · warmup · 층 계획 · 봉인 매니페스트 · 단계 기계 위의 Mode 1 실행기 | `src/` · `src/codewiki/python/{runner,machine,viz}` |
-| `term/` | Mode 1.5 — 실행기 · 채점 · collect/quiz/emit | `src/` · `src/term/python/runner` · `src/codewiki/python/machine`(declmap 픽스처) |
-| `spec/` | Mode 2 — `init` 의 slug · `check` 의 `<script>` 상한 · 경로 링크 · 용어 감싸기 · React 컴포넌트와 용어 그래프 수학(Node 자식 프로세스) · `config.toml` 대조 · **유일한 Node 시험** `svg.test.mjs` | `src/` · `src/spec/python/{runner,viz}` |
+| `codewiki/` | Mode 1 — 수집기 · 정규화 · 용어 DB · warmup · 층 계획 · 봉인 매니페스트 · 단계 기계 위의 Mode 1 실행기 · 모듈 DOT 템플릿 | `src/` · `src/codewiki/python/{runner,machine,viz}` |
+| `term/` | Mode 1.5 — 실행기 · 채점 · collect/quiz/emit | `src/` · `src/term/python/runner` |
+| `spec/` | Mode 2 — `init` 의 slug · `check` 의 `<script>` 상한 · 경로 링크 · 용어 감싸기 · React 컴포넌트와 용어 그래프 수학(Node 자식 프로세스) · `config.toml` 대조 · 보고서 뼈대 템플릿 · **유일한 Node 시험** `svg.test.mjs` | `src/` · `src/spec/python/{runner,viz}` |
 | `core/` | 단계 기계 · 측정 · 명령 갈림길 · Mode 1.5 와 2 를 import 해도 networkx 가 실리지 않는가 | `src/` 만 |
-| `common/` | 리소스 자리 채우기 · 템플릿에서 짓는 파일 꼴 · 봉인 판정(`evidence.py`) | `src/` 만, 봉인 판정은 `src/common` |
+| `common/` | 리소스 자리 채우기 · 봉인 판정(`evidence.py`) | `src/` 만, 봉인 판정은 `src/common` |
 | `tools/` | README 표류 · 해석기 탐색 · doctor 출력 · 계약 JSON 과 계약 형 생성기 | `src/` 만, 생성기는 `tools` |
 
 ```bash

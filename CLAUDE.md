@@ -11,15 +11,11 @@
 | [`src/core/CLAUDE.md`](src/core/CLAUDE.md) | 세 실행기가 함께 타는 **단계 기계** · 측정 · 명령 갈림길. `src/common/` 의 유틸(해석기 탐색 · 자리 채우기 · 봉인 판정)도 여기서 설명한다 |
 | [`tools/CLAUDE.md`](tools/CLAUDE.md) | 저장소 유지보수 — 환경 점검 · README 생성 · 계약 생성 · 설치 · 경로 세척 |
 | [`resource/CLAUDE.md`](resource/CLAUDE.md) | **코드가 읽기만 하는 것** — 프롬프트 · 결함 표 · 템플릿 · 골든 꼴 · 전수조사 레코드 · 설정값 `resource/codewiki/config.toml`(Mode 1 의 Model id · 비용 어림 `[estimate]` — 시작할 때 예상 비용 한 줄) · `resource/spec/config.toml`(Mode 2 의 Model 별명 `opus` · 원본 문서 자리 규칙). mode 별로 |
-| [`qa/CLAUDE.md`](qa/CLAUDE.md) | 저장소 규약 게이트 넷과 실행기 측정값 |
+| [`qa/CLAUDE.md`](qa/CLAUDE.md) | 저장소 규약 게이트 다섯과 실행기 측정값 |
 | `contracts/` · 설명 문서 `contract-mode1-artifacts.md`(git 밖 `docs/`) | **Mode 1 산출물 계약** — Mode 1 이 대상 저장소 `docs/codegraph/` 에 봉인하고(`src/codewiki/python/machine/manifest.py`) Mode 1.5 · 2 가 판정한다(`src/common/evidence.py`). 계약 JSON 은 형에서 생성한다(`tools/gen_contract.py`) |
-| [`split-work/`](split-work/README.md) | **두 저장소 분리 작업 동안만** 쓰는 바이트 대조 도구. 제품 코드가 아니고 산출물은 git 밖이다. 분리가 끝나면 지운다 |
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 모듈 시험 — mode 별 폴더 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
-| `docs/wiki/` | **이 저장소의 RAG.** 자기 자신에게 Mode 1 을 돌려 구운 위키 21쪽. 코드를 뒤지기 전에 여기를 먼저 grep 한다 |
-| `docs/decisions/` | 기각·취소·보류된 것들. **같은 제안을 다시 하기 전에 읽는다** |
-| `docs/overturn/` | 뒤집힌 **판단**과 그 패턴. **무언가를 기각하려 하기 전에 검사표를 읽는다** |
-| `docs/` 의 `CLAUDE.md` | 보관소. **첨부되지 않은 인계·계획 문서는 스스로 열지 않는다** |
+| `docs/decisions/` | 결정 기록 — 디렉토리 정리(0014) |
 
 **`docs/` 는 `diagrams/` 말고는 git 밖이다**(`.gitignore`) — 위 표의 `docs/` 행은 이 기계에만 있고, 새 클론과 클라우드 세션에는 없다.
 
@@ -34,48 +30,24 @@
 **이 도구는 옛 보고서를 재현하려고 만든 것이 아니다.** 2026-07-27 자 HTML 2건은 **출발점**이지
 도달점이 아니고, 그것에 새 출력을 맞추려는 시도는 후퇴다. 새 정보는 이 저장소를 기반으로 쌓는다.
 옛 저장소는 **CSS 의 출처**와 **장르 참고** 이상으로 쓰지 않는다. "정본" 은 *표기 규약의 기준*이라는
-뜻으로만 남고 옛 HTML 은 **"옛 출력"** 이라 부른다. 세 Phase 가 이 한 결함으로 정리된 경위와
-Track A/B 의 순서는 결정 0008 에 있다.
+뜻으로만 남고 옛 HTML 은 **"옛 출력"** 이라 부른다.
 
-## 이 저장소의 현재 상태 (🔵 2026-11-04 클라우드 실측 — 커밋 · 테스트 · 타입 · 버전 행. 나머지 행은 2026-09-13)
+## 이 저장소의 현재 상태 (🔵 2026-11-04 Mac 실측 — 커밋 · 테스트 · 타입 행. 나머지 행은 2026-09-13)
 
 파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
-| 측정 기준 커밋 / 태그 | `720fb3a` 바로 다음 커밋(`main` · `pycalls` 의 `import_table` 고침) / 태그 없음. 이력은 2026-11-01 의 `[init]` 커밋 둘(`a511224` · `7e73103`)에서 새로 시작했다. 옛 저장소(report-builder)의 마지막 측정은 `1d54b69` / `v1` 이었고 **둘 다 이 저장소에는 없다** |
-| 테스트 | `pytest` — 새 클론 그대로면 **867 통과 · 0 실패 · 21 건너뜀**, `report-wiki prep .` 뒤에는 **867 통과 · 1 실패 · 20 건너뜀** · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만). 실패 1건은 아래 "게이트 여섯" 의 층 분포 고정값이고, 위키 표류는 클라우드에서 잴 수 없어 건너뜀에 들어간다 |
+| 측정 기준 커밋 / 태그 | `main` 병합 커밋 / `v1`(이 Mac 의 로컬 태그 — `7e73103` 을 가리키고 `origin` 에는 없다) — API 는 추가만이라 태그 그대로 |
+| 테스트 | `pytest` **875 통과 · 20 건너뜀**(`out/` 이 없는 새 클론은 하나 더 건너뛴다) · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만) |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
-| 컴포넌트 export | 17개 (인계 문서가 지정한 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
+| 컴포넌트 export | 17개 (보고서 블록 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
 | Node / TypeScript / Graphviz | Mac v25.8.0 / 7.0.2 / 15.1.1 (2026-09-13) · 클라우드 v22.23.4 / 7.0.2 / 15.1.1 (2026-11-04). 클라우드 Ubuntu 의 apt 판(2.43)은 `-Tsvg_inline` 을 모르므로(`Format: "svg_inline" not recognized`) 환경 설정 스크립트 `tools/cloud_env.sh` 가 공식 `.deb` 를 깐다. `doctor` 는 10.0.1 미만을 낮음으로 막는다 |
 
-**"검증됨" 이라고 쓰지 말 것 — D축 예측력.** 평가 없이 보류다(결정 0004).
+**"검증됨" 이라고 쓰지 말 것 — D축 예측력.** 평가 없이 보류다.
 
-## 위키는 아카이브가 아니라 RAG 다 (🔵 2026-09-08 실측)
-
-`docs/wiki/` 는 이 저장소가 **자기 자신에게 Mode 1 을 돌려 만든** 코드베이스 위키다.
-`docs/` 아래 있지만 성격이 정반대다 — **검색해서 읽으라고 있는 코퍼스**이므로
-`docs/` 의 `CLAUDE.md` 가 정한 "첨부되지 않으면 열지 않는다" 규칙은 여기에 적용되지 않는다.
-
-| 실측 | 값 |
-|---|---|
-| 페이지 | 21개 · 4067줄. 하위 폴더 없는 평평한 이름이라 파일명이 곧 주제다 |
-| 코드 인용 | `파일:줄` 꼴 304건 (그중 줄 번호까지 붙은 것 92건) |
-| 그림 | Mermaid 블록 30개. graphviz 치환 표식은 아직 0건 |
-| 미검증 | `Unknown - verify` 29건 |
-
-**쓰는 법 — 코드를 grep 하기 전에 위키를 먼저 grep 한다.** 인용이 `파일:줄` 이라 거기서
-바로 코드로 내려갈 수 있다. 다만 셋을 지킨다:
-
-- **`Unknown - verify` 가 붙은 문장은 근거가 없다.** 그대로 인용하지 말고 코드로 확인한다.
-- **위키는 스냅샷이다.** 코드가 그 뒤로 움직였으면 조용히 표류한다 — 줄 번호부터 낡는다.
-  🔵 2026-09-13 실제로 낡았다 — `report-wiki check .` 의 L2 실패 43건이 전부 `src/codewiki/python/runner/run_mode1.py` 옛 줄 번호다(위 "게이트 여섯").
-- **충돌하면 코드와 모듈 CLAUDE.md 가 맞다.** 위키는 그것들에서 파생된 2차 산출물이다.
-
-다시 굽는 것은 Mode 1 이다 — [`src/codewiki/CLAUDE.md`](src/codewiki/CLAUDE.md) 를 보라.
-
-### 그림은 두 도구가 굽고, 정적 사이트에 JS 를 남기지 않는다
+## 그림은 두 도구가 굽고, 정적 사이트에 JS 를 남기지 않는다
 
 | 도구 | 부르는 곳 | 무엇 | `doctor` |
 |---|---|---|---|
@@ -90,22 +62,6 @@ Graphviz 에만 있고 그것이 의미축의 전제다(`src/spec/CLAUDE.md`).
 사전 렌더 규칙 · `<!-- graphviz: <이름> -->` 표식 · 손으로 쓴 DOT 의 자리는 [`src/codewiki/CLAUDE.md`](src/codewiki/CLAUDE.md) 의
 "위키 그림 사전 렌더" 절, 보고서 쪽은 [`src/spec/CLAUDE.md`](src/spec/CLAUDE.md) 의 "렌더 경로" 와 "Graphviz SVG 인라인 규칙" 절에 있다.
 
-## 사양 원본과 인계 문서
-
-전부 git 밖 `docs/handoffs/` · `docs/superpowers/` 에 있다.
-
-| 문서 | 역할 |
-|---|---|
-| `RESUME-2026-09-11-runner-stage-machine.md` | **지금의 재개 진입점.** 러너 단계 기계 3단계 완료 · 2026-09-13 msgspec 도입까지 반영. 빨간 게이트 둘을 푸는 순서가 여기 있다 |
-| `HANDOFF-report-system.md` | **Track A/B 의 사양 원본.** 착수 전 통독한다 |
-| `ReportSystem_ReturnHandOff.md` | 위 문서의 **사실 오류와 실행 중 발견된 결함**을 되돌려 보낸 회신. 인계 문서와 충돌하면 이쪽이 실측이다 |
-| `HANDOFF-codebase-wiki.md` | **Track C — 별개 갈래.** 코드베이스 위키(deep-wiki + VitePress 다중 페이지). Track A/B 와 섞지 말 것 |
-| `2026-08-26-report-builder.md` | 실행 계획. 발견된 결함이 해당 Phase 절에 반영돼 있다 |
-| `RESUME-2026-10-28-official-term-grounding.md` | **Mode 1.5 강화 갈래 — 공식 용어 근거 스킬(① 권위 출처 · ② 사용 빈도 말뭉치).** 0단계 확인과 사용자 결정까지 받았다. 스킬 프로젝트는 이 저장소 최상위 `ko-dev-terms/` 에 만든다(아직 없다) — 계획서 `2026-10-28-ko-dev-terms.md`(영어 정본) · `2026-10-28-ko-dev-terms.ko.md`(한국어 번역본) [제안됨] — 단어집 = 모듈 · 기본 층 std · 번역할 때 근거 주입, 승인 대기. Track A/B/C 와 섞지 말 것. 개인어 그래프(⑤)는 결정 0013 으로 보류 |
-| `2026-10-31-directory-reorg-design.md`(영어 정본) · `2026-10-31-directory-reorg-design.ko.md`(한국어 번역본) | **디렉토리 정리 — 1차 축 mode(`codewiki` · `term` · `spec`) · 2차 언어 · 3차 성격축, `core` · `common` · `test`/`qa` · `resource/` 한 자리.** 결정 0014. **2026-11-01 이행**(분리 계획 M 뒤 · Phase B 앞), 같은 날 코드 다섯을 `src/` 아래로 옮겼다(0014 의 고침) — 다음 Phase B 는 `src/codewiki/` 를 통째로 떼어낸다. 계획서 `2026-10-31-directory-reorg.md`(영어 정본) · `2026-10-31-directory-reorg.ko.md`(한국어 번역본). 두 문서는 실행 전 구조로 쓰였다 — 지금 경로는 모듈 CLAUDE.md 가 맞다 |
-
-`ReportSystem_HandOff.md` 는 `HANDOFF-report-system.md` 와 동일 계열의 구판이다.
-
 ## 명령
 
 ```bash
@@ -119,47 +75,23 @@ npm run typecheck        # tsc --noEmit (이 저장소의 src/spec/typescript/sr
 npm run typecheck:py     # pyright strict
 ```
 
-### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-11-04 클라우드 실측 — 잰 것 중 하나가 빨강, 위키 표류는 여기서 잴 수 없다)
+### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-11-04 Mac 실측 — 전부 초록)
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 🔴 `report-wiki prep .` 뒤 867 통과 · **1 실패** · 20 건너뜀. prep 전에는 867 통과 · 0 실패 · 21 건너뜀이지만 초록이 아니다 — 입력이 없어 빨강이 건너뜀으로 숨은 것이다 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 875 통과 · 20 건너뜀 |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check src/codewiki/python/runner src/codewiki/python/machine src/codewiki/python/viz src/term/python/runner src/spec/python/runner src/spec/python/viz src/core src/common tools` | 9개 일치 |
 | 환경 | `npm run doctor` | 필수 전부 있다 |
 
-**건너뛰는 것 중 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
-없어서다. 실패가 아니다.** 나머지 둘은 입력이 없는 시험이다 — 위키 게이트(`docs/wiki/` 없음)와
-층 분포(`out/codegraph-raw/codegraph.json` 없음 · `report-wiki prep .` 을 돌리면 돈다).
+**건너뜀은 실패가 아니다.** 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
+없어서고, 나머지는 입력이 없는 시험이다 — 위키 게이트(`docs/wiki/` 없음)와 이 기계의 코드 지도 시험
+(`out/codegraph-raw/codegraph.json` 없음 · `report-wiki prep .` 을 돌리면 돈다). 그래서 건너뜀 수는 새 클론과 prep 뒤가 다르다.
 
-**빨강 하나 — 위키 표류.** 2026-09-08~11 의 러너 단계 기계 리팩터링이 `src/codewiki/python/runner/run_mode1.py` 의 심볼을
-`src/codewiki/python/runner/mode1/` 로 옮겼는데(파일이 281줄로 줄었다) 위키를 다시 굽지 않았다.
-`qa/gates/test_wiki.py::test_check_는_통과를_통과로_보고한다` — 위키가 `src/codewiki/python/runner/run_mode1.py:405~1066` 를 인용하고
-`report-wiki check .` 가 L1 561/0 · **L2 518/43** 으로 exit 1. 푸는 것은 **위키 재굽기(Mode 1 자기 실행)** 이고
-손으로 고치지 않는다. 🔵 2026-10-21 클라우드에서도 L2 실패는 같은 43건이고, 그 위에 L1 실패 18건이 더 나온다 —
-전부 `tools/` 의 `scrub_local_paths.py` 인용인데 이 파일은 git 밖(`.gitignore:28`)이라 그 파일이 없는 클론에서만 난다.
-`out/` 이 없는 새 클론에서는 `report-wiki prep .` 을 먼저 돌려야 이 실패가 보인다 — 안 돌리면 `codegraph.json` 이
-없다는 다른 이유로 실패한다. 🔵 2026-11-04 이 저장소의 클라우드 클론에는 `docs/wiki/` 가 없어(`docs/` 는 git 밖)
-이 시험이 실패가 아니라 건너뜀(`산문이 없다`)이다 — prep 을 돌려도 같다. 이 빨강은 `docs/wiki/` 가 있는 기계에서만 보인다.
-`RESUME-2026-09-11-runner-stage-machine.md` 의 "바로 다음 할 일" 중
-1번(xmldoc 재주입)은 결정 0010 으로 **무효**, 2번(위키)부터다.
-
-**빨강 둘 — 층 분포 고정값.** `test/codewiki/test_survey_plan.py::test_이_저장소_실측` 이 이 저장소 코드 지도의 층 분포를
-`[514, 323, 161, 96, 23, 14]`(합 1131, 옛 저장소 커밋 `943f3fc` 2026-09-19)로 못박는다. 🔵 2026-10-21 클라우드에서 `report-wiki prep .` 을
-새로 돌리면 `[544, 347, 167, 104, 23, 15]`(합 1200)이다. 같은 날 사용자 Mac 에서도 실패하는데 값이 `[538, 342, …]` 로 또 다르다.
-🔵 2026-11-04 이 저장소 `b8a9775` 의 클라우드에서 prep 뒤에는 `[496, 107, 54, 22, 14, 6]`(합 699)으로, 앞의 어느 값과도 다르다.
-`src/codewiki/python/machine/pycalls.py` 의 `import_table` 이 패키지 꼴 import 를 풀게 고친 뒤에는 `[465, 119, 57, 30, 16, 9, 3]`(합 699, 층 일곱)이다.
-**값이 갈리는 까닭** (🔵 2026-11-04 클라우드에서 잼) — 같은 파일 묶음이면 값은 하나다. `PYTHONHASHSEED` · 파이썬 3.11~3.13 ·
-노드 순서 · 추적 파일만 있는 클론으로 바꿔도 같았다. 값을 바꾸는 것은 **입력 파일 묶음**이다 — `report-wiki prep` 은 뿌리를
-git 이 아니라 디스크(`os.listdir` · `os.walk`)에서 고르므로 git 밖 파일(Mac 에만 있는 `tools/` 의 `scrub_local_paths.py`)과 커밋하지 않은
-수정이 들어가고, 같은 이름의 파일 하나가 그 이름의 import 를 통째로 버리게 해 간선까지 바꾼다(`tools/` 에 둔 두 줄짜리 `survey_plan.py`
-하나로 `[496, …, 22, …]` 가 `[499, …, 20, …]` 이 됐다). 네 값은 잰 커밋도 서로 다르다. 10-21 의 클라우드와 Mac 이 어느 파일에서
-갈렸는지는 확인하지 못했다 — Mac 에서 `git status --porcelain --ignored -uall -- split-work src tools` 의 `.py` 줄을 본다.
-기대값을 어느 값으로 고칠지는 아직 정하지 않았다. `out/codegraph-raw/codegraph.json` 이 없으면 이 시험은 건너뛴다.
-
-**`xmldoc check` 는 게이트가 아니다 (2026-09-13).** 주석 주입은 폐지됐다 — 결정 0010.
+**코드 지도는 git 이 추적하는 파일만 싣는다** — 봉인(`manifest.py`)의 소스 집합과 같은 기준이다. 층 분포를 못박는
+시험은 기계마다 다른 `out/` 이 아니라 얼린 스냅샷 `test/codewiki/fixtures/codegraph-self.json` 을 읽는다.
 
 ### 파이썬이 본체이고 JavaScript 는 경계에만 남는다 (2026-08-31 포팅)
 
@@ -230,8 +162,7 @@ report-term emit term-grades.json               # → terms.json + term-study-no
 `readlink -f "$(which report)"` → `$REPO_ROOT/bin/report`.
 
 **자기호스팅은 예외가 아니라 의도다.** `report` 는 PATH 에 등록된 툴 바이너리이므로 어느 저장소에서든
-부를 수 있고, 이 저장소 자신의 계획서도 검토 대상이 된다. 실제로 `docs/superpowers/specs/llm-load-reduction/` 이
-여기 안에 있다 — Track C 계획을 Track A/B 도구로 검토하는 자기참조 구조다. 옮기지 말 것.
+부를 수 있고, 이 저장소 자신의 계획서도 검토 대상이 된다 — 그 보고서는 `docs/superpowers/specs/<slug>/` 에 산다.
 
 ```
 $REPO_ROOT
@@ -244,7 +175,7 @@ $REPO_ROOT
     common/                해석기 탐색 · 자리 채우기 · 봉인 판정
   resource/<mode>/         프롬프트 · 템플릿 · config.toml · 골든 꼴 · 전수조사 레코드
   test/<mode>/  qa/        모듈 시험 · 규약 게이트와 측정값
-  tools/  docs/  contracts/  split-work/
+  tools/  docs/  contracts/
 
 <프로젝트>/specs/<slug>/    보고서는 여기 산다
   data.ts                  결정 데이터만. builderVersion 포함
@@ -263,7 +194,8 @@ $REPO_ROOT
 | 축 밖 | `src/core/`(단계 기계) · `src/common/`(유틸) · `tools/`(유지보수) · `resource/`(읽기만) · `test/` · `qa/` | mode 를 가리지 않는 것 |
 
 **코드 다섯은 `src/` 아래에 산다** — `src/` 는 패키지가 아니라 import 뿌리라 진입점과 시험이 `sys.path` 에 넣는다. `resource/` · `test/` · `qa/` · `tools/` · `bin/` 은 루트다.
-**Phase B(두 저장소 분리)는 `src/codewiki/` 를 통째로 떼어낸다** — 1차 축을 mode 로 둔 까닭이다(결정 0011 · 결정 0014).
+**mode 마다 폴더 하나가 한 프로젝트 단위다**(결정 0014) — `src/<mode>/` · `resource/<mode>/` · `test/<mode>/` 를 그 mode 가 소유하고,
+다른 mode 와는 파일(봉인한 `docs/codegraph/` · `contracts/` · `terms.json`)로만 주고받는다. 사본으로 사는 규칙 가운데 용어 찾기와 봉인 소스 집합은 `qa/gates/test_rule_copies.py` 가 묶는다.
 
 ## 확정된 스택 (변경 금지)
 
@@ -286,11 +218,6 @@ $REPO_ROOT
 `src/spec/python/viz/build.py` 가 `src/spec/typescript/src/runtime/term-graph.ts` 를 번들해 넣는다. 용어집이 없는 보고서는
 여전히 `<script>` 0개다. **예산이 다 찼으므로 새 런타임 코드를 넣으려면 이 번들 안에 합쳐야 한다.**
 
-## 기각·취소된 것에 착수하지 마라
-
-Phase 2·3·6 과 D축 보류의 사유와 되살릴 조건은 전부 `docs/decisions/` 에 있다.
-계획서의 해당 절 체크박스는 유효하지 않다. Track A/B 의 강제 순서와 이탈 기록은 결정 0008.
-
 ## 참조 원본의 실제 위치 — 출처이지 기준이 아니다
 
 이 체계가 **출발한** 자료는 다른 저장소에 있다. **읽을 일이 생길 때만 열고, 새 출력을 여기에
@@ -305,8 +232,7 @@ $GRAPHICS_REPO/doc/
   번복기록/                                    ← 체계의 원천 + **두 번째 보고서 장르**
 ```
 
-`번복기록/` 은 두 번째 보고서 장르다 — **지금 mode 를 추가하지 말 것.** 사유와 되살릴 조건은
-결정 0009.
+`번복기록/` 은 두 번째 보고서 장르다 — **지금 mode 를 추가하지 말 것.**
 
 스킬 원본은 `~/.claude/skills/<이름>/SKILL.md`(단 `codebase-terms-survey` 는 저장소 `.agents/skills/` 가 원본이고 저장소 안 `.claude/skills/` 가 심볼릭 링크 — 2026-08-29 사용자 이전).
 
@@ -320,8 +246,6 @@ $GRAPHICS_REPO/doc/
 `.gitignore` 에 `.claude` 는 없다 — 저장소 안 것이 git 밖인 이유는 무시라서가 아니라
 **홈 경로가 애초에 워킹 트리 밖**이기 때문이다. 사본은 어느 쪽이든 조용히 표류한다 — 원본을 고치면 같은 변경에서 사본도 맞춘다(🔵 2026-08-31 —
 워크플로 7단계 시절 구판으로 남아 층 병렬 배치 절이 통째로 없었다. 원본으로 맞췄다).
-
-Track 별 참조 스킬 목록은 결정 0008 끝에 있다.
 
 ## 혼자 정하지 말 것 (미결정)
 
@@ -352,21 +276,18 @@ Track 별 참조 스킬 목록은 결정 0008 끝에 있다.
   한다 — 프롬프트는 단계가 `prompt_names` 에 선언한 이름으로 `PromptResource.load_prompt("<파일>#<절>")`(절이 없는 파일은
   `"<파일>"`), 템플릿은 `common.template.render_file`.
   **프롬프트 글은 Jinja2 다**(`requirements.txt` 의 명시 의존) — 반복 · 빈 값 대체 · 조건부 절을 파일 안에 쓰고, 글이 쓰는
-  이름과 넘긴 값이 같아야 한다. **템플릿은 꼴만, 데이터 결정은 단계** — 무엇을 싣는가는 파이썬이 정해 행으로 넘긴다
-  (결정 0012). 파일 템플릿의 자리표시는 `{{이름}}` 하나다.
+  이름과 넘긴 값이 같아야 한다. **템플릿은 꼴만, 데이터 결정은 단계** — 무엇을 싣는가는 파이썬이 정해 행으로 넘긴다.
+  파일 템플릿의 자리표시는 `{{이름}}` 하나다.
   `qa/gates/test_prompt_resources.py` 가 막는다 — 긴 글(문자열 상수 · f-문자열)은 `codewiki` · `term` · `spec` · `core` · `common` · `tools` 의
   파이썬(시험 파일 제외)에서 찾고, 프롬프트 글은 전부 Jinja2 로 컴파일되어야 하며 줄 끝 공백과 `{#` 를 두지 않는다.
 - 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.
 - 구조 신설 제안 시 `design-decision-discipline` §2.5 의 4항목을 공개하고 §2.7 의 축을 선언한다.
-- **남의 제안을 기각할 때는 `docs/overturn/` 의 `README.md` 검사표를 먼저 지난다.** 제안에는
-  §2.5·§2.7 의 의무가 붙지만 기각에는 없어서, 지금까지 뒤집힌 판단은 전부 기각·포기 쪽이었다(표본 수는 그 README 가 센다).
 - **컴포넌트는 추가만 한다.** props 제거·의미 변경 금지. 컴포넌트 API 가 바뀌는 갱신마다 태그(`v1`, `v2`).
-  옛 버전 빌드가 필요하면 `git worktree add /tmp/rb-v1 v1`. 단 태그 `v1` 은 옛 저장소에만 있어 이 저장소에서는 이 명령이 실패한다 —
-  이 저장소에 태그를 다시 붙일지는 사용자가 정한다.
+  옛 버전 빌드가 필요하면 `git worktree add /tmp/rb-v1 v1`. 태그 `v1` 은 이 Mac 에만 있어(`7e73103`, `origin` 에는 없다) 새 클론에서는 이 명령이 실패한다.
 - 설명은 메커니즘 우선(원리 → API 세부), 한국어 + 영문 기술용어 병기.
-- **약어와 압축 표현을 피할 것.** 인계 문서 초안이 그 이유로 한 번 반려됐다.
+- **약어와 압축 표현을 피할 것.**
 
 ### 코드 주석 — 현 상황만 적는다 (2026-08-30 확정)
 
@@ -387,23 +308,13 @@ Track 별 참조 스킬 목록은 결정 0008 끝에 있다.
 **주장이 아니라 시험으로 적는다.** 외부 도구의 동작에 기대는 사실은 주석 대신 그것을 고정하는
 시험을 두고 주석은 그 이름을 가리킨다. 주석은 썩지만 시험은 깨진다.
 
-모듈·클래스·함수의 목록과 역할은 각 디렉토리의 `README.md` 에 둔다.
-
-⚠ **소스에 남은 `# <include …/>` 블록은 폐지된 주석 주입의 잔재다**(결정 0010).
-**새 코드에 심지 않고, 있는 것을 고치지도 않는다.** `emit` · `inject` · `check` 어느 것도 돌리지 않는다.
-지우는 것은 별개의 코드 작업이라 사용자가 시점을 정한다. 대체 마크업은 없다 — 의존 그래프는 `terms-db.json` 에 산다.
+모듈·클래스·함수의 목록과 역할은 각 디렉토리의 `README.md` 에 둔다. 의존 그래프는 `terms-db.json` 에 산다 — 소스에 주석 블록으로 박지 않는다.
 - 커밋 메시지는 `personal-commit-messages` 스킬을 따른다 (소문자 `[tag] : subject` 한 줄, 한국어, 본문 없음).
 - 새 계획 · 사양 문서는 영어 정본 `<이름>.md` 와 한국어 번역본 `<이름>.ko.md` 두 파일로 쓴다. 고칠 때는 정본만 고치고 번역본을 다시 만든다. `ko-dev-terms` 가 생기기 전에는 번역할 때 첫 등장 영어 병기만 한다.
 
 ## 문서 정본
 
-`.agents` · `.gemini` 줄 말고는 git 밖 `docs/` 의 것이다.
-
-
 - 정본 `.agents/rules/react-best-practices.md` · 같은 내용의 사본 `.gemini/ReactRule.md` (내용을 고칠 때는 정본만 고친다)
-- 정본 `2026-08-29-mode-1-terms-db-first.md` · 같은 내용의 사본 `HANDOFF-2026-08-29-mode-1-terms-db-tasks-1-5.md`, `2026-08-29-mode-1-terms-db-first-design.md` (내용을 고칠 때는 정본만 고친다)
-- 정본 `HANDOFF-report-system.md` · 같은 내용의 사본 `ReportSystem_HandOff.md` (내용을 고칠 때는 정본만 고친다)
-- 정본 `2026-08-28-llm-load-reduction-design.md` · 같은 내용의 사본 `2026-08-28-llm-load-reduction.md` (내용을 고칠 때는 정본만 고친다)
 
 ## 용어
 
