@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<임시> line 1269, in <module>
+    main()
+    ~~~~^^
+  File "<임시> line 1223, in main
+    g, stats = normalize_csharp(dump, a.repo)
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "<임시> line 736, in normalize_csharp
+    kind = CS_KIND[r["kind"]]
+           ~~~~~~~^^^^^^^^^^^
+KeyError: 'calls'

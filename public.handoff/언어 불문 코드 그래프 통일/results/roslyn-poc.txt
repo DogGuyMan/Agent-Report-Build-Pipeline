@@ -1,0 +1,9 @@
+소스 112개 / HintPath 참조 378개 / ScriptAssemblies 치환 17개 / defines 137 / LangVersion CSharp9
+call 해소 1288 · 후보만 0 · 못 찾음 7
+<임시>
+  compilation — errors 0 / unresolved 0  (F5: 둘 다 0 이어야 normalize 가 받는다)
+  types 454 (소스 214 + 외부 240)
+  relations 2874 — inherit 190 · assoc 494 · depend 832 · realize 70 · call 1288
+  depend origin — return 165 · parameter 283 · local 216 · new 168 · invoke 1288
+  enum 멤버 플래그 209 / [SerializeField] 27
+  v2 살 — members 695 · methods 532 · is_abstract=true 25 · MonoBehaviour 45 · ScriptableObject 6

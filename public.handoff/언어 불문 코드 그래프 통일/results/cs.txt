@@ -1,0 +1,16 @@
+<임시> — 노드 231 / 간선 540 / 모듈 10
+입력: types 403 / relations 1586
+  R7 원시·암묵 기반 버림               584
+  asm->pkg 사전                  305
+  중복 간선 접음                     246
+  1차 노드                        214
+  enum 멤버 버림(플래그)              209
+  모듈 간 의존                      187
+  R5 투과 래퍼 경유                  134
+  외부 원본 타입                     98
+  dst TypeParameter 버림         32
+  소스 제네릭 인스턴스 접음               14
+  자기참조 버림                      8
+외부 노드: (엔진 에디터) UnityEditor(5), (엔진) UnityEngine.CoreModule(22), (BCL) netstandard(26), com.unity.localization(7), com.unity.modules.imgui(1), com.unity.modules.uielements(1), com.unity.ugui(8), com.cysharp.unitask(2), com.unity.modules.ui(3), com.cathei.bakingsheet(12), com.unity.addressables(4), com.unity.inputsystem(1), com.unity.modules.animation(1), (벤더링) DOTween(1), com.unity.modules.audio(1), (벤더링) ZString(1), com.unity.nuget.newtonsoft-json(1)
+근거 위치가 붙은 간선: 540/540
+  소유 간선 0 (C# 정상 — 함정 5). association 138/138 에 위치

@@ -16,6 +16,7 @@
 | [`test/CLAUDE.md`](test/CLAUDE.md) | 모듈 시험 — mode 별 폴더 · 건너뜀 19 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | `docs/decisions/` | 결정 기록 — 디렉토리 정리(0014) |
+| `public.handoff/` | 세션을 넘겨 이어 갈 작업의 핸드오프와 조사 자료. `docs/` 와 달리 git 이 추적하고 공개되므로 기계별 경로와 비밀을 적지 않는다 |
 
 **`docs/` 는 `diagrams/` 말고는 git 밖이다**(`.gitignore`) — 위 표의 `docs/` 행은 이 기계에만 있고, 새 클론과 클라우드 세션에는 없다.
 
