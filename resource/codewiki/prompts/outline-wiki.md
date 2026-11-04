@@ -12,8 +12,8 @@
 
 ## 할 일
 
-`/deep-wiki:catalogue` 의 규정을 따라 주제 카탈로그를 짠다 —
-Getting Started / Deep Dive 계열, 최대 4단, 절당 자식 8장 이하.
+`/deep-wiki:catalogue` 의 규정을 따라 주제 카탈로그를 짠다 — Getting Started / Deep Dive 계열.
+목차는 평평한 장 목록 하나다(아래 꼴) — 단과 절을 나타낼 칸이 없다.
 장 수는 모듈 수에 맞춘다. `ranking.json` 상위 모듈부터.
 
 낼 것은 이 파일 하나다:

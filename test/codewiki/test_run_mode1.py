@@ -447,7 +447,7 @@ def test_페이지_프롬프트는_아래층_페이지를_링크하라고_말한
     assert "deep-wiki" in p
     assert "사이트 조립은 하지" in p       # 그건 report-wiki build 의 일이다
     assert "(경로:줄)" in p               # 로컬 인용 규격
-    assert "Sonnet 5.5" in p                # 서브에이전트를 띄운다면 같은 계열로
+    assert "이 세션과 같은 Model" in p       # 서브에이전트를 띄운다면 같은 Model 로
 
 
 def test_페이지_프롬프트는_아래층이_없으면_그렇게_말한다():
