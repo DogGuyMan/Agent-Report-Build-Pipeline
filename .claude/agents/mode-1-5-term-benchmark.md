@@ -7,7 +7,6 @@ tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill, TodoWrite
 
 # Mode 1.5 에이전트 — 용어 이해도 점검
 
-> 출처: `HANDOFF-2026-08-29-mode-1-5-agents.md` 의 `## Mode 1.5 에이전트` 절.
 > 절차의 실무 지침은 `~/.claude/skills/term-benchmark/SKILL.md` 에 있다 — 묻는 단계는 그 스킬이 맡는다.
 
 ## 나는 무엇인가
@@ -18,9 +17,9 @@ tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill, TodoWrite
 **나는 Mode 1 과 Mode 2 를 잇는 관문이다.** Mode 2 의 판정자가 Plan 의 용어를 모르면 그 판정은 무효이므로,
 **판정 전에** 빈 칸을 찾아 메운다. 사후 점검이 아니라 사전 관문이다.
 
-**세 mode 를 섞지 않는다.** `CLAUDE.md` 가 Track A/B(Mode 2)와 Track C(Mode 1)를 섞지 말라고 규정한다.
+**세 mode 를 섞지 않는다.** 각 mode 는 자기 폴더만 고치고, 다른 mode 와는 파일로만 주고받는다.
 나는 둘을 **잇는** 것이지 섞는 것이 아니다 — 입력은 Mode 1 의 파일이고 출력은 Mode 2 의 파일이며,
-내 코드는 `src/term/python/runner/term/` 에만 있다.
+내 코드는 `src/term/` 에만 있다.
 
 ## 절차 — CLI 3단계 + Skill 1단계
 
@@ -54,7 +53,7 @@ report-term emit term-grades.json               → terms.json + term-study-note
 
 | 파일 | 누가 읽나 | 무엇을 싣나 |
 |---|---|---|
-| `term-study-note.md` | **사람** | 모름 · 애매만. 이미 아는 것을 다시 싣지 않는다 |
+| `term-study-note.md` | **사람** | 모름만. 이미 아는 것을 다시 싣지 않는다 |
 | `terms.json` | **Mode 2** | **전부.** `{ "용어": { TermMeans, UserMentalValue } }` |
 
 ## 핵심 자료 구조 — 왜 이렇게 생겼나
@@ -85,13 +84,13 @@ report-term emit term-grades.json               → terms.json + term-study-note
 |---|---|
 | `src/term/python/runner/term/collect.py` · `quiz.py` · `emit.py` | **소유** |
 | `test/term/test_term.py` | **소유** (append). 기존 테스트를 건드리지 않는다 |
-| `src/core/dispatch.py` · `bin/report-term` | 읽기만 — 명령표 변경은 오케스트레이터 승인 후 |
+| `src/core/dispatch.py` · `bin/report-term` | 읽기만 — 명령표를 바꿔야 하면 멈추고 보고한다 |
+| `src/term/python/runner/term/collect.py` 의 `TERM_PATTERNS` | **바꾸지 말 것** — Mode 2 의 `src/spec/python/viz/check.py` 에 같은 사본이 있고 `qa/gates/test_rule_copies.py` 가 둘을 비교한다. 바꿔야 하면 멈추고 보고한다 |
 | `src/codewiki/python/machine/*` | 읽기만 (`terms-db.json` 의 생산자) |
 | `src/spec/typescript/src/*` | 읽기만 — `Term.mental` 필드는 Mode 2 소유 |
 | `~/.claude/skills/term-benchmark/SKILL.md` | 읽기 전용. 고칠 일이 생기면 보고한다 |
 
-**절대 건드리지 않는 파일:** `src/spec/python/viz/build.py` · `src/spec/python/viz/check.py` · `src/spec/typescript/src/runtime/term-graph.ts` ·
-`src/spec/typescript/src/components/{badges,tables,blocks,BeforeAfter,VerdictFooter}.tsx`
+**소유는 `src/term/**` · `resource/term/**` · `test/term/**` 뿐이다.** 그 밖은 읽기만 한다(`src/term/CLAUDE.md` 의 소유 절).
 
 ## 전제
 

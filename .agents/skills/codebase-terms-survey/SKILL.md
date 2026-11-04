@@ -30,7 +30,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 ## 레코드 계약 — 이것이 산출물이다
 
 `<repo>/docs/codegraph/terms-reading.json` (git 추적). 꼴은 `{ "키": 레코드 }`.
-**이 저장소(report-builder) 자신만 예외로 `resource/codewiki/terms-reading.json` 이다** — `run_mode1.py` 의 `reading_path` 가 그렇게 가른다.
+**이 저장소(report-builder) 자신만 예외로 `resource/codewiki/terms-reading.json` 이다** — `src/codewiki/python/runner/mode1/context.py` 의 `reading_path` 가 그렇게 가른다.
 
 ```json
 { "build_terms": {
@@ -113,7 +113,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
    - 층 안은 **배치 8개까지 동시**. 같은 층끼리는 서로 의존하지 않으므로 안전하다.
    - 배치는 자기 샤드 `<repo>/out/codegraph-raw/_shards/L{층}-B{번호}.json` 에만 쓴다.
      **terms-reading.json 을 직접 고치지 않는다** — 동시에 여러 배치가 돌기 때문이다.
-   - 층이 끝나면 오케스트레이터(`run_mode1.py` 의 `merge_shards`)가 샤드를 병합한다.
+   - 층이 끝나면 오케스트레이터(`src/codewiki/python/runner/mode1/survey.py` 의 `merge_shards`)가 샤드를 병합한다.
      **키 충돌 해소는 거기서만 한다** — 배치는 자기 것만 보므로 `main` 이 9파일에 있다는 것을 모른다.
    - 층 k 배치에는 **자기 심볼이 의존하는 아래층 레코드만** 발췌해 준다. 전량 주입은 낭비다.
    - 같은 파일을 층마다 다시 열지 않도록 `file_cache.py` 를 쓴다. 다만 **자기 심볼은 캐시로
@@ -148,7 +148,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 ## Common pitfalls
 
 - **움직이는 트리에서 조사** — 병렬 세션이 파일을 고치면 줄 번호가 밀린다. 전제 3 을 건너뛰지 않는다
-- **인용 부패** — 코드가 바뀌면 `where` 는 낡는다(L3 근거 없음이 는다). 자동 재계산은 없다(주석 주입 폐지 — `docs/decisions/0010`). L2 실패 목록을 보고 고치거나 Mode 1 증분이 그 파일을 다시 읽는다. 셈으로 추정하는 방식은 앞선 밀림을 놓친다(2026-08-29 실측: 근거 없음 3 → 242)
+- **인용 부패** — 코드가 바뀌면 `where` 는 낡는다(L3 근거 없음이 는다). 자동 재계산은 없다. L2 실패 목록을 보고 고치거나 Mode 1 증분이 그 파일을 다시 읽는다. 셈으로 추정하는 방식은 앞선 밀림을 놓친다(2026-08-29 실측: 근거 없음 3 → 242)
 - **키 충돌을 한쪽만 한정** — `main` 이 9파일이면 9개 전부 `<파일줄기>.main`
 - **파일 레코드의 `where`** 는 `경로:1` — 머리 주석에 파일명이 없으면 근거 없음이 뜬다. 정보성이다. 파일에 머리 주석을 다는 것이 정답이지 규칙을 바꾸는 것이 아니다
 - **범위 밖 파일을 `does` 에서 언급** — 그 파일의 레코드가 없으면 독자가 따라갈 수 없다. 범위에 넣거나 언급을 뺀다
@@ -163,20 +163,20 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 이 사전의 목적은 **나중 LLM 이 코드를 다시 추론하는 부담을 줄이는 것**이다. 그래서 전수조사는 한 번이고, 그 뒤로는 **개발하면서** 채운다:
 
 - 새 함수·파일·산출물·키를 만들면 **그 자리에서 레코드를 쓴다** — 뜻 · 동작 · `uses` · `confidence`. 생각한 것(왜 이렇게 했는가)은 `does` 에 한 문장.
-- **소스에 주석 블록을 박지 않는다.** `xmldoc.py emit` → `inject` 는 폐지됐다(`docs/decisions/0010`). 소스에 남은 `# <include …/>` 블록은 잔재 — 새로 심지도 고치지도 않는다.
+- **소스에 주석 블록을 박지 않는다.** 뜻과 관계는 레코드에만 쓴다.
 - 검사는 하나 — `terms_db.py --reading`(L1/L2/L3). 줄이 밀린 레코드는 여기 L2 로 드러난다.
 
 ## deep-wiki 산문도 같은 층 순서로 (K6)
 
-위키 페이지는 심볼도 모듈도 아닌 **주제** 단위다(Getting Started / Deep Dive, 최대 4단, 절당 ≤8장).
+위키 페이지는 심볼도 모듈도 아닌 **주제** 단위다(Getting Started / Deep Dive). 목차 `outline.json` 은 평평한 장 목록이다.
 그래서 **페이지의 층 = 그 페이지가 인용하는 심볼들의 최대 층**으로 매긴다.
 왜 최대인가 — 페이지는 자기가 다루는 모든 개념이 이미 설명된 뒤라야 재설명 대신 링크할 수 있다.
 
-목차는 기계가 만들지 못한다(주제 단위라서). 그래서 `wiki` 단계는 **목차 세션 1개**로 시작해
-`wiki-plan.json` 을 받고, 거기 적힌 페이지별 인용 심볼로 층을 매긴 뒤 장을 층 순서로 쓴다.
+목차는 기계가 만들지 못한다(주제 단위라서). 그래서 `outline-wiki` 단계가 **목차 세션 1개**로
+`outline.json` 을 받고, `write-wiki` 단계가 거기 적힌 페이지별 인용 심볼로 층을 매긴 뒤 장을 층 순서로 쓴다.
 
 **deep-wiki 플러그인 파일을 고치지 않는다.** `~/.claude/plugins/cache/` 에 사는 캐시라 업데이트에
-덮인다. 우리 프롬프트(`run_mode1.py` 의 `wiki_page_prompt`)가 감싸서 지시한다.
+덮인다. 우리 프롬프트(`resource/codewiki/prompts/write-wiki.md` — `src/codewiki/python/runner/mode1/wiki.py` 의 `wiki_page_prompt` 가 채운다)가 감싸서 지시한다.
 
 **서브에이전트 LLM Model은 `claude-sonnet-5-5` 다.** 오케스트레이터가 `--model` 로 박아 넣는다.
 
@@ -185,7 +185,6 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 | 파일 | 누가 | 어디로 |
 |---|---|---|
 | `<repo>/docs/codegraph/terms-reading.json` | 이 스킬(LLM) | git 추적 — 원본. **report-builder 자신만 `resource/codewiki/terms-reading.json`** |
-| `$REPO_ROOT/src/codewiki/python/machine/comments.xml` · 소스의 주석 블록 | (폐지 — 0010) | git 추적 — 옛 파생물 잔재. 다시 만들지 않고 고치지 않는다 |
 | `<repo>/out/codegraph-raw/terms-db.json` | `terms_db.py` | Mode 1.5 `report-term collect` 의 재료. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |

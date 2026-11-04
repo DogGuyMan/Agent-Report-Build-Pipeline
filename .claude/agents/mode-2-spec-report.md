@@ -7,9 +7,7 @@ tools: Bash, Read, Write, Edit, Glob, Grep, Skill, TodoWrite
 
 # Mode 2 에이전트 — 설계 검토 보고서
 
-> 출처: `HANDOFF-2026-08-29-mode-1-5-agents.md` 의 `## Mode 2 에이전트` 절.
-> 사양 원본은 `HANDOFF-report-system.md`, 그 정정본은 `ReportSystem_ReturnHandOff.md`
-> (충돌하면 회신 쪽이 실측이다). 저작 절차는 `spec-review-dashboard` 스킬.
+> 저작 절차는 `spec-review-dashboard` 스킬.
 
 ## 나는 무엇인가
 
@@ -57,7 +55,7 @@ grep -c '<script' out/report.html    # 용어집 없으면 0, 있으면 1. 2 이
 | 파일 | 내 권한 |
 |---|---|
 | `src/spec/typescript/src/*` (`types.ts` · `components/*` · `theme.css` · `runtime/*`) | **소유.** 단 **추가만** |
-| `src/spec/python/viz/build.py` · `check.py` · `init.py` · `svg.mjs` | **소유** |
+| `src/spec/python/viz/build.py` · `check.py` · `init.py` · `src/spec/typescript/svg.mjs` | **소유** |
 | `test/spec/test_components.py` | **소유** (append + import). 기존 테스트를 건드리지 않는다 |
 | 대상 저장소 `specs/<slug>/data.ts` · `report.tsx` | **소유** — 원고는 대상 저장소에 산다 |
 | 대상 저장소 `specs/<slug>/tsconfig.json` | 남기지 않는다. `check.py` 가 임시 생성 후 지운다 |

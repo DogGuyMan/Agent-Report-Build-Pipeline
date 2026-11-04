@@ -1,14 +1,11 @@
 ---
 name: mode-1-codebase-wiki
-description: Mode 1 — 코드베이스를 읽어 코드 지도(codegraph.json), 사실 파일(facts/*.md), 모듈 중요도(ranking.json), 용어 전수 DB(terms-db.json), VitePress 위키를 만든다. 파이프라인은 Python(src/codewiki/python/machine/*.py · runner/)과 deep-wiki 스킬이다. 사람에게 묻지 않고 설계를 판정하지 않는다 — 뜻·동작은 전수조사가 file:line 인용과 함께 한 번 쓰고, 기계가 그 인용을 검사한다. Track C 작업, 코드베이스 위키 생성, terms-db.json 갱신, codegraph 파이프라인 수정 시 사용한다.
+description: Mode 1 — 코드베이스를 읽어 코드 지도(codegraph.json), 사실 파일(facts/*.md), 모듈 중요도(ranking.json), 용어 전수 DB(terms-db.json), VitePress 위키를 만든다. 파이프라인은 Python(src/codewiki/python/machine/*.py · runner/)과 deep-wiki 스킬이다. 사람에게 묻지 않고 설계를 판정하지 않는다 — 뜻·동작은 전수조사가 file:line 인용과 함께 한 번 쓰고, 기계가 그 인용을 검사한다. 코드베이스 위키 생성, terms-db.json 갱신, codegraph 파이프라인 수정 시 사용한다.
 model: opus
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill, TodoWrite
 ---
 
 # Mode 1 에이전트 — 코드베이스 위키
-
-> 출처: `HANDOFF-2026-08-29-mode-1-5-agents.md` 의 `## Mode 1 에이전트` 절.
-> 재개 문서는 루트 `CLAUDE.md` 의 "사양 원본과 인계 문서" 표가 정한다 — 이 갈래는 Track A/B 와 **별개**다.
 
 ## 나는 무엇인가
 
@@ -30,7 +27,7 @@ terms-db.json ◀─ 재료
 | `out/codegraph-raw/facts/modules.md` `classes.md` `external.md` `entrypoints.md` `hotspot.md` | 사람이 읽는 사실 표 | `src/codewiki/python/machine/facts.py` |
 | `ranking.json` | 모듈 중요도(PageRank · hotspot) | `src/codewiki/python/machine/facts.py` |
 | `terms-db.json` | **코드베이스 용어 전수 — Mode 1.5 의 재료** | `src/codewiki/python/machine/terms_db.py` |
-| 위키 10장 | VitePress 다중 페이지 | deep-wiki 스킬 |
+| 위키 장 | VitePress 다중 페이지 | `outline-wiki` · `write-wiki` 단계 — deep-wiki 규정을 따른다 |
 
 `terms_db.py` 는 전수조사 레코드(`terms-reading.json`)의 `where` 를 L1/L2/L3 로 검사하고, 정적
 `codegraph.json` 이 있으면 구조 칸(`id kind module where`)을 그쪽으로 덮어 `terms-db.json` 과 투영
@@ -50,19 +47,21 @@ terms-db.json ◀─ 재료
 
 | 파일 | 내 권한 |
 |---|---|
-| `src/codewiki/python/machine/` 전반 | **소유** — 아래 두 줄은 예외 |
-| `src/codewiki/python/machine/terms_db.py` | **건드리지 말 것** — 오케스트레이터(슬롯 A)가 참조한다 |
+| `src/codewiki/python/machine/` 전반 | **소유** |
+| `src/codewiki/python/machine/terms_db.py` | **소유** — 출력 꼴(`TermsDb`)이 계약이다. `tools/gen_contract.py` 가 이 형에서 `contracts/` 를 내고, Mode 1.5 `collect` 와 Mode 2 가 `src/common/evidence.py` 로 판정한다. 꼴을 바꾸는 변경이면 멈추고 보고한다 |
 | `resource/codewiki/terms-reading.json` (이 저장소 자신을 조사할 때) | **소유** — 내 전수조사 원본 |
 | `out/codegraph-raw/terms-db.json` · `codegraph.json` | 생성만. gitignore 다 — 원본에서 CLI 한 줄로 재생성 |
 | `src/codewiki/python/machine/normalize.py` 의 **출력 키** | **바꾸지 말 것** — `terms_db.py` 가 `from`/`to` · `id`/`depends_on` 를 읽는다 (간접 의존) |
-| `CLAUDE.md` | **Track C 절만** |
-| `src/term/python/runner/term/*` · `src/spec/typescript/src/*` · `test/*` | 읽기만 |
+| `src/codewiki/CLAUDE.md` | **소유** — Mode 1 의 문서는 여기 산다 |
+| `src/term/**` · `src/spec/**` · `test/` 중 `test/codewiki/` 밖 | 읽기만 |
 | 다른 저장소의 `specs/` | 접근하지 않는다 |
+
+**소유는 `src/codewiki/**` · `resource/codewiki/**` · `test/codewiki/**` · `out/codegraph-raw/**` 뿐이다.** 그 밖은 읽기만 한다(`src/codewiki/CLAUDE.md` 의 소유 절).
 
 `src/codewiki/python/machine/normalize.py` 를 고칠 일이 생기면 **출력 키를 바꾸는 변경인지 먼저 확인하고**, 그렇다면
 작업을 멈추고 보고한다. 이 의존은 코드에 명시돼 있지 않은 간접 의존이라 조용히 깨진다.
 
-## 전수조사 절차 — `codebase-terms-survey` 스킬이 정본이다 (2026-08-29 19:00 이전)
+## 전수조사 절차 — `codebase-terms-survey` 스킬이 정본이다
 
 절차 본문은 **스킬**로 옮겼다 — `Skill` 도구로 `codebase-terms-survey` 를 부른다(저장소 사본 `.agents/skills/codebase-terms-survey/SKILL.md`, `.claude/skills/` 는 심볼릭 링크).
 여기 두 벌을 두면 어긋나므로 이 절은 **요약만** 둔다:
@@ -87,7 +86,7 @@ Mode 1.5 가 시작되기 전에 **이 mode 가 완전히 WarmUp 되어 있어�
 검증 명령:
 
 ```bash
-.venv/bin/python -m pytest src/codewiki/python/machine/ -q       # 기계축 시험
+.venv/bin/python -m pytest test/codewiki -q       # Mode 1 시험 (골든 변수가 없으면 일부 건너뛴다)
 ```
 
 ## 지켜야 할 규율

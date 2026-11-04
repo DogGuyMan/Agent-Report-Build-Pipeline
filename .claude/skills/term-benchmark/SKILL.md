@@ -40,8 +40,7 @@ description: Use before a Mode 2 design review whenever a Plan or Spec is about 
 | 검토할 Plan 파일 | `ls <plan.md>` | 어느 Plan 을 볼지 사용자에게 묻는다. 저장소를 뒤져 임의로 고르지 않는다 |
 | Plan 저자가 답할 수 있는 상태 | 사용자가 지금 대화에 있는가 | **중단.** 이 스킬은 처음부터 끝까지 사람에게 묻는 절차다. 사람이 없으면 할 일이 없다 |
 
-코드베이스 용어 DB 는 Mode 1 이 만들고 마지막 단계 `seal-artifacts` 가 봉인한다. 사람이 Mode 1 저장소의 뿌리에서 돌린다
-(두 저장소로 갈리기 전에는 이 저장소, 갈린 뒤에는 codebase-wiki):
+코드베이스 용어 DB 는 Mode 1 이 만들고 마지막 단계 `seal-artifacts` 가 봉인한다. 사람이 report-builder 뿌리에서 돌린다:
 
 ```bash
 .venv/bin/python src/codewiki/python/runner/run_mode1.py <저장소>
@@ -247,8 +246,8 @@ report-term emit term-grades.json
   `collect` 가 잡지 못한다. 그런 용어는 3단계에서 사람이 이어 붙인다
 - **`means` 를 비운 채 문항지를 쓴다** — `emit` 이 그 문구를 그대로 용어집의 `TermMeans` 로
   넘긴다. 비어 있으면 뜻 없는 용어집이 나온다
-- **맞힌 수를 손으로 센다** — 세지 않는다. 옛 `answers.json`(`{용어: {correct, dontKnow}}`)은
-  더 이상 받지 않고 거부된다. 사람이 세던 자리를 없앤 것이 이번 변경의 요점이다
+- **맞힌 수를 손으로 센다** — 세지 않는다. 채점기는 `UserAns` 를 채운 기입란만 받고,
+  `{용어: {correct, dontKnow}}` 처럼 센 값을 담은 꼴은 거부한다
 - **`UserAns` 를 빈 칸으로 남긴다** — 채점기가 멈춘다. 사용자가 답을 안 준 문항은 다시 묻는다.
   "모르겠다"(5번)로 대신 채우지 않는다 — 안 푼 것과 모르는 것은 다르다
 - **작업 디렉토리를 옮겨 가며 명령을 돈다** — 세 명령 모두 산출 파일을 **현재 디렉토리**에 쓴다.
