@@ -47,14 +47,3 @@ docs/*
 **/skills/mcp-builder
 **/skills/microsoft-docs
 **/skills/podcast-generation
-
-# 분리 작업 대조 도구(split-work/)의 산출물 — 기준 출력 · 후보 diff 에 이 기계의 절대 경로가 실린다
-split-work/before*/
-split-work/after*/
-split-work/fixture-shards/
-split-work/patches/
-split-work/frag/
-split-work/reading-mode*.json
-
-# 디렉토리 정리(결정 0014) 일회용 스크립트의 산출물 — 경로 지도 · 지운 줄 기록 · 기준선 캡처
-split-work/reorg/out/
