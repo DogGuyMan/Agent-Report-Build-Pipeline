@@ -2060,7 +2060,7 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
     text = handoff.read_text(encoding="utf-8")
     assert "unreadable" in text and "검사를 완화해 통과시키지 말라" in text
     (tmp_path / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
-    good = {"schema_version": 2, "language": "python", "platform": "linux", "source_tool": "t",
+    good: dict[str, object] = {"schema_version": 2, "language": "python", "platform": "linux", "source_tool": "t",
             "repo_commit": None, "edges": [], "modules": [{"id": "a", "depends_on": []}],
             "nodes": [{"id": "C1", "name": "a.f", "kind": "function", "module": "a", "file": "a.py", "line": 1}]}
     (raw / "codegraph.json").write_text(json.dumps(good), encoding="utf-8")
@@ -2070,8 +2070,7 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
 
 
 def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() -> None:
-    faults: list[V.Fault] = ([{"code": "dangling-edge", "at": "$.edges[%d]" % i, "detail": "d"} for i in range(7)]
-                             + [{"code": "unreadable", "at": "$", "detail": "u"}])
+    faults = [V.fault("dangling-edge", "$.edges[%d]" % i, "d") for i in range(7)] + [V.fault("unreadable", "$", "u")]
     doc: V.FaultsDoc = {"status": "failed", "language": "python", "source_tool": "t", "repo_commit": None,
                         "total": 8, "counts": {"dangling-edge": 7, "unreadable": 1}, "faults": faults}
     text = G.VerifyGraphStage.handoff_text("/r", "/r/out/codegraph-raw/codegraph.json", doc)
