@@ -23,6 +23,7 @@
 | [`survey_plan.py`](survey_plan.py) | 전수조사 배치 계획. |
 | [`terms_db.py`](terms_db.py) | 코드베이스 용어 전수 수집. |
 | [`verify_citations.py`](verify_citations.py) | 문서의 file:line 인용을 기계로 판정한다 (L1/L2/L3). |
+| [`verify_graph.py`](verify_graph.py) | codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다. |
 | [`warmup.py`](warmup.py) | 전수조사를 매번 전량 다시 하지 않게 하는 파일별 캐시와 무효화. |
 
 ---
@@ -346,6 +347,20 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `build_index` | `(codegraph: str) -> tuple[CodeGraph, Index, Index]` | codegraph -> (노드 색인, 간선 색인). 둘 다 (file,line) 로 찾는다. |
 | `load_detail_index` | `(path: str) -> Index` | 살 파일의 멤버·메서드 선언 줄 색인. clang-uml(elements)과 roslyn-dump(types) 양쪽을 안다. |
 | `main` | `() -> int` |  |
+
+---
+
+## `verify_graph.py`
+
+codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`Fault`** | *class* | 결함 하나. `at` 은 JSON 경로(`$.nodes[3].kind`)다. |
+| **`FaultsDoc`** | *class* | `graph-faults.json` — 결함이 있을 때만 있다. |
+| **`PassedDoc`** | *class* | `graph-verified.json` — 검사를 지난 지도의 기록. `codegraph_sha256` 이 그 지도 한 벌에만 묶는다. |
+| `fault` | `(code: str, at: str, detail: str) -> Fault` | 결함 하나를 만든다. 표에 없는 코드는 `KeyError` 다. |
+| `read_graph` | `(path: str) -> tuple[object, str, list[Fault]]` | V0 읽기 — 파일을 열어 JSON 으로 푼다. (문서, 바이트의 sha256, 결함) 을 낸다. 못 열거나 못 풀면 문서는 `None` 이다. |
 
 ---
 
