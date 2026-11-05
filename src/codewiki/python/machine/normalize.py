@@ -7,7 +7,7 @@
 접기 규칙 R1~R7 과 kind enum 사상이 여기에만 있다. 언어 도구는 원시 사실만 내고
 정책은 전부 이 파일이 쥔다.
 """
-import argparse, json, os, re, subprocess, sys
+import argparse, json, os, re, subprocess, sys, tempfile
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from typing import Any, Literal, Required, TypedDict, cast
@@ -1178,6 +1178,20 @@ def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
         stats["호출 간선"] += 1
 
 
+def write_json_atomic(path: str, obj: object) -> None:
+    """JSON 을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다."""
+    folder = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(dir=folder, prefix="." + os.path.basename(path) + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
 def build_parser() -> argparse.ArgumentParser:
     """명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다.
 
@@ -1236,7 +1250,7 @@ def main() -> None:
             tool += (f" + pycalls({len(py_calls['symbols'])} 심볼"
                      f" / {len(py_calls['calls'])} 호출)")
         g, stats = normalize_python(py_dump, a.repo, tool, calls=py_calls)
-    json.dump(g, open(a.out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    write_json_atomic(a.out, g)
 
     print(f"{a.out} — 노드 {len(g['nodes'])} / 간선 {len(g['edges'])} / 모듈 {len(g['modules'])}")
     if a.clang_uml is not None:

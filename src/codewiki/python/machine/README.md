@@ -226,6 +226,7 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Counter[str], depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
 | `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Counter[str]]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
 | `merge_py_calls` | `(nodes: dict[str, Node], node_id: dict[str, str], edges: dict[tuple[str, str, str], Edge], calls: PyCallsDump, stats: Counter[str]) -> None` | `pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다. |
+| `write_json_atomic` | `(path: str, obj: object) -> None` | JSON 을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다. |
 | `build_parser` | `() -> argparse.ArgumentParser` | 명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다. |
 | `main` | `() -> None` |  |
 

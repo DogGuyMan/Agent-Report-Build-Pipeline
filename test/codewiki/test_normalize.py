@@ -1011,3 +1011,23 @@ def test_golden_python_marks_interface_and_abstract_classes(tmp_path: Path) -> N
     assert by["Shape"].get("abstraction") == "abstract"
     assert by["Half"].get("abstraction") == "abstract"       # 베이스 없이 데코레이터만으로도
     assert "abstraction" not in by["Square"]
+
+
+def test_지도는_끊겨도_옛_파일을_지키고_임시_파일을_남기지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = str(tmp_path / "codegraph.json")
+    N.write_json_atomic(path, {"v": 1})
+
+    def boom(src: str, dst: str) -> None:
+        raise KeyboardInterrupt
+    monkeypatch.setattr(N.os, "replace", boom)
+    with pytest.raises(KeyboardInterrupt):
+        N.write_json_atomic(path, {"v": 2})
+    assert json.loads((tmp_path / "codegraph.json").read_text(encoding="utf-8")) == {"v": 1}
+    assert os.listdir(tmp_path) == ["codegraph.json"]
+
+
+def test_지도_쓰기는_예전_json_dump_와_같은_바이트다(tmp_path: Path) -> None:
+    g = {"이름": "값", "n": [1, 2]}
+    path = tmp_path / "codegraph.json"
+    N.write_json_atomic(str(path), g)
+    assert path.read_text(encoding="utf-8") == json.dumps(g, ensure_ascii=False, indent=2)
