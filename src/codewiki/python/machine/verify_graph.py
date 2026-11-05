@@ -8,7 +8,12 @@
 """
 import hashlib
 import json
-from typing import Literal, TypedDict
+from dataclasses import dataclass
+from typing import Literal, TypedDict, cast, get_type_hints
+
+import msgspec
+
+from codegraph_types import CodeGraph, Edge, Module, Node
 
 # 결함 코드 -> 층. 표와 코드가 1대1이다(test_verify_graph.py 가 고정한다).
 LAYER: dict[str, str] = {
@@ -24,6 +29,8 @@ LAYER: dict[str, str] = {
 NODE_KINDS = frozenset({"function", "method", "class", "struct", "enum", "interface", "delegate", "record", "external"})
 LANGUAGES = frozenset({"cpp", "csharp", "python"})
 EXTERNAL_MODULE = "__external__"
+TOP = get_type_hints(CodeGraph)
+ELEMENTS = ("nodes", "edges", "modules")
 
 
 class Fault(TypedDict):
@@ -77,3 +84,79 @@ def read_graph(path: str) -> tuple[object, str, list[Fault]]:
         return None, sha, [fault("unreadable", "$", "UTF-8 이 아니다 — %d바이트째" % e.start)]
     except json.JSONDecodeError as e:
         return None, sha, [fault("unreadable", "$", "JSON 이 아니다 — %d줄 %d칸: %s" % (e.lineno, e.colno, e.msg))]
+
+
+@dataclass
+class Elements:
+    """V1 을 지난 원소(원래 자리 번호와 함께)와, 꼴이 틀려 뒤 층이 빼야 하는 것의 흔적."""
+    nodes: list[tuple[int, Node]]
+    edges: list[tuple[int, Edge]]
+    modules: list[tuple[int, Module]]
+    bad_node_ids: set[str]
+    bad_node_without_id: bool
+    bad_module: bool
+
+
+def check_top(doc: object) -> list[Fault]:
+    """V1 꼴(최상위) — 계약 `CodeGraph` 의 열쇠가 다 있고 형이 맞는가 · 판이 2인가 · 아는 언어인가 · 노드가 있는가.
+
+    `nodes` · `edges` · `modules` 는 목록인지만 본다. 원소는 `check_elements` 가 본다.
+    """
+    if not isinstance(doc, dict):
+        return [fault("top-field", "$", "최상위가 객체가 아니라 %s 다" % type(doc).__name__)]
+    d = cast(dict[str, object], doc)
+    out: list[Fault] = []
+    for key, t in TOP.items():
+        if key not in d:
+            out.append(fault("top-field", "$.%s" % key, "필수 열쇠가 없다"))
+            continue
+        try:
+            msgspec.convert(d[key], list if key in ELEMENTS else t)
+        except msgspec.ValidationError as e:
+            out.append(fault("top-field", "$.%s" % key, str(e)))
+    version, language, nodes = d.get("schema_version"), d.get("language"), d.get("nodes")
+    if isinstance(version, int) and version != 2:
+        out.append(fault("schema-version", "$.schema_version", "판이 %d 다 — 2 여야 한다" % version))
+    if isinstance(language, str) and language not in LANGUAGES:
+        out.append(fault("language", "$.language", "모르는 언어 %r" % language))
+    if isinstance(nodes, list) and not nodes:
+        out.append(fault("empty-graph", "$.nodes", "노드가 하나도 없다"))
+    return out
+
+
+def _items(d: dict[str, object], key: str) -> list[object]:
+    """`d[key]` 가 목록이면 그것을, 아니면 빈 목록을 낸다 — 목록이 아닌 것은 `check_top` 이 이미 셌다."""
+    v = d.get(key)
+    return cast(list[object], v) if isinstance(v, list) else []
+
+
+def check_elements(d: dict[str, object]) -> tuple[Elements, list[Fault]]:
+    """V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다."""
+    out: list[Fault] = []
+    el = Elements([], [], [], set(), False, False)
+    for i, raw in enumerate(_items(d, "nodes")):
+        try:
+            n = msgspec.convert(raw, Node)
+        except msgspec.ValidationError as e:
+            out.append(fault("node-shape", "$.nodes[%d]" % i, str(e)))
+            nid = cast(dict[str, object], raw).get("id") if isinstance(raw, dict) else None
+            if isinstance(nid, str):
+                el.bad_node_ids.add(nid)
+            else:
+                el.bad_node_without_id = True
+            continue
+        if n["kind"] not in NODE_KINDS:
+            out.append(fault("node-kind", "$.nodes[%d].kind" % i, "모르는 kind %r" % n["kind"]))
+        el.nodes.append((i, n))
+    for i, raw in enumerate(_items(d, "edges")):
+        try:
+            el.edges.append((i, msgspec.convert(raw, Edge)))
+        except msgspec.ValidationError as e:
+            out.append(fault("edge-shape", "$.edges[%d]" % i, str(e)))
+    for i, raw in enumerate(_items(d, "modules")):
+        try:
+            el.modules.append((i, msgspec.convert(raw, Module)))
+        except msgspec.ValidationError as e:
+            out.append(fault("module-shape", "$.modules[%d]" % i, str(e)))
+            el.bad_module = True
+    return el, out

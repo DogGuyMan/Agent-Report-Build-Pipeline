@@ -361,6 +361,10 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | **`PassedDoc`** | *class* | `graph-verified.json` — 검사를 지난 지도의 기록. `codegraph_sha256` 이 그 지도 한 벌에만 묶는다. |
 | `fault` | `(code: str, at: str, detail: str) -> Fault` | 결함 하나를 만든다. 표에 없는 코드는 `KeyError` 다. |
 | `read_graph` | `(path: str) -> tuple[object, str, list[Fault]]` | V0 읽기 — 파일을 열어 JSON 으로 푼다. (문서, 바이트의 sha256, 결함) 을 낸다. 못 열거나 못 풀면 문서는 `None` 이다. |
+| **`Elements`** | *class* | V1 을 지난 원소(원래 자리 번호와 함께)와, 꼴이 틀려 뒤 층이 빼야 하는 것의 흔적. |
+| `check_top` | `(doc: object) -> list[Fault]` | V1 꼴(최상위) — 계약 `CodeGraph` 의 열쇠가 다 있고 형이 맞는가 · 판이 2인가 · 아는 언어인가 · 노드가 있는가. |
+| `_items` | `(d: dict[str, object], key: str) -> list[object]` | `d[key]` 가 목록이면 그것을, 아니면 빈 목록을 낸다 — 목록이 아닌 것은 `check_top` 이 이미 셌다. |
+| `check_elements` | `(d: dict[str, object]) -> tuple[Elements, list[Fault]]` | V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다. |
 
 ---
 
