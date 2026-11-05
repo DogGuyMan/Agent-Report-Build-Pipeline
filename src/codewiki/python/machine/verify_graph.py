@@ -160,3 +160,55 @@ def check_elements(d: dict[str, object]) -> tuple[Elements, list[Fault]]:
             out.append(fault("module-shape", "$.modules[%d]" % i, str(e)))
             el.bad_module = True
     return el, out
+
+
+def check_consistency(el: Elements) -> list[Fault]:
+    """V2 정합 — id 가 겹치지 않고, 간선이 있는 노드를 잇고, 외부 노드 규칙(R4 · R6)과 모듈 목록이 맞는가.
+
+    V1 에서 꼴이 틀린 원소 때문에 생기는 끊김 · 목록 차이는 세지 않는다.
+    """
+    out: list[Fault] = []
+    kind_of: dict[str, str] = {}
+    for i, n in el.nodes:
+        at = "$.nodes[%d]" % i
+        if n["id"] in kind_of:
+            out.append(fault("duplicate-node", at + ".id", "id %r 가 앞에도 있다" % n["id"]))
+        kind_of[n["id"]] = n["kind"]
+        external = n["kind"] == "external"
+        if external != (n["module"] == EXTERNAL_MODULE) or (external and (n["file"] is not None or n["line"] is not None)):
+            out.append(fault("external-node", at, "외부 노드는 kind external · module %s · 위치 없음이 함께여야 한다"
+                             % EXTERNAL_MODULE))
+        elif not external and (n["file"] is None or n["line"] is None):
+            out.append(fault("first-party-location", at, "1차 노드 %r 에 file 이나 line 이 없다" % n["id"]))
+    known = set(kind_of) | el.bad_node_ids
+    seen: set[tuple[str, str, str]] = set()
+    for i, e in el.edges:
+        at = "$.edges[%d]" % i
+        ends = [x for x in (e["from"], e["to"]) if x not in known]
+        if ends and not el.bad_node_without_id:
+            out.append(fault("dangling-edge", at, "없는 노드 %s 를 잇는다" % ", ".join(repr(x) for x in ends)))
+        if kind_of.get(e["from"]) == "external":
+            out.append(fault("external-source", at, "외부 노드 %r 에서 나가는 간선이다(R4)" % e["from"]))
+        if kind_of.get(e["to"]) == "external" and e.get("constraint") is not False:
+            out.append(fault("external-constraint", at, "외부로 가는 간선은 constraint false 여야 한다(R6)"))
+        key = (e["from"], e["to"], e["kind"])
+        if key in seen:
+            out.append(fault("duplicate-edge", at, "같은 (from, to, kind) 가 앞에도 있다"))
+        seen.add(key)
+    if not (el.bad_node_ids or el.bad_node_without_id or el.bad_module):
+        listed = [m["id"] for _, m in el.modules]
+        used = {n["module"] for _, n in el.nodes if n["kind"] != "external" and n["module"]}
+        for m in sorted(used - set(listed)):
+            out.append(fault("module-list", "$.modules", "노드의 모듈 %r 이 목록에 없다" % m))
+        for m in sorted(set(listed) - used):
+            out.append(fault("module-list", "$.modules", "목록의 모듈 %r 을 쓰는 노드가 없다" % m))
+        for m in sorted({x for x in listed if listed.count(x) > 1}):
+            out.append(fault("module-list", "$.modules", "모듈 %r 이 두 번 있다" % m))
+    ids = {m["id"] for _, m in el.modules}
+    for i, m in el.modules:
+        for dep in m["depends_on"]:
+            if dep == m["id"]:
+                out.append(fault("module-dep", "$.modules[%d].depends_on" % i, "%r 은 자기 자신이다" % dep))
+            elif dep not in ids:
+                out.append(fault("module-dep", "$.modules[%d].depends_on" % i, "%r 은 목록에 없는 모듈이다" % dep))
+    return out

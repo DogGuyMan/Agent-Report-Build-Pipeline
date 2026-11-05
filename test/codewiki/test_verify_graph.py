@@ -40,6 +40,16 @@ def _codes(faults: list[V.Fault]) -> list[str]:
     return [f["code"] for f in faults]
 
 
+def _check(g: Obj) -> list[V.Fault]:
+    """V1 · V2 를 한 번에 — 근거 층 없이."""
+    el, faults = V.check_elements(g)
+    return V.check_top(g) + faults + V.check_consistency(el)
+
+
+def test_온전한_지도는_결함이_없다() -> None:
+    assert _check(_graph()) == []
+
+
 def test_표는_네_층_스물한_코드다() -> None:
     assert len(V.LAYER) == 21
     assert sorted(set(V.LAYER.values())) == ["V0 읽기", "V1 꼴", "V2 정합", "V3 근거"]
@@ -72,3 +82,23 @@ def test_V1_원소의_꼴은_첫_오류에서_멈추지_않고_전부_모은다(
     _, faults = V.check_elements(g)
     assert _codes(faults) == ["node-shape", "node-kind", "edge-shape", "module-shape"]
     assert [f["at"] for f in faults] == ["$.nodes[3]", "$.nodes[4].kind", "$.edges[2]", "$.modules[1]"]
+
+
+def test_V2_아홉_규칙이_저마다_결함을_낸다() -> None:
+    g = _graph(nodes=[_node("C1"), _node("C1"), EXT,
+                      _node("X:bad", kind="external", module="pkg", file=None, line=None),
+                      _node("C3", file=None)],
+               edges=[_edge("C1", "C9"), _edge("X:std", "C1"), _edge("C1", "X:std"),
+                      _edge("C1", "C3"), _edge("C1", "C3")],
+               modules=[{"id": "pkg", "depends_on": ["pkg", "zzz"]}, {"id": "ghost", "depends_on": []}])
+    assert sorted(set(_codes(_check(g)))) == sorted([
+        "duplicate-node", "external-node", "first-party-location", "dangling-edge", "external-source",
+        "external-constraint", "duplicate-edge", "module-list", "module-dep"])
+
+
+def test_V2_는_꼴이_틀린_노드_때문에_끊김을_만들지_않는다() -> None:
+    with_id = _graph(nodes=[_node("C1"), {"id": "C2", "name": 1}, EXT])
+    assert _codes(_check(with_id)) == ["node-shape"]
+    without_id = _graph(nodes=[_node("C1"), {"name": 1}, EXT],
+                        edges=[_edge("C1", "C7"), _edge("C1", "X:std", constraint=False)])
+    assert _codes(_check(without_id)) == ["node-shape"]

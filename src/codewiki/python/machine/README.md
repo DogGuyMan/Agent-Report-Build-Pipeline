@@ -365,6 +365,7 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | `check_top` | `(doc: object) -> list[Fault]` | V1 꼴(최상위) — 계약 `CodeGraph` 의 열쇠가 다 있고 형이 맞는가 · 판이 2인가 · 아는 언어인가 · 노드가 있는가. |
 | `_items` | `(d: dict[str, object], key: str) -> list[object]` | `d[key]` 가 목록이면 그것을, 아니면 빈 목록을 낸다 — 목록이 아닌 것은 `check_top` 이 이미 셌다. |
 | `check_elements` | `(d: dict[str, object]) -> tuple[Elements, list[Fault]]` | V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다. |
+| `check_consistency` | `(el: Elements) -> list[Fault]` | V2 정합 — id 가 겹치지 않고, 간선이 있는 노드를 잇고, 외부 노드 규칙(R4 · R6)과 모듈 목록이 맞는가. |
 
 ---
 
