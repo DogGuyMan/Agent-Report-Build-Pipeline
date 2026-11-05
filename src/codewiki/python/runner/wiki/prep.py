@@ -181,7 +181,9 @@ if __name__ == "__main__":
             
     collector = fromSelect if fromSelect else collectorFor(os.listdir(repo))
     CLANG_DOC = clangDocPath() if collector == "clang-uml" else None
-    
+    fingerprint = collect_fingerprint(ROOT, tool_versions(collector, PY, P["raw"], CLANG_DOC))
+    recorded = recorded_fingerprint(P["fingerprint"], P["codegraph"])
+
     plan = prepPlan(
         collector=collector,
         hasCodegraph=os.path.exists(P["codegraph"]),
@@ -190,6 +192,7 @@ if __name__ == "__main__":
         hasClangDoc=bool(CLANG_DOC),
         verdicts=verdicts,
         force=force,
+        toolChanged=recorded != fingerprint,
     )
     
     print(f"대상 {repo}")
@@ -198,6 +201,12 @@ if __name__ == "__main__":
     if collector == "clang-uml" and not CLANG_DOC:
         print("알림 — clang-doc 을 못 찾아 자유 함수 층이 빈다. CLANG_DOC 환경변수로 알려 주거나 brew install llvm 하라.")
         
+    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도와 옛 지문부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않는다.
+    if plan["blocked"] is not None or "normalize" in plan["steps"]:
+        for stale in (P["codegraph"], P["fingerprint"]):
+            if os.path.exists(stale):
+                os.remove(stale)
+
     if plan["blocked"]:
         print(f"막힘 — {plan['blocked']}", file=sys.stderr)
         sys.exit(1)
@@ -264,6 +273,11 @@ if __name__ == "__main__":
                 arg.extend(["--clang-doc", docOutDir])
                 
             run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"]])
+            # 끊겨 깨진 지문 파일은 recorded_fingerprint 가 None 으로 읽어 다음에 다시 수집한다.
+            with open(P["codegraph"], "rb") as g:
+                sha = hashlib.sha256(g.read()).hexdigest()
+            with open(P["fingerprint"], "w", encoding="utf-8") as f:
+                json.dump({"fingerprint": fingerprint, "codegraph_sha256": sha}, f, indent=1)
             
         elif step == "facts":
             detail = os.path.join(P["raw"], "roslyn-dump.json")
