@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import os
 import sys
 import json
@@ -17,6 +18,71 @@ from codewiki.python.runner.wiki.clang_doc import clangDocPath, clangDocArgs  # 
 from common.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional, cast
+
+# 수집 결과를 바꾸는 이 저장소의 코드. normalize.py 가 평평하게 import 하는 모듈은 전부 여기 있어야 한다
+# (test_prep_fingerprint.py 가 고정한다).
+COLLECT_CODE = (
+    "src/codewiki/python/machine/normalize.py",
+    "src/codewiki/python/machine/codegraph_types.py",
+    "src/codewiki/python/machine/clang_doc.py",
+    "src/codewiki/python/machine/pycalls.py",
+    "src/codewiki/python/runner/wiki/prep.py",
+)
+
+
+def tool_versions(collector: Optional[str], py: str, raw: str, clang_doc: Optional[str]) -> dict[str, str]:
+    """바깥 수집기의 판. `--version` 첫 줄을 쓰고 못 얻으면 `?` 다. roslyn-dump 는 prep 밖에서 돌므로 산출물의 내용 해시를 쓴다."""
+    def first_line(argv: list[str]) -> str:
+        try:
+            r = subprocess.run(argv, capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            return "?"
+        out = (r.stdout or r.stderr).strip().splitlines()
+        return out[0] if r.returncode == 0 and out else "?"
+    got: dict[str, str] = {}
+    if collector == "griffe+pycalls":
+        got["griffe"] = first_line([py, "-m", "griffe", "--version"])
+    elif collector == "clang-uml":
+        got["clang-uml"] = first_line(["clang-uml", "--version"])
+        if clang_doc:
+            got["clang-doc"] = first_line([clang_doc, "--version"])
+    elif collector == "roslyn-dump":
+        dump = os.path.join(raw, "roslyn-dump.json")
+        if os.path.exists(dump):
+            with open(dump, "rb") as f:
+                got["roslyn-dump.json"] = hashlib.sha256(f.read()).hexdigest()
+        else:
+            got["roslyn-dump.json"] = "?"
+    return got
+
+
+def collect_fingerprint(root: str, versions: dict[str, str]) -> str:
+    """수집 코드의 내용과 바깥 수집기 판을 합친 sha256. 커밋 해시가 아니라 내용이라 커밋 전 수정도 잡는다."""
+    h = hashlib.sha256()
+    for rel in COLLECT_CODE:
+        with open(os.path.join(root, rel), "rb") as f:
+            h.update(f"{rel}\0".encode())
+            h.update(hashlib.sha256(f.read()).digest())
+    for name in sorted(versions):
+        h.update(f"{name}={versions[name]}\0".encode())
+    return h.hexdigest()
+
+
+def recorded_fingerprint(path: str, codegraph: str) -> Optional[str]:
+    """기록된 지문. 기록이 없거나 깨졌거나 지금 지도가 기록할 때의 지도가 아니면 `None` 이다 — 셋 다 다시 수집하라는 뜻이다."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = cast(object, json.load(f))
+        with open(codegraph, "rb") as f:
+            now = hashlib.sha256(f.read()).hexdigest()
+    except (OSError, ValueError):
+        return None
+    if not isinstance(raw, dict):
+        return None
+    d = cast(dict[str, object], raw)
+    fp, sha = d.get("fingerprint"), d.get("codegraph_sha256")
+    return fp if isinstance(fp, str) and sha == now else None
+
 
 def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
                   force: bool = False, tool_changed: bool = False) -> bool:
