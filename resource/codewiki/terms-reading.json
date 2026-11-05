@@ -8483,7 +8483,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:139"
+  "where": "src/codewiki/python/runner/mode1/context.py:260"
  },
  "codewiki.python.runner.mode1.context.LangSelect": {
   "confidence": "HIGH",
@@ -8493,7 +8493,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:147"
+  "where": "src/codewiki/python/runner/mode1/context.py:274"
  },
  "codewiki.python.runner.mode1.context.Mode1Context": {
   "confidence": "MEDIUM",
@@ -8534,7 +8534,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:128"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:108"
+  "where": "src/codewiki/python/runner/mode1/context.py:223"
  },
  "codewiki.python.runner.mode1.context.Outline": {
   "confidence": "HIGH",
@@ -8551,7 +8551,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:155"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:153"
+  "where": "src/codewiki/python/runner/mode1/context.py:280"
  },
  "codewiki.python.runner.mode1.context.ShardFault": {
   "confidence": "HIGH",
@@ -8561,7 +8561,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:55"
+  "where": "src/codewiki/python/runner/mode1/context.py:89"
  },
  "codewiki.python.runner.mode1.context.ShardRecord": {
   "confidence": "HIGH",
@@ -8578,7 +8578,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:41"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:34"
+  "where": "src/codewiki/python/runner/mode1/context.py:68"
  },
  "codewiki.python.runner.mode1.context.ShardUse": {
   "confidence": "HIGH",
@@ -8588,7 +8588,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:27"
+  "where": "src/codewiki/python/runner/mode1/context.py:61"
  },
  "codewiki.python.runner.mode1.context.UnresolvedRow": {
   "confidence": "HIGH",
@@ -8598,7 +8598,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:65"
+  "where": "src/codewiki/python/runner/mode1/context.py:157"
  },
  "codewiki.python.runner.mode1.context.WikiPage": {
   "confidence": "HIGH",
@@ -8608,7 +8608,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:80"
+  "where": "src/codewiki/python/runner/mode1/context.py:186"
  },
  "codewiki.python.runner.mode1.context._no_ints": {
   "confidence": "HIGH",
@@ -8618,7 +8618,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:100"
+  "where": "src/codewiki/python/runner/mode1/context.py:206"
  },
  "codewiki.python.runner.mode1.context._no_levels": {
   "confidence": "HIGH",
@@ -8628,7 +8628,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:104"
+  "where": "src/codewiki/python/runner/mode1/context.py:210"
  },
  "codewiki.python.runner.mode1.context._no_pages": {
   "confidence": "HIGH",
@@ -8638,7 +8638,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:96"
+  "where": "src/codewiki/python/runner/mode1/context.py:202"
  },
  "codewiki.python.runner.mode1.context._no_records": {
   "confidence": "HIGH",
@@ -8648,7 +8648,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:91"
+  "where": "src/codewiki/python/runner/mode1/context.py:197"
  },
  "codewiki.python.runner.mode1.context.raw_dir": {
   "confidence": "HIGH",
@@ -8665,7 +8665,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:132"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:132"
+  "where": "src/codewiki/python/runner/mode1/context.py:253"
  },
  "codewiki.python.runner.mode1.context.reading_path": {
   "confidence": "HIGH",
@@ -8675,7 +8675,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:158"
+  "where": "src/codewiki/python/runner/mode1/context.py:285"
  },
  "codewiki.python.runner.mode1.context.snapshot_path": {
   "confidence": "MEDIUM",
@@ -8692,7 +8692,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:208"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:202"
+  "where": "src/codewiki/python/runner/mode1/context.py:341"
  },
  "codewiki.python.runner.mode1.diff.WarmupDiff": {
   "confidence": "HIGH",
@@ -8787,34 +8787,34 @@
     "kind": "dependency",
     "label": "단계 이름 목록을 정한다",
     "to": "codewiki.python.runner.mode1.edges.plan_stages",
-    "where": "src/codewiki/python/runner/mode1/edges.py:89"
+    "where": "src/codewiki/python/runner/mode1/edges.py:99"
    },
    {
     "kind": "dependency",
     "label": "단계 인스턴스 사전을 받는다",
     "to": "codewiki.python.runner.mode1.edges.stages_for",
-    "where": "src/codewiki/python/runner/mode1/edges.py:94"
+    "where": "src/codewiki/python/runner/mode1/edges.py:104"
    },
    {
     "kind": "dependency",
     "label": "그래프 이름을 짓는다",
     "to": "codewiki.python.runner.mode1.edges.graph_name",
-    "where": "src/codewiki/python/runner/mode1/edges.py:95"
+    "where": "src/codewiki/python/runner/mode1/edges.py:105"
    },
    {
     "kind": "dependency",
     "label": "이름·단계 목록·전이표·기존 산출물 지문으로 그래프를 짓는다",
     "to": "core.pipeline.build_graph",
-    "where": "src/codewiki/python/runner/mode1/edges.py:95"
+    "where": "src/codewiki/python/runner/mode1/edges.py:105"
    },
    {
     "kind": "dependency",
     "label": "기존 산출물 지문을 만든다",
     "to": "core.pipeline.existing",
-    "where": "src/codewiki/python/runner/mode1/edges.py:95"
+    "where": "src/codewiki/python/runner/mode1/edges.py:105"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/edges.py:85"
+  "where": "src/codewiki/python/runner/mode1/edges.py:97"
  },
  "codewiki.python.runner.mode1.edges.expand": {
   "confidence": "HIGH",
@@ -8824,7 +8824,7 @@
   "module": "codewiki.python.runner.mode1.edges",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/edges.py:65"
+  "where": "src/codewiki/python/runner/mode1/edges.py:77"
  },
  "codewiki.python.runner.mode1.edges.graph_name": {
   "confidence": "HIGH",
@@ -8834,7 +8834,7 @@
   "module": "codewiki.python.runner.mode1.edges",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/edges.py:51"
+  "where": "src/codewiki/python/runner/mode1/edges.py:63"
  },
  "codewiki.python.runner.mode1.edges.plan_stages": {
   "confidence": "HIGH",
@@ -8851,7 +8851,7 @@
     "where": "src/codewiki/python/runner/mode1/edges.py:75-76"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/edges.py:72"
+  "where": "src/codewiki/python/runner/mode1/edges.py:84"
  },
  "codewiki.python.runner.mode1.edges.stages_for": {
   "confidence": "HIGH",
@@ -8865,10 +8865,10 @@
     "kind": "dependency",
     "label": "strategy 가 file 이면 이 인스턴스로 바꿔치기한다",
     "to": "codewiki.python.runner.mode1.survey_files.AnnotateFilesStage",
-    "where": "src/codewiki/python/runner/mode1/edges.py:61"
+    "where": "src/codewiki/python/runner/mode1/edges.py:71"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/edges.py:57"
+  "where": "src/codewiki/python/runner/mode1/edges.py:69"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage": {
   "confidence": "HIGH",
@@ -8882,10 +8882,10 @@
     "kind": "inheritance",
     "label": "단계 기계 베이스를 상속",
     "to": "codewiki.python.runner.mode1.machine_stage.Mode1Machine",
-    "where": "src/codewiki/python/runner/mode1/graph.py:16"
+    "where": "src/codewiki/python/runner/mode1/graph.py:18"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:16"
+  "where": "src/codewiki/python/runner/mode1/graph.py:18"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.argv": {
   "confidence": "HIGH",
@@ -8899,16 +8899,16 @@
     "kind": "dependency",
     "label": "기본 명령줄 인자 조립",
     "to": "codewiki.python.runner.mode1.machine_stage.Mode1Machine.wiki_argv",
-    "where": "src/codewiki/python/runner/mode1/graph.py:21"
+    "where": "src/codewiki/python/runner/mode1/graph.py:23"
    },
    {
     "kind": "dependency",
     "label": "변경 목록 산출물 경로를 --diff 인자로 사용",
     "to": "codewiki.python.runner.mode1.context.CHANGES",
-    "where": "src/codewiki/python/runner/mode1/graph.py:25"
+    "where": "src/codewiki/python/runner/mode1/graph.py:27"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:20"
+  "where": "src/codewiki/python/runner/mode1/graph.py:22"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.reads": {
   "confidence": "HIGH",
@@ -8922,10 +8922,10 @@
     "kind": "dependency",
     "label": "증분 모드일 때 읽어야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.CHANGES",
-    "where": "src/codewiki/python/runner/mode1/graph.py:29"
+    "where": "src/codewiki/python/runner/mode1/graph.py:31"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:28"
+  "where": "src/codewiki/python/runner/mode1/graph.py:30"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.writes": {
   "confidence": "HIGH",
@@ -8939,10 +8939,10 @@
     "kind": "dependency",
     "label": "이 단계가 내야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.CODEGRAPH",
-    "where": "src/codewiki/python/runner/mode1/graph.py:32"
+    "where": "src/codewiki/python/runner/mode1/graph.py:34"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:31"
+  "where": "src/codewiki/python/runner/mode1/graph.py:33"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage": {
   "confidence": "HIGH",
@@ -8956,16 +8956,16 @@
     "kind": "inheritance",
     "label": "실행 시간 측정 기능을 상속",
     "to": "codewiki.python.runner.mode1.measured.Measured",
-    "where": "src/codewiki/python/runner/mode1/graph.py:35"
+    "where": "src/codewiki/python/runner/mode1/graph.py:85"
    },
    {
     "kind": "inheritance",
     "label": "단계 기계 베이스를 상속",
     "to": "core.pipeline.Stage",
-    "where": "src/codewiki/python/runner/mode1/graph.py:35"
+    "where": "src/codewiki/python/runner/mode1/graph.py:85"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:35"
+  "where": "src/codewiki/python/runner/mode1/graph.py:85"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.perform": {
   "confidence": "HIGH",
@@ -8987,46 +8987,46 @@
     "kind": "dependency",
     "label": "코드 지도 JSON 파일을 읽음",
     "to": "core.pipeline.load",
-    "where": "src/codewiki/python/runner/mode1/graph.py:72"
+    "where": "src/codewiki/python/runner/mode1/graph.py:122"
    },
    {
     "kind": "dependency",
     "label": "파일 전략일 때 파일 단위 계획을 만듦",
     "to": "codewiki.python.machine.survey_plan.plan_by_file",
-    "where": "src/codewiki/python/runner/mode1/graph.py:75"
+    "where": "src/codewiki/python/runner/mode1/graph.py:125"
    },
    {
     "kind": "dependency",
     "label": "파일별 가중치를 계산",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "src/codewiki/python/runner/mode1/graph.py:77"
+    "where": "src/codewiki/python/runner/mode1/graph.py:127"
    },
    {
     "kind": "dependency",
     "label": "가중치를 CSV 문자열로 변환",
     "to": "codewiki.python.machine.survey_plan.weights_csv",
-    "where": "src/codewiki/python/runner/mode1/graph.py:77"
+    "where": "src/codewiki/python/runner/mode1/graph.py:127"
    },
    {
     "kind": "dependency",
     "label": "층 전략일 때 층 단위 계획을 만듦",
     "to": "codewiki.python.machine.survey_plan.plan",
-    "where": "src/codewiki/python/runner/mode1/graph.py:80"
+    "where": "src/codewiki/python/runner/mode1/graph.py:130"
    },
    {
     "kind": "dependency",
     "label": "성공 결과를 담아 반환",
     "to": "core.pipeline.Outcome",
-    "where": "src/codewiki/python/runner/mode1/graph.py:88"
+    "where": "src/codewiki/python/runner/mode1/graph.py:146"
    },
    {
     "kind": "dependency",
     "label": "요약 줄 목록을 얻어 출력",
     "to": "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.plan_summary",
-    "where": "src/codewiki/python/runner/mode1/graph.py:86"
+    "where": "src/codewiki/python/runner/mode1/graph.py:136"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:69"
+  "where": "src/codewiki/python/runner/mode1/graph.py:145"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.plan_summary": {
   "confidence": "HIGH",
@@ -9040,10 +9040,10 @@
     "kind": "dependency",
     "label": "매개변수 plan 의 형으로 사용",
     "to": "codewiki.python.machine.survey_plan.SurveyPlan",
-    "where": "src/codewiki/python/runner/mode1/graph.py:47"
+    "where": "src/codewiki/python/runner/mode1/graph.py:97"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:47"
+  "where": "src/codewiki/python/runner/mode1/graph.py:99"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.reads": {
   "confidence": "HIGH",
@@ -9057,16 +9057,16 @@
     "kind": "dependency",
     "label": "항상 읽어야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.CODEGRAPH",
-    "where": "src/codewiki/python/runner/mode1/graph.py:41"
+    "where": "src/codewiki/python/runner/mode1/graph.py:91"
    },
    {
     "kind": "dependency",
     "label": "증분 모드일 때 읽어야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.CHANGES",
-    "where": "src/codewiki/python/runner/mode1/graph.py:41"
+    "where": "src/codewiki/python/runner/mode1/graph.py:91"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:40"
+  "where": "src/codewiki/python/runner/mode1/graph.py:92"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.writes": {
   "confidence": "HIGH",
@@ -9080,16 +9080,16 @@
     "kind": "dependency",
     "label": "항상 내야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.BATCHES",
-    "where": "src/codewiki/python/runner/mode1/graph.py:44"
+    "where": "src/codewiki/python/runner/mode1/graph.py:94"
    },
    {
     "kind": "dependency",
     "label": "파일 전략일 때 내야 할 산출물로 지정",
     "to": "codewiki.python.runner.mode1.context.FILE_PRIORITY",
-    "where": "src/codewiki/python/runner/mode1/graph.py:44"
+    "where": "src/codewiki/python/runner/mode1/graph.py:94"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:43"
+  "where": "src/codewiki/python/runner/mode1/graph.py:95"
  },
  "codewiki.python.runner.mode1.lang.LangDecideStage": {
   "confidence": "HIGH",
@@ -12026,7 +12026,7 @@
   "module": "codewiki.python.runner.run_mode1",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/run_mode1.py:95"
+  "where": "src/codewiki/python/runner/run_mode1.py:96"
  },
  "codewiki.python.runner.run_mode1.main": {
   "confidence": "HIGH",
@@ -12049,46 +12049,46 @@
     "kind": "dependency",
     "label": "dry-run 에서 층 계획을 짠다",
     "to": "codewiki.python.machine.survey_plan.plan",
-    "where": "src/codewiki/python/runner/run_mode1.py:244"
+    "where": "src/codewiki/python/runner/run_mode1.py:245"
    },
    {
     "kind": "dependency",
     "label": "strategy가 file 일 때 파일별 계획을 짠다",
     "to": "codewiki.python.machine.survey_plan.plan_by_file",
-    "where": "src/codewiki/python/runner/run_mode1.py:243"
+    "where": "src/codewiki/python/runner/run_mode1.py:244"
    },
    {
     "kind": "dependency",
     "label": "JSON 출력에 전체 사용량을 합산해 넣는다",
     "to": "core.measure.sum_usage",
-    "where": "src/codewiki/python/runner/run_mode1.py:272"
+    "where": "src/codewiki/python/runner/run_mode1.py:273"
    },
    {
     "kind": "dependency",
     "label": "전체 걸린 시간을 사람이 읽을 문자열로 바꾼다",
     "to": "core.measure.hms",
-    "where": "src/codewiki/python/runner/run_mode1.py:261"
+    "where": "src/codewiki/python/runner/run_mode1.py:262"
    },
    {
     "kind": "dependency",
     "label": "단계별 측정 보고 문자열을 만든다",
     "to": "core.measure.format_report",
-    "where": "src/codewiki/python/runner/run_mode1.py:263"
+    "where": "src/codewiki/python/runner/run_mode1.py:264"
    },
    {
     "kind": "dependency",
     "label": "단계별 토큰·턴·비용 소계를 낸다",
     "to": "core.measure.stage_totals",
-    "where": "src/codewiki/python/runner/run_mode1.py:265"
+    "where": "src/codewiki/python/runner/run_mode1.py:266"
    },
    {
     "kind": "dependency",
     "label": "codegraph.json 을 CodeGraphDoc 형으로 읽는다",
     "to": "core.pipeline.load",
-    "where": "src/codewiki/python/runner/run_mode1.py:242"
+    "where": "src/codewiki/python/runner/run_mode1.py:243"
    }
   ],
-  "where": "src/codewiki/python/runner/run_mode1.py:188"
+  "where": "src/codewiki/python/runner/run_mode1.py:189"
  },
  "term.python.runner.run_mode1_5.AnswerSheet": {
   "confidence": "HIGH",
@@ -24926,5 +24926,255 @@
   "source": "reading",
   "uses": [],
   "where": "src/codewiki/python/machine/normalize.py:1181"
+ },
+ "codewiki.python.machine.verify_graph.Fault": {
+  "confidence": "HIGH",
+  "does": "code · at(JSON 경로) · detail 세 칸이다.",
+  "kind": "class",
+  "means": "검사 결함 하나의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:41"
+ },
+ "codewiki.python.machine.verify_graph.FaultsDoc": {
+  "confidence": "HIGH",
+  "does": "status failed · language · source_tool · repo_commit · total · counts(코드별 수) · faults.",
+  "kind": "class",
+  "means": "graph-faults.json 의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:48"
+ },
+ "codewiki.python.machine.verify_graph.PassedDoc": {
+  "confidence": "HIGH",
+  "does": "status passed · 언어 · 수집기 · 커밋 · 노드 · 간선 · 모듈 수 · codegraph_sha256. sha256 이 그 지도 한 벌에만 묶는다.",
+  "kind": "class",
+  "means": "graph-verified.json 의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:59"
+ },
+ "codewiki.python.machine.verify_graph.Elements": {
+  "confidence": "HIGH",
+  "does": "원래 자리 번호와 함께 nodes · edges · modules 를 담고, bad_node_ids · bad_node_without_id · bad_module 로 V2 가 연쇄 결함을 내지 않게 한다.",
+  "kind": "class",
+  "means": "V1 을 지난 원소와 꼴이 틀린 원소의 흔적.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:95"
+ },
+ "codewiki.python.machine.verify_graph.fault": {
+  "confidence": "HIGH",
+  "does": "code 가 LAYER 에 있는지 보고 {code, at, detail} 를 낸다. 표에 없는 코드는 KeyError 다.",
+  "kind": "function",
+  "means": "검사 결함 하나를 만드는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:71"
+ },
+ "codewiki.python.machine.verify_graph.read_graph": {
+  "confidence": "HIGH",
+  "does": "바이트를 읽어 sha256 을 내고 UTF-8 · JSON 으로 푼다. 못 열거나 UTF-8 이 아니거나 JSON 이 아니면 unreadable 결함 하나와 None 을 낸다. JSON 오류는 줄 · 칸까지 적는다.",
+  "kind": "function",
+  "means": "V0 읽기 — 지도 파일을 열어 JSON 으로 푸는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:78"
+ },
+ "codewiki.python.machine.verify_graph.check_top": {
+  "confidence": "HIGH",
+  "does": "계약 CodeGraph 의 열쇠마다 있는지와 형을 msgspec.convert 로 보고, schema_version 2 · 아는 언어 · 노드가 하나 이상인지 본다. nodes · edges · modules 는 목록인지만 본다.",
+  "kind": "function",
+  "means": "V1 꼴 — 지도의 최상위를 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:105"
+ },
+ "codewiki.python.machine.verify_graph._items": {
+  "confidence": "HIGH",
+  "does": "d[key] 가 목록이면 그것을, 아니면 빈 목록을 낸다.",
+  "kind": "function",
+  "means": "최상위의 목록 칸을 안전하게 꺼내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:132"
+ },
+ "codewiki.python.machine.verify_graph.check_elements": {
+  "confidence": "HIGH",
+  "does": "원소마다 따로 msgspec.convert 로 Node · Edge · Module 에 맞춰 보고 실패를 전부 모은다. 노드 kind 가 NODE_KINDS 밖이면 node-kind 다.",
+  "kind": "function",
+  "means": "V1 꼴 — 노드 · 간선 · 모듈 원소를 하나씩 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:138"
+ },
+ "codewiki.python.machine.verify_graph.check_consistency": {
+  "confidence": "HIGH",
+  "does": "id 겹침 · 외부 노드 규칙 · 1차 노드 위치 · 끊긴 간선 · 외부발 간선(R4) · 외부로 가는 간선의 constraint(R6) · 겹친 간선 · 모듈 목록 · 모듈 의존을 본다. V1 에서 꼴이 틀린 원소 때문에 생기는 끊김 · 목록 차이는 세지 않는다.",
+  "kind": "function",
+  "means": "V2 정합 — 지도 안의 원소끼리 맞는지 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:170"
+ },
+ "codewiki.python.machine.verify_graph._line_count": {
+  "confidence": "HIGH",
+  "does": "일반 파일이 아니거나 못 열면 None 을 낸다.",
+  "kind": "function",
+  "means": "파일의 줄 수를 세는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:222"
+ },
+ "codewiki.python.machine.verify_graph.check_sources": {
+  "confidence": "HIGH",
+  "does": "절대 경로나 저장소 밖이면 file-outside-repo, 파일이 없으면 file-missing, line 이 1 미만이거나 파일 줄 수보다 크면 line-out-of-range 다. 파일마다 줄 수를 한 번만 센다.",
+  "kind": "function",
+  "means": "V3 근거 — 노드와 간선의 file:line 이 저장소와 맞는지 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:233"
+ },
+ "codewiki.python.machine.verify_graph._text": {
+  "confidence": "HIGH",
+  "does": "d 가 있고 d[key] 가 str 이면 그것을, 아니면 None 을 낸다.",
+  "kind": "function",
+  "means": "칸이 문자열일 때만 꺼내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:257"
+ },
+ "codewiki.python.machine.verify_graph.verify": {
+  "confidence": "HIGH",
+  "does": "read_graph → check_top → check_elements → check_consistency → (repo 가 있으면) check_sources. 결함이 있으면 FaultsDoc, 없으면 PassedDoc 을 낸다.",
+  "kind": "function",
+  "means": "네 층을 차례로 돌려 결과 문서 하나를 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:263"
+ },
+ "codewiki.python.machine.verify_graph._replace": {
+  "confidence": "HIGH",
+  "does": "drop 을 먼저 지우고 keep 에 JSON 을 쓴다.",
+  "kind": "function",
+  "means": "결과 파일 둘 중 하나만 남기는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:285"
+ },
+ "codewiki.python.machine.verify_graph.main": {
+  "confidence": "HIGH",
+  "does": "codegraph · --repo · --faults · --passed 를 받아 verify 를 돌린다. 통과면 --passed 를 쓰고 --faults 를 지워 0, 결함이면 반대로 하고 1 을 낸다.",
+  "kind": "function",
+  "means": "verify_graph.py 의 명령줄 진입점.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:295"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage": {
+  "confidence": "HIGH",
+  "does": "verify_graph.py 를 자식 프로세스로 돌린다. 실패하면 graph-faults.json 으로 graph-handoff.md 를 렌더해 남기고 FAIL, 통과하면 옛 핸드오프를 지운다.",
+  "kind": "class",
+  "means": "코드 지도를 LLM 단계 앞에서 검사하는 단계.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:37"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage.argv": {
+  "confidence": "HIGH",
+  "does": "verify_graph.py 에 codegraph.json · --repo · --faults · --passed 를 넘긴다.",
+  "kind": "method",
+  "means": "검사기 명령줄을 짓는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:44"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage.reads": {
+  "confidence": "HIGH",
+  "does": "CODEGRAPH 하나.",
+  "kind": "method",
+  "means": "검사가 읽는 산출물.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:49"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage.writes": {
+  "confidence": "HIGH",
+  "does": "GRAPH_VERIFIED 하나 — 통과했을 때만 있다.",
+  "kind": "method",
+  "means": "검사가 남기는 산출물.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:52"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage.handoff_text": {
+  "confidence": "HIGH",
+  "does": "counts 를 많은 순으로 묶고 코드마다 예시를 EXAMPLES 개까지 담아 verify-graph 프롬프트 리소스를 렌더한다.",
+  "kind": "method",
+  "means": "결함 문서를 핸드오프 글로 바꾸는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:56"
+ },
+ "codewiki.python.runner.mode1.graph.VerifyGraphStage.perform": {
+  "confidence": "HIGH",
+  "does": "super().perform() 을 감싼다. FAIL 이고 결함 파일이 있으면 핸드오프를 쓰고 이유를 '코드 지도 결함 N건' 으로 바꾼다.",
+  "kind": "method",
+  "means": "검사를 돌리고 실패하면 핸드오프를 남기는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:66"
+ },
+ "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.stale_verification": {
+  "confidence": "HIGH",
+  "does": "graph-verified.json 의 codegraph_sha256 과 지금 codegraph.json 의 sha256 이 다르면 이유를, 같으면 빈 문자열을 낸다.",
+  "kind": "method",
+  "means": "성공 기록이 지금 지도의 것인지 보는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:138"
+ },
+ "codewiki.python.runner.mode1.edges.restart_from": {
+  "confidence": "HIGH",
+  "does": "RESTART_AT 에 실패 단계가 있으면 그 값(verify-graph → collect-graph)을, 없으면 실패 단계를 그대로 낸다.",
+  "kind": "function",
+  "means": "재개할 때 실제로 시작할 단계를 정하는 함수.",
+  "module": "codewiki.python.runner.mode1.edges",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/edges.py:58"
+ },
+ "codewiki.python.runner.mode1.context.GraphVerifiedDoc": {
+  "confidence": "HIGH",
+  "does": "status passed 와 codegraph_sha256 두 칸만 본다.",
+  "kind": "class",
+  "means": "graph-verified.json 을 단계 경계에서 보는 꼴.",
+  "module": "codewiki.python.runner.mode1.context",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/context.py:268"
  }
 }

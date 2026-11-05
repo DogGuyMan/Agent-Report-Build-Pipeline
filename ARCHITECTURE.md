@@ -152,7 +152,8 @@ Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 �
 | `lang-hint` · `lang-decide` | LLM 1회 · 기계 | `claude -p` · `src/codewiki/python/machine/lang_select.py` | 저장소 파일 목록 → 제안 → 결정론 검사 → `out/codegraph-raw/lang-select.json` |
 | `detect-changes` | 기계 | `src/codewiki/python/machine/warmup.py` | 소스 + `snapshot.json` + `codegraph.json` → `changes.json` (판정만) |
 | `collect-graph` | 기계 | `src/codewiki/python/runner/wiki/prep.py` | 대상 저장소의 git 추적 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
-| `schedule-batches` | 기계 | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` → `out/codegraph-raw/batches.json` (층·배치. **LLM Model을 부르지 않는다**) |
+| `verify-graph` | 기계 | `src/codewiki/python/machine/verify_graph.py` | `codegraph.json` → 통과면 `out/codegraph-raw/graph-verified.json`(지도 sha256), 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈춤 |
+| `schedule-batches` | 기계 | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` + `graph-verified.json`(sha256 이 지금 지도와 같아야 한다) → `out/codegraph-raw/batches.json` (층·배치. **LLM Model을 부르지 않는다**) |
 | `annotate-symbols` | **LLM 층별 N회** | `claude -p` 배치마다 | 소스 + `facts/*.md` + `batches.json` → `_shards/*.json` → 합쳐서 `terms-reading.json` |
 | `snapshot-sources` | 기계 | `src/codewiki/python/machine/warmup.py` | 앞칸의 판정 → `out/codegraph-raw/snapshot.json` (**전수조사가 성공했을 때만**) |
 | `verify-terms` | 기계 | `src/codewiki/python/machine/terms_db.py` | 읽기 레코드 + `codegraph.json` → `terms-db.json` |

@@ -4,7 +4,7 @@
 
 | 자리 | 무엇 | 읽는 코드 |
 |---|---|---|
-| `codewiki/prompts/<단계>.md` · `codewiki/faults.toml` | Mode 1 LLM 단계의 프롬프트(파일 이름 = 단계 이름, `<!-- section: 이름 -->` 절) · 결함 표 | `src/codewiki/python/runner/mode1/context.py` 의 `PROMPT_DIR` · `FAULTS_PATH` |
+| `codewiki/prompts/<단계>.md` · `codewiki/faults.toml` | Mode 1 LLM 단계의 프롬프트(파일 이름 = 단계 이름, `<!-- section: 이름 -->` 절) · 결함 표. `verify-graph.md` 는 LLM 을 부르지 않는 `verify-graph` 가 결함을 이어받을 사람 · 에이전트에게 남기는 핸드오프 템플릿이다 | `src/codewiki/python/runner/mode1/context.py` 의 `PROMPT_DIR` · `FAULTS_PATH` |
 | `codewiki/templates/` | VitePress 설정 · 모듈 · 클래스 DOT 의 머리와 범례 | `src/codewiki/python/runner/wiki/build.py` · `src/codewiki/python/viz/render_*.py` 의 `TEMPLATES` |
 | `codewiki/config.toml` | Mode 1 의 Model id 와 비용 어림 | `context.py` 의 `CONFIG_PATH` |
 | `codewiki/samples/` | 수집기 출력의 골든 꼴(C++ · C# Unity)과 `OBSERVATION-template.md` | `codebase-terms-survey` 스킬 · 골든 시험 |

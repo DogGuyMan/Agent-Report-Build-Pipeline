@@ -14,7 +14,7 @@
 
 | 자리 | 하는 일 |
 |---|---|
-| `python/runner/run_mode1.py` | Mode 1 실행기 — 단계 기계 위에서 흐름을 짓고 단계마다 시간과 토큰을 잰다. 열세 단계 `lang-hint→lang-decide→detect-changes→collect-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
+| `python/runner/run_mode1.py` | Mode 1 실행기 — 단계 기계 위에서 흐름을 짓고 단계마다 시간과 토큰을 잰다. 열네 단계 `lang-hint→lang-decide→detect-changes→collect-graph→verify-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
 | `python/runner/mode1/` | 단계 — `context`(문맥 · 형 · 산출물 16개 `ARTIFACTS` · 설정 · 프롬프트 자리) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff` · `resume` · 단계 모듈 여덟 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file`) · `terms` · `wiki` · `seal`(`seal-artifacts` — 이 실행에서 검사를 통과한 것만 `docs/codegraph/` 에 봉인) · `edges`(`ORDER` · `STAGES` · `EDGES` · `ALIASES`). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다. 프롬프트 글은 `../../resource/codewiki/prompts/*.md`, 샤드 검문의 결함 문구는 결함 표 `../../resource/codewiki/faults.toml` |
 | `python/runner/wiki/` | `prep` · `build` · `check` — `bin/report-wiki` 의 세 명령. 그 밖에 `compdb` · `clang_doc` · `paths` |
 | `python/runner/check_shard.py` | 전수조사 에이전트가 샤드를 쓴 뒤 스스로 돌리는 검문 |
@@ -104,8 +104,8 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 이 폴더를 import 하지 않는다 — 봉인된 산출물만 읽는다. 단계 기계 자체는 `../core/CLAUDE.md`.
 
 ```
-Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ schedule-batches ─▶ annotate-symbols
-#            LLM        lang_select.py   warmup.py        normalize.py 등    survey_plan.py        LLM 층별
+Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ verify-graph ─▶ schedule-batches ─▶ annotate-symbols
+#            LLM        lang_select.py   warmup.py        normalize.py 등    verify_graph.py   survey_plan.py        LLM 층별
           ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
 #            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py   manifest.py
 Mode 1.5  collect ─▶ gate ─▶ [사람 차례] ─▶ grade ─▶ emit
@@ -331,3 +331,6 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
 - **Note — `out/codegraph-raw/collect-fingerprint.json` 이 재수집을 정한다.** 수집 코드(`prep.py` 의 `COLLECT_CODE`) 내용과 수집기 판의 지문이 다르거나
   지도가 그 지문을 쓸 때의 지도가 아니면, 소스가 그대로여도 `prep` 이 다시 수집한다. 다시 수집하기로 하면 옛 지도와 지문부터 지우고,
   지도는 임시 파일을 거쳐 바꿔 끼운다(`normalize.write_json_atomic`).
+- **Note — schedule-batches 는 graph-verified.json 의 codegraph_sha256 이 지금 지도와 같을 때만 돈다.** `verify-graph` 가
+  지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사해 결함을 전부 모으고, 하나라도 있으면 `out/codegraph-raw/graph-faults.json` 과
+  `graph-handoff.md` 를 남기고 멈춘다. 그 실행을 `--resume` 하면 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).
