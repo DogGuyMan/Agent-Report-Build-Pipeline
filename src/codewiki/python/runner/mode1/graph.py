@@ -90,7 +90,7 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
     STOP_TAIL = "  (Ctrl-C 로 멈춤)"
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.CODEGRAPH] + ([] if ctx.cold else [X.CHANGES])
+        return [X.CODEGRAPH, X.GRAPH_VERIFIED] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.BATCHES] + ([X.FILE_PRIORITY] if ctx.strategy == "file" else [])
@@ -144,6 +144,9 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
+        why = self.stale_verification(X.CODEGRAPH.locate(ctx), X.GRAPH_VERIFIED.locate(ctx))
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         # 기계축 선언(`CodeGraph`)이 실물과 어긋나 최상위만 검증하고 넘길 때 `cast` 한다.
         cg = cast(survey_plan.CodeGraph, P.load(X.CODEGRAPH.locate(ctx), X.CodeGraphDoc))
         only = None if ctx.cold else ctx.targets

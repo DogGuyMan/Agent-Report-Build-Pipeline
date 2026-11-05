@@ -104,6 +104,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| `restart_from` | `(failed_at: str \| None) -> str \| None` | 재개 문서의 실패 단계에서 실제로 다시 시작할 단계. |
 | `graph_name` | `(ctx: Mode1Context) -> str` | 전량/증분과 전략이 이름을 가른다 — `resume.json` 이 이 이름으로 자기 그래프를 알아본다. |
 | `stages_for` | `(ctx: Mode1Context) -> dict[str, P.Stage[Mode1Context]]` | 전략이 고르는 단계는 하나뿐이다 — annotate-symbols. |
 | `expand` | `(names: Iterable[str]) -> list[str]` |  |

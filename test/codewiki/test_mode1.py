@@ -39,6 +39,14 @@ def _ctx(tmp_path: Path) -> X.Mode1Context:
     return X.Mode1Context(root="/r", model="m", repo=str(tmp_path))
 
 
+def _verified(c: X.Mode1Context) -> None:
+    """지도를 검사를 지난 것으로 둔다 — schedule-batches 는 성공 기록의 sha256 이 지금 지도와 같아야 돈다."""
+    with open(X.CODEGRAPH.locate(c), "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    with open(X.GRAPH_VERIFIED.locate(c), "w", encoding="utf-8") as f:
+        json.dump({"status": "passed", "codegraph_sha256": sha}, f)
+
+
 # ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
 
 
@@ -204,6 +212,7 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
         return _plan_with([])
     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
     c.targets = ["x.py"]
+    _verified(c)
     out = G.ScheduleBatchesStage().perform(c)
     assert out.kind == P.OK and seen["only"] == ["x.py"] and c.plan is not None
     assert (raw / "batches.json").exists()
@@ -879,8 +888,8 @@ def test_write_wiki_는_증분에서도_디스크에_있는_아래층_장을_싣
 # ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
 
 
-def test_증분은_열셋_전량은_열둘():
-    assert len(E.ORDER) == 13
+def test_증분은_열넷_전량은_열셋():
+    assert len(E.ORDER) == 14
     assert "detect-changes" not in E.plan_stages(None, None, cold=True)
     assert "detect-changes" in E.plan_stages(None, None, cold=False)
     assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
@@ -889,6 +898,7 @@ def test_증분은_열셋_전량은_열둘():
 def test_순서의_불변식_셋():
     i = E.ORDER.index
     assert i("detect-changes") < i("collect-graph") < i("schedule-batches") < i("annotate-symbols")
+    assert i("collect-graph") + 1 == i("verify-graph") == i("schedule-batches") - 1   # 검사는 지도 바로 뒤, 배치 바로 앞
     assert i("annotate-symbols") + 1 == i("snapshot-sources") < i("verify-terms")   # 지문은 조사 바로 뒤
     assert i("verify-terms") < i("outline-wiki") < i("write-wiki") < i("publish-wiki") < i("verify-wiki")
 
@@ -897,6 +907,7 @@ def test_별명은_쪼갠_단계로_펴진다():
     assert E.expand(["lang-select", "publish-wiki"]) == ["lang-hint", "lang-decide", "publish-wiki"]
     assert E.expand(["wiki"]) == ["outline-wiki", "write-wiki"]
     assert E.expand(["warmup", "survey"]) == ["detect-changes", "annotate-symbols"]
+    assert E.expand(["prep"]) == ["collect-graph", "verify-graph"]
 
 
 def test_모르는_단계는_거부한다():
@@ -938,6 +949,7 @@ def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
     (raw / "lang-select.json").write_text('{"language": "py", "collector": "x"}')
+    _verified(c)
     g = E.build_mode1_graph(c, None, None, start_at="schedule-batches")
     assert g.order[0] == "schedule-batches"
 
@@ -1184,6 +1196,7 @@ def test_전략_file_이면_schedule_batches_가_파일_계획과_우선순위_c
         {"id": "a", "name": "a.f", "kind": "function", "file": "a.py", "line": 1, "module": "."},
         {"id": "b", "name": "b.f", "kind": "function", "file": "b.py", "line": 1, "module": "."}],
         "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+    _verified(c)
     out = G.ScheduleBatchesStage().perform(c)
     assert out.kind == P.OK and c.plan is not None
     assert [b["id"] for b in c.plan["layers"][0]["batches"]] == ["F00", "F01"]
@@ -1936,6 +1949,7 @@ def test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다(
     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
     cfg = X.load_config()["estimate"]
     c.targets = ["x.py"]
+    _verified(c)
     assert G.ScheduleBatchesStage().perform(c).kind == P.OK
     last = capsys.readouterr().out.rstrip("\n").splitlines()[-1]
     assert last == G.ScheduleBatchesStage.estimate_line(1, cfg, full=False) + "  (Ctrl-C 로 멈춤)"
@@ -1952,6 +1966,7 @@ def test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍�
         return _plan_with(["x.py"])
     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
     assert c.cold is False and c.targets is None        # 증분 그래프인데 diff 가 좁히지 못했다
+    _verified(c)
     G.ScheduleBatchesStage().perform(c)
     assert "· 전량  (Ctrl-C 로 멈춤)" in capsys.readouterr().out
     c.cold = True
@@ -2072,3 +2087,15 @@ def test_성공_기록이_지금_지도의_것이_아니면_배치를_짜지_않
     assert G.ScheduleBatchesStage.stale_verification(str(cg), str(ok)) == ""
     cg.write_bytes(b'{"nodes": [1]}')
     assert "바뀌었다" in G.ScheduleBatchesStage.stale_verification(str(cg), str(ok))
+
+
+def test_검사가_실패한_실행은_지도를_다시_만드는_단계부터_재개한다() -> None:
+    assert E.restart_from("verify-graph") == "collect-graph"
+    assert E.restart_from("schedule-batches") == "schedule-batches"
+    assert E.restart_from(None) is None
+
+
+def test_검사를_건너뛰면_새_저장소에서_흐름이_서지_않는다(tmp_path: Path) -> None:
+    E.build_mode1_graph(_ctx(tmp_path), only=None, skip=None, start_at=None)
+    with pytest.raises(P.GraphError):
+        E.build_mode1_graph(_ctx(tmp_path), only=None, skip=["verify-graph"], start_at=None)

@@ -180,7 +180,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.d
 from mode1 import context as X  # noqa: E402
 from mode1 import diff, resume  # noqa: E402
 from mode1.context import Mode1Context  # noqa: E402
-from mode1.edges import ORDER as STAGES, build_mode1_graph, graph_name  # noqa: E402
+from mode1.edges import ORDER as STAGES, build_mode1_graph, graph_name, restart_from  # noqa: E402
 from mode1.edges import expand as expand, plan_stages as plan_stages  # noqa: E402
 from mode1.seal import SealArtifactsStage  # noqa: E402
 
@@ -221,7 +221,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     start = None
     if a.resume:
         prev = resume.read_resume(X.RESUME.locate(ctx))
-        start = resume.start_stage(prev, graph_name(ctx))
+        start = restart_from(resume.start_stage(prev, graph_name(ctx)))
         if start is None:
             print("에러 — 이 그래프용 resume.json 이 없다", file=sys.stderr)
             return 1
