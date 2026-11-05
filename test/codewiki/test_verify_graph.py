@@ -1,5 +1,6 @@
 """`verify_graph.py` 의 네 층 — 읽기 · 꼴 · 정합 · 근거 — 와 결과 파일."""
 import hashlib
+import json
 import os
 import sys
 from pathlib import Path
@@ -102,3 +103,36 @@ def test_V2_는_꼴이_틀린_노드_때문에_끊김을_만들지_않는다() -
     without_id = _graph(nodes=[_node("C1"), {"name": 1}, EXT],
                         edges=[_edge("C1", "C7"), _edge("C1", "X:std", constraint=False)])
     assert _codes(_check(without_id)) == ["node-shape"]
+
+
+def test_V3_저장소_밖_없는_파일_줄_넘침(tmp_path: Path) -> None:
+    (tmp_path / "a.py").write_text("x = 1\ny = 2\nz = 3\n", encoding="utf-8")
+    g = _graph(nodes=[_node("C1"), _node("C2", line=9), _node("C3", file="없음.py"),
+                      _node("C4", file="../밖.py"), _node("C5", file="/etc/passwd")],
+               edges=[_edge("C1", "C2", line=0)], modules=[{"id": "pkg", "depends_on": []}])
+    el, _ = V.check_elements(g)
+    assert _codes(V.check_sources(el, str(tmp_path))) == [
+        "line-out-of-range", "file-missing", "file-outside-repo", "file-outside-repo", "line-out-of-range"]
+
+
+def test_결과_파일은_한쪽만_남고_통과는_같은_바이트다(tmp_path: Path) -> None:
+    (tmp_path / "a.py").write_text("def f():\n    return g()\ndef g():\n    return 1\n", encoding="utf-8")
+    cg, faults, passed = tmp_path / "codegraph.json", tmp_path / "graph-faults.json", tmp_path / "graph-verified.json"
+    cg.write_text(json.dumps(_graph()), encoding="utf-8")
+    argv = [str(cg), "--repo", str(tmp_path), "--faults", str(faults), "--passed", str(passed)]
+    assert V.main(argv) == 0
+    first = passed.read_bytes()
+    assert V.main(argv) == 0 and passed.read_bytes() == first and not faults.exists()
+    assert json.loads(first)["codegraph_sha256"] == hashlib.sha256(cg.read_bytes()).hexdigest()
+    cg.write_text("{", encoding="utf-8")
+    assert V.main(argv) == 1 and not passed.exists()
+    assert json.loads(faults.read_text(encoding="utf-8"))["counts"] == {"unreadable": 1}
+
+
+REAL = os.path.join(ROOT, "out", "codegraph-raw", "codegraph.json")
+
+
+@pytest.mark.skipif(not os.path.exists(REAL), reason="out/codegraph-raw/codegraph.json 이 없다")
+def test_이_저장소_지도는_V0_부터_V2_까지_지난다() -> None:
+    got = V.verify(REAL, None)
+    assert got["status"] == "passed", got

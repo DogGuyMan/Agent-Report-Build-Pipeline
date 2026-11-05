@@ -564,6 +564,16 @@ def test_얼갈이_스크립트가_자식_프로세스로_import_까지_간다()
 
 
 # ── 10. 전수조사 원본의 자리 — 자기호스팅만 다르다
+def test_검사기_스크립트가_자식_프로세스로_뜬다() -> None:
+    """`verify_graph.py` 를 스크립트로 띄웠을 때 import 와 명령줄이 서는가 — 단계가 이렇게 부른다."""
+    import subprocess
+
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    p = os.path.join(root, "src", "codewiki", "python", "machine", "verify_graph.py")
+    got = subprocess.run([sys.executable, p, "--help"], capture_output=True, text=True, timeout=60)
+    assert got.returncode == 0, got.stderr
+
+
 def test_자기호스팅_읽기레코드_경로가_실재한다() -> None:
     """이 저장소 자신을 조사할 때 원본은 `resource/codewiki/terms-reading.json` 이다.
 

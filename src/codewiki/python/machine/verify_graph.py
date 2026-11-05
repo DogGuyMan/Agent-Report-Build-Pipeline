@@ -6,8 +6,13 @@
 결함이 없으면 `--faults` 를 지우고 `--passed` 를 쓴다(종료 0). 결함이 있으면 `--passed` 를 지우고 `--faults` 를 쓴다(종료 1).
 `--repo` 가 없으면 근거 층(V3)을 건너뛴다. 시각을 적지 않아 같은 입력이면 같은 바이트다.
 """
+import argparse
 import hashlib
 import json
+import os
+import sys
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, TypedDict, cast, get_type_hints
 
@@ -212,3 +217,99 @@ def check_consistency(el: Elements) -> list[Fault]:
             elif dep not in ids:
                 out.append(fault("module-dep", "$.modules[%d].depends_on" % i, "%r 은 목록에 없는 모듈이다" % dep))
     return out
+
+
+def _line_count(path: str) -> int | None:
+    """파일의 줄 수. 일반 파일이 아니거나 못 열면 `None`."""
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "rb") as f:
+            return sum(1 for _ in f)
+    except OSError:
+        return None
+
+
+def check_sources(el: Elements, repo: str) -> list[Fault]:
+    """V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가."""
+    out: list[Fault] = []
+    root = os.path.realpath(repo)
+    count: dict[str, int | None] = {}
+    places = ([("$.nodes[%d]" % i, n["file"], n["line"]) for i, n in el.nodes]
+              + [("$.edges[%d]" % i, e["file"], e["line"]) for i, e in el.edges])
+    for at, file, line in places:
+        if file is None:
+            continue
+        full = os.path.realpath(os.path.join(root, file))
+        if os.path.isabs(file) or os.path.commonpath([root, full]) != root:
+            out.append(fault("file-outside-repo", at + ".file", "저장소 밖 경로 %r" % file))
+            continue
+        if file not in count:
+            count[file] = _line_count(full)
+        n = count[file]
+        if n is None:
+            out.append(fault("file-missing", at + ".file", "파일이 없다: %s" % file))
+        elif line is not None and not 1 <= line <= n:
+            out.append(fault("line-out-of-range", at + ".line", "%d줄 — %s 는 %d줄이다" % (line, file, n)))
+    return out
+
+
+def _text(d: dict[str, object] | None, key: str) -> str | None:
+    """`d[key]` 가 문자열이면 그것을, 아니면 `None`."""
+    v = d.get(key) if d is not None else None
+    return v if isinstance(v, str) else None
+
+
+def verify(path: str, repo: str | None) -> FaultsDoc | PassedDoc:
+    """네 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다."""
+    doc, sha, faults = read_graph(path)
+    if not faults:
+        faults = check_top(doc)
+    d = cast(dict[str, object], doc) if isinstance(doc, dict) else None
+    el: Elements | None = None
+    if d is not None:
+        el, more = check_elements(d)
+        faults = faults + more + check_consistency(el)
+        if repo is not None:
+            faults = faults + check_sources(el, repo)
+    if faults or d is None or el is None:
+        counts = Counter(f["code"] for f in faults)
+        return {"status": "failed", "language": _text(d, "language"), "source_tool": _text(d, "source_tool"),
+                "repo_commit": _text(d, "repo_commit"), "total": len(faults),
+                "counts": dict(sorted(counts.items())), "faults": faults}
+    return {"status": "passed", "language": cast(str, d["language"]), "source_tool": cast(str, d["source_tool"]),
+            "repo_commit": _text(d, "repo_commit"), "nodes": len(el.nodes), "edges": len(el.edges),
+            "modules": len(el.modules), "codegraph_sha256": sha}
+
+
+def _replace(keep: str, drop: str, doc: FaultsDoc | PassedDoc) -> None:
+    """다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다."""
+    if os.path.exists(drop):
+        os.remove(drop)
+    os.makedirs(os.path.dirname(os.path.abspath(keep)), exist_ok=True)
+    with open(keep, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """`verify` 를 돌려 결과 파일 하나를 쓰고 다른 하나를 지운다. 통과면 0, 결함이면 1."""
+    ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
+    ap.add_argument("codegraph", help="검사할 codegraph.json")
+    ap.add_argument("--repo", default=None, help="근거 층(V3)의 기준 저장소. 없으면 V3 를 건너뛴다")
+    ap.add_argument("--faults", required=True, help="결함이 있으면 쓰는 graph-faults.json")
+    ap.add_argument("--passed", required=True, help="통과하면 쓰는 graph-verified.json")
+    a = ap.parse_args(argv)
+    got = verify(a.codegraph, a.repo)
+    if got["status"] == "passed":
+        _replace(a.passed, a.faults, got)
+        print("%s — 통과 · 노드 %d · 간선 %d · 모듈 %d" % (a.passed, got["nodes"], got["edges"], got["modules"]))
+        return 0
+    _replace(a.faults, a.passed, got)
+    print("%s — 결함 %d건 · %s" % (a.faults, got["total"], " · ".join("%s %d" % kv for kv in got["counts"].items())),
+          file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
