@@ -72,7 +72,7 @@ codegraph.json
 | V0 read | `pipeline.load` opens it with `msgspec.json.decode` (`src/core/pipeline.py:90-93`) | Broken JSON dies with an exception and leaves no fault file |
 | V1 shape | The contract types `Node` · `Edge` · `Module` · `CodeGraph` already declare the required keys and types (`codegraph_types.py`; `Edge.kind` is an 8-value `Literal`) | The boundary's `CodeGraphDoc` sees `nodes` · `edges` only as `list[dict]` and does not open the elements — `{"nodes":[{"x":1}]}` passes (A1). msgspec stops at the first error (A3) |
 | V2 consistency | None. Checked against this repository's map, all nine rules show 0 mismatches — 0 duplicate ids · dangling edges · edges leaving external nodes · first-party nodes without a location; all 126 edges going to external nodes are `constraint: false`; module list = the 7 modules used by nodes (`[measured]` 2026-11-05) — it is a safety net for stages 4~6, which will change the collectors · normalization | All of it |
-| V3 evidence | None | All of it (A4). Against the `out/` map on this machine (built at `720fb3a`): 78 faults — 70 missing `split-work/` files · 8 line overruns in `src/core/pipeline.py` (`[measured]`). After that, `89269d8` deleted `split-work/`. A re-collected map should show 0 (measured in Task 13) |
+| V3 evidence | None | All of it (A4). Against the `out/` map on this machine (built at `720fb3a`): 78 faults — 70 missing `split-work/` files (stale map: `89269d8` deleted `split-work/` afterwards) · 8 edges with line 0 (`[measured]`). ⚠️ Correction (2026-11-05, Task 14): the 8 are not line drift. griffe 2.2.0 gives the `__init__` it synthesizes for a dataclass `lineno` 0, and normalization copied it into the signature edges (`__init__(rows)` …) — 5 in `src/core/pipeline.py`, 3 in `src/codewiki/python/runner/mode1/context.py`. They stayed on a freshly collected map; fixed in `b85127b` (the field's line, else the class line). After that the fresh map passes with 0 faults |
 
 Rule: call `msgspec.convert` separately for each element to collect **all** faults (A3). An element whose shape was wrong in an earlier layer is not complained about again in a later layer (no cascading faults, §7).
 `[my judgment]` V1 only **reads** the existing contract types, so `codegraph_types.py` does not need to change. The `NodeKind` that handoff §7 wanted to add to that file is unnecessary if the list of allowed kinds lives in `verify_graph.py`.
@@ -83,8 +83,8 @@ Rule: call `msgspec.convert` separately for each element to collect **all** faul
 |---|---|
 | Investigation · measurement | ✅ completed by the session that wrote the handoff |
 | This plan | ✅ 👍 approved 2026-11-05 |
-| Stage 1 fingerprint · safe write | ❌ |
-| Stage 2 map verification | ❌ |
+| Stage 1 fingerprint · safe write | ✅ `5d9b10d` … `88d26fa` |
+| Stage 2 map verification | ✅ `6e13465` … `fc91e73` · `3f1a663` (pyright fix found by bisect) · `b85127b` (line-0 fix) |
 | Stages 3~6 | ❌ (each stage gets its own detailed plan once its entry decision is made) |
 
 ## ✅ Decided — not to be reopened
@@ -175,10 +175,10 @@ Legend: **★ newly created · 🗘 changed/updated/refreshed · no marker = reu
 
 | 📍 Before (what did not work · now) | 🛠️ After · proposal | 🎉 What it solves | 🔭 Expected | Progress |
 |---|---|---|---|---|
-| 🐞 Even when normalize dies, the old map remains (C2, measured in the handoff) | Once re-collection is decided (even if blocked), delete the old map · old fingerprint first | A stale map no longer reaches the LLM via `--only schedule-batches` | After a failed prep there is no `codegraph.json` | ❌ |
-| 🐞 `normalize.py:1239` writes straight into `open(…,"w")` (C4) | ★ `write_json_atomic` — temp file in the same folder → `os.replace` | No half-written map even if interrupted midway | Same input, same bytes | ❌ |
-| 🐞 If the sources are unchanged, fixing a collector does not trigger re-collection (F2, `prep.py:28-31`) | ★ add a fingerprint comparison to `needs_collect` | Rerunning after a collector fix produces a new map | When the fingerprint differs, `griffe`/`clang-uml`/`normalize` appear in the steps again | ❌ |
-| 🐞 A commit hash misses uncommitted edits and external collector versions (F3) | fingerprint = sha256 of the **contents** of the `COLLECT_CODE` files + collector versions | Also catches uncommitted edits · griffe/clang-uml version changes | Changing a single byte changes the fingerprint | ❌ |
+| 🐞 Even when normalize dies, the old map remains (C2, measured in the handoff) | Once re-collection is decided (even if blocked), delete the old map · old fingerprint first | A stale map no longer reaches the LLM via `--only schedule-batches` | After a failed prep there is no `codegraph.json` | ✅ |
+| 🐞 `normalize.py:1239` writes straight into `open(…,"w")` (C4) | ★ `write_json_atomic` — temp file in the same folder → `os.replace` | No half-written map even if interrupted midway | Same input, same bytes | ✅ |
+| 🐞 If the sources are unchanged, fixing a collector does not trigger re-collection (F2, `prep.py:28-31`) | ★ add a fingerprint comparison to `needs_collect` | Rerunning after a collector fix produces a new map | When the fingerprint differs, `griffe`/`clang-uml`/`normalize` appear in the steps again | ✅ |
+| 🐞 A commit hash misses uncommitted edits and external collector versions (F3) | fingerprint = sha256 of the **contents** of the `COLLECT_CODE` files + collector versions | Also catches uncommitted edits · griffe/clang-uml version changes | Changing a single byte changes the fingerprint | ✅ |
 
 ## 🌊 Flow — `prep.py`
 
@@ -788,13 +788,13 @@ The check layers are exactly as in the "🔎 Check layers" table above — **V0 
 
 | 📍 Before (what did not work · now) | 🛠️ After · proposal | 🎉 What it solves | 🔭 Expected | Progress |
 |---|---|---|---|---|
-| 🐞 Broken JSON dies with an exception and there is no fault file | V0 records `unreadable` down to the line · column | You know immediately where a bracket · comma is wrong | `{"nodes": [` → `1줄 …칸` (line 1 … column) | ❌ |
-| 🐞 `{"nodes":[{"x":1}]}` passes the boundary and hits a `KeyError` in `survey_plan` (A1) | V1 tries converting each element to `Node` · `Edge` · `Module` | Elements missing required keys · types are caught before the LLM | One fault per element, all of them (A3) | ❌ |
-| 🐞 Version 1 · an empty map pass (A2) | `schema-version` · `empty-graph` | A plan with 0 symbols does not succeed | Both are faults | ❌ |
-| 🐞 Nothing looks at inconsistencies inside the map | V2's nine rules | Breakage is noticed immediately when normalization is changed in stages 4~6 | 0 faults on this repository's map | ❌ |
-| 🐞 Source locations are not checked (A4) | V3 — inside the repository · exists · line range | A stale map does not reach the LLM | Stale map 78 faults · new map 0 | ❌ |
-| 🐞 There is no place to reuse a pass record (A5) | On a pass, `graph-verified.json` (map sha256), which `schedule-batches` compares | If the map changes after the check, no batches are scheduled | FAIL if the sha differs | ❌ |
-| 🐞 `--resume` simply reruns the failed stage (F1) | `RESTART_AT = {"verify-graph": "collect-graph"}` | The check runs after the fixed collector · normalization has gone into the map | Resume starts from `collect-graph` | ❌ |
+| 🐞 Broken JSON dies with an exception and there is no fault file | V0 records `unreadable` down to the line · column | You know immediately where a bracket · comma is wrong | `{"nodes": [` → `1줄 …칸` (line 1 … column) | ✅ |
+| 🐞 `{"nodes":[{"x":1}]}` passes the boundary and hits a `KeyError` in `survey_plan` (A1) | V1 tries converting each element to `Node` · `Edge` · `Module` | Elements missing required keys · types are caught before the LLM | One fault per element, all of them (A3) | ✅ |
+| 🐞 Version 1 · an empty map pass (A2) | `schema-version` · `empty-graph` | A plan with 0 symbols does not succeed | Both are faults | ✅ |
+| 🐞 Nothing looks at inconsistencies inside the map | V2's nine rules | Breakage is noticed immediately when normalization is changed in stages 4~6 | 0 faults on this repository's map | ✅ |
+| 🐞 Source locations are not checked (A4) | V3 — inside the repository · exists · line range | A stale map does not reach the LLM | Stale map 78 faults · fresh map 0 after `b85127b` | ✅ |
+| 🐞 There is no place to reuse a pass record (A5) | On a pass, `graph-verified.json` (map sha256), which `schedule-batches` compares | If the map changes after the check, no batches are scheduled | FAIL if the sha differs | ✅ |
+| 🐞 `--resume` simply reruns the failed stage (F1) | `RESTART_AT = {"verify-graph": "collect-graph"}` | The check runs after the fixed collector · normalization has gone into the map | Resume starts from `collect-graph` | ✅ |
 
 ## 🌊 Flow — the map segment of Mode 1
 
