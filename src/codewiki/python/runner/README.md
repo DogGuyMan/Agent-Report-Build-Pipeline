@@ -430,8 +430,8 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `needs_collect` | `(has_codegraph: bool, verdicts: dict[str, list[str]] \| None, force: bool = False) -> bool` | 수집기를 다시 돌릴 것인가. |
-| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False) -> dict[str, Any]` |  |
+| `needs_collect` | `(has_codegraph: bool, verdicts: dict[str, list[str]] \| None, force: bool = False, tool_changed: bool = False) -> bool` | 수집기를 다시 돌릴 것인가. |
+| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False, toolChanged: bool = False) -> dict[str, Any]` |  |
 | `pyRoots` | `(repo: str) -> list[str]` |  |
 | `run` | `(cmd: str, args: list[str], cwd: Optional[str] = None) -> None` |  |
 

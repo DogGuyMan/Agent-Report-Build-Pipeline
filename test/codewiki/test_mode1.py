@@ -156,6 +156,8 @@ def test_prep_은_diff_에_바뀐_것이_있으면_다시_수집한다():
     assert prep.prepPlan("griffe+pycalls", True, False, False, False, verdicts=stale)["steps"][0] == "griffe"
     assert prep.prepPlan("griffe+pycalls", True, False, False, False, force=True)["steps"][0] == "griffe"
     assert prep.prepPlan("griffe+pycalls", True, False, False, False)["steps"] == ["facts", "render-modules"]
+    assert prep.needs_collect(has_codegraph=True, verdicts=fresh, tool_changed=True) is True
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, toolChanged=True)["steps"][0] == "griffe"
 
 
 # ── 5. 기계 단계와 층 계획 ──────────────────────────────────────────────

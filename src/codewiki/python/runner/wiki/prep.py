@@ -19,22 +19,23 @@ from common.python import pythonPath  # noqa: E402
 from typing import Any, Optional, cast
 
 def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
-                  force: bool = False) -> bool:
+                  force: bool = False, tool_changed: bool = False) -> bool:
     """수집기를 다시 돌릴 것인가.
 
-    `force` 면 무조건. diff 가 없으면 지금처럼 지도의 존재만 본다. diff 가 있으면
+    `force` 거나 수집 코드 · 수집기 판이 지도를 만들 때와 다르면(`tool_changed`) 무조건. diff 가 없으면 지도의 존재만 본다. diff 가 있으면
     `재읽기 · 위치만 · 삭제됨` 중 하나라도 있을 때 다시 수집한다 — 지도가 낡은 채 남는 것을 막는다.
     """
-    if force or not has_codegraph:
+    if force or tool_changed or not has_codegraph:
         return True
     if verdicts is None:
         return False
     return bool(verdicts.get("재읽기") or verdicts.get("위치만") or verdicts.get("삭제됨"))
 
 def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool,
-             verdicts: dict[str, list[str]] | None = None, force: bool = False) -> dict[str, Any]:
+             verdicts: dict[str, list[str]] | None = None, force: bool = False,
+             toolChanged: bool = False) -> dict[str, Any]:
     tail = ["facts", "render-modules"]
-    if not needs_collect(hasCodegraph, verdicts, force):
+    if not needs_collect(hasCodegraph, verdicts, force, toolChanged):
         return {"steps": tail, "blocked": None}
     if collector == "clang-uml":
         if not hasClangUmlConfig:

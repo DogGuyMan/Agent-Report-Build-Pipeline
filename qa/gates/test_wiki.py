@@ -21,6 +21,7 @@ def test_wiki_paths():
     assert p["built"] == "/tmp/repo/out/codegraph-raw/wiki-built"
     assert p["site"] == "/tmp/repo/out/codegraph-raw/wiki-site"
     assert p["codegraph"] == "/tmp/repo/out/codegraph-raw/codegraph.json"
+    assert p["fingerprint"] == "/tmp/repo/out/codegraph-raw/collect-fingerprint.json"
 
 def test_collector_for():
     assert collectorFor(["Assembly-CSharp.csproj", "Assets"]) == "roslyn-dump"
