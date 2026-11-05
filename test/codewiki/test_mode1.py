@@ -20,6 +20,7 @@ from core import measure as M  # noqa: E402
 from core import pipeline as P  # noqa: E402
 import survey_plan  # noqa: E402
 import warmup  # noqa: E402
+import verify_graph as V  # noqa: E402
 from mode1 import context as X  # noqa: E402
 from mode1 import diff as D  # noqa: E402
 from mode1 import edges as E  # noqa: E402
@@ -2023,3 +2024,51 @@ def test_detect_changes_는_지문_파일이_있으면_전량이라고_알리지
     monkeypatch.setattr(SC.SnapshotScan, "scan_snapshot", staticmethod(_scanned_ok))
     assert SC.DetectChangesStage().perform(ctx).kind == P.OK
     assert "증분으로 불렸지만" not in capsys.readouterr().err
+
+
+# ── 지도 검사 단계 ─────────────────────────────────────────────────────
+
+
+def test_검사기의_kind_는_RecordKind_안에_있다() -> None:
+    assert V.NODE_KINDS <= set(get_args(X.RecordKind))
+
+
+def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과하면_지운다(tmp_path: Path) -> None:
+    ctx = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path))
+    raw = Path(X.raw_dir(ctx))
+    raw.mkdir(parents=True)
+    (raw / "codegraph.json").write_text("{", encoding="utf-8")
+    st = G.VerifyGraphStage()
+    out = st.perform(ctx)
+    handoff = Path(X.GRAPH_HANDOFF.locate(ctx))
+    assert out.kind == P.FAIL and "결함 1건" in out.why
+    text = handoff.read_text(encoding="utf-8")
+    assert "unreadable" in text and "검사를 완화해 통과시키지 말라" in text
+    (tmp_path / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    good = {"schema_version": 2, "language": "python", "platform": "linux", "source_tool": "t",
+            "repo_commit": None, "edges": [], "modules": [{"id": "a", "depends_on": []}],
+            "nodes": [{"id": "C1", "name": "a.f", "kind": "function", "module": "a", "file": "a.py", "line": 1}]}
+    (raw / "codegraph.json").write_text(json.dumps(good), encoding="utf-8")
+    assert st.perform(ctx).kind == P.OK
+    assert not handoff.exists() and not Path(X.GRAPH_FAULTS.locate(ctx)).exists()
+    assert Path(X.GRAPH_VERIFIED.locate(ctx)).exists()
+
+
+def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() -> None:
+    faults: list[V.Fault] = ([{"code": "dangling-edge", "at": "$.edges[%d]" % i, "detail": "d"} for i in range(7)]
+                             + [{"code": "unreadable", "at": "$", "detail": "u"}])
+    doc: V.FaultsDoc = {"status": "failed", "language": "python", "source_tool": "t", "repo_commit": None,
+                        "total": 8, "counts": {"dangling-edge": 7, "unreadable": 1}, "faults": faults}
+    text = G.VerifyGraphStage.handoff_text("/r", "/r/out/codegraph-raw/codegraph.json", doc)
+    assert text.index("dangling-edge") < text.index("unreadable")
+    assert "$.edges[4]" in text and "$.edges[5]" not in text
+
+
+def test_성공_기록이_지금_지도의_것이_아니면_배치를_짜지_않는다(tmp_path: Path) -> None:
+    cg, ok = tmp_path / "codegraph.json", tmp_path / "graph-verified.json"
+    cg.write_bytes(b'{"nodes": []}')
+    ok.write_text(json.dumps({"status": "passed", "codegraph_sha256": hashlib.sha256(b'{"nodes": []}').hexdigest()}),
+                  encoding="utf-8")
+    assert G.ScheduleBatchesStage.stale_verification(str(cg), str(ok)) == ""
+    cg.write_bytes(b'{"nodes": [1]}')
+    assert "바뀌었다" in G.ScheduleBatchesStage.stale_verification(str(cg), str(ok))

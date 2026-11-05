@@ -77,6 +77,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
 | **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과 |
+| **`GraphVerifiedDoc`** | *class* | `graph-verified.json` 의 두 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.PassedDoc` 다. |
 | **`LangSelect`** | *class* | `lang-select.json`. `language` 는 못 골랐으면 `null` 이다. |
 | **`Outline`** | *class* | `outline.json`. |
 | `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
@@ -121,12 +122,19 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `CollectGraphStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `CollectGraphStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `CollectGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| **`VerifyGraphStage`** | *class* | 코드 지도를 LLM 단계 앞에서 검사한다. 결함이 있으면 결함 JSON 옆에 핸드오프를 남기고 멈춘다. |
+| `VerifyGraphStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `VerifyGraphStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `VerifyGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `VerifyGraphStage.handoff_text` | `(cls, repo: str, codegraph: str, doc: verify_graph.FaultsDoc) -> str` | 결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지. |
+| `VerifyGraphStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | **`ScheduleBatchesStage`** | *class* | 코드 지도를 배치로. 층 전략은 위상 층으로 나누고 증분이면 diff 의 `targets` 로 좁힌다. |
 | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
 | `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다. |
 | `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `전수조사 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 resource/codewiki/config.toml 의 [estimate]. |
+| `ScheduleBatchesStage.stale_verification` | `(codegraph: str, verified: str) -> str` | 성공 기록이 지금 지도의 것이 아니면 그 이유를, 맞으면 빈 문자열을 낸다. |
 | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---

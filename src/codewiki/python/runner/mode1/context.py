@@ -265,6 +265,12 @@ class CodeGraphDoc(TypedDict):
     edges: list[dict[str, object]]
 
 
+class GraphVerifiedDoc(TypedDict):
+    """`graph-verified.json` 의 두 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.PassedDoc` 다."""
+    status: Literal["passed"]
+    codegraph_sha256: str
+
+
 class LangSelect(TypedDict):
     """`lang-select.json`. `language` 는 못 골랐으면 `null` 이다."""
     language: str | None
@@ -293,6 +299,12 @@ LANG_SELECT = P.Artifact[Mode1Context](
     "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), LangSelect)
 CODEGRAPH = P.Artifact[Mode1Context](
     "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), CodeGraphDoc)
+GRAPH_VERIFIED = P.Artifact[Mode1Context](
+    "graph-verified.json", lambda c: os.path.join(raw_dir(c), "graph-verified.json"), GraphVerifiedDoc)
+GRAPH_FAULTS = P.Artifact[Mode1Context](
+    "graph-faults.json", lambda c: os.path.join(raw_dir(c), "graph-faults.json"))
+GRAPH_HANDOFF = P.Artifact[Mode1Context](
+    "graph-handoff.md", lambda c: os.path.join(raw_dir(c), "graph-handoff.md"))
 SNAPSHOT = P.Artifact[Mode1Context](
     "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
 CHANGES = P.Artifact[Mode1Context](
@@ -322,7 +334,7 @@ MANIFEST = P.Artifact[Mode1Context](
 WIKI_STATE = P.Artifact[Mode1Context](
     "wiki-state.json", lambda c: os.path.join(raw_dir(c), "wiki-state.json"))
 
-ARTIFACTS = [LANG_SELECT, CODEGRAPH, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
+ARTIFACTS = [LANG_SELECT, CODEGRAPH, GRAPH_VERIFIED, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
              RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE]
 
 

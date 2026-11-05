@@ -1,4 +1,5 @@
 """`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다."""
+import hashlib
 import json
 import os
 import sys
@@ -7,6 +8,7 @@ from typing import cast
 
 from core import pipeline as P
 import survey_plan
+import verify_graph
 from mode1 import context as X
 from mode1.context import Mode1Context
 from mode1.machine_stage import Mode1Machine
@@ -30,6 +32,54 @@ class CollectGraphStage(Mode1Machine):
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.CODEGRAPH]
+
+
+class VerifyGraphStage(P.PromptResource, Mode1Machine):
+    """코드 지도를 LLM 단계 앞에서 검사한다. 결함이 있으면 결함 JSON 옆에 핸드오프를 남기고 멈춘다."""
+    name = "verify-graph"
+    prompt_dir = X.PROMPT_DIR
+    prompt_names = ("verify-graph",)
+    EXAMPLES = 5
+
+    def argv(self, ctx: Mode1Context) -> list[str]:
+        return [sys.executable, os.path.join(ctx.root, "src", "codewiki", "python", "machine", "verify_graph.py"),
+                X.CODEGRAPH.locate(ctx), "--repo", ctx.repo,
+                "--faults", X.GRAPH_FAULTS.locate(ctx), "--passed", X.GRAPH_VERIFIED.locate(ctx)]
+
+    def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.CODEGRAPH]
+
+    def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.GRAPH_VERIFIED]
+
+    @classmethod
+    def handoff_text(cls, repo: str, codegraph: str, doc: verify_graph.FaultsDoc) -> str:
+        """결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지."""
+        groups: list[dict[str, object]] = []
+        for code, n in sorted(doc["counts"].items(), key=lambda kv: (-kv[1], kv[0])):
+            groups.append({"code": code, "layer": verify_graph.LAYER[code], "count": n,
+                           "examples": [f for f in doc["faults"] if f["code"] == code][:cls.EXAMPLES]})
+        return cls.load_prompt("verify-graph", repo=repo, codegraph=codegraph,
+                               language=doc["language"] or "?", source_tool=doc["source_tool"] or "?",
+                               repo_commit=doc["repo_commit"] or "?", total=doc["total"], groups=groups)
+
+    def perform(self, ctx: Mode1Context) -> P.Outcome:
+        out = super().perform(ctx)
+        handoff = X.GRAPH_HANDOFF.locate(ctx)
+        if out.kind == P.OK:
+            if os.path.exists(handoff):
+                os.remove(handoff)
+            return out
+        faults = X.GRAPH_FAULTS.locate(ctx)
+        if not os.path.exists(faults):
+            return out                         # 검사기 자체가 죽었다 — 종료 코드가 이유다
+        doc = P.load(faults, verify_graph.FaultsDoc)
+        with open(handoff, "w", encoding="utf-8") as f:
+            f.write(self.handoff_text(ctx.repo, X.CODEGRAPH.locate(ctx), doc))
+        why = "코드 지도 결함 %d건 — %s" % (doc["total"], handoff)
+        for row in out.rows:
+            row["why"] = why
+        return P.Outcome(P.FAIL, why, out.rows)
 
 
 class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
@@ -83,6 +133,14 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
         lo = round(n_sessions * cfg["usd_per_batch_min"])
         hi = round(n_sessions * cfg["usd_per_batch_max"])
         return "전수조사 세션 %d개 · 예상 $%d~%d · %s" % (n_sessions, lo, hi, "전량" if full else "증분")
+
+    @staticmethod
+    def stale_verification(codegraph: str, verified: str) -> str:
+        """성공 기록이 지금 지도의 것이 아니면 그 이유를, 맞으면 빈 문자열을 낸다."""
+        doc = P.load(verified, X.GraphVerifiedDoc)
+        with open(codegraph, "rb") as f:
+            now = hashlib.sha256(f.read()).hexdigest()
+        return "" if doc["codegraph_sha256"] == now else "검사 뒤에 코드 지도가 바뀌었다 — verify-graph 부터 다시 돌린다"
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
