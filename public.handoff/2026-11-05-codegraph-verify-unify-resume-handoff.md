@@ -94,6 +94,7 @@ HEAD      89269d8 [chore] : 쓰지 않는 저장소 분리 작업물 제거
 | 문서 | 자리 | git | 역할 |
 |---|---|---|---|
 | 이 문서 | `public.handoff/2026-11-05-codegraph-verify-unify-resume-handoff.md` | 추적 | 단일 진입점 |
+| 구현 계획 | `public.handoff/2026-11-05-codegraph-verify-unify-plan.md`(영어 정본) · `.ko.md`(한국어 번역본) | 추적 | 1 · 2단계 Task 단위 상세(지문 · 원자적 쓰기 · `verify-graph` V0~V3) · 3~6단계 개요. 👍 승인 2026-11-05 — 이 문서의 §4.3 결정 1~4 와 단계 순서가 거기서 바뀌었다 |
 | 조사 보고서 | `public.handoff/언어 불문 코드 그래프 통일.md` | 추적 | 도구 · 스키마 · UML 조사. 일부 값은 §4.2 가 정정한다 |
 | 측정 스크립트 | `public.handoff/언어 불문 코드 그래프 통일/scripts/` | 추적 | §9 의 재현 명령 |
 | 측정 결과 | `public.handoff/언어 불문 코드 그래프 통일/results/` | 추적 | 정제 출력 · 파일 열기 기록 · 칸 추적 |
