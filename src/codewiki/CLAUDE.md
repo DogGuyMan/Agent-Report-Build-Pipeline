@@ -328,3 +328,6 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
 - **Note — 자기호스팅 코드 지도에는 시험이 없다.** `report-wiki prep` 은 최상위 `test/` 를 건너뛴다. 시험이
   `test/` 로 모인 2026-10-31 부터 `resource/codewiki/terms-reading.json` 의 시험 기호 레코드(약 600)는 지도에 노드가 없어
   "근거 없음" 으로 나온다 — 실패가 아니다.
+- **Note — `out/codegraph-raw/collect-fingerprint.json` 이 재수집을 정한다.** 수집 코드(`prep.py` 의 `COLLECT_CODE`) 내용과 수집기 판의 지문이 다르거나
+  지도가 그 지문을 쓸 때의 지도가 아니면, 소스가 그대로여도 `prep` 이 다시 수집한다. 다시 수집하기로 하면 옛 지도와 지문부터 지우고,
+  지도는 임시 파일을 거쳐 바꿔 끼운다(`normalize.write_json_atomic`).

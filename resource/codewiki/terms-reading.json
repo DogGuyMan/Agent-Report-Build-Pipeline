@@ -1264,7 +1264,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1181"
+  "where": "src/codewiki/python/machine/normalize.py:1195"
  },
  "codewiki.python.machine.normalize.cs_asm2pkg": {
   "confidence": "HIGH",
@@ -1385,40 +1385,46 @@
     "kind": "dependency",
     "label": "명령줄 옵션 파싱기 생성",
     "to": "codewiki.python.machine.normalize.build_parser",
-    "where": "src/codewiki/python/machine/normalize.py:1202"
+    "where": "src/codewiki/python/machine/normalize.py:1216"
    },
    {
     "kind": "dependency",
     "label": "clang-uml 산출물 읽기",
     "to": "codewiki.python.machine.normalize.load_clang_uml",
-    "where": "src/codewiki/python/machine/normalize.py:1214"
+    "where": "src/codewiki/python/machine/normalize.py:1228"
    },
    {
     "kind": "dependency",
     "label": "C++ 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_cpp",
-    "where": "src/codewiki/python/machine/normalize.py:1219"
+    "where": "src/codewiki/python/machine/normalize.py:1233"
    },
    {
     "kind": "dependency",
     "label": "C# 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_csharp",
-    "where": "src/codewiki/python/machine/normalize.py:1223"
+    "where": "src/codewiki/python/machine/normalize.py:1237"
    },
    {
     "kind": "dependency",
     "label": "Python 갈래 실행",
     "to": "codewiki.python.machine.normalize.normalize_python",
-    "where": "src/codewiki/python/machine/normalize.py:1238"
+    "where": "src/codewiki/python/machine/normalize.py:1252"
    },
    {
     "kind": "dependency",
     "label": "clang-doc 산출물 읽기(선택)",
     "to": "codewiki.python.machine.clang_doc.load_clang_doc",
-    "where": "src/codewiki/python/machine/normalize.py:1217"
+    "where": "src/codewiki/python/machine/normalize.py:1231"
+   },
+   {
+    "kind": "dependency",
+    "label": "calls",
+    "to": "codewiki.python.machine.normalize.write_json_atomic",
+    "where": "src/codewiki/python/machine/normalize.py:1253"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1201"
+  "where": "src/codewiki/python/machine/normalize.py:1215"
  },
  "codewiki.python.machine.normalize.member_location": {
   "confidence": "HIGH",
@@ -22552,7 +22558,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:21"
+  "where": "src/codewiki/python/runner/wiki/prep.py:87"
  },
  "codewiki.python.runner.wiki.prep.prepPlan": {
   "confidence": "HIGH",
@@ -22566,10 +22572,10 @@
     "kind": "dependency",
     "label": "재수집이 필요한지 먼저 물어보고, 그 결과로 나머지 단계 구성을 가른다",
     "to": "codewiki.python.runner.wiki.prep.needs_collect",
-    "where": "src/codewiki/python/runner/wiki/prep.py:37"
+    "where": "src/codewiki/python/runner/wiki/prep.py:104"
    }
   ],
-  "where": "src/codewiki/python/runner/wiki/prep.py:34"
+  "where": "src/codewiki/python/runner/wiki/prep.py:100"
  },
  "codewiki.python.runner.wiki.prep.pyRoots": {
   "confidence": "HIGH",
@@ -22579,7 +22585,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:55"
+  "where": "src/codewiki/python/runner/wiki/prep.py:122"
  },
  "codewiki.python.runner.wiki.prep.run": {
   "confidence": "HIGH",
@@ -22589,7 +22595,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:75"
+  "where": "src/codewiki/python/runner/wiki/prep.py:142"
  },
  "src/core/__init__.py": {
   "confidence": "MEDIUM",
@@ -24880,5 +24886,45 @@
   "source": "reading",
   "uses": [],
   "where": "src/codewiki/python/machine/survey_plan.py:76"
+ },
+ "codewiki.python.runner.wiki.prep.tool_versions": {
+  "confidence": "HIGH",
+  "does": "collector 에 따라 griffe · clang-uml · clang-doc 의 `--version` 첫 줄을, roslyn-dump 면 roslyn-dump.json 의 sha256 을 담은 dict 를 낸다. 판을 못 얻으면 `?` 다.",
+  "kind": "function",
+  "means": "바깥 수집기의 판을 모으는 함수.",
+  "module": "codewiki.python.runner.wiki.prep",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/prep.py:33"
+ },
+ "codewiki.python.runner.wiki.prep.collect_fingerprint": {
+  "confidence": "HIGH",
+  "does": "COLLECT_CODE 의 파일마다 경로와 내용 sha256 을, 이어서 수집기 판을 이름순으로 하나의 sha256 에 넣어 16진 문자열로 낸다.",
+  "kind": "function",
+  "means": "수집 코드와 수집기 판을 한 값으로 줄인 지문을 만드는 함수.",
+  "module": "codewiki.python.runner.wiki.prep",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/prep.py:59"
+ },
+ "codewiki.python.runner.wiki.prep.recorded_fingerprint": {
+  "confidence": "HIGH",
+  "does": "collect-fingerprint.json 의 fingerprint 를 내되, 파일이 없거나 깨졌거나 codegraph_sha256 이 지금 codegraph.json 의 sha256 과 다르면 None 을 낸다.",
+  "kind": "function",
+  "means": "마지막으로 만든 지도의 지문을 읽는 함수.",
+  "module": "codewiki.python.runner.wiki.prep",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/prep.py:71"
+ },
+ "codewiki.python.machine.normalize.write_json_atomic": {
+  "confidence": "HIGH",
+  "does": "같은 폴더에 mkstemp 로 임시 파일을 만들어 json.dump(ensure_ascii=False, indent=2) 하고 os.replace 로 바꿔 끼운다. 도중 예외면 임시 파일을 지우고 다시 던진다.",
+  "kind": "function",
+  "means": "JSON 을 반쪽 파일 없이 쓰는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1181"
  }
 }
