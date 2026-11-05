@@ -1031,3 +1031,15 @@ def test_지도_쓰기는_예전_json_dump_와_같은_바이트다(tmp_path: Pat
     path = tmp_path / "codegraph.json"
     N.write_json_atomic(str(path), g)
     assert path.read_text(encoding="utf-8") == json.dumps(g, ensure_ascii=False, indent=2)
+
+
+def test_dataclass_가_만든_init_의_간선은_필드_줄을_근거로_쓴다(tmp_path: Path) -> None:
+    """griffe 는 dataclass 에 만들어 넣는 `__init__` 의 lineno 를 0 으로 준다. 줄 0 은 소스 위치가 아니다."""
+    files = {"dc/__init__.py": "",
+             "dc/m.py": ("from dataclasses import dataclass\n\n\nclass Row:\n    pass\n\n\n"
+                         "@dataclass\nclass Holder:\n    rows: list[Row]\n    name: str\n")}
+    dump = _griffe_dump(tmp_path, files, "dc")
+    g, _ = N.normalize_python(dump, str(tmp_path), "griffe test")
+    sig = [e for e in g["edges"] if e["label"] == "__init__(rows)"]
+    assert sig and all(e["line"] == 10 for e in sig)
+    assert all(e["line"] for e in g["edges"])

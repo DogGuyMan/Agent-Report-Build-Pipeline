@@ -1106,14 +1106,20 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
                     add(qname, key, PY_KIND["attr"], mname, rel, m.get("lineno"))
             elif kind == "function":
                 params: list[GriffeParam] = m.get("parameters") or []
+                # griffe 가 dataclass 에 만들어 넣는 `__init__` 은 lineno 가 0 이다. 줄 0 은 소스 위치가 아니므로
+                # 인자는 같은 이름의 필드 줄을, 그 밖에는 클래스 줄을 근거로 쓴다.
+                synthetic = not m.get("lineno")
+                at = m.get("lineno") or cls.get("lineno")
                 for p in params:
                     p_ann = p.get("annotation")
                     if p.get("name") in ("self", "cls") or not p_ann:
                         continue
+                    field = cls_members.get(p["name"]) if synthetic else None
+                    line = (field.get("lineno") if field else None) or at
                     for key in walk(p_ann):
-                        add(qname, key, PY_KIND["sig"], f"{mname}({p['name']})", rel, m.get("lineno"))
+                        add(qname, key, PY_KIND["sig"], f"{mname}({p['name']})", rel, line)
                 for key in walk(m.get("returns")):
-                    add(qname, key, PY_KIND["sig"], f"{mname}()", rel, m.get("lineno"))
+                    add(qname, key, PY_KIND["sig"], f"{mname}()", rel, at)
 
     if calls is not None:
         merge_py_calls(nodes, node_id, edges, calls, stats)
