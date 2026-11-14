@@ -1087,3 +1087,55 @@ def test_장부는_등급_수_이름_순이고_표본은_다섯까지다() -> No
     st["표에 없는 사유"] += 1
     with pytest.raises(KeyError):
         st.report()
+
+
+# ── 15. 모르는 관계 종류 — 죽지도 조용히 버리지도 않고 결함 등급으로 장부에 남는다.
+_CS_MOD_FILE = "Assets/@Scripts/Mod/%s.cs"
+
+
+def _cs_dump(types: list[N.RoslynType], relations: list[N.RoslynRelation]) -> N.RoslynDump:
+    """어셈블리 `App` 이 소스인 최소 roslyn-dump. F5 게이트를 통과한다."""
+    return {"tool": "test", "compilation": {"assembly": "App", "errors": 0, "unresolved_types": 0},
+            "types": types, "relations": relations}
+
+
+def _cs_type(tid: str, name: str, assembly: str = "App", kind: str = "Class") -> N.RoslynType:
+    return {"id": tid, "name": name, "kind": kind, "assembly": assembly,
+            "file": _CS_MOD_FILE % name if assembly == "App" else None, "line": 1 if assembly == "App" else None}
+
+
+def test_모르는_cpp_관계_종류는_결함_등급으로_장부에_남고_나머지는_그대로_정제된다(tmp_path: Path) -> None:
+    els: list[N.UmlElement] = [_UML_SESSION, {
+        "id": "u2", "name": "Store", "display_name": "SJH::Store",
+        "namespace": "SJH", "type": "class",
+        "source_location": {"file": "server/store.h", "line": 5},
+    }]
+    rels: list[N.UmlRelationship] = [
+        {"type": "wormhole", "source": "u1", "destination": "u2"},
+        {"type": "aggregation", "source": "u1", "destination": "u2", "label": "mStore"}]
+    g, st = N.normalize_cpp(els, rels, str(tmp_path), "t")
+    assert len(g["edges"]) == 1 and g["edges"][0]["kind"] == "composition"
+    row = [r for r in st.report() if r["reason"] == "모르는 관계 종류"]
+    assert [(r["class"], r["count"], r["samples"]) for r in row] == [("fault", 1, ["wormhole"])]
+
+
+def test_모르는_C샵_relation_kind_는_그_관계만_버리고_결함_등급으로_장부에_남는다(tmp_path: Path) -> None:
+    dump = _cs_dump([_cs_type("T1", "A"), _cs_type("T2", "B")], [
+        {"kind": "calls", "src": "T1", "dst": "T2", "is_enum_member": False},
+        {"kind": "depend", "src": "T1", "dst": "T2", "is_enum_member": False}])
+    g, st = N.normalize_csharp(dump, str(tmp_path))
+    assert [e["kind"] for e in g["edges"]] == ["dependency"]
+    row = [r for r in st.report() if r["reason"] == "모르는 관계 종류"]
+    assert [(r["class"], r["count"], r["samples"]) for r in row] == [("fault", 1, ["calls"])]
+
+
+def test_C샵_dst_TypeParameter_는_정책이고_dst_Error_는_표본이_dst_id_인_해소_실패다(tmp_path: Path) -> None:
+    dump = _cs_dump([_cs_type("T1", "A"), _cs_type("TP", "T", "netstandard", "TypeParameter"),
+                     _cs_type("ER", "Missing", "netstandard", "Error")], [
+        {"kind": "assoc", "src": "T1", "dst": "TP", "is_enum_member": False},
+        {"kind": "assoc", "src": "T1", "dst": "ER", "is_enum_member": False}])
+    g, st = N.normalize_csharp(dump, str(tmp_path))
+    assert g["edges"] == []
+    by = {r["reason"]: r for r in st.report()}
+    assert (by["dst TypeParameter 버림"]["class"], by["dst TypeParameter 버림"]["count"]) == ("policy", 1)
+    assert (by["dst Error 버림"]["class"], by["dst Error 버림"]["samples"]) == ("unresolved", ["ER"])

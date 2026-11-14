@@ -487,7 +487,7 @@ def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationshi
         else:
             kind = CLANG_UML_KIND.get(t)
             if kind is None:
-                stats[f"알 수 없는 type: {t}"] += 1
+                stats.note("모르는 관계 종류", t)
                 continue
 
         srcs = resolve(r["source"])
@@ -738,7 +738,10 @@ def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Ledger]:
         if is_first(t):
             return [tid]                          # 소스(1차) 타입
         if t["kind"] in ("TypeParameter", "Error"):
-            stats[f"dst {t['kind']} 버림"] += 1
+            if t["kind"] == "TypeParameter":
+                stats["dst TypeParameter 버림"] += 1
+            else:
+                stats.note("dst Error 버림", tid)
             return []
         return [tid]                              # 외부 타입
 
@@ -790,7 +793,10 @@ def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Ledger]:
         if r["is_enum_member"]:
             stats["enum 멤버 버림(플래그)"] += 1
             continue
-        kind = CS_KIND[r["kind"]]
+        kind = CS_KIND.get(r["kind"])
+        if kind is None:
+            stats.note("모르는 관계 종류", r["kind"])
+            continue
         srcs = resolve(r["src"])
         for d_tid in resolve(r["dst"]):
             if ty[d_tid]["name"] in CS_R7:                     # R7
