@@ -12,6 +12,9 @@ def wikiPaths(repo: str) -> dict[str, str]:
         "site": os.path.join(raw, "wiki-site"),
         "codegraph": os.path.join(raw, "codegraph.json"),
         "fingerprint": os.path.join(raw, "collect-fingerprint.json"),
+        "report": os.path.join(raw, "normalize-report.json"),
+        "failure": os.path.join(raw, "collect-failure.json"),
+        "inventory": os.path.join(raw, "source-inventory.json"),
     }
 
 def collectorFor(entries: list[str]) -> str:

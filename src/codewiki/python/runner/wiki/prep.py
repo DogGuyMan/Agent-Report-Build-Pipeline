@@ -211,9 +211,9 @@ if __name__ == "__main__":
     if collector == "clang-uml" and not CLANG_DOC:
         print("알림 — clang-doc 을 못 찾아 자유 함수 층이 빈다. CLANG_DOC 환경변수로 알려 주거나 brew install llvm 하라.")
         
-    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도 · manifest · 검사 기록부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않고, 성공 기록은 그것이 가리키는 지도보다 오래 남지 않는다.
+    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도 · manifest · 버림 장부 · 검사 기록부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않고, 성공 기록은 그것이 가리키는 지도보다 오래 남지 않는다.
     if plan["blocked"] is not None or "normalize" in plan["steps"]:
-        for stale in (P["codegraph"], P["fingerprint"], os.path.join(P["raw"], "graph-verified.json"), os.path.join(P["raw"], "graph-faults.json")):
+        for stale in (P["codegraph"], P["fingerprint"], P["report"], os.path.join(P["raw"], "graph-verified.json"), os.path.join(P["raw"], "graph-faults.json")):
             if os.path.exists(stale):
                 os.remove(stale)
 
@@ -282,7 +282,7 @@ if __name__ == "__main__":
             if "clang-doc" in plan["steps"]:
                 arg.extend(["--clang-doc", docOutDir])
                 
-            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"]])
+            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"], "--report", P["report"]])
             # 끊겨 깨진 manifest 는 read_manifest 가 None 으로 읽어 다음에 다시 수집한다.
             write_json_atomic(P["fingerprint"], build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs), indent=1)
             

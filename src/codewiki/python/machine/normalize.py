@@ -7,7 +7,7 @@
 접기 규칙 R1~R7 과 kind enum 사상이 여기에만 있다. 언어 도구는 원시 사실만 내고
 정책은 전부 이 파일이 쥔다.
 """
-import argparse, json, os, re, subprocess, sys
+import argparse, hashlib, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from typing import Any, Literal, Required, TypedDict, cast
@@ -184,8 +184,39 @@ def module_of(path: str | None) -> str | None:
     return parts[0]
 
 
+def validate_raw(kind: Literal["clang-uml", "roslyn-dump", "griffe", "pycalls"], obj: object) -> str | None:
+    """수집 원본의 최상위 꼴. 틀리면 이유 한 줄, 맞으면 None. 각 로더가 첫 줄에서 첨자하는 열쇠만 본다."""
+    want: dict[str, dict[str, type]] = {
+        "clang-uml": {"elements": list, "relationships": list},
+        "roslyn-dump": {"compilation": dict, "types": list, "relations": list},
+        "pycalls": {"symbols": list, "calls": list},
+    }
+    if kind == "griffe":
+        if not isinstance(obj, dict) or not all(isinstance(v, dict) for v in cast(dict[str, object], obj).values()):
+            return "griffe dump 는 {모듈 이름: 객체} 사전이어야 한다"
+        return None
+    if not isinstance(obj, dict):
+        return "최상위가 객체가 아니다"
+    d = cast(dict[str, object], obj)
+    for key, t in want[kind].items():
+        if key not in d:
+            return "필수 열쇠 %r 이 없다" % key
+        if not isinstance(d[key], t):
+            return "%r 은 %s 여야 한다" % (key, t.__name__)
+    return None
+
+
+def exit_if_bad_raw(kind: Literal["clang-uml", "roslyn-dump", "griffe", "pycalls"], path: str, obj: object) -> None:
+    """원본 꼴이 틀리면 이유를 stderr 에 적고 종료 코드 2 로 끝낸다."""
+    bad = validate_raw(kind, obj)
+    if bad:
+        print("원본 꼴이 틀렸다 — %s: %s" % (path, bad), file=sys.stderr)
+        sys.exit(2)
+
+
 def load_clang_uml(path: str) -> tuple[list[UmlElement], list[UmlRelationship], dict[str, Any]]:
     d: dict[str, Any] = json.load(open(path, encoding="utf-8"))
+    exit_if_bad_raw("clang-uml", path, d)
     return d["elements"], d["relationships"], d.get("metadata", {})
 
 
@@ -1250,6 +1281,15 @@ def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
         stats["호출 간선"] += 1
 
 
+def write_report(path: str, codegraph: str, g: CodeGraph, stats: Ledger) -> None:
+    """지도 바로 뒤에 장부를 쓴다. 지도 sha 로 그 한 벌에 묶는다."""
+    with open(codegraph, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    doc: ReportDoc = {"codegraph_sha256": sha, "language": g["language"], "source_tool": g["source_tool"],
+                      "reasons": stats.report()}
+    write_json_atomic(path, doc, indent=1)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다.
 
@@ -1267,6 +1307,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="C++ — clang-doc --format=json 출력 디렉토리. --clang-uml 과 **함께** 쓴다")
     ap.add_argument("--repo", default=".", help="대상 저장소 (repo_commit, asm->pkg 사전용)")
     ap.add_argument("-o", "--out", default="codegraph.json")
+    ap.add_argument("-r", "--report", default=None, help="버림 장부 normalize-report.json. 기본은 -o 옆")
     return ap
 
 
@@ -1291,10 +1332,12 @@ def main() -> None:
         g, stats = normalize_cpp(els, rels, a.repo, tool, doc_symbols=syms)
     elif a.roslyn_dump is not None:
         dump: RoslynDump = json.load(open(a.roslyn_dump, encoding="utf-8"))
+        exit_if_bad_raw("roslyn-dump", a.roslyn_dump, dump)
         cs_dump = dump
         g, stats = normalize_csharp(dump, a.repo)
     else:
         py_dump: GriffeDump = json.load(open(a.griffe_dump, encoding="utf-8"))
+        exit_if_bad_raw("griffe", a.griffe_dump, py_dump)
         try:
             from importlib.metadata import version as _pkg_version
             tool = "griffe " + _pkg_version("griffe")
@@ -1302,13 +1345,16 @@ def main() -> None:
             tool = "griffe ?"
         py_calls: PyCallsDump | None = None
         if a.py_calls:
-            # json.load 는 Any 다. 파일 경계 한 자리에서만 형을 세운다 — 아래 len() 두 번이
-            # 그 자리에서 바로 실패하므로 모양이 틀리면 조용히 넘어가지 않는다.
-            py_calls = cast(PyCallsDump, json.load(open(a.py_calls, encoding="utf-8")))
+            # json.load 는 Any 다. 꼴을 검사한 뒤 파일 경계 한 자리에서만 형을 세운다.
+            py_calls_raw: object = json.load(open(a.py_calls, encoding="utf-8"))
+            exit_if_bad_raw("pycalls", a.py_calls, py_calls_raw)
+            py_calls = cast(PyCallsDump, py_calls_raw)
             tool += (f" + pycalls({len(py_calls['symbols'])} 심볼"
                      f" / {len(py_calls['calls'])} 호출)")
         g, stats = normalize_python(py_dump, a.repo, tool, calls=py_calls)
     write_json_atomic(a.out, g)
+    write_report(a.report or os.path.join(os.path.dirname(os.path.abspath(a.out)), "normalize-report.json"),
+                 a.out, g, stats)
 
     print(f"{a.out} — 노드 {len(g['nodes'])} / 간선 {len(g['edges'])} / 모듈 {len(g['modules'])}")
     if a.clang_uml is not None:

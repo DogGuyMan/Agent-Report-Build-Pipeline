@@ -1,5 +1,6 @@
 """test_normalize.py — 정규화 계층의 회귀 시험."""
 import ast
+import hashlib
 import importlib.util
 import json
 import os
@@ -22,6 +23,7 @@ from codegraph_types import CodeGraph  # noqa: E402
 # 상대경로가 되어 이 저장소의 산출물을 골든으로 착각해 읽는다.
 CPP_REPO = os.path.expandvars(os.environ.get("GRAPHICS_REPO", "")) or "/골든저장소_미지정/GRAPHICS_REPO"
 CS_REPO = os.path.expandvars(os.environ.get("CSHARP_REPO", "")) or "/골든저장소_미지정/CSHARP_REPO"
+NORMALIZE_PY = os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")
 
 
 # ── 1. kind 대응표 — 낱말이 같아서 오히려 위험한 자리
@@ -1048,7 +1050,7 @@ def test_dataclass_가_만든_init_의_간선은_필드_줄을_근거로_쓴다(
 # ── 14. 버림 장부 — 사유는 표의 열쇠이고 등급 · 수 · 이름 순으로 나온다.
 def test_소스의_사유_문자열은_전부_표에_있다() -> None:
     """`stats[...]` 첨자와 `stats.note(...)` 의 사유는 상수 문자열이고 `DROP_CLASS` 의 열쇠여야 한다."""
-    tree = ast.parse(Path(N.__file__).read_text(encoding="utf-8"))
+    tree = ast.parse(Path(NORMALIZE_PY).read_text(encoding="utf-8"))
     seen = 0
     bad: list[str] = []
     for n in ast.walk(tree):
@@ -1139,3 +1141,49 @@ def test_C샵_dst_TypeParameter_는_정책이고_dst_Error_는_표본이_dst_id_
     by = {r["reason"]: r for r in st.report()}
     assert (by["dst TypeParameter 버림"]["class"], by["dst TypeParameter 버림"]["count"]) == ("policy", 1)
     assert (by["dst Error 버림"]["class"], by["dst Error 버림"]["samples"]) == ("unresolved", ["ER"])
+
+
+# ── 16. 원본 꼴 검사와 장부 파일
+def _run_normalize(*args: str) -> "subprocess.CompletedProcess[str]":
+    return subprocess.run([sys.executable, NORMALIZE_PY, *args], capture_output=True, text=True, timeout=120)
+
+
+def test_원본_꼴이_틀리면_이유_한_줄을_돌려주고_맞으면_None_이다() -> None:
+    assert N.validate_raw("roslyn-dump", {"types": []}) == "필수 열쇠 'compilation' 이 없다"
+    assert N.validate_raw("roslyn-dump", []) == "최상위가 객체가 아니다"
+    assert N.validate_raw("pycalls", {"symbols": {}, "calls": []}) == "'symbols' 은 list 여야 한다"
+    assert N.validate_raw("clang-uml", {"elements": [], "relationships": []}) is None
+    assert N.validate_raw("griffe", {"pkg": {}}) is None
+    assert N.validate_raw("griffe", {"pkg": []}) == "griffe dump 는 {모듈 이름: 객체} 사전이어야 한다"
+
+
+def test_원본_꼴이_틀린_파일은_종료_코드_2_로_거절하고_아무것도_쓰지_않는다(tmp_path: Path) -> None:
+    bad = tmp_path / "roslyn-dump.json"
+    bad.write_text(json.dumps({"types": []}), encoding="utf-8")
+    got = _run_normalize("--roslyn-dump", str(bad), "--repo", str(tmp_path), "-o", str(tmp_path / "codegraph.json"))
+    assert got.returncode == 2 and "compilation" in got.stderr
+    assert sorted(os.listdir(tmp_path)) == ["roslyn-dump.json"]
+
+
+def test_정제가_끝나면_지도_옆에_버림_장부를_쓰고_같은_입력이면_같은_바이트다(tmp_path: Path) -> None:
+    dump = _cs_dump([_cs_type("T1", "A"), _cs_type("T2", "B"), _cs_type("ER", "Missing", "netstandard", "Error")], [
+        {"kind": "calls", "src": "T1", "dst": "T2", "is_enum_member": False},
+        {"kind": "assoc", "src": "T1", "dst": "ER", "is_enum_member": False},
+        {"kind": "depend", "src": "T1", "dst": "T1", "is_enum_member": False},
+        {"kind": "assoc", "src": "T1", "dst": "T2", "is_enum_member": False}])
+    src = tmp_path / "roslyn-dump.json"
+    src.write_text(json.dumps(dump), encoding="utf-8")
+    out = tmp_path / "map" / "codegraph.json"
+    got = _run_normalize("--roslyn-dump", str(src), "--repo", str(tmp_path), "-o", str(out))
+    assert got.returncode == 0, got.stderr
+    ledger = tmp_path / "map" / "normalize-report.json"
+    doc = json.loads(ledger.read_text(encoding="utf-8"))
+    assert doc["codegraph_sha256"] == hashlib.sha256(out.read_bytes()).hexdigest()
+    assert doc["language"] == "csharp"
+    order = ["fault", "unresolved", "policy", "count"]
+    classes = [r["class"] for r in doc["reasons"]]
+    assert classes == sorted(classes, key=order.index) and set(classes) == set(order)
+    elsewhere = tmp_path / "elsewhere.json"
+    again = _run_normalize("--roslyn-dump", str(src), "--repo", str(tmp_path), "-o", str(out), "--report", str(elsewhere))
+    assert again.returncode == 0, again.stderr
+    assert elsewhere.read_bytes() == ledger.read_bytes()

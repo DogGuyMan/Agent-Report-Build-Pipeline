@@ -93,6 +93,7 @@ def _cs_repo(tmp_path: Path) -> Path:
     (repo / "App.csproj").write_text("<Project/>", encoding="utf-8")
     (repo / "out" / "codegraph-raw" / "codegraph.json").write_text('{"nodes": [], "edges": []}', encoding="utf-8")
     (repo / "out" / "codegraph-raw" / "collect-fingerprint.json").write_text("{}", encoding="utf-8")
+    (repo / "out" / "codegraph-raw" / "normalize-report.json").write_text("{}", encoding="utf-8")
     return repo
 
 
@@ -104,6 +105,7 @@ def test_정제가_실패하면_옛_지도와_옛_지문이_남지_않는다(tmp
     assert got.returncode != 0
     assert not (raw / "codegraph.json").exists()
     assert not (raw / "collect-fingerprint.json").exists()
+    assert not (raw / "normalize-report.json").exists()
 
 
 def test_수집이_막혀도_옛_지도가_남지_않는다(tmp_path: Path) -> None:
@@ -111,6 +113,7 @@ def test_수집이_막혀도_옛_지도가_남지_않는다(tmp_path: Path) -> N
     got = _run(repo, "--force")
     assert got.returncode == 1 and "막힘" in got.stderr
     assert not (repo / "out" / "codegraph-raw" / "codegraph.json").exists()
+    assert not (repo / "out" / "codegraph-raw" / "normalize-report.json").exists()
 
 
 def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_수집한다(tmp_path: Path) -> None:
@@ -128,6 +131,8 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     rec = json.loads((raw / "collect-fingerprint.json").read_text(encoding="utf-8"))
     assert rec["codegraph_sha256"] == hashlib.sha256((raw / "codegraph.json").read_bytes()).hexdigest()
     assert set(rec) >= {"sources", "generation_id"} and len(rec["generation_id"]) == 64
+    ledger = json.loads((raw / "normalize-report.json").read_text(encoding="utf-8"))
+    assert ledger["codegraph_sha256"] == rec["codegraph_sha256"] and ledger["language"] == "python"
 
     again = _run(repo)
     assert "단계 facts -> render-modules" in again.stdout

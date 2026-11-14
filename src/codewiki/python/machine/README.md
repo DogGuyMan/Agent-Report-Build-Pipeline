@@ -231,6 +231,8 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | **`UmlRelationship`** | *class* | `relationships[]` 한 칸. `type` 은 clang-uml 의 낱말이라 `CLANG_UML_KIND` 를 거쳐야 한다. |
 | `git_commit` | `(repo: str) -> str \| None` |  |
 | `module_of` | `(path: str \| None) -> str \| None` | 모듈 경계 = 폴더 트리. C# 쪽(`cs_module_of`)과 축이 같다. |
+| `validate_raw` | `(kind: Literal['clang-uml', 'roslyn-dump', 'griffe', 'pycalls'], obj: object) -> str \| None` | 수집 원본의 최상위 꼴. 틀리면 이유 한 줄, 맞으면 None. 각 로더가 첫 줄에서 첨자하는 열쇠만 본다. |
+| `exit_if_bad_raw` | `(kind: Literal['clang-uml', 'roslyn-dump', 'griffe', 'pycalls'], path: str, obj: object) -> None` | 원본 꼴이 틀리면 이유를 stderr 에 적고 종료 코드 2 로 끝낸다. |
 | `load_clang_uml` | `(path: str) -> tuple[list[UmlElement], list[UmlRelationship], dict[str, Any]]` |  |
 | `defines_at` | `(repo: str, rel_file: str \| None, line_no: int \| None, name: str) -> bool` | `source_location` 이 가리키는 줄이 실제로 그 타입을 정의하는지 본다. |
 | `tracked_set` | `(repo: str) -> set[str] \| None` | git 이 추적하는 파일 집합. 1차 판정의 급소다 — 남의 헤더는 추적되지 않는다. |
@@ -262,6 +264,7 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Ledger, depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
 | `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Ledger]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
 | `merge_py_calls` | `(nodes: dict[str, Node], node_id: dict[str, str], edges: dict[tuple[str, str, str], Edge], calls: PyCallsDump, stats: Ledger) -> None` | `pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다. |
+| `write_report` | `(path: str, codegraph: str, g: CodeGraph, stats: Ledger) -> None` | 지도 바로 뒤에 장부를 쓴다. 지도 sha 로 그 한 벌에 묶는다. |
 | `build_parser` | `() -> argparse.ArgumentParser` | 명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다. |
 | `main` | `() -> None` |  |
 
