@@ -6,10 +6,11 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-from codewiki.python.runner.wiki import prep  # noqa: E402
+from codewiki.python.runner.wiki import compdb, prep  # noqa: E402
 
 PREP = os.path.join(ROOT, "src", "codewiki", "python", "runner", "wiki", "prep.py")
 MACHINE = Path(ROOT, "src", "codewiki", "python", "machine")
@@ -83,6 +84,42 @@ def test_기록된_지문은_지도가_그때의_지도일_때만_읽힌다(tmp_
     assert prep.read_manifest(str(tmp_path / "없음.json"), str(cg)) is None
 
 
+def _tracked(repo: Path, files: dict[str, str]) -> str:
+    """`files` 를 써서 git 이 추적하게 하고 저장소 경로를 낸다."""
+    for rel, text in files.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text, encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    return str(repo)
+
+
+def test_파이썬은_pyRoots_밖의_추적_파일을_제외로_적는다(tmp_path: Path) -> None:
+    repo = _tracked(tmp_path, {"pkg/a.py": "x\n", "pkg/sub/b.py": "x\n", "test/t.py": "x\n", "setup.py": "x\n", "pkg/c.ts": "x\n"})
+    assert prep.excluded_files(repo, "griffe+pycalls", [], []) == {"test/t.py": "prep.pyRoots skip", "setup.py": "prep.pyRoots skip"}
+    assert prep.excluded_files(repo, "roslyn-dump", [], []) == {}
+
+
+def test_C플러스플러스는_compile_commands_가_버렸거나_싣지_않은_파일을_제외로_적는다(tmp_path: Path) -> None:
+    repo = _tracked(tmp_path, {"a.cpp": "x\n", "b.cpp": "x\n", "c.h": "x\n", "d.py": "x\n"})
+    dropped: list[dict[str, Any]] = [{"file": repo + "/b.cpp", "reason": "external"},
+                                     {"file": repo + "/a.cpp", "reason": "duplicate-config"}]
+    got = prep.excluded_files(repo, "clang-uml", dropped, ["a.cpp"])
+    assert got == {"b.cpp": "compdb: external", "c.h": "not-in-compdb"}   # a.cpp 는 첫 명령이 남았으니 수집된다
+
+
+def test_compile_commands_합치기는_저장소_밖과_외부_파일을_사유와_함께_버린다() -> None:
+    repo = "/work/repo"
+    entries: list[dict[str, Any]] = [
+        {"file": repo + "/a.cpp", "directory": repo}, {"file": "/elsewhere/x.cpp", "directory": "/elsewhere"},
+        {"file": repo + "/_deps/y.cpp", "directory": repo}, {"file": "sub/z.cpp", "directory": repo + "/build/.."}, {"file": 3}]
+    dropped: list[dict[str, Any]] = []
+    kept = compdb.mergeEntries([entries], repo, dropped)
+    assert [e["file"] for e in kept] == [repo + "/a.cpp", repo + "/sub/z.cpp"]
+    assert [(e["file"], e["reason"]) for e in dropped] == [("/elsewhere/x.cpp", "outside-repo"), (repo + "/_deps/y.cpp", "external")]
+    assert compdb.mergeEntries([entries], repo) == kept
+
+
 def _run(repo: Path, *extra: str) -> "subprocess.CompletedProcess[str]":
     return subprocess.run([sys.executable, PREP, str(repo), *extra], capture_output=True, text=True, timeout=300)
 
@@ -94,6 +131,7 @@ def _cs_repo(tmp_path: Path) -> Path:
     (repo / "out" / "codegraph-raw" / "codegraph.json").write_text('{"nodes": [], "edges": []}', encoding="utf-8")
     (repo / "out" / "codegraph-raw" / "collect-fingerprint.json").write_text("{}", encoding="utf-8")
     (repo / "out" / "codegraph-raw" / "normalize-report.json").write_text("{}", encoding="utf-8")
+    (repo / "out" / "codegraph-raw" / "source-inventory.json").write_text("{}", encoding="utf-8")
     return repo
 
 
@@ -106,6 +144,7 @@ def test_정제가_실패하면_옛_지도와_옛_지문이_남지_않는다(tmp
     assert not (raw / "codegraph.json").exists()
     assert not (raw / "collect-fingerprint.json").exists()
     assert not (raw / "normalize-report.json").exists()
+    assert json.loads((raw / "source-inventory.json").read_text(encoding="utf-8"))["selected"] == "cs"   # 옛 것은 지워지고 수집 전에 쓴 새 것이 남는다
 
 
 def test_수집이_막혀도_옛_지도가_남지_않는다(tmp_path: Path) -> None:
@@ -114,6 +153,7 @@ def test_수집이_막혀도_옛_지도가_남지_않는다(tmp_path: Path) -> N
     assert got.returncode == 1 and "막힘" in got.stderr
     assert not (repo / "out" / "codegraph-raw" / "codegraph.json").exists()
     assert not (repo / "out" / "codegraph-raw" / "normalize-report.json").exists()
+    assert not (repo / "out" / "codegraph-raw" / "source-inventory.json").exists()
 
 
 def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_수집한다(tmp_path: Path) -> None:
@@ -133,14 +173,22 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     assert set(rec) >= {"sources", "generation_id"} and len(rec["generation_id"]) == 64
     ledger = json.loads((raw / "normalize-report.json").read_text(encoding="utf-8"))
     assert ledger["codegraph_sha256"] == rec["codegraph_sha256"] and ledger["language"] == "python"
+    inv_path = raw / "source-inventory.json"
+    inventory = json.loads(inv_path.read_text(encoding="utf-8"))
+    assert inventory["selected"] == "py" and inventory["languages"]["py"]["collected"] is True
+    assert rec["inventory_sha256"] == hashlib.sha256(inv_path.read_bytes()).hexdigest()
 
+    kept = inv_path.read_bytes()
     again = _run(repo)
     assert "단계 facts -> render-modules" in again.stdout
+    assert inv_path.read_bytes() == kept
 
     rec["fingerprint"] = "옛 수집기"
     (raw / "collect-fingerprint.json").write_text(json.dumps(rec), encoding="utf-8")
     third = _run(repo)
     assert "단계 griffe -> pycalls -> normalize" in third.stdout
+    rec = json.loads((raw / "collect-fingerprint.json").read_text(encoding="utf-8"))
+    assert rec["inventory_sha256"] == hashlib.sha256(inv_path.read_bytes()).hexdigest()
 
 
 def test_소스_내용이_바뀌면_diff_없이도_다시_수집한다(tmp_path: Path) -> None:

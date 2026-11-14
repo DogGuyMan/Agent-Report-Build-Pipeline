@@ -6,13 +6,14 @@ from typing import Literal, TypedDict, cast
 
 
 class CollectManifest(TypedDict):
-    """한 번의 수집. `generation_id` 가 이 수집의 지도 · 소스 · 수집기 셋을 한 이름으로 묶는다."""
+    """한 번의 수집. `generation_id` 가 이 수집의 수집기 · 지도 · 소스 · 소스 inventory 넷을 한 이름으로 묶는다."""
     fingerprint: str
     tool_versions: dict[str, str]
     config_inputs: dict[str, str]
     codegraph_sha256: str
     sources: dict[str, str]
     sources_sha256: str
+    inventory_sha256: str
     raw_provenance: Literal["prep", "unknown"]
     generation_id: str
 
@@ -51,14 +52,17 @@ def sources_digest(sources: dict[str, str]) -> str:
     return h.hexdigest()
 
 
-def generation_id(fingerprint: str, codegraph_sha256: str, sources_sha256: str) -> str:
-    """수집기 지문 · 지도 바이트 · 소스 바이트를 한 이름으로. 셋 중 하나만 달라도 다른 세대다."""
-    return hashlib.sha256(f"{fingerprint}\n{codegraph_sha256}\n{sources_sha256}\n".encode()).hexdigest()
+def generation_id(fingerprint: str, codegraph_sha256: str, sources_sha256: str, inventory_sha256: str) -> str:
+    """수집기 지문 · 지도 바이트 · 소스 바이트 · inventory 바이트를 한 이름으로. 넷 중 하나만 달라도 다른 세대다."""
+    return hashlib.sha256(
+        f"{fingerprint}\n{codegraph_sha256}\n{sources_sha256}\n{inventory_sha256}\n".encode()).hexdigest()
 
 
 def build_manifest(fingerprint: str, versions: dict[str, str], codegraph: str, repo: str, collector: str,
-                   inputs: dict[str, str] | None = None) -> CollectManifest:
+                   inputs: dict[str, str] | None = None, inventory_sha256: str = "") -> CollectManifest:
     """정제 직후에 부른다 — 소스 해시는 수집 시점의 것이어야 뒤에 붙인 거짓 최신성이 되지 않는다.
+
+    `inventory_sha256` 은 정제 뒤에 마무리한 소스 inventory 파일의 바이트 해시다. 없으면 빈 문자열이다.
 
     roslyn-dump 의 원본은 prep 밖에서 만들어지므로 `raw_provenance` 가 unknown 이다.
     """
@@ -67,8 +71,9 @@ def build_manifest(fingerprint: str, versions: dict[str, str], codegraph: str, r
     digest = sources_digest(sources)
     return {"fingerprint": fingerprint, "tool_versions": versions, "config_inputs": inputs or {},
             "codegraph_sha256": sha, "sources": sources, "sources_sha256": digest,
+            "inventory_sha256": inventory_sha256,
             "raw_provenance": "unknown" if collector == "roslyn-dump" else "prep",
-            "generation_id": generation_id(fingerprint, sha, digest)}
+            "generation_id": generation_id(fingerprint, sha, digest, inventory_sha256)}
 
 
 def read_manifest(path: str, codegraph: str) -> CollectManifest | None:

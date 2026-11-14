@@ -22,6 +22,7 @@
 | [`pycalls.py`](pycalls.py) | 파이썬 소스에서 심볼과 호출 관계를 뽑는 수집기. |
 | [`reading_types.py`](reading_types.py) | 전수조사 원본 `terms-reading.json` 의 모양. `does` 와 `confidence` 만 선택이고 나머지는 모든 레코드에 있다. |
 | [`reverse_refs.py`](reverse_refs.py) | 1차 심볼 전수 역참조를 뽑는다 (E6 + 전수 확정). |
+| [`source_inventory.py`](source_inventory.py) | git 이 추적하는 소스 파일을 언어별로 세고 파일마다 수집 상태를 적는다. prep 이 수집 전에 쓴다. |
 | [`survey_plan.py`](survey_plan.py) | 전수조사 배치 계획. |
 | [`terms_db.py`](terms_db.py) | 코드베이스 용어 전수 수집. |
 | [`verify_citations.py`](verify_citations.py) | 문서의 file:line 인용을 기계로 판정한다 (L1/L2/L3). |
@@ -89,13 +90,13 @@ clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`CollectManifest`** | *class* | 한 번의 수집. `generation_id` 가 이 수집의 지도 · 소스 · 수집기 셋을 한 이름으로 묶는다. |
+| **`CollectManifest`** | *class* | 한 번의 수집. `generation_id` 가 이 수집의 수집기 · 지도 · 소스 · 소스 inventory 넷을 한 이름으로 묶는다. |
 | `file_sha256` | `(path: str) -> str \| None` | 바이트 그대로의 sha256. 없거나 못 열면 None. |
 | `cited_files` | `(codegraph: str) -> list[str]` | 지도의 노드 · 간선이 인용한 파일(상대 경로)을 이름순으로. |
 | `hash_sources` | `(repo: str, files: list[str]) -> dict[str, str]` | 파일마다 지금 내용의 sha256. 없는 파일은 "missing". |
 | `sources_digest` | `(sources: dict[str, str]) -> str` | 파일별 해시를 이름순으로 이어 붙인 sha256. |
-| `generation_id` | `(fingerprint: str, codegraph_sha256: str, sources_sha256: str) -> str` | 수집기 지문 · 지도 바이트 · 소스 바이트를 한 이름으로. 셋 중 하나만 달라도 다른 세대다. |
-| `build_manifest` | `(fingerprint: str, versions: dict[str, str], codegraph: str, repo: str, collector: str, inputs: dict[str, str] \| None = None) -> CollectManifest` | 정제 직후에 부른다 — 소스 해시는 수집 시점의 것이어야 뒤에 붙인 거짓 최신성이 되지 않는다. |
+| `generation_id` | `(fingerprint: str, codegraph_sha256: str, sources_sha256: str, inventory_sha256: str) -> str` | 수집기 지문 · 지도 바이트 · 소스 바이트 · inventory 바이트를 한 이름으로. 넷 중 하나만 달라도 다른 세대다. |
+| `build_manifest` | `(fingerprint: str, versions: dict[str, str], codegraph: str, repo: str, collector: str, inputs: dict[str, str] \| None = None, inventory_sha256: str = '') -> CollectManifest` | 정제 직후에 부른다 — 소스 해시는 수집 시점의 것이어야 뒤에 붙인 거짓 최신성이 되지 않는다. |
 | `read_manifest` | `(path: str, codegraph: str) -> CollectManifest \| None` | 기록된 manifest. 없거나 깨졌거나 지금 지도가 그때의 지도가 아니면 None — 셋 다 다시 수집하라는 뜻이다. |
 | `changed_sources` | `(manifest: CollectManifest, repo: str) -> list[str]` | manifest 에 적힌 파일 중 지금 내용이 다른 것(없어진 것 포함). |
 
@@ -323,6 +324,23 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | **`_QueryStat`** | *class* |  |
 | **`ReverseRefs`** | *class* | `reverse_refs/1` 산출물 전체. |
 | `main` | `(root: str, compdb: str, uml_path: str, out_path: str, binary: str \| None = None) -> ReverseRefs` |  |
+
+---
+
+## `source_inventory.py`
+
+git 이 추적하는 소스 파일을 언어별로 세고 파일마다 수집 상태를 적는다. prep 이 수집 전에 쓴다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| **`FileEntry`** | *class* | 파일 하나의 수집 상태. `reason` 은 `excluded` · `unsupported` 일 때의 사유다. |
+| **`LanguageRow`** | *class* | 언어 하나 — 추적 파일 수, 맡는 수집기, 이번에 수집했는가. |
+| **`InventoryDoc`** | *class* | `source-inventory.json`. `selected` 는 수집기가 고른 언어, `languages` 는 전부. |
+| `tracked_files` | `(repo: str) -> list[str]` | `git ls-files -z` 의 경로를 이름순으로. git 저장소가 아니면 빈 목록이다. |
+| `language_of` | `(path: str) -> Lang \| None` | 확장자로 본 언어. 소스가 아니면 `None`. |
+| `language_for` | `(collector: str \| None) -> Lang \| None` | 수집기 이름이 맡는 언어. 수집기가 없는 언어(`none`)와 모르는 이름은 `None`. |
+| `build_inventory` | `(repo: str, selected: str \| None, excluded: dict[str, str]) -> InventoryDoc` | 수집 전의 장부. 고른 언어의 파일은 `collected`(잠정), `excluded` 에 든 파일은 그 사유, 다른 언어는 `unsupported`. |
+| `mark_no_symbols` | `(doc: InventoryDoc, cited: set[str]) -> None` | 정제 뒤 — 고른 언어인데 지도가 한 번도 인용하지 않은 파일은 `no-symbols` 다. |
 
 ---
 

@@ -144,7 +144,6 @@ def test_C샵_강제_수집은_원본_출처를_unknown_으로_적는다(repo: P
     assert prep.build_manifest("fp", {}, str(cg), str(repo), "griffe+pycalls")["raw_provenance"] == "prep"
 
 
-@pytest.mark.xfail(strict=True, reason="Task 18")
 def test_같은_파일의_두_컴파일_명령은_하나만_남고_장부에_남는다(tmp_path: Path) -> None:
     d = str(tmp_path)
     entries = [{"file": d + "/a.cpp", "directory": d, "command": "clang++ -DMODE=1 a.cpp"},

@@ -416,7 +416,7 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `findCompdbs` | `(repo: str) -> list[str]` |  |
-| `mergeEntries` | `(lists: list[list[dict[str, Any]]], repo: str) -> list[dict[str, Any]]` |  |
+| `mergeEntries` | `(lists: list[list[dict[str, Any]]], repo: str, dropped: list[dict[str, Any]] \| None = None) -> list[dict[str, Any]]` | 번역 단위당 명령 하나 — 첫 항목이 남는다. `file` 은 `directory` 기준으로 푼다(clang JSON compilation database 규약). |
 | `relativeFiles` | `(entries: list[dict[str, Any]], repo: str) -> list[str]` |  |
 | `clangUmlConfig` | `(compdbDir: str, repo: str, outDir: str, files: list[str], flags: list[str], paths: list[str]) -> str` |  |
 | `readAuthorConfig` | `(path: str) -> dict[str, list[str]]` |  |
@@ -447,5 +447,6 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 | `needs_collect` | `(has_codegraph: bool, verdicts: dict[str, list[str]] \| None, force: bool = False, tool_changed: bool = False, source_changed: bool = False) -> bool` | 수집기를 다시 돌릴 것인가. |
 | `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False, toolChanged: bool = False, sourceChanged: bool = False) -> dict[str, Any]` |  |
 | `pyRoots` | `(repo: str) -> list[str]` |  |
+| `excluded_files` | `(repo: str, collector: Optional[str], droppedCompdb: list[dict[str, Any]], compdbFiles: list[str]) -> dict[str, str]` | 수집 범위에서 빠지는 추적 파일과 그 사유. 파이썬은 `pyRoots` 밖이고, C++ 은 compile_commands 가 버렸거나 싣지 않은 것이다. |
 | `run` | `(cmd: str, args: list[str], cwd: Optional[str] = None) -> None` |  |
 

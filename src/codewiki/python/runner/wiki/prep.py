@@ -16,7 +16,8 @@ from codewiki.python.runner.wiki.paths import wikiPaths, collectorFor, collector
 from codewiki.python.runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig  # noqa: E402
 from codewiki.python.runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
 from codewiki.python.machine.jsonio import write_json_atomic  # noqa: E402
-from codewiki.python.machine.collect_manifest import build_manifest, changed_sources, read_manifest  # noqa: E402
+from codewiki.python.machine.collect_manifest import build_manifest, changed_sources, cited_files, file_sha256, read_manifest  # noqa: E402
+from codewiki.python.machine.source_inventory import InventoryDoc, build_inventory, language_for, language_of, mark_no_symbols, tracked_files  # noqa: E402
 from common.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional, cast
@@ -29,6 +30,7 @@ COLLECT_CODE = (
     "src/codewiki/python/machine/pycalls.py",
     "src/codewiki/python/machine/jsonio.py",
     "src/codewiki/python/machine/collect_manifest.py",
+    "src/codewiki/python/machine/source_inventory.py",
     "src/codewiki/python/runner/wiki/prep.py",
     "src/codewiki/python/runner/wiki/compdb.py",
     "src/codewiki/python/runner/wiki/clang_doc.py",
@@ -146,6 +148,29 @@ def pyRoots(repo: str) -> list[str]:
     roots.sort()
     return roots if roots else ["."]
 
+def excluded_files(repo: str, collector: Optional[str], droppedCompdb: list[dict[str, Any]], compdbFiles: list[str]) -> dict[str, str]:
+    """수집 범위에서 빠지는 추적 파일과 그 사유. 파이썬은 `pyRoots` 밖이고, C++ 은 compile_commands 가 버렸거나 싣지 않은 것이다.
+
+    compile_commands 가 같은 파일의 둘째 명령을 버려도 첫 명령이 남았으면 그 파일은 수집된다.
+    """
+    out: dict[str, str] = {}
+    tracked = tracked_files(repo)
+    if collector == "griffe+pycalls":
+        roots = [r.replace(os.sep, "/") for r in pyRoots(repo)]
+        for rel in tracked:
+            if language_of(rel) == "py" and not any(r == "." or rel.startswith(r + "/") for r in roots):
+                out[rel] = "prep.pyRoots skip"
+    elif collector == "clang-uml":
+        kept = set(compdbFiles)
+        for e in droppedCompdb:
+            rel = os.path.relpath(str(e["file"]), repo)
+            if rel not in kept:
+                out[rel] = "compdb: %s" % e["reason"]
+        for rel in tracked:
+            if language_of(rel) == "cpp" and rel not in kept:
+                out.setdefault(rel, "not-in-compdb")
+    return out
+
 def run(cmd: str, args: list[str], cwd: Optional[str] = None) -> None:
     r = subprocess.run([cmd] + args, cwd=cwd)
     if r.returncode != 0:
@@ -211,9 +236,9 @@ if __name__ == "__main__":
     if collector == "clang-uml" and not CLANG_DOC:
         print("알림 — clang-doc 을 못 찾아 자유 함수 층이 빈다. CLANG_DOC 환경변수로 알려 주거나 brew install llvm 하라.")
         
-    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도 · manifest · 버림 장부 · 검사 기록부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않고, 성공 기록은 그것이 가리키는 지도보다 오래 남지 않는다.
+    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도 · manifest · 버림 장부 · inventory · 검사 기록부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않고, 성공 기록은 그것이 가리키는 지도보다 오래 남지 않는다.
     if plan["blocked"] is not None or "normalize" in plan["steps"]:
-        for stale in (P["codegraph"], P["fingerprint"], P["report"], os.path.join(P["raw"], "graph-verified.json"), os.path.join(P["raw"], "graph-faults.json")):
+        for stale in (P["codegraph"], P["fingerprint"], P["report"], P["inventory"], os.path.join(P["raw"], "graph-verified.json"), os.path.join(P["raw"], "graph-faults.json")):
             if os.path.exists(stale):
                 os.remove(stale)
 
@@ -225,18 +250,28 @@ if __name__ == "__main__":
     compdbDir = os.path.join(P["raw"], "compdb")
     docOutDir = os.path.join(P["raw"], "clangdoc")
     authorFlags = []
-    
+    dbs: list[str] = []
+    entries: list[dict[str, Any]] = []
+    droppedCompdb: list[dict[str, Any]] = []
+    if "clang-uml" in plan["steps"]:
+        dbs = findCompdbs(repo)
+        lists: list[list[dict[str, Any]]] = []
+        for f in dbs:
+            try:
+                with open(f, "r", encoding="utf-8") as file:
+                    lists.append(json.load(file))
+            except Exception:
+                lists.append([])
+        entries = mergeEntries(lists, repo, droppedCompdb)
+
+    # 수집 전에 쓴다 — 수집이 죽어도 무엇을 모으려 했는지가 남는다.
+    inventory: Optional[InventoryDoc] = None
+    if "normalize" in plan["steps"]:
+        inventory = build_inventory(repo, language_for(collector), excluded_files(repo, collector, droppedCompdb, relativeFiles(entries, repo)))
+        write_json_atomic(P["inventory"], inventory, indent=1)
+
     for step in plan["steps"]:
         if step == "clang-uml":
-            dbs = findCompdbs(repo)
-            lists: list[list[dict[str, Any]]] = []
-            for f in dbs:
-                try:
-                    with open(f, "r", encoding="utf-8") as file:
-                        lists.append(json.load(file))
-                except Exception:
-                    lists.append([])
-            entries = mergeEntries(lists, repo)
             files = relativeFiles(entries, repo)
             os.makedirs(compdbDir, exist_ok=True)
             with open(os.path.join(compdbDir, "compile_commands.json"), "w", encoding="utf-8") as f:
@@ -283,8 +318,12 @@ if __name__ == "__main__":
                 arg.extend(["--clang-doc", docOutDir])
                 
             run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"], "--report", P["report"]])
+            if inventory is not None:
+                mark_no_symbols(inventory, set(cited_files(P["codegraph"])))
+                write_json_atomic(P["inventory"], inventory, indent=1)
             # 끊겨 깨진 manifest 는 read_manifest 가 None 으로 읽어 다음에 다시 수집한다.
-            write_json_atomic(P["fingerprint"], build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs), indent=1)
+            write_json_atomic(P["fingerprint"], build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs,
+                                                               inventory_sha256=file_sha256(P["inventory"]) or ""), indent=1)
             
         elif step == "facts":
             detail = os.path.join(P["raw"], "roslyn-dump.json")

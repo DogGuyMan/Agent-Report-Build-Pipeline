@@ -36,20 +36,29 @@ def findCompdbs(repo: str) -> list[str]:
     primary = [p for p in out if not any(f"/{s}/" in p.replace('\\', '/') for s in SIDECAR_DIRS)]
     return sorted(primary if primary else out)
 
-def mergeEntries(lists: list[list[dict[str, Any]]], repo: str) -> list[dict[str, Any]]:
+def mergeEntries(lists: list[list[dict[str, Any]]], repo: str,
+                 dropped: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """번역 단위당 명령 하나 — 첫 항목이 남는다. `file` 은 `directory` 기준으로 푼다(clang JSON compilation database 규약).
+
+    버린 항목은 `dropped` 에 `reason` 을 붙여 넣는다: outside-repo · external · duplicate-config.
+    """
     seen: set[str] = set()
     out: list[dict[str, Any]] = []
     for lst in lists:
         for e in lst:
-            f = e.get("file")
-            if not isinstance(f, str) or f in seen:
+            f, d = e.get("file"), e.get("directory")
+            if not isinstance(f, str):
                 continue
-            if not f.startswith(repo):
+            full = os.path.normpath(f if os.path.isabs(f) else os.path.join(str(d or repo), f))
+            reason = ("outside-repo" if not full.startswith(repo) else
+                      "external" if any(m in full for m in EXTERNAL_MARKERS) else
+                      "duplicate-config" if full in seen else None)
+            if reason:
+                if dropped is not None:
+                    dropped.append({**e, "file": full, "reason": reason})
                 continue
-            if any(m in f for m in EXTERNAL_MARKERS):
-                continue
-            seen.add(f)
-            out.append(e)
+            seen.add(full)
+            out.append({**e, "file": full})
     return out
 
 def relativeFiles(entries: list[dict[str, Any]], repo: str) -> list[str]:
