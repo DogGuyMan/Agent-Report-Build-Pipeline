@@ -16,6 +16,7 @@ from codewiki.python.runner.wiki.paths import wikiPaths, collectorFor, collector
 from codewiki.python.runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig  # noqa: E402
 from codewiki.python.runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
 from codewiki.python.machine.jsonio import write_json_atomic  # noqa: E402
+from codewiki.python.machine.collect_manifest import build_manifest, changed_sources, read_manifest  # noqa: E402
 from common.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional, cast
@@ -27,6 +28,7 @@ COLLECT_CODE = (
     "src/codewiki/python/machine/clang_doc.py",
     "src/codewiki/python/machine/pycalls.py",
     "src/codewiki/python/machine/jsonio.py",
+    "src/codewiki/python/machine/collect_manifest.py",
     "src/codewiki/python/runner/wiki/prep.py",
     "src/codewiki/python/runner/wiki/compdb.py",
     "src/codewiki/python/runner/wiki/clang_doc.py",
@@ -88,30 +90,15 @@ def collect_fingerprint(root: str, versions: dict[str, str], inputs: Optional[di
     return h.hexdigest()
 
 
-def recorded_fingerprint(path: str, codegraph: str) -> Optional[str]:
-    """기록된 지문. 기록이 없거나 깨졌거나 지금 지도가 기록할 때의 지도가 아니면 `None` 이다 — 셋 다 다시 수집하라는 뜻이다."""
-    try:
-        with open(path, encoding="utf-8") as f:
-            raw = cast(object, json.load(f))
-        with open(codegraph, "rb") as f:
-            now = hashlib.sha256(f.read()).hexdigest()
-    except (OSError, ValueError):
-        return None
-    if not isinstance(raw, dict):
-        return None
-    d = cast(dict[str, object], raw)
-    fp, sha = d.get("fingerprint"), d.get("codegraph_sha256")
-    return fp if isinstance(fp, str) and sha == now else None
-
-
 def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
-                  force: bool = False, tool_changed: bool = False) -> bool:
+                  force: bool = False, tool_changed: bool = False, source_changed: bool = False) -> bool:
     """수집기를 다시 돌릴 것인가.
 
-    `force` 거나 수집 코드 · 수집기 판이 지도를 만들 때와 다르면(`tool_changed`) 무조건. diff 가 없으면 지도의 존재만 본다. diff 가 있으면
+    `force` 거나 수집 코드 · 수집기 판이 지도를 만들 때와 다르면(`tool_changed`) 무조건. 소스 내용이 manifest 와 다르면(`source_changed`)
+    `--diff` 없이도 다시 수집한다. diff 가 없으면 지도의 존재만 본다. diff 가 있으면
     `재읽기 · 위치만 · 삭제됨` 중 하나라도 있을 때 다시 수집한다 — 지도가 낡은 채 남는 것을 막는다.
     """
-    if force or tool_changed or not has_codegraph:
+    if force or tool_changed or source_changed or not has_codegraph:
         return True
     if verdicts is None:
         return False
@@ -119,9 +106,9 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 
 def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool,
              verdicts: dict[str, list[str]] | None = None, force: bool = False,
-             toolChanged: bool = False) -> dict[str, Any]:
+             toolChanged: bool = False, sourceChanged: bool = False) -> dict[str, Any]:
     tail = ["facts", "render-modules"]
-    if not needs_collect(hasCodegraph, verdicts, force, toolChanged):
+    if not needs_collect(hasCodegraph, verdicts, force, toolChanged, sourceChanged):
         return {"steps": tail, "blocked": None}
     if collector == "clang-uml":
         if not hasClangUmlConfig:
@@ -201,8 +188,10 @@ if __name__ == "__main__":
             
     collector = fromSelect if fromSelect else collectorFor(os.listdir(repo))
     CLANG_DOC = clangDocPath() if collector == "clang-uml" else None
-    fingerprint = collect_fingerprint(ROOT, tool_versions(collector, PY, P["raw"], CLANG_DOC), config_inputs(repo, collector))
-    recorded = recorded_fingerprint(P["fingerprint"], P["codegraph"])
+    versions = tool_versions(collector, PY, P["raw"], CLANG_DOC)
+    inputs = config_inputs(repo, collector)
+    fingerprint = collect_fingerprint(ROOT, versions, inputs)
+    recorded = read_manifest(P["fingerprint"], P["codegraph"])
 
     plan = prepPlan(
         collector=collector,
@@ -212,7 +201,8 @@ if __name__ == "__main__":
         hasClangDoc=bool(CLANG_DOC),
         verdicts=verdicts,
         force=force,
-        toolChanged=recorded != fingerprint,
+        toolChanged=recorded is None or recorded["fingerprint"] != fingerprint,
+        sourceChanged=bool(recorded and changed_sources(recorded, repo)),
     )
     
     print(f"대상 {repo}")
@@ -221,9 +211,9 @@ if __name__ == "__main__":
     if collector == "clang-uml" and not CLANG_DOC:
         print("알림 — clang-doc 을 못 찾아 자유 함수 층이 빈다. CLANG_DOC 환경변수로 알려 주거나 brew install llvm 하라.")
         
-    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도와 옛 지문부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않는다.
+    # 다시 수집하기로 정했으면 막혔든 아니든 옛 지도 · manifest · 검사 기록부터 지운다. 수집이 실패해도 낡은 지도가 뒤 단계로 가지 않고, 성공 기록은 그것이 가리키는 지도보다 오래 남지 않는다.
     if plan["blocked"] is not None or "normalize" in plan["steps"]:
-        for stale in (P["codegraph"], P["fingerprint"]):
+        for stale in (P["codegraph"], P["fingerprint"], os.path.join(P["raw"], "graph-verified.json"), os.path.join(P["raw"], "graph-faults.json")):
             if os.path.exists(stale):
                 os.remove(stale)
 
@@ -293,10 +283,8 @@ if __name__ == "__main__":
                 arg.extend(["--clang-doc", docOutDir])
                 
             run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"]])
-            # 끊겨 깨진 지문 파일은 recorded_fingerprint 가 None 으로 읽어 다음에 다시 수집한다.
-            with open(P["codegraph"], "rb") as g:
-                sha = hashlib.sha256(g.read()).hexdigest()
-            write_json_atomic(P["fingerprint"], {"fingerprint": fingerprint, "codegraph_sha256": sha}, indent=1)
+            # 끊겨 깨진 manifest 는 read_manifest 가 None 으로 읽어 다음에 다시 수집한다.
+            write_json_atomic(P["fingerprint"], build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs), indent=1)
             
         elif step == "facts":
             detail = os.path.join(P["raw"], "roslyn-dump.json")

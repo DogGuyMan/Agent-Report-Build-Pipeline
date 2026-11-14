@@ -73,14 +73,14 @@ def test_수집기_판은_griffe_면_판을_roslyn_이면_산출물_해시를_�
 def test_기록된_지문은_지도가_그때의_지도일_때만_읽힌다(tmp_path: Path) -> None:
     cg, fp = tmp_path / "codegraph.json", tmp_path / "collect-fingerprint.json"
     cg.write_text('{"nodes": []}', encoding="utf-8")
-    sha = hashlib.sha256(cg.read_bytes()).hexdigest()
-    fp.write_text(json.dumps({"fingerprint": "f1", "codegraph_sha256": sha}), encoding="utf-8")
-    assert prep.recorded_fingerprint(str(fp), str(cg)) == "f1"
+    fp.write_text(json.dumps(prep.build_manifest("f1", {}, str(cg), str(tmp_path), "griffe+pycalls")), encoding="utf-8")
+    got = prep.read_manifest(str(fp), str(cg))
+    assert got is not None and got["fingerprint"] == "f1"
     cg.write_text('{"nodes": [1]}', encoding="utf-8")
-    assert prep.recorded_fingerprint(str(fp), str(cg)) is None
+    assert prep.read_manifest(str(fp), str(cg)) is None
     fp.write_text("{깨짐", encoding="utf-8")
-    assert prep.recorded_fingerprint(str(fp), str(cg)) is None
-    assert prep.recorded_fingerprint(str(tmp_path / "없음.json"), str(cg)) is None
+    assert prep.read_manifest(str(fp), str(cg)) is None
+    assert prep.read_manifest(str(tmp_path / "없음.json"), str(cg)) is None
 
 
 def _run(repo: Path, *extra: str) -> "subprocess.CompletedProcess[str]":
@@ -127,6 +127,7 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     assert first.returncode == 0, first.stderr
     rec = json.loads((raw / "collect-fingerprint.json").read_text(encoding="utf-8"))
     assert rec["codegraph_sha256"] == hashlib.sha256((raw / "codegraph.json").read_bytes()).hexdigest()
+    assert set(rec) >= {"sources", "generation_id"} and len(rec["generation_id"]) == 64
 
     again = _run(repo)
     assert "단계 facts -> render-modules" in again.stdout
@@ -135,3 +136,26 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     (raw / "collect-fingerprint.json").write_text(json.dumps(rec), encoding="utf-8")
     third = _run(repo)
     assert "단계 griffe -> pycalls -> normalize" in third.stdout
+
+
+def test_소스_내용이_바뀌면_diff_없이도_다시_수집한다(tmp_path: Path) -> None:
+    """직접 report-wiki prep 을 부르는 경로 — --diff 가 없어도 manifest 의 소스 해시가 재수집을 정한다."""
+    repo = tmp_path / "r"
+    (repo / "pkg").mkdir(parents=True)
+    (repo / "requirements.txt").write_text("", encoding="utf-8")
+    (repo / "pkg" / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "pkg" / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=repo, check=True, env=env)
+    first = _run(repo)
+    assert first.returncode == 0, first.stderr
+    second = _run(repo)
+    assert "normalize" not in second.stdout.split("단계")[1].splitlines()[0]
+    (repo / "pkg" / "a.py").write_text("def f():\n    return 2\n", encoding="utf-8")   # 같은 줄 수, 다른 내용
+    third = _run(repo)
+    assert "normalize" in third.stdout.split("단계")[1].splitlines()[0]
+    doc = json.loads((repo / "out/codegraph-raw/collect-fingerprint.json").read_text(encoding="utf-8"))
+    assert doc["sources"]["pkg/a.py"] == hashlib.sha256((repo / "pkg" / "a.py").read_bytes()).hexdigest()
+    assert doc["raw_provenance"] == "prep" and len(doc["generation_id"]) == 64

@@ -136,7 +136,6 @@ def test_compdb_변경은_지문을_바꾼다(tmp_path: Path) -> None:
     assert before != prep.collect_fingerprint(str(tmp_path), {})
 
 
-@pytest.mark.xfail(strict=True, reason="Task 9")
 def test_C샵_강제_수집은_원본_출처를_unknown_으로_적는다(repo: Path) -> None:
     cg = raw(repo, "codegraph.json")
     cg.write_text(json.dumps(graph()), encoding="utf-8")
