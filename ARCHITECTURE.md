@@ -151,9 +151,10 @@ Mode 1 의 LLM 칸 중 `annotate-symbols` · `write-wiki` 는 **각각 여러 �
 | ------------- | ------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
 | `lang-hint` · `lang-decide` | LLM 1회 · 기계 | `claude -p` · `src/codewiki/python/machine/lang_select.py` | 저장소 파일 목록 → 제안 → 결정론 검사 → `out/codegraph-raw/lang-select.json` |
 | `detect-changes` | 기계 | `src/codewiki/python/machine/warmup.py` | 소스 + `snapshot.json` + `codegraph.json` → `changes.json` (판정만) |
-| `collect-graph` | 기계 | `src/codewiki/python/runner/wiki/prep.py` | 대상 저장소의 git 추적 소스 → `out/codegraph-raw/codegraph.json` · `facts/*.md` · `ranking.json` · `modules.svg` |
-| `verify-graph` | 기계 | `src/codewiki/python/machine/verify_graph.py` | `codegraph.json` → 통과면 `out/codegraph-raw/graph-verified.json`(지도 sha256), 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈춤 |
-| `schedule-batches` | 기계 | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` + `graph-verified.json`(sha256 이 지금 지도와 같아야 한다) → `out/codegraph-raw/batches.json` (층·배치. **LLM Model을 부르지 않는다**) |
+| `collect-graph` | 기계 | `src/codewiki/python/runner/wiki/prep.py`(`--collect-only`) | 대상 저장소의 git 추적 소스 → `out/codegraph-raw/codegraph.json` · `normalize-report.json`(버림 장부) · `source-inventory.json`(언어별 소스 장부) · `collect-fingerprint.json`(수집 manifest). 수집이 죽으면 `collect-failure.json` 을 결함 문서 `graph-faults.json` 과 `graph-handoff.md` 로 옮기고 멈춤 |
+| `verify-graph` | 기계 | `src/codewiki/python/machine/verify_graph.py` | `codegraph.json` + 수집 manifest · 버림 장부 · 소스 inventory · 수집 실패 기록 → 통과면 `out/codegraph-raw/graph-verified.json`(지도 sha256 · `generation_id`), 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈춤. 수집하지 않은 언어는 기록만 하고 막지 않는다 |
+| `derive-facts` | 기계 | `src/codewiki/python/runner/wiki/derive.py` | 검사를 지난 `codegraph.json` 과 `graph-verified.json`(지도가 같아야 한다) → `out/codegraph-raw/facts/*.md` · `ranking.json`(`generation_id`) · `modules.svg` |
+| `schedule-batches` | 기계 | `src/codewiki/python/machine/survey_plan.py` | `codegraph.json` + `graph-verified.json`(sha256 이 지금 지도와 같아야 한다) → `out/codegraph-raw/batches.json` (층·배치. 지도 sha256 과 `generation_id` 를 찍는다. **LLM Model을 부르지 않는다**) |
 | `annotate-symbols` | **LLM 층별 N회** | `claude -p` 배치마다 | 소스 + `facts/*.md` + `batches.json` → `_shards/*.json` → 합쳐서 `terms-reading.json` |
 | `snapshot-sources` | 기계 | `src/codewiki/python/machine/warmup.py` | 앞칸의 판정 → `out/codegraph-raw/snapshot.json` (**전수조사가 성공했을 때만**) |
 | `verify-terms` | 기계 | `src/codewiki/python/machine/terms_db.py` | 읽기 레코드 + `codegraph.json` → `terms-db.json` |
@@ -210,7 +211,7 @@ Mode 1 · 2 와 다른 점이 정확히 하나다. **사람 자리**다.
 ⚠ **위 표는 옛 다섯 단계(`prep agent terms build check`)를 opus 한 세션으로 잰 값이다.**
 2026-08-30 에 두 번 바뀌었다 — 먼저 warmup 두 관문이 붙어 일곱이 됐고, 이어서 `agent` 가
 `survey` 와 `wiki` 로 갈려 여덟이 됐다(`src/codewiki/CLAUDE.md` 의 K1~K8).
-그 뒤 `lang-select` 가 앞에 붙어 **지금은 열이다**(`src/codewiki/python/runner/run_mode1.py` 의 `STAGES`).
+그 뒤 단계가 늘어 **지금은 열다섯이다**(`src/codewiki/python/runner/mode1/edges.py` 의 `ORDER`).
 배치·장 세션은 **`claude-sonnet-5-5`** 로 돈다.
 
 🔵 **새 구조 실측 (2026-08-30, 같은 대상 QtVisionEdit, 같은 백지 상태). 근거:
@@ -354,8 +355,12 @@ graph LR
 
 | 파일                                              | 만드는 것                                                  | 읽는 것                                                                     |
 | ----------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------ |
-| `out/codegraph-raw/codegraph.json`              | `src/codewiki/python/machine/normalize.py` (`src/codewiki/python/runner/wiki/prep.py:128`) | `facts.py` · `render_modules.py` · `terms_db.py` · `verify_citations.py` |
-| `out/codegraph-raw/facts/*.md` · `ranking.json` | `src/codewiki/python/machine/facts.py` (`src/codewiki/python/runner/wiki/prep.py:132`)     | LLM 이 프롬프트로 받는다                                                          |
+| `out/codegraph-raw/codegraph.json`              | `src/codewiki/python/machine/normalize.py` (`src/codewiki/python/runner/wiki/prep.py:327`) | `verify_graph.py` · `facts.py` · `render_modules.py` · `terms_db.py` · `verify_citations.py` |
+| `out/codegraph-raw/normalize-report.json`       | `src/codewiki/python/machine/normalize.py` 의 `write_report` — 지도 sha256 에 묶은 버림 장부 | `src/codewiki/python/machine/verify_graph.py` (`unresolved-drop` · `unknown-kind`) |
+| `out/codegraph-raw/source-inventory.json`       | `src/codewiki/python/runner/wiki/prep.py:277` — 수집 전에 쓰고 정제 뒤에 `no-symbols` 를 표시한다 | `src/codewiki/python/machine/verify_graph.py` (`language-not-collected` · `coverage-gap`) |
+| `out/codegraph-raw/collect-fingerprint.json`    | `src/codewiki/python/runner/wiki/prep.py:334` — 수집 manifest(지문 · 지도 · 인용 소스 · inventory 의 sha256 과 `generation_id`) | `prep.py`(재수집 판정) · `verify_graph.py`(`source-drift` · `generation-mismatch`) · `derive.py`(`ranking.json` 에 찍는다) |
+| `out/codegraph-raw/collect-failure.json`        | `src/codewiki/python/runner/wiki/proc.py:24` — 죽은 단계 · 종료 코드 · stderr 끝줄 | `src/codewiki/python/runner/mode1/graph.py` 의 `CollectGraphStage`(결함 문서와 핸드오프로 옮긴다) · `verify_graph.py`(`collect-failed`) |
+| `out/codegraph-raw/facts/*.md` · `ranking.json` | `src/codewiki/python/machine/facts.py` (`src/codewiki/python/runner/wiki/derive.py:24`)     | LLM 이 프롬프트로 받는다                                                          |
 | `resource/codewiki/terms-reading.json`             | LLM (`agent` 단계)                                       | `src/codewiki/python/machine/terms_db.py`                                                  |
 | `out/codegraph-raw/terms-db.json`               | `src/codewiki/python/machine/terms_db.py`                                | `src/codewiki/python/machine/manifest.py` (봉인 사본으로 복사)                              |
 | `<대상>/docs/codegraph/terms-db.json` · `manifest.json` | `src/codewiki/python/machine/manifest.py` (`seal-artifacts`)   | `src/common/evidence.py` · `src/term/python/runner/term/collect.py` · `src/spec/python/runner/run_mode2.py` · `src/spec/python/viz/init.py` |

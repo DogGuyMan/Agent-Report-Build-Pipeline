@@ -16,7 +16,7 @@
 | `lang-decide` | 기계 | 제안을 결정론으로 기각하거나 채택해 `lang-select.json` 을 쓴다 | `src/codewiki/python/machine/lang_select.py` |
 | `detect-changes` | 파이썬 | 옛 지문과 지금 소스를 대조해 `changes.json` 을 쓴다. 증분에만 | `src/codewiki/python/machine/warmup.py` |
 | `collect-graph` | 기계 | 정적 수집 → 코드 지도(`--collect-only` — 파생물은 뒤 단계가 만든다). 증분이면 diff 로 재수집 여부를 정한다 | `src/codewiki/python/runner/wiki/prep.py` |
-| `verify-graph` | 기계 | 코드 지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사한다. 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈추고, 통과하면 `graph-verified.json` | `src/codewiki/python/machine/verify_graph.py` |
+| `verify-graph` | 기계 | 코드 지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사하고 수집 manifest · 버림 장부 · 소스 inventory · 수집 실패 기록과 대조한다. 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈추고, 통과하면 `graph-verified.json` | `src/codewiki/python/machine/verify_graph.py` |
 | `derive-facts` | 기계 | 검사를 지난 지도에서 `facts/*.md` · `ranking.json` · 모듈 그림을 만든다. 지도가 성공 기록과 다르면 돌지 않는다 | `src/codewiki/python/runner/wiki/derive.py` |
 | `schedule-batches` | 파이썬 | 코드 지도를 의존 위상 층과 배치로 나눈다(`batches.json`) | `src/codewiki/python/machine/survey_plan.py` |
 | `annotate-symbols` | LLM | 전수조사. 계획과 diff 를 대조한 뒤 **층 오름차순 · 층 안 병렬**로 배치를 돌린다 | `claude -p` 배치마다 1회 |

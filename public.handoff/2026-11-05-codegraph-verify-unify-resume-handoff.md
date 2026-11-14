@@ -38,20 +38,21 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 
 ### B. 정제가 조용히 버린 정보 (2단계)
 
-- [ ] **B1 버림 통계가 사라진다.** 실측: `stats` 는 화면 출력뿐이고 파일로 안 남는다. 버림 지점은 20곳 남짓. 해법: `normalize-report.json` 에 사유별 수와 표본을 쓴다. 선례는 `dropped-uses.csv`(`context.py:172`).
-- [ ] **B2 모르는 C++ 관계가 정상 종료한다.** 실측: 모르는 `type` 을 넣으면 `normalize.py:433` 이 세고 버린 뒤 exit 0. 해법: 장부에 `unknown-kind` 로 적고 `verify-graph` 가 결함으로 막는다.
-- [ ] **B3 정책 버림과 미해결 버림이 안 갈린다.** 해법: 사유마다 `policy` · `unresolved` 를 표로 고정한다(§5.4). 미해결만 경고나 결함이 된다.
-- [ ] **B4 C++ 끝점 해소 실패 48건의 정체를 모른다.** 실측: 관계 671개 중 48개. 끝점은 전부 원본 요소에 있다 — 없는 id 가 아니라 노드가 못 된 타입을 가리킨다. 해법: 장부 표본으로 정책인지 손실인지 판정한다.
+- [x] **B1 버림 통계가 사라진다.** 실측: `stats` 는 화면 출력뿐이고 파일로 안 남는다. 버림 지점은 20곳 남짓. 해법: `normalize-report.json` 에 사유별 수와 표본을 쓴다. 선례는 `dropped-uses.csv`(`context.py:172`). — `49bcb7b` · `5cfc087`
+- [x] **B2 모르는 C++ 관계가 정상 종료한다.** 실측: 모르는 `type` 을 넣으면 `normalize.py:433` 이 세고 버린 뒤 exit 0. 해법: 장부에 `unknown-kind` 로 적고 `verify-graph` 가 결함으로 막는다. — `f05c27d`
+- [x] **B3 정책 버림과 미해결 버림이 안 갈린다.** 해법: 사유마다 `policy` · `unresolved` 를 표로 고정한다(§5.4). 미해결만 경고나 결함이 된다. — `49bcb7b`
+- [ ] **B4 C++ 끝점 해소 실패 48건의 정체를 모른다.** 실측: 관계 671개 중 48개. 끝점은 전부 원본 요소에 있다 — 없는 id 가 아니라 노드가 못 된 타입을 가리킨다. 해법: 장부 표본으로 정책인지 손실인지 판정한다. — **Mac 세션 (Task 23 절차)** `74bfc35`
   - **Mac 절차.** `GRAPHICS_REPO=… .venv/bin/python src/codewiki/python/machine/normalize.py --clang-uml "$GRAPHICS_REPO/out/codegraph-raw/full_class_all.json" --repo "$GRAPHICS_REPO" -o <임시>/g.json --report <임시>/r.json` 를 돌리고 `r.json` 의 `끝점 해소 실패` 표본을 읽는다. 표본마다 대상 타입이 정책으로 버린 것이면 그 사유를 `normalize.py` 의 `DROP_CLASS` 에서 `policy` 로 옮기고, 잃은 정보면 정제를 고친다. 그때까지 골든 지도는 `verify-graph` 의 `unresolved-drop` 으로 막힌다 — 의도한 동작이지 회귀가 아니다.
+- [ ] **B5 1차 점 경로가 외부 섬으로 접힘 — S5.** 실측: 1차 클래스의 점 경로 이름 25개(간선 45개)가 외부 섬 `mode1` · `warmup` · `survey_plan` · `verify_graph` · `manifest` 로 접혀 있었다(`2026-11-08-codegraph-stage3-design.md`). 해법: 점 경로 꼬리와 형 별칭을 따라 이름을 푼다. 다섯 섬 가운데 넷은 `14ddbbe` 로 사라졌다. 섬 `warmup` 이 남는 것은 `src/codewiki/python/machine/warmup.py` 의 형 별칭 둘(`Manifest` · `Verdicts`)을 어느 수집기도 싣지 않아서다 — griffe 는 `__init__.py` 가 없는 두 폴더를 싣지 않고 호출 수집기는 `def` 와 `class` 만 적는다. 사용자 결정 대기.
 
 ### C. `collect-graph` 안에서 죽는 경우 (1 · 2 · 3단계)
 
-- [ ] **C1 C# 에 모르는 값이 오면 죽는다.** 실측: `normalize.py:736` 의 `CS_KIND[r["kind"]]` 가 `KeyError: 'calls'` 로 exit 1. 결함이 안 모인다. 해법: C++ 처럼 `.get` 으로 받아 장부에 적고 계속한다. (2단계)
+- [x] **C1 C# 에 모르는 값이 오면 죽는다.** 실측: `normalize.py:736` 의 `CS_KIND[r["kind"]]` 가 `KeyError: 'calls'` 로 exit 1. 결함이 안 모인다. 해법: C++ 처럼 `.get` 으로 받아 장부에 적고 계속한다. (2단계) — `f05c27d`
 - [x] **C2 죽어도 옛 지도가 그대로 남는다.** 실측: 위 사망 뒤 대상 파일 해시가 같았다. 통과 표시가 있는 옛 지도면 `--only schedule-batches` 로 낡은 지도가 LLM 까지 간다. 해법: 수집을 시작할 때 옛 지도를 지운다. (1단계) — `d375e94`
-- [ ] **C3 수집 원본의 꼴이 깨지면 죽는다.** 실측: `{"types": []}` 를 주면 `KeyError: 'compilation'`. 해법: 원본 경계에서 `RoslynDump` 등의 형으로 검사하고 결함으로 낸다. (2단계)
+- [x] **C3 수집 원본의 꼴이 깨지면 죽는다.** 실측: `{"types": []}` 를 주면 `KeyError: 'compilation'`. 해법: 원본 경계에서 `RoslynDump` 등의 형으로 검사하고 결함으로 낸다. (2단계) — `5cfc087` (`validate_raw` 가 최상위 꼴을 보고 종료 코드 2 로 거절한다)
 - [x] **C4 지도 쓰기가 원자적이지 않다.** 실측: `normalize.py:1239` 는 `open(…, "w")` 에 바로 쓴다. 해법: 같은 폴더 임시 파일에 쓰고 `os.replace`. (1단계) — `5d9b10d`
-- [ ] **C5 수집 실패가 결함 파일로 안 남는다.** 해법: `prep.py:75` 의 `run` 이 실패한 단계 · 종료 코드 · stderr 꼬리를 남기고, `collect-graph` 도 같은 결함 보고와 핸드오프를 쓴다. 두 단계가 쓰므로 믹스인이다. 실패 간선을 `verify-graph` 로 보내는 안은 기각 — `--only collect-graph` 에서 매달림으로 `GraphError` 가 난다. (3단계)
-- [ ] **C6 `facts` · `render_modules` 가 검사 전에 지도를 읽는다.** 실측: `prep.py:36` 의 꼬리 단계라 `collect-graph` 안에서 돈다. 해법: 검사 뒤의 새 단계로 옮긴다. `report-wiki prep` 명령은 지금 동작을 유지한다. (3단계)
+- [x] **C5 수집 실패가 결함 파일로 안 남는다.** 해법: `prep.py:75` 의 `run` 이 실패한 단계 · 종료 코드 · stderr 꼬리를 남기고, `collect-graph` 도 같은 결함 보고와 핸드오프를 쓴다. 두 단계가 쓰므로 믹스인이다. 실패 간선을 `verify-graph` 로 보내는 안은 기각 — `--only collect-graph` 에서 매달림으로 `GraphError` 가 난다. (3단계) — `05b8b8a` · `2652199` (`proc.run` 이 `collect-failure.json` 을 남기고 `GraphFaultReport` 믹스인이 두 단계의 결함 문서와 핸드오프를 쓴다)
+- [x] **C6 `facts` · `render_modules` 가 검사 전에 지도를 읽는다.** 실측: `prep.py:36` 의 꼬리 단계라 `collect-graph` 안에서 돈다. 해법: 검사 뒤의 새 단계로 옮긴다. `report-wiki prep` 명령은 지금 동작을 유지한다. (3단계) — `05b8b8a` · `f5ae5de` (`derive-facts` 가 `verify-graph` 바로 뒤)
 
 ### D. 입도와 호출 (4 · 5단계)
 
@@ -63,7 +64,10 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 
 ### E. 언어가 섞인 저장소 (4 · 6단계)
 
-- [ ] **E1 소수 언어가 말없이 빠진다.** 실측: 세 저장소가 모두 혼합이다(§5.6). 해법: 먼저 수집 못 한 언어를 지도에 명시한다. 가장 싼 단계다. (6단계)
+- [x] **E1 소수 언어가 말없이 빠진다.** 실측: 세 저장소가 모두 혼합이다(§5.6). 해법: 먼저 수집 못 한 언어를 지도에 명시한다. 가장 싼 단계다. (6단계) — `787a218` · `c9031ca`
+  - 수집하지 않은 언어는 지도가 아니라 `source-inventory.json` 의 `languages` 와 검사 결과의 범위 절(`language-not-collected`)에 적는다. 기록만 하고 통과를 막지 않는다.
+  - 이 저장소의 inventory 에는 `public.handoff/` 아래 git 이 추적하는 C++ 파일이 하나 있다. 그래서 py 를 고르면 수집하지 않은 언어는 cpp · cs · ts 다.
+  - §5.6 표의 이 저장소 py 수는 모자란 값이다. `git ls-files` 를 `-z` 없이 부르면 비 ASCII 경로가 따옴표로 감싸여 확장자 대조에서 빠진다. `source_inventory.tracked_files` 는 `-z` 로 읽는다.
 - [ ] **E2 노드 id 가 실행마다 매기는 번호다.** 실측: `C%d`. 코드 어디도 그 꼴에 의존하지 않아 교체할 수 있다. 해법: `언어:한정이름(인자형)` 꼴의 안정 id. (4단계)
 - [ ] **E3 C# 메서드에 인자 형이 없다.** 실측: `MethodRec` 은 `param_count` 만 갖고, 인자 수까지 써도 1곳이 겹친다. 해법: 인자 형 목록을 더한다. (4단계)
 - [ ] **E4 `language` 가 단수다.** 해법: `languages` 와 노드별 언어로 바꾼다. `facts` · `render_modules` · `terms_db` · `scan` · `lang_select` · `warmup --lang` 을 함께 고친다. (6단계)
@@ -80,9 +84,9 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 
 - [x] **G1 `survey_plan` 의 형 선언이 실물과 다르다.** 실측: `survey_plan.py:40` 의 `file: NotRequired[str]` 라 실제 지도가 `$.nodes[102].file` 에서 실패하고 러너가 `cast` 로 넘긴다. 해법: 공용 계약 형을 쓴다. — `6538e47` (축소 형을 실물에 맞췄고 `schedule-batches` 는 `cast` 없이 읽는다)
 - [x] **G2 계약 문구가 거짓이다.** 실측: `codegraph_types.py` 와 `src/codewiki/CLAUDE.md` 는 소비자 전부가 계약을 본다고 적지만 import 는 `normalize` · `terms_db` · `warmup` 뿐이다. 해법: 소비자를 맞추거나 문구를 고친다. — `6538e47`
-- [ ] **G3 골든 시험이 저장된 지도만 읽는다.** 실측: `test_normalize.py:126` 의 `_load` 는 `out/codegraph-raw/codegraph.json` 을 읽어 정제 변경을 못 잡는다. 해법: 수집 원본을 다시 정제해 대조하는 시험을 더한다.
+- [ ] **G3 골든 시험이 저장된 지도만 읽는다.** 실측: `test_normalize.py:126` 의 `_load` 는 `out/codegraph-raw/codegraph.json` 을 읽어 정제 변경을 못 잡는다. 해법: 수집 원본을 다시 정제해 대조하는 시험을 더한다. — **Mac 세션 (Task 23 절차)** `74bfc35`
   - **Mac 절차.** 시험 `test_골든_원본을_다시_정제하면_저장본과_같다`(`test/codewiki/test_normalize.py`)가 그것이다. `$GRAPHICS_REPO` · `$CSHARP_REPO` 가 있고 그 저장소의 `out/codegraph-raw/` 에 원본(`full_class_all.json` · `roslyn-dump.json`)이 있을 때만 돈다. 변수를 걸고 `.venv/bin/python -m pytest test/codewiki/test_normalize.py -k 골든_원본 -q` 로 돌려 두 수가 같은지 본다. 다르면 시험이 두 쌍을 함께 내고 실패한다.
-- [ ] **G4 C++ 재정제가 저장본과 다르다.** 실측: 같은 원본에서 191 · 417 대신 195 · 419, 이름 일치 190/191. 해법: 원인을 찾고 기대값을 의도적으로 갱신한다.
+- [ ] **G4 C++ 재정제가 저장본과 다르다.** 실측: 같은 원본에서 191 · 417 대신 195 · 419, 이름 일치 190/191. 해법: 원인을 찾고 기대값을 의도적으로 갱신한다. — **Mac 세션 (Task 23 절차)** `74bfc35`
   - **Mac 절차.** B4 의 판정을 먼저 낸다 — 195 · 419 와 191 · 417 의 차이가 `끝점 해소 실패` 표본에서 오는지 본다. 그 뒤 G3 의 시험으로 다시 정제한 수와 저장본을 대조한다. 기대값은 Mac 세션이 정한다. 의도한 변경이면 `test_golden_counts` 의 기대값을 함께 고친다.
 - [ ] **G5 `render_classes.py` 를 부르는 파이프라인이 없다.** 소유 관계로 동작이 갈리는 유일한 코드다. 해법: 연결할지 문서에 도구로만 표시할지 결정한다.
 - [ ] **G6 아무도 안 읽는 칸.** 실측: `constraint` · `origin` · `attrs` · `signature` · `doc` · `platform`. 해법: 언어 전용 층으로 옮길지 지울지 결정한다. `external-constraint` 검사의 가치도 함께 본다.
@@ -104,8 +108,10 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [x] **I-F1(checks_run · fit) 통과가 무엇을 봤는지 말하지 않는다.** 해법: 결과 문서의 `checks_run` 과 `fit` — V3 를 건너뛴 기록은 전수조사에 맞지 않는다. — `bf21a0e` · `11fe6d0`
 - [x] **I-F1(source-drift) 줄 수가 같은 채 바뀐 소스를 못 잡는다.** 해법: 수집 manifest 가 인용 파일마다의 소스 sha 를 적고 `verify-graph` 가 지금 바이트와 대조해 `source-drift` · `generation-mismatch` · `freshness-unknown` 을 낸다. — `2c1d9cc` · `9ca4bd0`
 - [x] **I-F4 수집 지문이 실제 입력 의존성을 빠뜨린다.** 해법: 지문이 `prep` 이 import 하는 모듈과 `.clang-uml` · `compile_commands.json` 내용까지 덮고, manifest 의 `generation_id` 를 배치가 이어받아 성공 기록과 대조한다. — `71a8440` · `2c1d9cc` · `7460a7a`
-- [ ] **I-F6 호출이 타입 간선에 접히면 호출 위치가 사라진다.** 자기참조 사유는 계획 Task 13, `Edge.sites` 는 4단계.
-- [ ] **I-F7 C++ 빌드 설정을 하나로 뭉갠다.** 경로 규칙과 첫 설정은 계획 Task 18, 선언된 단일 설정의 표시는 5단계.
+- [x] **I-F8(coverage) 수집하지 않은 언어와 지도가 인용하지 않는 파일을 말하지 않는다.** 해법: prep 이 `source-inventory.json` 을 쓰고 `verify-graph` 가 `language-not-collected` · `coverage-gap` 을 범위 절에 기록만 한다. — `c9031ca`
+- [x] **I-F6(label) 호출이 타입 간선에 접히면 호출 위치가 사라진다 — 접힘의 사유를 센다.** 해법: 재귀 호출은 해소 실패가 아니라 `자기참조 버림` 정책으로, 이미 있는 간선에 접힌 호출은 `호출이 기존 간선에 접힘` 정책으로 장부에 센다. — `49bcb7b`
+- [ ] **I-F6(sites) 접힌 호출의 위치.** `Edge.sites` 는 4단계.
+- [x] **I-F7 C++ 빌드 설정을 하나로 뭉갠다 — 경로 규칙과 첫 설정.** 해법: `compile_commands.json` 의 상대 `file` 을 `directory` 기준으로 풀고 번역 단위마다 첫 항목만 남기며 버린 중복은 inventory 에 `excluded` 로 적는다. — `787a218`. 선언된 단일 설정의 표시는 5단계로 남는다.
 - [ ] **I-F5 안정 ID 만 바꾸면 오버로드가 후단에서 사라진다.** 4단계.
 
 ## 3. 문서 색인

@@ -14,9 +14,9 @@
 
 | 자리 | 하는 일 |
 |---|---|
-| `python/runner/run_mode1.py` | Mode 1 실행기 — 단계 기계 위에서 흐름을 짓고 단계마다 시간과 토큰을 잰다. 열네 단계 `lang-hint→lang-decide→detect-changes→collect-graph→verify-graph→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
-| `python/runner/mode1/` | 단계 — `context`(문맥 · 형 · 산출물 16개 `ARTIFACTS` · 설정 · 프롬프트 자리) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff` · `resume` · 단계 모듈 여덟 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file`) · `terms` · `wiki` · `seal`(`seal-artifacts` — 이 실행에서 검사를 통과한 것만 `docs/codegraph/` 에 봉인) · `edges`(`ORDER` · `STAGES` · `EDGES` · `ALIASES`). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다. 프롬프트 글은 `../../resource/codewiki/prompts/*.md`, 샤드 검문의 결함 문구는 결함 표 `../../resource/codewiki/faults.toml` |
-| `python/runner/wiki/` | `prep` · `build` · `check` — `bin/report-wiki` 의 세 명령. 그 밖에 `compdb` · `clang_doc` · `paths` |
+| `python/runner/run_mode1.py` | Mode 1 실행기 — 단계 기계 위에서 흐름을 짓고 단계마다 시간과 토큰을 잰다. 열다섯 단계 `lang-hint→lang-decide→detect-changes→collect-graph→verify-graph→derive-facts→schedule-batches→annotate-symbols→snapshot-sources→verify-terms→outline-wiki→write-wiki→publish-wiki→verify-wiki→seal-artifacts`. LLM 칸은 넷(`lang-hint` · `annotate-symbols` · `outline-wiki` · `write-wiki`). `--cold` 는 전량(`detect-changes` 없음), `--resume` 은 `resume.json` 의 단계부터 |
+| `python/runner/mode1/` | 단계 — `context`(문맥 · 형 · 산출물 22개 `ARTIFACTS` · 설정 · 프롬프트 자리) · `measured` · `machine_stage`(믹스인 · 베이스) · `diff` · `resume` · 단계 모듈 여덟 `lang` · `scan` · `graph` · `survey` · `survey_files`(`--strategy file`) · `terms` · `wiki` · `seal`(`seal-artifacts` — 이 실행에서 검사를 통과한 것만 `docs/codegraph/` 에 봉인) · `edges`(`ORDER` · `STAGES` · `EDGES` · `ALIASES`). **계산은 그것을 쓰는 단계 클래스의 `@staticmethod`** 이고 둘이 쓰면 믹스인이다. 프롬프트 글은 `../../resource/codewiki/prompts/*.md`, 샤드 검문의 결함 문구는 결함 표 `../../resource/codewiki/faults.toml` |
+| `python/runner/wiki/` | `prep` · `build` · `check` — `bin/report-wiki` 의 세 명령. 그 밖에 `compdb` · `clang_doc` · `paths` · `derive`(검사를 지난 지도에서 `facts.py` · `render_modules.py` 를 부른다) · `proc`(자식 프로세스 하나를 돌리고 죽으면 실패 기록을 남긴다) |
 | `python/runner/check_shard.py` | 전수조사 에이전트가 샤드를 쓴 뒤 스스로 돌리는 검문 |
 | `python/viz/render_modules.py` · `render_classes.py` | 코드 지도를 Graphviz DOT 로 적고 굽는다 |
 | `python/viz/demermaid.py` | 위키의 Mermaid 를 빌드 전에 SVG 로 사전 렌더 |
@@ -26,18 +26,20 @@
 
 | 파일 | 하는 일 |
 |---|---|
-| `normalize.py` | 수집기 출력을 코드 지도(`codegraph.json`)로 정규화. **C++ · C# · Python 세 경로가 한 파일에 있다** |
+| `normalize.py` | 수집기 출력을 코드 지도(`codegraph.json`)로 정규화. **C++ · C# · Python 세 경로가 한 파일에 있다.** 버린 것은 `Ledger` 로 사유별로 세어 지도 옆 `normalize-report.json` 장부에 적고, 사유마다 등급(`DROP_CLASS` — count · policy · unresolved · fault)이 정해져 있다. 원본의 최상위 꼴이 틀리면 종료 코드 2 로 거절한다 |
 | `pycalls.py` | 파이썬 소스에서 심볼과 **호출 관계**를 뽑는다(`ast` 만 씀). griffe 가 못 내는 것을 채운다 |
 | `codegraph_types.py` | `codegraph.json` 계약 한 곳. 생산자와 검사기가 쓴다. 다른 소비자는 축소 형 |
 | `declmap.py` | 소스에서 선언 목록을 훑는다. 언어 넷(`cpp` `cs` `py` `ts`) |
 | `clang_doc.py` | `clang-doc` 의 흩어진 JSON 을 평평한 심볼 목록으로 |
-| `facts.py` | 코드 지도에서 사람이 읽는 사실 표(`facts/*.md`)와 `ranking.json` 을 만든다 |
+| `facts.py` | 코드 지도에서 사람이 읽는 사실 표(`facts/*.md`)와 `ranking.json` 을 만든다. `derive-facts` 단계가 검사 뒤에 부른다 |
 | `lang_select.py` | 어떤 정적 수집기를 돌릴지 고른다. LLM Model의 제안을 결정론 검사로 거른다 |
 | `clangd_refs.py` · `reverse_refs.py` | clangd 에 직접 말해 역방향 참조를 받는다 |
 | `terms_db.py` | 용어 사전 병합과 **인용 검사 L1/L2/L3**. 투영이 코드 지도를 덮는다 |
 | `verify_citations.py` | 위키 산문의 `파일:줄` 인용을 3값으로 판정 |
 | `reading_types.py` | `Use` · `Term` · `Terms` 형 — `terms-reading.json` 레코드의 모양. `terms_db.py` 가 import 한다. 주석 주입기와 그 산출물은 없다 — 소스에 주석 블록을 박지 않는다 |
 | `warmup.py` | 전수조사 증분 캐시 — 무엇을 다시 읽어야 하는지 가려낸다 |
+| `verify_graph.py` | 코드 지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사하고 수집 manifest · 버림 장부 · 소스 inventory · 수집 실패 기록과 대조해 결함을 전부 모은다 |
+| `collect_manifest.py` · `source_inventory.py` | 수집 manifest(`collect-fingerprint.json`)의 꼴과 계산 · git 이 추적하는 소스를 언어별로 세고 파일마다 수집 상태를 적는 장부(`source-inventory.json`). `prep` 이 쓰고 `verify_graph.py` 가 읽는다 |
 | `survey_plan.py` | 코드 지도를 의존 위상 층과 배치로 나눈다. **판정하지 않는다** |
 | `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
 | `manifest.py` | 봉인 매니페스트 — `seal` 이 산출물과 소스 지문을 대상 저장소의 `<저장소>/docs/codegraph/manifest.json` 에 적는다. 계약은 `../../contracts/` — 설명 문서 `contract-mode1-artifacts.md` 는 git 밖 `docs/` |
@@ -104,10 +106,10 @@ clang-doc(심볼 전량)을 합치는 것과 같은 구조다.
 이 폴더를 import 하지 않는다 — 봉인된 산출물만 읽는다. 단계 기계 자체는 `../core/CLAUDE.md`.
 
 ```
-Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ verify-graph ─▶ schedule-batches ─▶ annotate-symbols
-#            LLM        lang_select.py   warmup.py        normalize.py 등    verify_graph.py   survey_plan.py        LLM 층별
-          ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
-#            warmup.py           terms_db.py     LLM             LLM                            verify_citations.py   manifest.py
+Mode 1    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ verify-graph ─▶ derive-facts ─▶ schedule-batches
+#            LLM        lang_select.py   warmup.py        normalize.py 등    verify_graph.py   facts.py 등      survey_plan.py
+          ─▶ annotate-symbols ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
+#            LLM 층별             warmup.py           terms_db.py     LLM             LLM                            verify_citations.py   manifest.py
 Mode 1.5  collect ─▶ gate ─▶ [사람 차례] ─▶ grade ─▶ emit
 Mode 2    init ─▶ [LLM] ─▶ build ─▶ check
 ```
@@ -274,7 +276,7 @@ Mode 2 의 것(`src/spec/typescript/src/*` · `src/spec/python/viz/build.py` · 
 
 | 방향 | 무엇 |
 |---|---|
-| `python/runner/wiki/prep.py` → `python/machine/` · `python/viz/` | `pycalls.py` · `normalize.py` · `facts.py` · `render_modules.py` 를 자식 프로세스로 부른다 |
+| `python/runner/wiki/prep.py` → `python/machine/` · `python/viz/` | `pycalls.py` · `normalize.py` 를 자식 프로세스로 부른다. `facts.py` · `render_modules.py` 는 `derive.py` 가 부르고, `derive.py` 는 `derive-facts` 단계가 자식 프로세스로 띄우며 `--collect-only` 가 아닌 `prep` 도 꼬리에서 같은 함수를 쓴다 |
 | `python/runner/wiki/build.py` → `python/viz/demermaid.py` | 자식 프로세스 |
 | `python/runner/wiki/check.py` → `python/machine/verify_citations.py` | 자식 프로세스 |
 | `python/runner/run_mode1.py` · `python/runner/mode1/*` → `python/machine/` | `survey_plan`(`run_mode1` · `graph` · `survey` · `context` · `wiki`) · `warmup`(`scan` · `diff` · `context` · `wiki`) · `declmap`(`scan`) · `manifest`(`context` · `wiki` · `seal`) 을 import 하고, `python/runner/mode1/terms.py` 가 `terms_db.py` 를, `python/runner/mode1/seal.py` 가 `manifest.py seal` 을 자식 프로세스로 부른다 |
@@ -320,17 +322,19 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
   그 함수가 둘을 가른다 — 고칠 때 헷갈리지 말 것.
 - **Gotcha — `run_mode1.py` 와 `mode1/` 만 `python/machine/` 을 import 한다.** `declmap` · `survey_plan` · `warmup` · `manifest` 넷이다.
   같은 폴더가 아니라 파일 머리에서 `sys.path` 에 자기 폴더 · `src/`(`core` · `common` 이 그 아래) · `python/machine/` 을 직접 넣는다.
-- **Gotcha — 증분 그래프의 `--only prep` 은 거부된다.** `collect-graph` 가 `changes.json` 을 읽는다고 선언해서다.
+- **Gotcha — 증분 그래프의 `--only prep` 은 거부된다.** `prep` 은 `collect-graph` · `verify-graph` · `derive-facts` 셋으로 풀리고 그 첫 칸 `collect-graph` 가 `changes.json` 을 읽는다고 선언해서다.
   `--only warmup,prep` 이나 `--only prep --cold` 로 간다. 옛 단계 이름은 `mode1.edges.ALIASES` 로 `--only` · `--skip` 에서 산다.
 - **Gotcha — 기계축 선언이 실물과 어긋난다.** `warmup.json` 은 `warmup.Manifest` 로 strict 검증에
   실패한다(`Entry.mtime` 없음). 지문은 존재만 본다.
 - **Note — 자기호스팅 코드 지도에는 시험이 없다.** `report-wiki prep` 은 최상위 `test/` 를 건너뛴다. 시험이
   `test/` 로 모인 2026-10-31 부터 `resource/codewiki/terms-reading.json` 의 시험 기호 레코드(약 600)는 지도에 노드가 없어
   "근거 없음" 으로 나온다 — 실패가 아니다.
-- **Note — `collect-fingerprint.json` 은 수집 manifest 다** — 수집 코드 · 수집기 판 · `.clang-uml` · `compile_commands.json` 의 지문, 지도 sha, 인용한 파일마다의 소스 sha, 그 셋을 묶은 `generation_id`, 원본 출처(`prep` · roslyn 은 `unknown`).
+- **Note — `collect-fingerprint.json` 은 수집 manifest 다** — 수집 코드 · 수집기 판 · `.clang-uml` · `compile_commands.json` 의 지문, 지도 sha, 인용한 파일마다의 소스 sha, 소스 inventory 의 sha, 그 넷을 묶은 `generation_id`, 원본 출처(`prep` · roslyn 은 `unknown`).
   지문이나 인용 파일의 내용이 다르면 `--diff` 없이도 `prep` 이 다시 수집한다. `verify-graph` 는 이 manifest 와 대조해 `source-drift` · `generation-mismatch` · `freshness-unknown` 을 낸다.
-  재수집하기로 하면 옛 지도 · manifest · 성공 기록 · 결함 파일부터 지우고, 지도와 manifest 는 임시 파일을 거쳐 바꿔 끼운다(`jsonio.write_json_atomic`).
+  재수집하기로 하면 옛 지도 · manifest · 버림 장부 · inventory · 성공 기록 · 결함 파일부터 지우고, 새로 쓰는 기록은 임시 파일을 거쳐 바꿔 끼운다(`jsonio.write_json_atomic`).
+- **Note — collect-graph 는 수집 · 정제만 하고(--collect-only) facts · 모듈 그림은 derive-facts 가 검사 뒤에 만든다.** `report-wiki prep` 명령은 그대로 둘 다 한다. 정제는 `normalize-report.json` 에 버림 사유를 policy · unresolved · fault 로 적고, `verify-graph` 는 unresolved · fault 를 막는다. prep 은 수집 전에 `source-inventory.json` 을 쓰고 실패하면 `collect-failure.json` 을 남긴다 — `collect-graph` 가 그것으로 결함 파일과 핸드오프를 쓴다.
 - **Note — `verify-graph` 가 보장하는 것은 "열리고 · 열쇠가 맞고 · 안에서 어긋나지 않고 · 인용한 파일이 저장소 안에 그 줄 수 이상으로 있고 · 그 파일의 바이트가 수집 때와 같다" 까지다.**
   같은 줄의 내용이 바뀐 것은 인용한 파일의 sha 를 manifest 의 소스 sha 와 대조해 `source-drift` 로 잡는다. `schedule-batches` 는 `graph-verified.json` 의 `codegraph_sha256` 이 지금 지도와 같을 때만 돈다.
   결과 문서는 `integrity` · `freshness` · `coverage` · `capabilities` 네 절과 `checks_run` · `fit` 을 갖고, `schedule-batches` · `annotate-symbols` · `outline-wiki` · `write-wiki` 는 `VerifiedGraph.gate` 로 같은 기록을 대조하며 배치의 `codegraph_sha256` · `generation_id` 도 성공 기록과 같아야 한다.
+  `source-inventory.json` 은 언어별 소스 파일 수와 파일마다의 수집 상태를 적고, `verify-graph` 는 수집하지 않은 언어(`language-not-collected`)와 고른 언어인데 지도가 인용하지 않는 파일(`coverage-gap`)을 범위 절에 기록만 하고 통과를 막지 않는다.
   검사가 실패하면 `out/codegraph-raw/graph-faults.json` 과 `graph-handoff.md` 가 남고, `--resume` 은 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).

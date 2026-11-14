@@ -502,7 +502,7 @@
     "where": "src/codewiki/python/machine/codegraph_types.py:80"
    }
   ],
-  "where": "src/codewiki/python/machine/codegraph_types.py:70"
+  "where": "src/codewiki/python/machine/codegraph_types.py:71"
  },
  "codewiki.python.machine.codegraph_types.Module": {
   "confidence": "HIGH",
@@ -512,7 +512,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/codegraph_types.py:60"
+  "where": "src/codewiki/python/machine/codegraph_types.py:61"
  },
  "codewiki.python.machine.codegraph_types.Node": {
   "confidence": "HIGH",
@@ -522,7 +522,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/codegraph_types.py:21"
+  "where": "src/codewiki/python/machine/codegraph_types.py:22"
  },
  "codewiki.python.machine.declmap.Decl": {
   "confidence": "HIGH",
@@ -645,7 +645,7 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:70"
+  "where": "src/codewiki/python/machine/facts.py:72"
  },
  "codewiki.python.machine.facts.CodeGraph": {
   "confidence": "HIGH",
@@ -674,7 +674,7 @@
     "where": "src/codewiki/python/machine/facts.py:52"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:48"
+  "where": "src/codewiki/python/machine/facts.py:50"
  },
  "codewiki.python.machine.facts.GraphModule": {
   "confidence": "HIGH",
@@ -684,7 +684,7 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:43"
+  "where": "src/codewiki/python/machine/facts.py:45"
  },
  "codewiki.python.machine.facts.HotspotBlock": {
   "confidence": "HIGH",
@@ -701,7 +701,7 @@
     "where": "src/codewiki/python/machine/facts.py:93"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:90"
+  "where": "src/codewiki/python/machine/facts.py:92"
  },
  "codewiki.python.machine.facts.HotspotRow": {
   "confidence": "HIGH",
@@ -718,7 +718,7 @@
     "where": "src/codewiki/python/machine/facts.py:64"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:64"
+  "where": "src/codewiki/python/machine/facts.py:66"
  },
  "codewiki.python.machine.facts.HotspotStat": {
   "confidence": "HIGH",
@@ -728,7 +728,7 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:57"
+  "where": "src/codewiki/python/machine/facts.py:59"
  },
  "codewiki.python.machine.facts.ModuleRow": {
   "confidence": "HIGH",
@@ -738,11 +738,11 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:83"
+  "where": "src/codewiki/python/machine/facts.py:85"
  },
  "codewiki.python.machine.facts.Ranking": {
   "confidence": "HIGH",
-  "does": "language, repo_commit, generated_from, pagerank_note 같은 메타 정보 필드와, classes(ClassRow 목록), modules(ModuleRow 목록), hotspot(HotspotBlock) 세 본문 필드를 갖는다.",
+  "does": "language, repo_commit, generated_from, pagerank_note 같은 메타 정보 필드와, classes(ClassRow 목록), modules(ModuleRow 목록), hotspot(HotspotBlock) 세 본문 필드를 갖는다. 선택 칸 generation_id 는 이 ranking 이 어느 수집 세대의 것인지 적는다 — VerifiedGraph.gate 가 성공 기록의 generation_id 와 견준다.",
   "kind": "class",
   "means": "facts.py 가 최종적으로 쓰는 ranking.json 파일 전체의 모양을 정의하는 자료 틀이다.",
   "module": "codewiki.python.machine.facts",
@@ -767,7 +767,7 @@
     "where": "src/codewiki/python/machine/facts.py:105"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:97"
+  "where": "src/codewiki/python/machine/facts.py:99"
  },
  "codewiki.python.machine.facts.RoslynDump": {
   "confidence": "HIGH",
@@ -784,7 +784,7 @@
     "where": "src/codewiki/python/machine/facts.py:117"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:116"
+  "where": "src/codewiki/python/machine/facts.py:119"
  },
  "codewiki.python.machine.facts.RoslynType": {
   "confidence": "HIGH",
@@ -794,7 +794,7 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:108"
+  "where": "src/codewiki/python/machine/facts.py:111"
  },
  "codewiki.python.machine.facts.build": {
   "confidence": "HIGH",
@@ -811,7 +811,7 @@
     "where": "src/codewiki/python/machine/facts.py:193"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:161"
+  "where": "src/codewiki/python/machine/facts.py:164"
  },
  "codewiki.python.machine.facts.cite": {
   "confidence": "HIGH",
@@ -828,7 +828,7 @@
     "where": "src/codewiki/python/machine/facts.py:205"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:205"
+  "where": "src/codewiki/python/machine/facts.py:208"
  },
  "codewiki.python.machine.facts.collect_hotspot": {
   "confidence": "HIGH",
@@ -845,11 +845,11 @@
     "where": "src/codewiki/python/machine/facts.py:128"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:126"
+  "where": "src/codewiki/python/machine/facts.py:129"
  },
  "codewiki.python.machine.facts.main": {
   "confidence": "HIGH",
-  "does": "명령줄 인자(codegraph.json 경로, --repo, --detail, -o)를 파싱하고 codegraph.json 을 읽는다. build() 로 클래스 순위를 구하고 collect_hotspot() 으로 변경 hotspot 을 구한 뒤, ranking.json 과 facts/modules.md·classes.md·external.md·entrypoints.md·hotspot.md 다섯 파일을 써서 낸다. 언어가 csharp 이고 --detail 이 주어지면 roslyn-dump.json 에서 MonoBehaviour·ScriptableObject 목록을 진입점 재료로 추가하고, cpp 면 apps/ 로 시작하는 모듈 목록을 적는다.",
+  "does": "명령줄 인자(codegraph.json 경로, --repo, --detail, --generation, -o)를 파싱하고 codegraph.json 을 읽는다. build() 로 클래스 순위를 구하고 collect_hotspot() 으로 변경 hotspot 을 구한 뒤, ranking.json 과 facts/modules.md·classes.md·external.md·entrypoints.md·hotspot.md 다섯 파일을 써서 낸다. 언어가 csharp 이고 --detail 이 주어지면 roslyn-dump.json 에서 MonoBehaviour·ScriptableObject 목록을 진입점 재료로 추가하고, cpp 면 apps/ 로 시작하는 모듈 목록을 적는다. --generation 이 주어지면 ranking.json 에 generation_id 로 찍고, ranking.json 은 write_json_atomic 으로 쓴다.",
   "kind": "function",
   "means": "facts.py 도구를 터미널에서 실행했을 때 제일 먼저 불리는 진입점 함수이다.",
   "module": "codewiki.python.machine.facts",
@@ -874,7 +874,7 @@
     "where": "src/codewiki/python/machine/facts.py:303"
    }
   ],
-  "where": "src/codewiki/python/machine/facts.py:214"
+  "where": "src/codewiki/python/machine/facts.py:217"
  },
  "codewiki.python.machine.facts.sh": {
   "confidence": "HIGH",
@@ -884,7 +884,7 @@
   "module": "codewiki.python.machine.facts",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/facts.py:120"
+  "where": "src/codewiki/python/machine/facts.py:123"
  },
  "codewiki.python.machine.file_cache._paths": {
   "confidence": "HIGH",
@@ -1042,17 +1042,17 @@
  },
  "codewiki.python.machine.normalize.GriffeExprNode": {
   "confidence": "MEDIUM",
-  "does": "cls(어느 마디 종류인지) 필드와, 마디 종류마다 다르게 쓰이는 name·values·left·right·slice·elements 필드를 정의한다. 자기 자신을 참조하는 재귀 구조다.",
+  "does": "cls(어느 마디 종류인지) 필드와, 마디 종류마다 다르게 쓰이는 name · values · left · right · operator(ExprBinOp 의 연산자) · slice · elements · function · arguments(ExprCall) · keys(ExprDict) 필드를 정의한다. 자기 자신을 참조하는 재귀 구조다.",
   "kind": "class",
   "means": "griffe 가 파이썬 타입 주석을 트리(재귀 구조)로 표현할 때 쓰는 '식 노드' 한 칸의 모양을 설명하는 자료형(TypedDict)이다. 실행되는 코드가 아니라 데이터 모양 약속이다.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:780"
+  "where": "src/codewiki/python/machine/normalize.py:874"
  },
  "codewiki.python.machine.normalize.GriffeObject": {
   "confidence": "MEDIUM",
-  "does": "kind, filepath(파일 경로 또는 디렉토리 목록), lineno, members(이름으로 키질한 자기 자신 dict), imports, bases, annotation, parameters(GriffeParam 목록), returns, labels 필드를 정의한다.",
+  "does": "kind, filepath(파일 경로 또는 디렉토리 목록), lineno, members(이름으로 키질한 자기 자신 dict), imports, bases, annotation, parameters(GriffeParam 목록), returns, labels, value(속성과 type alias 의 오른쪽 식) 필드를 정의한다.",
   "kind": "class",
   "means": "파이썬 코드를 훑는 외부 도구 griffe 가 모듈·클래스·속성·함수를 전부 하나의 같은 JSON 모양으로 내보내기 때문에, 그 모양을 옮겨 적은 자료형(TypedDict)이다. 실제로 무엇인지는 kind 필드 값(module/class/function 등)으로 나중에 구분한다.",
   "module": "codewiki.python.machine",
@@ -1065,7 +1065,7 @@
     "where": "src/codewiki/python/machine/normalize.py:816"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:802"
+  "where": "src/codewiki/python/machine/normalize.py:900"
  },
  "codewiki.python.machine.normalize.GriffeParam": {
   "confidence": "HIGH",
@@ -1075,7 +1075,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:795"
+  "where": "src/codewiki/python/machine/normalize.py:893"
  },
  "codewiki.python.machine.normalize.RoslynCompilation": {
   "confidence": "HIGH",
@@ -1085,7 +1085,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:520"
+  "where": "src/codewiki/python/machine/normalize.py:608"
  },
  "codewiki.python.machine.normalize.RoslynDump": {
   "confidence": "HIGH",
@@ -1114,7 +1114,7 @@
     "where": "src/codewiki/python/machine/normalize.py:561"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:555"
+  "where": "src/codewiki/python/machine/normalize.py:643"
  },
  "codewiki.python.machine.normalize.RoslynRelation": {
   "confidence": "HIGH",
@@ -1124,7 +1124,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:541"
+  "where": "src/codewiki/python/machine/normalize.py:629"
  },
  "codewiki.python.machine.normalize.RoslynType": {
   "confidence": "HIGH",
@@ -1134,7 +1134,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:528"
+  "where": "src/codewiki/python/machine/normalize.py:616"
  },
  "codewiki.python.machine.normalize.SourceLocation": {
   "confidence": "HIGH",
@@ -1144,7 +1144,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:25"
+  "where": "src/codewiki/python/machine/normalize.py:82"
  },
  "codewiki.python.machine.normalize.UmlElement": {
   "confidence": "HIGH",
@@ -1173,7 +1173,7 @@
     "where": "src/codewiki/python/machine/normalize.py:66"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:59"
+  "where": "src/codewiki/python/machine/normalize.py:116"
  },
  "codewiki.python.machine.normalize.UmlIdentity": {
   "confidence": "HIGH",
@@ -1190,7 +1190,7 @@
     "where": "src/codewiki/python/machine/normalize.py:56"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:46"
+  "where": "src/codewiki/python/machine/normalize.py:103"
  },
  "codewiki.python.machine.normalize.UmlMember": {
   "confidence": "HIGH",
@@ -1207,7 +1207,7 @@
     "where": "src/codewiki/python/machine/normalize.py:37"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:33"
+  "where": "src/codewiki/python/machine/normalize.py:90"
  },
  "codewiki.python.machine.normalize.UmlRelationship": {
   "confidence": "HIGH",
@@ -1217,7 +1217,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:69"
+  "where": "src/codewiki/python/machine/normalize.py:126"
  },
  "codewiki.python.machine.normalize.UmlTemplateParam": {
   "confidence": "HIGH",
@@ -1227,7 +1227,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:40"
+  "where": "src/codewiki/python/machine/normalize.py:97"
  },
  "codewiki.python.machine.normalize._assemble": {
   "confidence": "HIGH",
@@ -1244,7 +1244,7 @@
     "where": "src/codewiki/python/machine/normalize.py:505"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:470"
+  "where": "src/codewiki/python/machine/normalize.py:558"
  },
  "codewiki.python.machine.normalize._doc_element": {
   "confidence": "MEDIUM",
@@ -1254,17 +1254,17 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:294"
+  "where": "src/codewiki/python/machine/normalize.py:382"
  },
  "codewiki.python.machine.normalize.build_parser": {
   "confidence": "HIGH",
-  "does": "--clang-uml, --roslyn-dump, --griffe-dump 세 개를 서로 배타적인 그룹(하나만 골라야 함)으로 묶고, --py-calls 와 --clang-doc 은 주 옵션과 함께 쓸 수 있는 보조 옵션으로, --repo 와 -o/--out 도 추가한 ArgumentParser 를 돌려준다.",
+  "does": "--clang-uml, --roslyn-dump, --griffe-dump 세 개를 서로 배타적인 그룹(하나만 골라야 함)으로 묶고, --py-calls 와 --clang-doc 은 주 옵션과 함께 쓸 수 있는 보조 옵션으로, --repo 와 -o/--out 과 --report(버림 장부 자리. 기본은 -o 옆)도 추가한 ArgumentParser 를 돌려준다.",
   "kind": "function",
   "means": "normalize.py 명령줄 도구가 받는 옵션들을 정의하는 함수다.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1201"
+  "where": "src/codewiki/python/machine/normalize.py:1464"
  },
  "codewiki.python.machine.normalize.cs_asm2pkg": {
   "confidence": "HIGH",
@@ -1274,7 +1274,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:605"
+  "where": "src/codewiki/python/machine/normalize.py:693"
  },
  "codewiki.python.machine.normalize.cs_external_group": {
   "confidence": "HIGH",
@@ -1284,7 +1284,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:626"
+  "where": "src/codewiki/python/machine/normalize.py:714"
  },
  "codewiki.python.machine.normalize.cs_module_of": {
   "confidence": "HIGH",
@@ -1294,7 +1294,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:593"
+  "where": "src/codewiki/python/machine/normalize.py:681"
  },
  "codewiki.python.machine.normalize.defines_at": {
   "confidence": "HIGH",
@@ -1304,7 +1304,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:147"
+  "where": "src/codewiki/python/machine/normalize.py:235"
  },
  "codewiki.python.machine.normalize.doc_qualified_name": {
   "confidence": "MEDIUM",
@@ -1314,7 +1314,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:286"
+  "where": "src/codewiki/python/machine/normalize.py:374"
  },
  "codewiki.python.machine.normalize.external_group": {
   "confidence": "HIGH",
@@ -1324,7 +1324,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:233"
+  "where": "src/codewiki/python/machine/normalize.py:321"
  },
  "codewiki.python.machine.normalize.git_commit": {
   "confidence": "HIGH",
@@ -1334,7 +1334,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:107"
+  "where": "src/codewiki/python/machine/normalize.py:164"
  },
  "codewiki.python.machine.normalize.is_first_party": {
   "confidence": "HIGH",
@@ -1351,7 +1351,7 @@
     "where": "src/codewiki/python/machine/normalize.py:227"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:190"
+  "where": "src/codewiki/python/machine/normalize.py:278"
  },
  "codewiki.python.machine.normalize.is_transparent_wrapper": {
   "confidence": "HIGH",
@@ -1361,21 +1361,21 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:255"
+  "where": "src/codewiki/python/machine/normalize.py:343"
  },
  "codewiki.python.machine.normalize.load_clang_uml": {
   "confidence": "HIGH",
-  "does": "json.load 로 파일을 읽고 elements, relationships, metadata(없으면 빈 dict) 세 값을 튜플로 돌려준다.",
+  "does": "json.load 로 파일을 읽고 exit_if_bad_raw 로 꼴을 먼저 검사한 뒤(틀리면 종료 코드 2) elements, relationships, metadata(없으면 빈 dict) 세 값을 튜플로 돌려준다.",
   "kind": "function",
   "means": "clang-uml 이라는 외부 분석 도구가 만든 JSON 결과 파일을 읽어서 세 부분으로 나눠주는 함수다.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:130"
+  "where": "src/codewiki/python/machine/normalize.py:217"
  },
  "codewiki.python.machine.normalize.main": {
   "confidence": "MEDIUM",
-  "does": "build_parser 로 옵션을 읽고, --clang-uml 이 주어졌으면 load_clang_uml(과 필요하면 clang_doc.load_clang_doc)로 읽어 normalize_cpp 를 부르고, --roslyn-dump 면 JSON 을 읽어 normalize_csharp 를, 그 외엔 griffe JSON(과 필요하면 pycalls JSON)을 읽어 normalize_python 을 불러 코드 지도를 만든다. 결과를 --out 경로에 JSON 으로 쓰고, 노드/간선/모듈 수와 통계, 외부 노드 목록, 근거 위치가 붙은 간선 비율 등을 화면에 출력한다.",
+  "does": "build_parser 로 옵션을 읽고, --clang-uml 이 주어졌으면 load_clang_uml(과 필요하면 clang_doc.load_clang_doc)로 읽어 normalize_cpp 를 부르고, --roslyn-dump 면 JSON 을 읽어 normalize_csharp 를, 그 외엔 griffe JSON(과 필요하면 pycalls JSON)을 읽어 normalize_python 을 불러 코드 지도를 만든다. 원본을 읽은 직후 exit_if_bad_raw 로 꼴을 검사한다. 결과를 --out 경로에 JSON 으로 쓰고 write_report 로 버림 장부(normalize-report.json)를 --report 자리(기본은 -o 옆)에 쓴 다음, 노드/간선/모듈 수와 통계, 외부 노드 목록, 근거 위치가 붙은 간선 비율 등을 화면에 출력한다.",
   "kind": "function",
   "means": "이 파일을 명령줄에서 직접 실행했을 때 맨 처음 불리는 함수다. C++/C#/Python 세 갈래 중 사용자가 어느 것을 돌리라고 했는지 보고 그 갈래대로 코드 지도를 만든다.",
   "module": "codewiki.python.machine",
@@ -1424,7 +1424,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1246"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1221"
+  "where": "src/codewiki/python/machine/normalize.py:1485"
  },
  "codewiki.python.machine.normalize.member_location": {
   "confidence": "HIGH",
@@ -1434,7 +1434,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:264"
+  "where": "src/codewiki/python/machine/normalize.py:352"
  },
  "codewiki.python.machine.normalize.merge_clang_doc": {
   "confidence": "HIGH",
@@ -1469,11 +1469,11 @@
     "where": "src/codewiki/python/machine/normalize.py:331"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:304"
+  "where": "src/codewiki/python/machine/normalize.py:392"
  },
  "codewiki.python.machine.normalize.merge_py_calls": {
   "confidence": "HIGH",
-  "does": "pycalls 의 심볼마다 이미 같은 이름의 노드가 있으면 시그니처만 보강하고, 없으면 module_of 로 모듈을 정해 새 노드를 만든다. 그 다음 호출 목록마다 호출자와 피호출자가 둘 다 노드로 해소되면 dependency 종류의 간선을 만들거나 이미 있으면 발생 횟수만 늘린다.",
+  "does": "pycalls 의 심볼마다 같은 이름의 노드가 있으면 시그니처만 보강하고, 없으면 module_of 로 모듈을 정해 새 노드를 만든다. 호출은 호출자와 피호출자가 둘 다 노드로 해소되면 dependency 간선을 만들거나 같은 간선이 있으면 발생 횟수만 올린다. 호출자와 피호출자가 같은 재귀 호출은 정책으로 버리고(자기참조 버림), 한쪽이라도 노드가 아니면 표본과 함께 적는다(호출 양끝 해소 실패).",
   "kind": "function",
   "means": "griffe 는 파이썬의 클래스·상속·타입주석은 알지만 '어느 함수가 어느 함수를 호출하는지'는 전혀 모른다. 그 빈틈을 pycalls.py 가 뽑아낸 함수·메서드 목록과 호출 관계로 채워 griffe 가 만든 노드 표에 합쳐 넣는 함수다.",
   "module": "codewiki.python.machine",
@@ -1486,7 +1486,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1165"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1135"
+  "where": "src/codewiki/python/machine/normalize.py:1400"
  },
  "codewiki.python.machine.normalize.module_of": {
   "confidence": "HIGH",
@@ -1496,7 +1496,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:115"
+  "where": "src/codewiki/python/machine/normalize.py:172"
  },
  "codewiki.python.machine.normalize.node_name": {
   "confidence": "HIGH",
@@ -1506,11 +1506,11 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:281"
+  "where": "src/codewiki/python/machine/normalize.py:369"
  },
  "codewiki.python.machine.normalize.normalize_cpp": {
   "confidence": "HIGH",
-  "does": "1패스에서 각 요소를 투과 래퍼(R5)·원시 타입(R7)·1차 코드·외부 코드로 나눠 노드를 만들고, merge_clang_doc 으로 clang-doc 노드를 합친 뒤, 래퍼를 템플릿 인자로 치환하는 내부 resolve 함수로 끝점을 해소하면서 2패스에서 관계(간선)를 만든다. extension 관계는 대상이 추상이면 realization, 아니면 inheritance 로 가른다. 마지막으로 _assemble 을 호출해 완성한다.",
+  "does": "1패스에서 각 요소를 투과 래퍼(R5)·원시 타입(R7)·1차 코드·외부 코드로 나눠 노드를 만들고, merge_clang_doc 으로 clang-doc 노드를 합친 뒤, 래퍼를 템플릿 인자로 치환하는 내부 resolve 함수로 끝점을 해소하면서 2패스에서 관계(간선)를 만든다. extension 관계는 대상이 추상이면 realization, 아니면 inheritance 로 가른다. 마지막으로 _assemble 을 호출해 완성한다. 버린 것은 Ledger 로 세어 지도와 함께 돌려준다 — 모르는 관계 종류는 fault 로, 끝점을 해소하지 못한 관계는 표본과 함께 unresolved 로 적고 계속한다.",
   "kind": "function",
   "means": "clang-uml 이 뽑아낸 C++ 클래스와 관계 목록을 이 도구의 공통 코드 지도 형식으로 바꾸는 함수다.",
   "module": "codewiki.python.machine",
@@ -1571,11 +1571,11 @@
     "where": "src/codewiki/python/machine/normalize.py:467"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:350"
+  "where": "src/codewiki/python/machine/normalize.py:438"
  },
  "codewiki.python.machine.normalize.normalize_csharp": {
   "confidence": "HIGH",
-  "does": "먼저 컴파일 오류나 미해결 타입이 있으면 즉시 종료한다(F5 게이트). cs_asm2pkg 로 패키지 사전을 만들고, 소스 어셈블리 소속이면서 제네릭 인스턴스가 아닌 타입들을 1차 노드로 만들고(cs_module_of 로 모듈 계산), 소스 제네릭 인스턴스는 같은 위치의 정의 노드에 접는다. 관계마다 투과 래퍼(R5)를 type_args 로 따라 내려가 해소하고 원시 타입(R7)을 거르며, 외부 타입은 cs_external_group 으로 묶어 노드를 만들고 간선을 쌓는다. 마지막에 _assemble 로 완성한다.",
+  "does": "먼저 컴파일 오류나 미해결 타입이 있으면 즉시 종료한다(F5 게이트). cs_asm2pkg 로 패키지 사전을 만들고, 소스 어셈블리 소속이면서 제네릭 인스턴스가 아닌 타입들을 1차 노드로 만들고(cs_module_of 로 모듈 계산), 소스 제네릭 인스턴스는 같은 위치의 정의 노드에 접는다. 관계마다 투과 래퍼(R5)를 type_args 로 따라 내려가 해소하고 원시 타입(R7)을 거르며, 외부 타입은 cs_external_group 으로 묶어 노드를 만들고 간선을 쌓는다. 마지막에 _assemble 로 완성한다. 버린 것은 Ledger 로 세어 지도와 함께 돌려준다 — 모르는 관계 kind 는 죽지 않고 fault 로, 풀리지 않은 Error 타입을 가리키는 관계는 표본과 함께 unresolved 로, TypeParameter 는 정책으로 적는다.",
   "kind": "function",
   "means": "roslyn-dump 가 뽑아낸 C# 타입·관계 정보를 이 프로젝트 공통의 코드 지도(노드+간선) 형태로 바꾸는 함수다.",
   "module": "codewiki.python.machine",
@@ -1606,11 +1606,11 @@
     "where": "src/codewiki/python/machine/normalize.py:768"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:648"
+  "where": "src/codewiki/python/machine/normalize.py:736"
  },
  "codewiki.python.machine.normalize.normalize_python": {
   "confidence": "HIGH",
-  "does": "griffe 의 모듈 트리를 평평하게 펴서 모든 클래스 이름을 모으고, 각 클래스를 1차 노드로 만들면서 py_abstraction 으로 interface/abstract 표시를 붙인다. 각 클래스의 베이스·속성 주석·메서드 매개변수/반환 주석을 py_walk_expr 로 훑어 관계 이름을 뽑고, 1차가 아니면 py_external_group 으로 외부 노드로 묶어 간선을 쌓는다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다.",
+  "does": "griffe 의 모듈 트리를 평평하게 펴 클래스 이름을 모으고, py_module_attributes 로 모듈 속성을 타입 변수 · 형 별칭 · 함수 꼴 TypedDict 로 가려 함수 꼴 클래스를 클래스와 같은 자리의 1차 노드로 만든다(py_abstraction 으로 interface/abstract 표시도 붙인다). 각 클래스의 베이스 · 속성 주석 · 메서드 매개변수와 반환 주석, 함수 꼴 클래스의 필드를 py_names 가 지은 이름표로 py_walk_expr 에 걸어 관계 이름을 뽑고, 1차가 아니면 py_external_group 으로 외부 노드에 묶어 간선을 쌓는다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다. 버린 것은 Ledger 로 세어 지도와 함께 돌려준다.",
   "kind": "function",
   "means": "griffe가 뽑아낸 파이썬 클래스 정보(와 선택적으로 pycalls가 뽑아낸 호출 정보)를 이 프로젝트 공통의 코드 지도로 바꾸는 함수다.",
   "module": "codewiki.python.machine",
@@ -1653,7 +1653,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1130"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:977"
+  "where": "src/codewiki/python/machine/normalize.py:1222"
  },
  "codewiki.python.machine.normalize.py_abstraction": {
   "confidence": "HIGH",
@@ -1670,7 +1670,7 @@
     "where": "src/codewiki/python/machine/normalize.py:893"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:887"
+  "where": "src/codewiki/python/machine/normalize.py:987"
  },
  "codewiki.python.machine.normalize.py_expr_name": {
   "confidence": "HIGH",
@@ -1680,7 +1680,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:869"
+  "where": "src/codewiki/python/machine/normalize.py:969"
  },
  "codewiki.python.machine.normalize.py_external_group": {
   "confidence": "HIGH",
@@ -1690,21 +1690,21 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:853"
+  "where": "src/codewiki/python/machine/normalize.py:953"
  },
  "codewiki.python.machine.normalize.py_resolve": {
   "confidence": "HIGH",
-  "does": "이름의 맨 앞 부분이 import 표에 있으면 그 완전 이름으로 바꾸고, 아니면 같은 모듈 소속 이름으로 만들어 봐서 실제로 1차 클래스 집합에 있으면 그것을, 없으면 원래 쓰인 이름을 그대로 돌려준다.",
+  "does": "py_expand 로 import 표 → 같은 모듈의 1차 이름 순서로 이름을 편다. 편 이름에 점이 없거나 이미 1차 이름이면 그대로 돌려준다. 점이 있는데 1차가 아니면 그 이름 전체를 꼬리로 갖는 1차 이름을 찾아, 하나면 그 이름(1차 이름 꼬리 맞춤)을, 둘 이상이면 고르지 않고 표본과 함께 적고(1차 이름 꼬리 겹침) None 을 돌려준다. 어디에도 없으면 편 그대로 돌려준다.",
   "kind": "function",
   "means": "파이썬 코드에서 짧게 쓰인 타입 이름을 완전한(모듈 경로 포함) 이름으로 풀어내는 함수다.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:906"
+  "where": "src/codewiki/python/machine/normalize.py:1125"
  },
  "codewiki.python.machine.normalize.py_walk_expr": {
   "confidence": "HIGH",
-  "does": "재귀 깊이가 8을 넘으면 포기한다. ExprBinOp(합집합 타입)은 양쪽을 다 파고들고, ExprTuple 은 원소마다 파고들고, ExprSubscript(제네릭)은 py_resolve 로 앞부분 이름을 풀어서 투과 컨테이너 목록에 있으면 속으로 더 내려가고 아니면 컨테이너 자신을 상대로 본다. 마지막엔 py_expr_name 으로 이름을 뽑아 원시 타입(R7)이거나 해소가 안 되는 빌트인·타입변수면 버리고, 나머지 이름들의 리스트를 돌려준다.",
+  "does": "깊이가 8 을 넘으면 식 깊이 초과로 세고 포기한다. 합집합(ExprBinOp)은 양쪽을, 튜플은 원소마다 내려가고, 첨자(ExprSubscript)는 앞 이름을 py_expand 로 펴서 투과 컨테이너 목록에 있으면 속으로, 아니면 컨테이너 자신을 상대로 본다. 이름 하나는 py_resolve 로 푼 뒤 갈린다 — 원시 타입(R7)은 버리고, 형 별칭은 정의한 모듈의 문맥에서 값 식을 다시 걷고, 타입 변수와 빌트인은 사유를 적어 버리고, 이름이 아닌 식은 세어 버리며, 풀지 못한 이름은 표본과 함께 적는다. 노드가 될 완전 수식 이름의 목록을 돌려준다.",
   "kind": "function",
   "means": "파이썬 타입 주석 하나(예: dict[str, Node] | None)를 griffe 가 준 트리 구조에서 재귀적으로 파고들어, 관계로 쳐줄 만한 타입 이름들만 뽑아내는 함수다.",
   "module": "codewiki.python.machine",
@@ -1723,7 +1723,7 @@
     "where": "src/codewiki/python/machine/normalize.py:957"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:921"
+  "where": "src/codewiki/python/machine/normalize.py:1149"
  },
  "codewiki.python.machine.normalize.tracked_set": {
   "confidence": "HIGH",
@@ -1733,7 +1733,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:182"
+  "where": "src/codewiki/python/machine/normalize.py:270"
  },
  "codewiki.python.machine.pycalls.PyCall": {
   "confidence": "HIGH",
@@ -2092,7 +2092,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/survey_plan.py:212"
+  "where": "src/codewiki/python/machine/survey_plan.py:214"
  },
  "codewiki.python.machine.survey_plan.PackedBatch": {
   "confidence": "HIGH",
@@ -2196,7 +2196,7 @@
     "where": "src/codewiki/python/machine/survey_plan.py:253"
    }
   ],
-  "where": "src/codewiki/python/machine/survey_plan.py:231"
+  "where": "src/codewiki/python/machine/survey_plan.py:233"
  },
  "codewiki.python.machine.survey_plan.is_public": {
   "confidence": "HIGH",
@@ -2206,7 +2206,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/survey_plan.py:226"
+  "where": "src/codewiki/python/machine/survey_plan.py:228"
  },
  "codewiki.python.machine.survey_plan.layer_of": {
   "confidence": "HIGH",
@@ -2223,7 +2223,7 @@
     "where": "src/codewiki/python/machine/survey_plan.py:113"
    }
   ],
-  "where": "src/codewiki/python/machine/survey_plan.py:102"
+  "where": "src/codewiki/python/machine/survey_plan.py:104"
  },
  "codewiki.python.machine.survey_plan.main": {
   "confidence": "HIGH",
@@ -2240,7 +2240,7 @@
     "where": "src/codewiki/python/machine/survey_plan.py:322"
    }
   ],
-  "where": "src/codewiki/python/machine/survey_plan.py:310"
+  "where": "src/codewiki/python/machine/survey_plan.py:312"
  },
  "codewiki.python.machine.survey_plan.pack": {
   "confidence": "HIGH",
@@ -2250,7 +2250,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/survey_plan.py:129"
+  "where": "src/codewiki/python/machine/survey_plan.py:131"
  },
  "codewiki.python.machine.survey_plan.plan": {
   "confidence": "HIGH",
@@ -2273,7 +2273,7 @@
     "where": "src/codewiki/python/machine/survey_plan.py:179"
    }
   ],
-  "where": "src/codewiki/python/machine/survey_plan.py:154"
+  "where": "src/codewiki/python/machine/survey_plan.py:156"
  },
  "codewiki.python.machine.survey_plan.plan_by_file": {
   "confidence": "HIGH",
@@ -2296,7 +2296,7 @@
     "where": "src/codewiki/python/machine/survey_plan.py:290"
    }
   ],
-  "where": "src/codewiki/python/machine/survey_plan.py:274"
+  "where": "src/codewiki/python/machine/survey_plan.py:276"
  },
  "codewiki.python.machine.survey_plan.weights_csv": {
   "confidence": "HIGH",
@@ -2306,7 +2306,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/survey_plan.py:266"
+  "where": "src/codewiki/python/machine/survey_plan.py:268"
  },
  "codewiki.python.machine.terms_db.DbUse": {
   "confidence": "HIGH",
@@ -8493,7 +8493,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:274"
+  "where": "src/codewiki/python/runner/mode1/context.py:282"
  },
  "codewiki.python.runner.mode1.context.Mode1Context": {
   "confidence": "MEDIUM",
@@ -8551,7 +8551,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:155"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:280"
+  "where": "src/codewiki/python/runner/mode1/context.py:288"
  },
  "codewiki.python.runner.mode1.context.ShardFault": {
   "confidence": "HIGH",
@@ -8675,7 +8675,7 @@
   "module": "codewiki.python.runner.mode1.context",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/context.py:285"
+  "where": "src/codewiki/python/runner/mode1/context.py:293"
  },
  "codewiki.python.runner.mode1.context.snapshot_path": {
   "confidence": "MEDIUM",
@@ -8692,7 +8692,7 @@
     "where": "src/codewiki/python/runner/mode1/context.py:208"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/context.py:341"
+  "where": "src/codewiki/python/runner/mode1/context.py:361"
  },
  "codewiki.python.runner.mode1.diff.WarmupDiff": {
   "confidence": "HIGH",
@@ -8872,7 +8872,7 @@
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage": {
   "confidence": "HIGH",
-  "does": "Mode1Machine 을 상속해 자식 프로세스로 prep.py 를 돌리는 단계를 정의한다. 전량이면 --force, 증분이면 변경 목록을 읽어 --diff 로 넘긴다.",
+  "does": "GraphFaultReport 와 Mode1Machine 을 이어받아 자식 프로세스로 prep.py 를 --collect-only 로 돌린다 — 수집 · 정제만 하고 facts · 모듈 그림은 derive-facts 가 검사 뒤에 만든다. 전량이면 --force, 증분이면 변경 목록을 읽어 --diff 로 넘긴다. prep 이 죽으며 collect-failure.json 을 남겼으면 결함 문서와 핸드오프로 옮겨 멈춘다.",
   "kind": "class",
   "means": "코드베이스를 한 번 훑어 코드 지도 파일을 만드는 단계를 나타내는 클래스다.",
   "module": "codewiki.python.runner.mode1.graph",
@@ -8885,11 +8885,11 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:18"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:18"
+  "where": "src/codewiki/python/runner/mode1/graph.py:52"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.argv": {
   "confidence": "HIGH",
-  "does": "self.wiki_argv 로 python prep.py <저장소> 기본 인자를 만들고, ctx.cold 이면 --force 를, 아니면 --diff 와 변경 파일(X.CHANGES) 경로를 덧붙여 반환한다.",
+  "does": "self.wiki_argv 로 python prep.py <저장소> 기본 인자를 만들고 --collect-only 를 붙인다. ctx.cold 이면 --force 를, 아니면 --diff 와 변경 파일(X.CHANGES) 경로를 덧붙여 반환한다.",
   "kind": "method",
   "means": "prep.py 를 실행할 때 쓸 명령줄 인자 목록을 만드는 함수다.",
   "module": "codewiki.python.runner.mode1.graph",
@@ -8908,7 +8908,7 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:27"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:22"
+  "where": "src/codewiki/python/runner/mode1/graph.py:58"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.reads": {
   "confidence": "HIGH",
@@ -8925,11 +8925,11 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:31"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:30"
+  "where": "src/codewiki/python/runner/mode1/graph.py:66"
  },
  "codewiki.python.runner.mode1.graph.CollectGraphStage.writes": {
   "confidence": "HIGH",
-  "does": "코드 지도 산출물(X.CODEGRAPH) 하나를 담은 목록을 반환한다.",
+  "does": "코드 지도(X.CODEGRAPH) · 수집 manifest(X.COLLECT_FINGERPRINT) · 버림 장부(X.NORMALIZE_REPORT) · 소스 inventory(X.SOURCE_INVENTORY) 넷을 담은 목록을 반환한다. facts · ranking.json 은 derive-facts 가 쓴다.",
   "kind": "method",
   "means": "이 단계가 끝나면 만들어져 있어야 하는 파일 목록을 알려주는 함수다.",
   "module": "codewiki.python.runner.mode1.graph",
@@ -8942,7 +8942,7 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:34"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:33"
+  "where": "src/codewiki/python/runner/mode1/graph.py:69"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage": {
   "confidence": "HIGH",
@@ -8965,13 +8965,13 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:85"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:85"
+  "where": "src/codewiki/python/runner/mode1/graph.py:193"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.perform": {
   "confidence": "HIGH",
-  "does": "P.load 로 코드 지도 파일을 읽고(최상위 형만 검증해 cast), ctx.strategy 가 file 이면 survey_plan.plan_by_file 로 파일 단위 계획을 만들고 survey_plan.file_weights 와 survey_plan.weights_csv 로 우선순위 CSV 파일을 써서 그 경로를 출력하며, 아니면 survey_plan.plan 으로 층 단위 계획을 만든다. 만든 계획을 JSON 파일(X.BATCHES 경로)로 저장하고, 증분이면 처리한 파일 수를 덧붙여 출력하며, plan_summary 의 각 줄을 출력한다. 끝으로 걸린 시간을 담은 성공 Outcome 을 반환한다.",
+  "does": "먼저 VerifiedGraph.gate 로 성공 기록과 지도를 대조해 막히면 FAIL 이다. 통과하면 gate 가 돌려준 바이트를 survey_plan.CodeGraph 로 읽는다. ctx.strategy 가 file 이면 survey_plan.plan_by_file 로 파일 단위 계획을 만들고 survey_plan.file_weights 와 survey_plan.weights_csv 로 우선순위 CSV 를 써서 그 경로를 출력하며, 아니면 survey_plan.plan 으로 층 단위 계획을 만든다. 계획에 지도의 sha256(codegraph_sha256)과 성공 기록의 generation_id 를 찍어 X.BATCHES 경로에 원자적으로 쓰고, 증분이면 처리한 파일 수를 덧붙여 출력하며, plan_summary 의 각 줄과 예상 비용 한 줄을 출력한다. 끝으로 걸린 시간을 담은 성공 Outcome 을 반환한다.",
   "kind": "method",
-  "means": "실제로 코드 지도를 읽어 배치 계획을 만들고 파일로 저장하는, 이 단계의 본체 함수다.",
+  "means": "성공 기록과 맞는 코드 지도를 읽어 배치 계획을 만들고 파일로 저장하는, 이 단계의 본체 함수다.",
   "module": "codewiki.python.runner.mode1.graph",
   "shallow": [
    "runner.pipeline.Outcome",
@@ -8985,48 +8985,48 @@
   "uses": [
    {
     "kind": "dependency",
-    "label": "코드 지도 JSON 파일을 읽음",
+    "label": "성공 기록에서 generation_id 를 읽음",
     "to": "core.pipeline.load",
-    "where": "src/codewiki/python/runner/mode1/graph.py:122"
+    "where": "src/codewiki/python/runner/mode1/graph.py:260"
    },
    {
     "kind": "dependency",
     "label": "파일 전략일 때 파일 단위 계획을 만듦",
     "to": "codewiki.python.machine.survey_plan.plan_by_file",
-    "where": "src/codewiki/python/runner/mode1/graph.py:125"
+    "where": "src/codewiki/python/runner/mode1/graph.py:253"
    },
    {
     "kind": "dependency",
     "label": "파일별 가중치를 계산",
     "to": "codewiki.python.machine.survey_plan.file_weights",
-    "where": "src/codewiki/python/runner/mode1/graph.py:127"
+    "where": "src/codewiki/python/runner/mode1/graph.py:255"
    },
    {
     "kind": "dependency",
     "label": "가중치를 CSV 문자열로 변환",
     "to": "codewiki.python.machine.survey_plan.weights_csv",
-    "where": "src/codewiki/python/runner/mode1/graph.py:127"
+    "where": "src/codewiki/python/runner/mode1/graph.py:255"
    },
    {
     "kind": "dependency",
     "label": "층 전략일 때 층 단위 계획을 만듦",
     "to": "codewiki.python.machine.survey_plan.plan",
-    "where": "src/codewiki/python/runner/mode1/graph.py:130"
+    "where": "src/codewiki/python/runner/mode1/graph.py:258"
    },
    {
     "kind": "dependency",
     "label": "성공 결과를 담아 반환",
     "to": "core.pipeline.Outcome",
-    "where": "src/codewiki/python/runner/mode1/graph.py:146"
+    "where": "src/codewiki/python/runner/mode1/graph.py:268"
    },
    {
     "kind": "dependency",
     "label": "요약 줄 목록을 얻어 출력",
     "to": "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.plan_summary",
-    "where": "src/codewiki/python/runner/mode1/graph.py:136"
+    "where": "src/codewiki/python/runner/mode1/graph.py:264"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:145"
+  "where": "src/codewiki/python/runner/mode1/graph.py:245"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.plan_summary": {
   "confidence": "HIGH",
@@ -9043,7 +9043,7 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:97"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:99"
+  "where": "src/codewiki/python/runner/mode1/graph.py:207"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.reads": {
   "confidence": "HIGH",
@@ -9066,7 +9066,7 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:91"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:92"
+  "where": "src/codewiki/python/runner/mode1/graph.py:200"
  },
  "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.writes": {
   "confidence": "HIGH",
@@ -9089,7 +9089,7 @@
     "where": "src/codewiki/python/runner/mode1/graph.py:94"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/graph.py:95"
+  "where": "src/codewiki/python/runner/mode1/graph.py:203"
  },
  "codewiki.python.runner.mode1.lang.LangDecideStage": {
   "confidence": "HIGH",
@@ -9306,7 +9306,7 @@
   "module": "codewiki.python.runner.mode1.resume",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/resume.py:10"
+  "where": "src/codewiki/python/runner/mode1/resume.py:11"
  },
  "codewiki.python.runner.mode1.resume.read_resume": {
   "confidence": "HIGH",
@@ -9326,7 +9326,7 @@
     "where": "src/codewiki/python/runner/mode1/resume.py:35"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/resume.py:33"
+  "where": "src/codewiki/python/runner/mode1/resume.py:36"
  },
  "codewiki.python.runner.mode1.resume.start_stage": {
   "confidence": "HIGH",
@@ -9336,7 +9336,7 @@
   "module": "codewiki.python.runner.mode1.resume",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/resume.py:38"
+  "where": "src/codewiki/python/runner/mode1/resume.py:41"
  },
  "codewiki.python.runner.mode1.resume.write_resume": {
   "confidence": "HIGH",
@@ -9359,7 +9359,7 @@
     "where": "src/codewiki/python/runner/mode1/resume.py:29"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/resume.py:18"
+  "where": "src/codewiki/python/runner/mode1/resume.py:21"
  },
  "codewiki.python.runner.mode1.scan.DetectChangesStage": {
   "confidence": "HIGH",
@@ -9741,7 +9741,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:21"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:21"
+  "where": "src/codewiki/python/runner/mode1/survey.py:22"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.apply_pass2": {
   "confidence": "HIGH",
@@ -9764,7 +9764,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:512"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:500"
+  "where": "src/codewiki/python/runner/mode1/survey.py:331"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_coverage": {
   "confidence": "HIGH",
@@ -9793,7 +9793,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:336"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:333"
+  "where": "src/codewiki/python/runner/mode1/survey.py:198"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_shard": {
   "confidence": "HIGH",
@@ -9822,7 +9822,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:319"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:303"
+  "where": "src/codewiki/python/runner/mode1/survey.py:168"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_shards": {
   "confidence": "HIGH",
@@ -9863,7 +9863,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:345"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:342"
+  "where": "src/codewiki/python/runner/mode1/survey.py:209"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.clear_quarantine": {
   "confidence": "HIGH",
@@ -9873,7 +9873,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:384"
+  "where": "src/codewiki/python/runner/mode1/survey.py:252"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.compare_plan": {
   "confidence": "HIGH",
@@ -9902,7 +9902,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:589"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:589"
+  "where": "src/codewiki/python/runner/mode1/survey.py:486"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.dep_excerpt": {
   "confidence": "HIGH",
@@ -9919,7 +9919,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:88"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:78"
+  "where": "src/codewiki/python/runner/mode1/survey.py:56"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.fault": {
   "confidence": "HIGH",
@@ -9942,7 +9942,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:298"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:298"
+  "where": "src/codewiki/python/runner/mode1/survey.py:158"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.fault_line": {
   "confidence": "HIGH",
@@ -9952,7 +9952,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:322"
+  "where": "src/codewiki/python/runner/mode1/survey.py:187"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.file_of": {
   "confidence": "HIGH",
@@ -9962,7 +9962,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:573"
+  "where": "src/codewiki/python/runner/mode1/survey.py:470"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.harvest": {
   "confidence": "MEDIUM",
@@ -9991,7 +9991,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:686"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:681"
+  "where": "src/codewiki/python/runner/mode1/survey.py:582"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.into_of": {
   "confidence": "HIGH",
@@ -10008,7 +10008,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:419"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:419"
+  "where": "src/codewiki/python/runner/mode1/survey.py:277"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.jobs": {
   "confidence": "HIGH",
@@ -10055,7 +10055,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:677"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:666"
+  "where": "src/codewiki/python/runner/mode1/survey.py:566"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.load_faults": {
   "confidence": "MEDIUM",
@@ -10081,7 +10081,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:379"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:376"
+  "where": "src/codewiki/python/runner/mode1/survey.py:244"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.load_records": {
   "confidence": "MEDIUM",
@@ -10107,7 +10107,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:529"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:527"
+  "where": "src/codewiki/python/runner/mode1/survey.py:358"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.merge_shards": {
   "confidence": "HIGH",
@@ -10130,7 +10130,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:566"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:532"
+  "where": "src/codewiki/python/runner/mode1/survey.py:363"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.name_of": {
   "confidence": "HIGH",
@@ -10147,7 +10147,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:75"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:72"
+  "where": "src/codewiki/python/runner/mode1/survey.py:50"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.nonnode_prompt": {
   "confidence": "HIGH",
@@ -10164,7 +10164,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:263"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:209"
+  "where": "src/codewiki/python/runner/mode1/survey.py:118"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pass2_prompt": {
   "confidence": "HIGH",
@@ -10174,7 +10174,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:462"
+  "where": "src/codewiki/python/runner/mode1/survey.py:320"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pending_excerpt": {
   "confidence": "HIGH",
@@ -10191,7 +10191,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:199"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:193"
+  "where": "src/codewiki/python/runner/mode1/survey.py:99"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pending_section": {
   "confidence": "HIGH",
@@ -10252,7 +10252,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:617"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:608"
+  "where": "src/codewiki/python/runner/mode1/survey.py:505"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.plan_files": {
   "confidence": "HIGH",
@@ -10269,7 +10269,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:586"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:584"
+  "where": "src/codewiki/python/runner/mode1/survey.py:481"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.plan_ids": {
   "confidence": "HIGH",
@@ -10286,7 +10286,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:329"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:327"
+  "where": "src/codewiki/python/runner/mode1/survey.py:192"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.prompt": {
   "confidence": "HIGH",
@@ -10296,7 +10296,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:29"
+  "where": "src/codewiki/python/runner/mode1/survey.py:32"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.qualified": {
   "confidence": "HIGH",
@@ -10313,7 +10313,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:580"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:578"
+  "where": "src/codewiki/python/runner/mode1/survey.py:475"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.quarantine": {
   "confidence": "HIGH",
@@ -10330,7 +10330,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:372"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:361"
+  "where": "src/codewiki/python/runner/mode1/survey.py:229"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.reads": {
   "confidence": "HIGH",
@@ -10353,7 +10353,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:33"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:32"
+  "where": "src/codewiki/python/runner/mode1/survey.py:35"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.repo": {
   "confidence": "HIGH",
@@ -10370,7 +10370,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:27"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:26"
+  "where": "src/codewiki/python/runner/mode1/survey.py:29"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.retry_section": {
   "confidence": "HIGH",
@@ -10410,7 +10410,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:664"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:663"
+  "where": "src/codewiki/python/runner/mode1/survey.py:563"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.shallow_of": {
   "confidence": "HIGH",
@@ -10420,7 +10420,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:410"
+  "where": "src/codewiki/python/runner/mode1/survey.py:268"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.shard_dir": {
   "confidence": "HIGH",
@@ -10437,7 +10437,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:42"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:41"
+  "where": "src/codewiki/python/runner/mode1/survey.py:44"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.survey_batch_prompt": {
   "confidence": "HIGH",
@@ -10466,7 +10466,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:177"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:93"
+  "where": "src/codewiki/python/runner/mode1/survey.py:71"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.sweep": {
   "confidence": "MEDIUM",
@@ -10510,7 +10510,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:660"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:640"
+  "where": "src/codewiki/python/runner/mode1/survey.py:540"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.unresolved_csv": {
   "confidence": "HIGH",
@@ -10527,7 +10527,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:453"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:453"
+  "where": "src/codewiki/python/runner/mode1/survey.py:311"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.unresolved_rows": {
   "confidence": "HIGH",
@@ -10556,7 +10556,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:434"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:430"
+  "where": "src/codewiki/python/runner/mode1/survey.py:288"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.warmup_section": {
   "confidence": "HIGH",
@@ -10602,7 +10602,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:290"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:284"
+  "where": "src/codewiki/python/runner/mode1/survey.py:144"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.writes": {
   "confidence": "HIGH",
@@ -10625,7 +10625,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:36"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:35"
+  "where": "src/codewiki/python/runner/mode1/survey.py:38"
  },
  "codewiki.python.runner.mode1.survey_files.AnnotateFilesStage": {
   "confidence": "HIGH",
@@ -10809,11 +10809,11 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:14"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:14"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:23"
  },
  "codewiki.python.runner.mode1.wiki.OutlineWikiStage.perform": {
   "confidence": "HIGH",
-  "does": "시간을 재기 시작한 뒤, X.OUTLINE 이 가리키는 경로에 파일이 이미 있으면 self.row 로 '목차가 이미 있다' 행을 만들고 skipped 표시를 붙여 OK Outcome 을 바로 돌려준다. 없으면 부모 클래스(LlmStage)의 perform 을 그대로 호출해 실제로 LLM 세션을 돌린다.",
+  "does": "먼저 VerifiedGraph.gate 로 성공 기록 · 배치 · ranking.json 을 지도와 대조해 막히면 FAIL 이다. 통과하면 X.OUTLINE 이 가리키는 경로에 파일이 이미 있을 때 self.row 로 '목차가 이미 있다' 행을 만들고 skipped 표시를 붙여 OK Outcome 을 바로 돌려준다. 없으면 부모 클래스(LlmStage)의 perform 으로 LLM 세션을 돌린다.",
   "kind": "method",
   "means": "이 단계를 실제로 실행하는 함수다. 목차 파일이 이미 있으면 다시 만들지 않는다.",
   "module": "codewiki.python.runner.mode1.wiki",
@@ -10847,7 +10847,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:82"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:76"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:54"
  },
  "codewiki.python.runner.mode1.wiki.OutlineWikiStage.prompt": {
   "confidence": "HIGH",
@@ -10864,7 +10864,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:26"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:25"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:36"
  },
  "codewiki.python.runner.mode1.wiki.OutlineWikiStage.repo": {
   "confidence": "HIGH",
@@ -10881,7 +10881,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:23"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:22"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:33"
  },
  "codewiki.python.runner.mode1.wiki.OutlineWikiStage.wiki_catalogue_prompt": {
   "confidence": "HIGH",
@@ -10891,7 +10891,7 @@
   "module": "codewiki.python.runner.mode1.wiki",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:32"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:46"
  },
  "codewiki.python.runner.mode1.wiki.OutlineWikiStage.writes": {
   "confidence": "HIGH",
@@ -10908,7 +10908,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:29"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:28"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:42"
  },
  "codewiki.python.runner.mode1.wiki.PublishWikiStage": {
   "confidence": "HIGH",
@@ -10925,7 +10925,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:201"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:201"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:343"
  },
  "codewiki.python.runner.mode1.wiki.PublishWikiStage.argv": {
   "confidence": "MEDIUM",
@@ -10942,7 +10942,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:205"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:204"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:346"
  },
  "codewiki.python.runner.mode1.wiki.PublishWikiStage.reads": {
   "confidence": "HIGH",
@@ -10959,7 +10959,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:208"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:207"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:349"
  },
  "codewiki.python.runner.mode1.wiki.VerifyWikiStage": {
   "confidence": "HIGH",
@@ -10976,7 +10976,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:211"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:211"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:353"
  },
  "codewiki.python.runner.mode1.wiki.VerifyWikiStage.argv": {
   "confidence": "MEDIUM",
@@ -10993,7 +10993,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:215"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:214"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:356"
  },
  "codewiki.python.runner.mode1.wiki.VerifyWikiStage.reads": {
   "confidence": "HIGH",
@@ -11010,7 +11010,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:218"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:217"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:359"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage": {
   "confidence": "HIGH",
@@ -11033,7 +11033,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:85"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:85"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:66"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.harvest": {
   "confidence": "HIGH",
@@ -11050,7 +11050,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:195"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:194"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:318"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.jobs": {
   "confidence": "HIGH",
@@ -11067,7 +11067,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:192"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:186"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:304"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.page_layers": {
   "confidence": "HIGH",
@@ -11084,11 +11084,11 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:112"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:112"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:103"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.perform": {
   "confidence": "HIGH",
-  "does": "ctx.plan 이 아직 없으면 batches.json 을 읽어 채운 뒤, prepare 를 호출해 준비 상태를 만들고, 부모 클래스(LlmStage)의 perform 을 호출해 실제 라운드 실행을 맡긴다.",
+  "does": "먼저 VerifiedGraph.gate 로 성공 기록 · 배치 · ranking.json 을 지도와 대조해 막히면 FAIL 이다. 통과하면 ctx.plan 이 아직 없을 때 batches.json 을 읽어 채우고, prepare 로 준비 상태를 만들고, 부모 클래스(LlmStage)의 perform 으로 라운드를 돌린다. 끝난 뒤 신선도를 모르는 장이나 빠진 장이 없을 때만 위키를 따라잡았다고 적는다.",
   "kind": "method",
   "means": "이 단계를 실제로 실행하는 함수다.",
   "module": "codewiki.python.runner.mode1.wiki",
@@ -11122,7 +11122,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:181"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:177"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:268"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.prepare": {
   "confidence": "HIGH",
@@ -11160,7 +11160,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:172"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:169"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:241"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.prompt": {
   "confidence": "HIGH",
@@ -11170,11 +11170,11 @@
   "module": "codewiki.python.runner.mode1.wiki",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:92"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:83"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.reads": {
   "confidence": "HIGH",
-  "does": "X.OUTLINE 과 X.BATCHES 두 개를 담은 리스트를 돌려준다.",
+  "does": "X.OUTLINE · X.BATCHES · X.CODEGRAPH · X.GRAPH_VERIFIED · X.RANKING 다섯 개를 담은 리스트를 돌려준다.",
   "kind": "method",
   "means": "이 단계가 시작하기 전에 반드시 있어야 하는 산출물을 선언하는 함수다.",
   "module": "codewiki.python.runner.mode1.wiki",
@@ -11193,7 +11193,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:96"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:95"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:86"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.repo": {
   "confidence": "HIGH",
@@ -11210,7 +11210,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:90"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:89"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:80"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.rounds": {
   "confidence": "HIGH",
@@ -11220,7 +11220,7 @@
   "module": "codewiki.python.runner.mode1.wiki",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:183"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:301"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.symbol_layers": {
   "confidence": "HIGH",
@@ -11237,7 +11237,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:104"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:104"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:95"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.wiki_page_prompt": {
   "confidence": "HIGH",
@@ -11247,7 +11247,7 @@
   "module": "codewiki.python.runner.mode1.wiki",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:126"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:117"
  },
  "codewiki.python.runner.mode1.wiki.WriteWikiStage.writes": {
   "confidence": "HIGH",
@@ -11264,7 +11264,7 @@
     "where": "src/codewiki/python/runner/mode1/wiki.py:101"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/wiki.py:98"
+  "where": "src/codewiki/python/runner/mode1/wiki.py:89"
  },
  "core.pipeline.Artifact": {
   "confidence": "HIGH",
@@ -12026,7 +12026,7 @@
   "module": "codewiki.python.runner.run_mode1",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/run_mode1.py:96"
+  "where": "src/codewiki/python/runner/run_mode1.py:98"
  },
  "codewiki.python.runner.run_mode1.main": {
   "confidence": "HIGH",
@@ -12088,7 +12088,7 @@
     "where": "src/codewiki/python/runner/run_mode1.py:243"
    }
   ],
-  "where": "src/codewiki/python/runner/run_mode1.py:189"
+  "where": "src/codewiki/python/runner/run_mode1.py:191"
  },
  "term.python.runner.run_mode1_5.AnswerSheet": {
   "confidence": "HIGH",
@@ -22478,7 +22478,7 @@
   "module": "codewiki.python.runner.wiki.compdb",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/compdb.py:60"
+  "where": "src/codewiki/python/runner/wiki/compdb.py:69"
  },
  "codewiki.python.runner.wiki.compdb.findCompdbs": {
   "confidence": "HIGH",
@@ -22492,7 +22492,7 @@
  },
  "codewiki.python.runner.wiki.compdb.mergeEntries": {
   "confidence": "HIGH",
-  "does": "리스트 여러 개를 순서대로 훑으며 각 항목의 file 값을 본다. file 이 문자열이 아니거나 이미 나온 파일이면 건너뛰고, repo 경로로 시작하지 않거나 EXTERNAL_MARKERS(예: /vcpkg_installed/, /node_modules/, moc_ 등)가 들어있으면도 건너뛴다. 남은 것만 순서를 지키며 하나의 리스트에 모아 돌려준다.",
+  "does": "리스트 여러 개를 순서대로 훑으며 항목마다 file 을 directory(없으면 repo) 기준으로 풀어 정규화한다(clang JSON compilation database 규약). file 이 문자열이 아니면 건너뛴다. 저장소 밖(outside-repo) · 외부 표지가 든 경로(external) · 이미 나온 파일(duplicate-config)은 버리되, dropped 목록이 있으면 reason 을 붙여 거기에 넣는다. 번역 단위당 첫 항목만 남는다.",
   "kind": "function",
   "means": "여러 compile_commands.json 에서 읽은 항목들을 하나로 합치는 함수.",
   "module": "codewiki.python.runner.wiki.compdb",
@@ -22508,7 +22508,7 @@
   "module": "codewiki.python.runner.wiki.compdb",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/compdb.py:80"
+  "where": "src/codewiki/python/runner/wiki/compdb.py:89"
  },
  "codewiki.python.runner.wiki.compdb.relativeFiles": {
   "confidence": "HIGH",
@@ -22518,7 +22518,7 @@
   "module": "codewiki.python.runner.wiki.compdb",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/compdb.py:55"
+  "where": "src/codewiki/python/runner/wiki/compdb.py:64"
  },
  "codewiki.python.runner.wiki.paths.collectorFor": {
   "confidence": "HIGH",
@@ -22528,7 +22528,7 @@
   "module": "codewiki.python.runner.wiki.paths",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/paths.py:16"
+  "where": "src/codewiki/python/runner/wiki/paths.py:20"
  },
  "codewiki.python.runner.wiki.paths.collectorFromSelect": {
   "confidence": "HIGH",
@@ -22538,11 +22538,11 @@
   "module": "codewiki.python.runner.wiki.paths",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/paths.py:25"
+  "where": "src/codewiki/python/runner/wiki/paths.py:29"
  },
  "codewiki.python.runner.wiki.paths.wikiPaths": {
   "confidence": "HIGH",
-  "does": "저장소 루트 경로를 받아 out/codegraph-raw 아래의 raw·built·site·codegraph 경로와 docs/wiki 경로를 계산해 이름이 붙은 딕셔너리로 돌려준다.",
+  "does": "저장소 루트 경로를 받아 out/codegraph-raw 아래의 raw · built · site · codegraph · fingerprint(수집 manifest) · report(버림 장부) · failure(수집 실패 기록) · inventory(소스 inventory) 경로와 docs/wiki 경로를 계산해 이름이 붙은 딕셔너리로 돌려준다.",
   "kind": "function",
   "means": "위키 관련 파일들이 어디에 있는지 경로를 모아 알려주는 함수.",
   "module": "codewiki.python.runner.wiki.paths",
@@ -22552,17 +22552,17 @@
  },
  "codewiki.python.runner.wiki.prep.needs_collect": {
   "confidence": "HIGH",
-  "does": "force 가 참이거나 코드 지도(has_codegraph)가 없으면 무조건 True(다시 수집)를 돌려준다. 그 외에 verdicts 가 없으면 False. verdicts 가 있으면 그 안의 \"재읽기\" · \"위치만\" · \"삭제됨\" 키 중 하나라도 값이 있으면 True 를 돌려준다.",
+  "does": "force 가 참이거나 수집 코드 · 수집기 판이 지도를 만들 때와 다르거나(tool_changed) 소스 내용이 manifest 와 다르거나(source_changed) 코드 지도(has_codegraph)가 없으면 무조건 True(다시 수집)를 돌려준다. 그 외에 verdicts 가 없으면 False. verdicts 가 있으면 그 안의 \"재읽기\" · \"위치만\" · \"삭제됨\" 키 중 하나라도 값이 있으면 True 를 돌려준다.",
   "kind": "function",
   "means": "위키 재료를 만들 때 정적 수집기를 다시 돌려야 하는지를 정하는 함수다.",
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:87"
+  "where": "src/codewiki/python/runner/wiki/prep.py:100"
  },
  "codewiki.python.runner.wiki.prep.prepPlan": {
   "confidence": "HIGH",
-  "does": "needs_collect 로 재수집이 필요 없다고 나오면 [\"facts\", \"render-modules\"] 만 돌려준다. 재수집이 필요하면 collector 값(clang-uml · griffe+pycalls · roslyn-dump)에 따라 필요한 조건(.clang-uml 설정 파일, roslyn-dump.json 존재 여부)을 검사해서, 조건이 없으면 blocked 메시지와 빈 단계 목록을, 있으면 수집기별 단계들 뒤에 tail 을 붙인 단계 목록을 {\"steps\":…, \"blocked\":…} 꼴로 돌려준다.",
+  "does": "tail 은 collect_only 가 아니면 [\"facts\", \"render-modules\"] 이고 collect_only 면 비어 있다(파생물은 derive-facts 가 검사 뒤에 만든다). needs_collect 로 재수집이 필요 없다고 나오면 tail 만 돌려준다. 재수집이 필요하면 collector 값(clang-uml · griffe+pycalls · roslyn-dump)에 따라 필요한 조건(.clang-uml 설정 파일, roslyn-dump.json 존재 여부)을 검사해서, 조건이 없으면 blocked 메시지와 빈 단계 목록을, 있으면 수집기별 단계들 뒤에 tail 을 붙인 단계 목록을 {\"steps\":…, \"blocked\":…} 꼴로 돌려준다.",
   "kind": "function",
   "means": "어떤 정적 수집기를 쓰는지에 따라 이번에 실행할 단계 목록을 정하는 함수다.",
   "module": "codewiki.python.runner.wiki.prep",
@@ -22575,7 +22575,7 @@
     "where": "src/codewiki/python/runner/wiki/prep.py:104"
    }
   ],
-  "where": "src/codewiki/python/runner/wiki/prep.py:100"
+  "where": "src/codewiki/python/runner/wiki/prep.py:114"
  },
  "codewiki.python.runner.wiki.prep.pyRoots": {
   "confidence": "HIGH",
@@ -22585,17 +22585,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:122"
- },
- "codewiki.python.runner.wiki.prep.run": {
-  "confidence": "HIGH",
-  "does": "subprocess.run 으로 [cmd] + args 를 cwd 에서 실행한다. 반환 코드가 0 이 아니면 표준에러에 실패 메시지를 찍고 sys.exit 로 그 반환 코드(0이면 1)로 프로세스를 끝낸다.",
-  "kind": "function",
-  "means": "외부 명령 하나를 자식 프로세스로 실행하는 함수다.",
-  "module": "codewiki.python.runner.wiki.prep",
-  "source": "reading",
-  "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:142"
+  "where": "src/codewiki/python/runner/wiki/prep.py:136"
  },
  "src/core/__init__.py": {
   "confidence": "MEDIUM",
@@ -24895,7 +24885,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:33"
+  "where": "src/codewiki/python/runner/wiki/prep.py:46"
  },
  "codewiki.python.runner.wiki.prep.collect_fingerprint": {
   "confidence": "HIGH",
@@ -24905,7 +24895,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:59"
+  "where": "src/codewiki/python/runner/wiki/prep.py:86"
  },
  "codewiki.python.runner.wiki.prep.config_inputs": {
   "confidence": "HIGH",
@@ -24915,7 +24905,7 @@
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:65"
+  "where": "src/codewiki/python/runner/wiki/prep.py:72"
  },
  "codewiki.python.machine.jsonio.write_json_atomic": {
   "confidence": "HIGH",
@@ -24929,7 +24919,7 @@
  },
  "codewiki.python.machine.collect_manifest.CollectManifest": {
   "confidence": "HIGH",
-  "does": "수집기 지문(fingerprint) · 바깥 도구 판(tool_versions) · 설정 입력(config_inputs) · 지도 sha256 · 인용 파일별 소스 sha256(sources)과 그 묶음 해시(sources_sha256) · 원본 출처(raw_provenance) · generation_id 를 담는다. generation_id 가 지도 · 소스 · 수집기 셋을 한 이름으로 묶는다.",
+  "does": "수집기 지문(fingerprint) · 바깥 도구 판(tool_versions) · 설정 입력(config_inputs) · 지도 sha256 · 인용 파일별 소스 sha256(sources)과 그 묶음 해시(sources_sha256) · 소스 inventory 의 sha256(inventory_sha256) · 원본 출처(raw_provenance) · generation_id 를 담는다. generation_id 가 수집기 · 지도 · 소스 · inventory 넷을 한 이름으로 묶는다.",
   "kind": "class",
   "means": "한 번의 수집을 적은 manifest 의 꼴.",
   "module": "codewiki.python.machine",
@@ -24945,7 +24935,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:20"
+  "where": "src/codewiki/python/machine/collect_manifest.py:21"
  },
  "codewiki.python.machine.collect_manifest.cited_files": {
   "confidence": "HIGH",
@@ -24955,7 +24945,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:29"
+  "where": "src/codewiki/python/machine/collect_manifest.py:30"
  },
  "codewiki.python.machine.collect_manifest.hash_sources": {
   "confidence": "HIGH",
@@ -24965,7 +24955,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:41"
+  "where": "src/codewiki/python/machine/collect_manifest.py:42"
  },
  "codewiki.python.machine.collect_manifest.sources_digest": {
   "confidence": "HIGH",
@@ -24975,27 +24965,27 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:46"
+  "where": "src/codewiki/python/machine/collect_manifest.py:47"
  },
  "codewiki.python.machine.collect_manifest.generation_id": {
   "confidence": "HIGH",
-  "does": "수집기 지문 · 지도 sha256 · 소스 묶음 해시를 줄바꿈으로 이어 sha256 한다. 셋 중 하나만 달라도 다른 세대다.",
+  "does": "수집기 지문 · 지도 sha256 · 소스 묶음 해시 · inventory 해시를 줄바꿈으로 이어 sha256 한다. 넷 중 하나만 달라도 다른 세대다.",
   "kind": "function",
   "means": "수집 한 번에 붙이는 세대 이름을 짓는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:54"
+  "where": "src/codewiki/python/machine/collect_manifest.py:55"
  },
  "codewiki.python.machine.collect_manifest.build_manifest": {
   "confidence": "HIGH",
-  "does": "지도 파일의 sha256 과 인용 파일의 지금 해시(hash_sources · sources_digest)를 재고 generation_id 를 붙여 CollectManifest 를 낸다. collector 가 roslyn-dump 면 원본이 prep 밖에서 나므로 raw_provenance 가 unknown 이고 아니면 prep 이다.",
+  "does": "지도 파일의 sha256 과 인용 파일의 지금 해시(hash_sources · sources_digest)를 재고, 정제 뒤에 마무리한 소스 inventory 의 sha256(inventory_sha256)을 받아 generation_id 를 붙여 CollectManifest 를 낸다. collector 가 roslyn-dump 면 원본이 prep 밖에서 나므로 raw_provenance 가 unknown 이고 아니면 prep 이다.",
   "kind": "function",
   "means": "수집 직후의 manifest 를 짓는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:59"
+  "where": "src/codewiki/python/machine/collect_manifest.py:61"
  },
  "codewiki.python.machine.collect_manifest.read_manifest": {
   "confidence": "HIGH",
@@ -25005,7 +24995,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:74"
+  "where": "src/codewiki/python/machine/collect_manifest.py:79"
  },
  "codewiki.python.machine.collect_manifest.changed_sources": {
   "confidence": "HIGH",
@@ -25015,7 +25005,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/collect_manifest.py:90"
+  "where": "src/codewiki/python/machine/collect_manifest.py:95"
  },
  "codewiki.python.machine.verify_graph.Fault": {
   "confidence": "HIGH",
@@ -25025,7 +25015,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:41"
+  "where": "src/codewiki/python/machine/verify_graph.py:53"
  },
  "codewiki.python.machine.verify_graph.SectionDoc": {
   "confidence": "HIGH",
@@ -25035,7 +25025,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:58"
+  "where": "src/codewiki/python/machine/verify_graph.py:68"
  },
  "codewiki.python.machine.verify_graph.FreshnessDoc": {
   "confidence": "HIGH",
@@ -25045,7 +25035,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:64"
+  "where": "src/codewiki/python/machine/verify_graph.py:74"
  },
  "codewiki.python.machine.verify_graph.CoverageDoc": {
   "confidence": "HIGH",
@@ -25055,7 +25045,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:71"
+  "where": "src/codewiki/python/machine/verify_graph.py:81"
  },
  "codewiki.python.machine.verify_graph.Capabilities": {
   "confidence": "HIGH",
@@ -25065,7 +25055,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:83"
+  "where": "src/codewiki/python/machine/verify_graph.py:93"
  },
  "codewiki.python.machine.verify_graph.Fit": {
   "confidence": "HIGH",
@@ -25075,7 +25065,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:90"
+  "where": "src/codewiki/python/machine/verify_graph.py:100"
  },
  "codewiki.python.machine.verify_graph.VerifyDoc": {
   "confidence": "HIGH",
@@ -25085,7 +25075,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:96"
+  "where": "src/codewiki/python/machine/verify_graph.py:106"
  },
  "codewiki.python.machine.verify_graph.Elements": {
   "confidence": "HIGH",
@@ -25095,7 +25085,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:95"
+  "where": "src/codewiki/python/machine/verify_graph.py:151"
  },
  "codewiki.python.machine.verify_graph.fault": {
   "confidence": "HIGH",
@@ -25105,7 +25095,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:71"
+  "where": "src/codewiki/python/machine/verify_graph.py:127"
  },
  "codewiki.python.machine.verify_graph.read_graph": {
   "confidence": "HIGH",
@@ -25115,7 +25105,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:78"
+  "where": "src/codewiki/python/machine/verify_graph.py:134"
  },
  "codewiki.python.machine.verify_graph.check_top": {
   "confidence": "HIGH",
@@ -25125,7 +25115,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:105"
+  "where": "src/codewiki/python/machine/verify_graph.py:161"
  },
  "codewiki.python.machine.verify_graph._items": {
   "confidence": "HIGH",
@@ -25135,7 +25125,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:132"
+  "where": "src/codewiki/python/machine/verify_graph.py:188"
  },
  "codewiki.python.machine.verify_graph.check_elements": {
   "confidence": "HIGH",
@@ -25145,7 +25135,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:138"
+  "where": "src/codewiki/python/machine/verify_graph.py:194"
  },
  "codewiki.python.machine.verify_graph.check_consistency": {
   "confidence": "HIGH",
@@ -25155,27 +25145,17 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:170"
- },
- "codewiki.python.machine.verify_graph._line_count": {
-  "confidence": "HIGH",
-  "does": "일반 파일이 아니거나 못 열면 None 을 낸다.",
-  "kind": "function",
-  "means": "파일의 줄 수를 세는 함수.",
-  "module": "codewiki.python.machine",
-  "source": "reading",
-  "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:222"
+  "where": "src/codewiki/python/machine/verify_graph.py:236"
  },
  "codewiki.python.machine.verify_graph.check_sources": {
   "confidence": "HIGH",
-  "does": "절대 경로나 저장소 밖이면 file-outside-repo, 파일이 없으면 file-missing, line 이 1 미만이거나 파일 줄 수보다 크면 line-out-of-range 다. 파일마다 줄 수를 한 번만 센다.",
+  "does": "절대 경로나 저장소 밖이면 file-outside-repo, 파일이 없으면 file-missing, line 이 1 미만이거나 파일 줄 수보다 크면 line-out-of-range 다. 파일마다 한 번만 열어 줄 수와 sha256 을 얻고, 결함과 함께 열린 파일의 {상대 경로: sha256} 을 돌려준다 — check_manifest 가 이 해시를 수집 때 해시와 견준다.",
   "kind": "function",
   "means": "V3 근거 — 노드와 간선의 file:line 이 저장소와 맞는지 검사하는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:233"
+  "where": "src/codewiki/python/machine/verify_graph.py:315"
  },
  "codewiki.python.machine.verify_graph.check_manifest": {
   "confidence": "HIGH",
@@ -25185,7 +25165,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:335"
+  "where": "src/codewiki/python/machine/verify_graph.py:342"
  },
  "codewiki.python.machine.verify_graph._text": {
   "confidence": "HIGH",
@@ -25195,7 +25175,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:257"
+  "where": "src/codewiki/python/machine/verify_graph.py:364"
  },
  "codewiki.python.machine.verify_graph.capabilities_of": {
   "confidence": "HIGH",
@@ -25205,7 +25185,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:334"
+  "where": "src/codewiki/python/machine/verify_graph.py:370"
  },
  "codewiki.python.machine.verify_graph.section": {
   "confidence": "HIGH",
@@ -25215,27 +25195,27 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:343"
+  "where": "src/codewiki/python/machine/verify_graph.py:379"
  },
  "codewiki.python.machine.verify_graph.fit_of": {
   "confidence": "HIGH",
-  "does": "통과를 막는 결함의 코드를 모으고 V3 를 돌리지 않았으면 그 이유를 더한다. 통과했고 이유가 없을 때만 ready 다.",
+  "does": "통과를 막는 결함의 코드를 모으고, V3 를 돌리지 않았거나 수집 manifest 와 맞지 않으면(상태가 ok 가 아니면) 그 이유를 더한다. 통과했고 이유가 없을 때만 ready 다.",
   "kind": "function",
   "means": "전수조사에 들어갈 수 있는지 판정하는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:349"
+  "where": "src/codewiki/python/machine/verify_graph.py:385"
  },
  "codewiki.python.machine.verify_graph.verify": {
   "confidence": "HIGH",
-  "does": "read_graph → check_top → check_elements → check_consistency → (repo 가 있으면) check_sources 를 돌려 수행한 검사 이름(checks_run)을 쌓고, 절별 결함 수 · capabilities · fit 을 붙인 VerifyDoc 을 낸다.",
+  "does": "read_graph → check_top → check_elements · check_consistency 를 돌리고, repo 가 있으면 check_sources(V3)와 check_manifest 를 더한다. 그 뒤 check_coverage 가 수집 실패 기록 · 버림 장부 · 소스 inventory 를 본다. 수행한 검사 이름(checks_run)을 쌓고, 통과를 막지 않는 코드(language-not-collected · coverage-gap)를 뺀 결함이 없고 지도를 읽었을 때만 passed 다. 절별 결함 수 · capabilities · fit 을 붙인 VerifyDoc 을 낸다.",
   "kind": "function",
   "means": "층을 차례로 돌려 결과 문서 하나를 내는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:357"
+  "where": "src/codewiki/python/machine/verify_graph.py:505"
  },
  "codewiki.python.machine.verify_graph._replace": {
   "confidence": "HIGH",
@@ -25245,47 +25225,47 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:285"
+  "where": "src/codewiki/python/machine/verify_graph.py:555"
  },
  "codewiki.python.machine.verify_graph.main": {
   "confidence": "HIGH",
-  "does": "codegraph · --repo · --faults · --passed 를 받아 verify 를 돌린다. 통과면 --passed 를 쓰고 --faults 를 지워 0, 결함이면 반대로 하고 1 을 낸다.",
+  "does": "codegraph · --repo · --manifest · --report · --inventory · --failure · --faults · --passed 를 받아 verify 를 돌린다. 통과면 --passed 를 쓰고 --faults 를 지워 0, 결함이면 반대로 하고 1 을 낸다.",
   "kind": "function",
   "means": "verify_graph.py 의 명령줄 진입점.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:295"
+  "where": "src/codewiki/python/machine/verify_graph.py:562"
  },
  "codewiki.python.runner.mode1.graph.VerifyGraphStage": {
   "confidence": "HIGH",
-  "does": "verify_graph.py 를 자식 프로세스로 돌린다. 실패하면 graph-faults.json 으로 graph-handoff.md 를 렌더해 남기고 FAIL, 통과하면 옛 핸드오프를 지운다.",
+  "does": "verify_graph.py 를 자식 프로세스로 돌린다. 실패하면 graph-faults.json 으로 graph-handoff.md 를 렌더해 남기고(GraphFaultReport.write_handoff) FAIL, 통과하면 옛 핸드오프를 지운다.",
   "kind": "class",
   "means": "코드 지도를 LLM 단계 앞에서 검사하는 단계.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:37"
+  "where": "src/codewiki/python/runner/mode1/graph.py:93"
  },
  "codewiki.python.runner.mode1.graph.VerifyGraphStage.argv": {
   "confidence": "HIGH",
-  "does": "verify_graph.py 에 codegraph.json · --repo · --faults · --passed 를 넘긴다.",
+  "does": "verify_graph.py 에 codegraph.json · --repo · --manifest · --report · --inventory · --failure · --faults · --passed 를 넘긴다.",
   "kind": "method",
   "means": "검사기 명령줄을 짓는 메서드.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:44"
+  "where": "src/codewiki/python/runner/mode1/graph.py:98"
  },
  "codewiki.python.runner.mode1.graph.VerifyGraphStage.reads": {
   "confidence": "HIGH",
-  "does": "CODEGRAPH 하나.",
+  "does": "읽는다고 선언하는 산출물이 없다. 지도가 없거나 깨져도 이 단계가 unreadable 결함으로 보고한다.",
   "kind": "method",
-  "means": "검사가 읽는 산출물.",
+  "means": "검사 단계가 읽는다고 선언하는 산출물을 알려주는 메서드.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:49"
+  "where": "src/codewiki/python/runner/mode1/graph.py:105"
  },
  "codewiki.python.runner.mode1.graph.VerifyGraphStage.writes": {
   "confidence": "HIGH",
@@ -25295,47 +25275,37 @@
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:52"
- },
- "codewiki.python.runner.mode1.graph.VerifyGraphStage.handoff_text": {
-  "confidence": "HIGH",
-  "does": "counts 를 많은 순으로 묶고 코드마다 예시를 EXAMPLES 개까지 담아 verify-graph 프롬프트 리소스를 렌더한다.",
-  "kind": "method",
-  "means": "결함 문서를 핸드오프 글로 바꾸는 메서드.",
-  "module": "codewiki.python.runner.mode1.graph",
-  "source": "reading",
-  "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:56"
+  "where": "src/codewiki/python/runner/mode1/graph.py:108"
  },
  "codewiki.python.runner.mode1.graph.VerifyGraphStage.perform": {
   "confidence": "HIGH",
-  "does": "super().perform() 을 감싼다. FAIL 이고 결함 파일이 있으면 핸드오프를 쓰고 이유를 '코드 지도 결함 N건' 으로 바꾼다.",
+  "does": "super().perform() 을 감싼다. OK 면 옛 핸드오프를 지운다. FAIL 이고 결함 파일이 있으면 write_handoff 로 핸드오프를 쓰고 이유를 '코드 지도 결함 N건' 으로 바꾼다. 검사기가 결함 파일 없이 죽었으면 종료 코드가 이유다.",
   "kind": "method",
   "means": "검사를 돌리고 실패하면 핸드오프를 남기는 메서드.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:66"
+  "where": "src/codewiki/python/runner/mode1/graph.py:111"
  },
  "codewiki.python.runner.mode1.graph.VerifiedGraph": {
   "confidence": "HIGH",
-  "does": "gate 한 메서드로 성공 기록 · 지도 · 배치를 대조한다.",
+  "does": "gate 한 메서드로 성공 기록 · 지도 · 배치 · ranking.json 을 대조한다.",
   "kind": "class",
   "means": "검사를 지난 지도만 읽는 단계의 믹스인.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:91"
+  "where": "src/codewiki/python/runner/mode1/graph.py:130"
  },
  "codewiki.python.runner.mode1.graph.VerifiedGraph.gate": {
   "confidence": "HIGH",
-  "does": "성공 기록이 없거나 전수조사에 맞지 않거나 지도가 검사 뒤에 바뀌었거나, need_batches 일 때 배치가 없거나 배치에 찍힌 지도 지문(codegraph_sha256)이나 generation_id 가 성공 기록과 다르면 이유를 내고 모두 맞으면 빈 문자열을 낸다. 해시를 낸 바이트를 함께 돌려줘 호출자가 같은 바이트를 파싱하게 한다.",
+  "does": "성공 기록이 없거나 전수조사에 맞지 않거나 지도가 검사 뒤에 바뀌었으면 이유를 낸다. need_batches 면 배치가 없거나 배치에 찍힌 지도 지문(codegraph_sha256)이나 generation_id 가 성공 기록과 다를 때, need_ranking 이면 ranking.json 이 없거나 그 generation_id 가 성공 기록과 다를 때도 이유를 낸다. 모두 맞으면 빈 문자열을 낸다. 해시를 낸 바이트를 함께 돌려줘 호출자가 같은 바이트를 파싱하게 한다.",
   "kind": "method",
   "means": "단계를 막을 이유와 지금 지도의 바이트를 내는 메서드.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:95"
+  "where": "src/codewiki/python/runner/mode1/graph.py:134"
  },
  "codewiki.python.runner.mode1.edges.restart_from": {
   "confidence": "HIGH",
@@ -25356,5 +25326,385 @@
   "source": "reading",
   "uses": [],
   "where": "src/codewiki/python/runner/mode1/context.py:268"
+ },
+ "DROP_CLASS": {
+  "confidence": "HIGH",
+  "does": "사유 문자열을 열쇠로, count · policy · unresolved · fault 중 하나를 값으로 갖는다. Ledger.report 가 이 표로 등급을 붙이고 표에 없는 사유는 KeyError 다. verify-graph 는 unresolved 와 fault 등급의 사유가 장부에 있으면 통과를 막는다. 소스의 사유 전부가 이 표에 있는지는 test_normalize 가 대조한다.",
+  "kind": "concept",
+  "means": "정제가 세는 사유 하나하나가 어느 등급인지 적어 둔 표.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:24"
+ },
+ "codewiki.python.machine.normalize.DropClass": {
+  "confidence": "HIGH",
+  "does": "count 는 버림이 아닌 셈, policy 는 규칙으로 버린 것, unresolved 는 풀려야 했는데 못 푼 정보 손실, fault 는 수집기가 모르는 값을 낸 경우다. DROP_CLASS 와 ReasonRow 가 이 형을 쓴다.",
+  "kind": "class",
+  "means": "버림 사유의 등급 네 낱말(count · policy · unresolved · fault) 가운데 하나를 고르는 형.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:22"
+ },
+ "codewiki.python.machine.normalize.ReasonRow": {
+  "confidence": "HIGH",
+  "does": "reason · class · count · samples 네 칸이다. samples 는 사유마다 최대 다섯 개다(Ledger.SAMPLES).",
+  "kind": "class",
+  "means": "버림 장부의 한 줄 — 사유 하나의 등급 · 수 · 표본.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:44"
+ },
+ "codewiki.python.machine.normalize.ReportDoc": {
+  "confidence": "HIGH",
+  "does": "codegraph_sha256(어느 지도의 장부인지) · language · source_tool · reasons(ReasonRow 목록) 네 칸이다. 시각이 없어 같은 입력이면 같은 바이트다.",
+  "kind": "class",
+  "means": "버림 장부 파일 normalize-report.json 한 벌의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:47"
+ },
+ "codewiki.python.machine.normalize.Ledger": {
+  "confidence": "HIGH",
+  "does": "Counter[str] 를 이어받아 stats[사유] += 1 은 그대로 되고, 표본을 남길 자리만 note 를 부른다. 사유마다 표본은 최대 다섯 개다. report 가 장부 줄 목록으로 바꾼다.",
+  "kind": "class",
+  "means": "정제가 무엇을 왜 버렸는지 사유별로 세는 계수기.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:55"
+ },
+ "codewiki.python.machine.normalize.Ledger.note": {
+  "confidence": "HIGH",
+  "does": "그 사유의 수를 1 올리고, 표본이 다섯 개 미만이면 표본 문자열을 덧붙인다.",
+  "kind": "method",
+  "means": "사유 하나를 한 번 세고 표본을 남기는 메서드.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:63"
+ },
+ "codewiki.python.machine.normalize.Ledger.report": {
+  "confidence": "HIGH",
+  "does": "수가 0 이 아닌 사유만 DROP_CLASS 로 등급을 붙여, fault → unresolved → policy → count 순으로, 같은 등급 안에서는 수 내림차순 · 이름순으로 정렬해 낸다. 표에 없는 사유면 KeyError 다.",
+  "kind": "method",
+  "means": "세어 둔 사유를 장부 줄 목록으로 바꾸는 메서드.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:69"
+ },
+ "codewiki.python.machine.normalize.validate_raw": {
+  "confidence": "HIGH",
+  "does": "clang-uml · roslyn-dump · pycalls 는 각 로더가 첫 줄에서 첨자하는 열쇠가 있고 형(list · dict)이 맞는지, griffe 는 {모듈 이름: 객체} 사전인지 본다. 틀리면 이유 한 줄, 맞으면 None 이다.",
+  "kind": "function",
+  "means": "수집 원본 JSON 의 맨 위 꼴이 맞는지 보는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:187"
+ },
+ "codewiki.python.machine.normalize.exit_if_bad_raw": {
+  "confidence": "HIGH",
+  "does": "validate_raw 가 이유를 내면 원본 경로와 이유를 stderr 에 적고 종료 코드 2 로 끝낸다. 원본을 읽는 로더와 main 이 읽은 직후에 부른다. 그 종료는 prep 의 run 이 collect-failure.json 에 적는다.",
+  "kind": "function",
+  "means": "수집 원본의 꼴이 틀리면 이유를 적고 끝내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:209"
+ },
+ "codewiki.python.machine.normalize.py_module_attributes": {
+  "confidence": "HIGH",
+  "does": "griffe 가 module-attribute 라벨로 낸 속성과 type alias 의 오른쪽 식을 보고 가른다. TypeVar · ParamSpec · TypeVarTuple 호출은 타입 변수, 첫 인자가 문자열인 TypedDict · NamedTuple 호출은 함수 꼴 클래스, 이름 · 첨자 · | 식은 형 별칭이고, 그 밖의 호출과 리터럴은 상수라 싣지 않는다.",
+  "kind": "function",
+  "means": "파이썬 모듈 수준 속성을 타입 변수 · 형 별칭 · 함수 꼴 클래스로 가르는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1011"
+ },
+ "codewiki.python.machine.normalize.py_form_fields": {
+  "confidence": "HIGH",
+  "does": "둘째 인자가 사전(ExprDict)이면 열쇠와 값을 짝짓고, 짝의 목록(ExprList)이면 원소마다 두 칸을 꺼내며, 필드 이름은 따옴표를 벗긴다. 둘째 인자가 없으면 빈 목록이고, 그 두 꼴이 아니면 인자 식을 이름 없는 필드 하나로 돌려줘 py_walk_expr 가 사유를 붙여 세게 한다.",
+  "kind": "function",
+  "means": "함수 꼴 TypedDict · NamedTuple 의 필드 표를 (이름, 타입 식) 목록으로 펴는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1055"
+ },
+ "codewiki.python.machine.normalize.PyNames": {
+  "confidence": "HIGH",
+  "does": "first_party(클래스 · 형 별칭 · 타입 변수 전부) · aliases(형 별칭 -> 값 식과 정의한 모듈) · typevars · imports(모듈별 import 표) · tails(두 마디 이상 점 경로 꼬리 -> 그렇게 끝나는 1차 이름들) 다섯 칸이다. py_names 가 짓는다.",
+  "kind": "class",
+  "means": "파이썬 이름 해소가 보는 1차 이름표의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1082"
+ },
+ "codewiki.python.machine.normalize.py_names": {
+  "confidence": "HIGH",
+  "does": "클래스 · 형 별칭 · 타입 변수의 이름을 합쳐 first_party 로 두고, 1차 이름마다 두 마디 이상인 꼬리를 전부 색인한다 — a.b.c.D 는 b.c.D 와 c.D 로 찾힌다. 마지막 마디 하나와 이름 전체는 꼬리로 치지 않는다.",
+  "kind": "function",
+  "means": "1차 이름표를 짓는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1094"
+ },
+ "codewiki.python.machine.normalize.py_expand": {
+  "confidence": "HIGH",
+  "does": "이름의 앞 마디가 그 모듈의 import 표에 있으면 표의 이름으로 바꾸고, 없으면 같은 모듈 소속 이름이 1차 이름에 있을 때 그것을, 어느 쪽도 아니면 쓰인 그대로 돌려준다.",
+  "kind": "function",
+  "means": "식 안의 짧은 이름을 import 표와 같은 모듈의 이름으로 펴는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1113"
+ },
+ "codewiki.python.machine.normalize.write_report": {
+  "confidence": "HIGH",
+  "does": "지도 파일의 sha256 으로 장부를 그 한 벌에 묶고, 언어 · 수집기 · Ledger.report 의 줄을 담아 write_json_atomic 으로 쓴다.",
+  "kind": "function",
+  "means": "지도 바로 뒤에 버림 장부 파일을 쓰는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/normalize.py:1455"
+ },
+ "codewiki.python.machine.source_inventory.FileEntry": {
+  "confidence": "HIGH",
+  "does": "language 와 status(collected · excluded · unsupported · failed · no-symbols) 칸이 있고, excluded 나 unsupported 일 때만 reason 칸이 있다.",
+  "kind": "class",
+  "means": "소스 파일 하나의 수집 상태를 담는 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:13"
+ },
+ "codewiki.python.machine.source_inventory.LanguageRow": {
+  "confidence": "HIGH",
+  "does": "files(추적 파일 수) · collector(그 언어를 맡는 수집기 이름) · collected(이번에 수집했는가) 세 칸이다.",
+  "kind": "class",
+  "means": "언어 하나의 수집 현황을 담는 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:20"
+ },
+ "codewiki.python.machine.source_inventory.InventoryDoc": {
+  "confidence": "HIGH",
+  "does": "selected(수집기가 고른 언어, 없으면 null) · languages(언어별 LanguageRow) · files(상대 경로별 FileEntry) 세 칸이다.",
+  "kind": "class",
+  "means": "소스 장부 파일 source-inventory.json 한 벌의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:27"
+ },
+ "codewiki.python.machine.source_inventory.tracked_files": {
+  "confidence": "HIGH",
+  "does": "git ls-files -z 의 경로를 UTF-8(못 풀면 surrogateescape)로 읽어 이름순 목록으로 낸다. git 저장소가 아니거나 git 이 실패하면 빈 목록이다.",
+  "kind": "function",
+  "means": "git 이 추적하는 파일 이름을 모으는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:34"
+ },
+ "codewiki.python.machine.source_inventory.language_of": {
+  "confidence": "HIGH",
+  "does": "LANG_EXTS 표에서 그 확장자를 가진 언어를 낸다. 소스가 아니면 None 이다.",
+  "kind": "function",
+  "means": "파일 이름의 확장자로 어느 언어의 소스인지 알려 주는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:43"
+ },
+ "codewiki.python.machine.source_inventory.language_for": {
+  "confidence": "HIGH",
+  "does": "COLLECTOR 표에서 이름이 같은 언어를 낸다. 수집기가 없다는 none 이거나 모르는 이름이면 None 이다.",
+  "kind": "function",
+  "means": "수집기 이름이 맡는 언어를 알려 주는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:49"
+ },
+ "codewiki.python.machine.source_inventory.build_inventory": {
+  "confidence": "HIGH",
+  "does": "git 이 추적하는 소스 파일을 언어별로 세고 파일마다 상태를 적는다. excluded 에 든 파일은 그 사유와 함께 excluded, 고른 언어의 나머지는 잠정으로 collected, 다른 언어는 수집기 이름이 든 사유와 함께 unsupported 다. 언어마다 파일 수 · 수집기 · 이번에 수집하는지를 languages 에 적는다.",
+  "kind": "function",
+  "means": "수집하기 전의 소스 장부를 만드는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:54"
+ },
+ "codewiki.python.machine.source_inventory.mark_no_symbols": {
+  "confidence": "HIGH",
+  "does": "상태가 collected 인데 지도가 인용한 파일 집합에 없는 파일을 no-symbols 로 바꾼다. 장부를 제자리에서 고친다.",
+  "kind": "function",
+  "means": "정제 뒤에 지도가 한 번도 인용하지 않은 파일을 표시하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/source_inventory.py:75"
+ },
+ "codewiki.python.machine.verify_graph.FailureDoc": {
+  "confidence": "HIGH",
+  "does": "status(늘 failed) · step(죽은 단계 이름) · argv · returncode · stderr_tail(stderr 끝 줄들) 다섯 칸이다. proc.run 이 쓰고 check_coverage 와 CollectGraphStage 가 읽는다.",
+  "kind": "class",
+  "means": "수집이 죽었다는 기록 collect-failure.json 의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:395"
+ },
+ "codewiki.python.machine.verify_graph.check_coverage": {
+  "confidence": "HIGH",
+  "does": "수집 실패 기록이 있으면 collect-failed 를 낸다. 장부 경로를 받았으면 장부가 이 지도의 것인지(report-stale)와 fault 등급 사유(unknown-kind) · unresolved 등급 사유(unresolved-drop)를 본다. inventory 경로를 받았으면 inventory 가 manifest 의 것인지(inventory-stale)를 보고, 수집하지 않은 언어(language-not-collected)와 고른 언어인데 지도가 인용하지 않는 파일(coverage-gap)을 낸다 — 이 둘은 기록만 하고 통과를 막지 않는다. 결함 · 범위 절 문서 · 돌린 검사 이름(V4 · coverage)을 낸다.",
+  "kind": "function",
+  "means": "범위 — 수집이 죽지 않았고 버림 장부와 소스 inventory 가 말하는 범위가 맞는지 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:424"
+ },
+ "codewiki.python.machine.verify_graph.verify_empty": {
+  "confidence": "HIGH",
+  "does": "검사를 하나도 돌리지 않았고(checks_run 이 비었다) 상태는 failed 이며 fit 은 blocked 다. 결함의 코드를 blocked_by 에 모은다.",
+  "kind": "function",
+  "means": "지도 없이 낸 결과 문서를 만드는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:486"
+ },
+ "codewiki.python.machine.verify_graph.failure_doc": {
+  "confidence": "HIGH",
+  "does": "collect-failed 결함 하나를 담은 verify_empty 문서를 낸다. collect-graph 단계가 결함 파일과 핸드오프를 쓸 때 쓰며, 꼴은 검사기의 것과 같다.",
+  "kind": "function",
+  "means": "수집이 죽어 지도가 없을 때 쓰는 결함 문서를 만드는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:500"
+ },
+ "codewiki.python.runner.wiki.proc.run": {
+  "confidence": "HIGH",
+  "does": "stderr 를 화면에 흘리면서 끝 40줄을 쥔다. 종료 코드가 0 이 아니면 failure_path 를 받았을 때 거기에 단계 이름 · 명령줄 · 종료 코드 · stderr 끝줄을 담은 collect-failure.json 을 쓰고, 그 종료 코드(0이면 1)로 sys.exit 한다.",
+  "kind": "function",
+  "means": "자식 프로세스 하나를 돌리고 죽으면 실패 기록을 남기는 함수.",
+  "module": "codewiki.python.runner.wiki.proc",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/proc.py:12"
+ },
+ "codewiki.python.runner.wiki.derive.derive_steps": {
+  "confidence": "HIGH",
+  "does": "facts.py 로 facts/*.md 와 ranking.json 을 만들면서 --generation 으로 generation_id 를 찍고, 이어서 render_modules.py 로 모듈 그림을 굽는다. roslyn-dump.json 이 있으면 facts 에 --detail 로 준다. 어느 쪽이든 죽으면 proc.run 이 실패 기록을 남긴다.",
+  "kind": "function",
+  "means": "검사를 지난 지도에서 파생물을 만드는 두 단계를 차례로 돌리는 함수.",
+  "module": "codewiki.python.runner.wiki.derive",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/derive.py:20"
+ },
+ "codewiki.python.runner.wiki.derive.main": {
+  "confidence": "HIGH",
+  "does": "저장소 인자를 받아 수집 manifest(collect-fingerprint.json)에서 generation_id 를 읽고 derive_steps 를 돌린 뒤 0 을 낸다. derive-facts 단계가 이 스크립트를 자식 프로세스로 부른다.",
+  "kind": "function",
+  "means": "derive.py 를 명령줄에서 돌렸을 때 처음 불리는 함수.",
+  "module": "codewiki.python.runner.wiki.derive",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/derive.py:30"
+ },
+ "codewiki.python.runner.wiki.prep.excluded_files": {
+  "confidence": "HIGH",
+  "does": "파이썬이면 pyRoots 밖의 .py 파일을 prep.pyRoots skip 으로 적는다. C++ 이면 compile_commands 가 버린 항목을 compdb: 사유로, compile_commands 에 싣지 않은 C++ 파일을 not-in-compdb 로 적는다 — 같은 파일의 둘째 명령이 버려져도 첫 명령이 남았으면 그 파일은 수집된 것이다. build_inventory 가 이 표를 excluded 로 받는다.",
+  "kind": "function",
+  "means": "수집 범위에서 빠지는 추적 파일과 그 사유를 모으는 함수.",
+  "module": "codewiki.python.runner.wiki.prep",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/wiki/prep.py:156"
+ },
+ "codewiki.python.runner.mode1.graph.GraphFaultReport": {
+  "confidence": "HIGH",
+  "does": "collect-graph 와 verify-graph 가 함께 쓴다. 핸드오프 템플릿 이름은 단계 이름이다.",
+  "kind": "class",
+  "means": "결함 문서를 쓰고 핸드오프를 렌더하는 믹스인.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:21"
+ },
+ "codewiki.python.runner.mode1.graph.GraphFaultReport.write_faults": {
+  "confidence": "HIGH",
+  "does": "성공 기록(graph-verified.json)이 있으면 먼저 지우고 graph-faults.json 을 원자적으로 쓴다 — 두 파일이 함께 남지 않는다. 쓴 경로를 돌려준다.",
+  "kind": "method",
+  "means": "결함 문서를 쓰는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:27"
+ },
+ "codewiki.python.runner.mode1.graph.GraphFaultReport.write_handoff": {
+  "confidence": "HIGH",
+  "does": "결함을 코드별로 묶어 많은 순으로 세고 코드마다 예시를 EXAMPLES(5)개까지, 층과 절 이름을 붙여 단계 이름의 프롬프트 템플릿에 채워 graph-handoff.md 로 쓴다. 단계가 더 받는 값은 extra 로 넘긴다.",
+  "kind": "method",
+  "means": "결함 문서를 이어받을 사람 · 에이전트가 읽을 핸드오프 글로 바꾸는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:36"
+ },
+ "codewiki.python.runner.mode1.graph.CollectGraphStage.perform": {
+  "confidence": "HIGH",
+  "does": "super().perform() 이 OK 면 옛 핸드오프를 지운다. FAIL 이고 prep 이 collect-failure.json 을 남겼으면 failure_doc 으로 결함 문서를 만들어 write_faults 와 write_handoff 로 쓰고 이유를 '수집 실패 — 단계 (종료 코드)' 로 바꾼다. 기록이 없으면 종료 코드가 이유다.",
+  "kind": "method",
+  "means": "수집을 돌리고 죽었으면 실패 기록을 결함 문서와 핸드오프로 옮기는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:72"
+ },
+ "codewiki.python.runner.mode1.graph.DeriveFactsStage": {
+  "confidence": "HIGH",
+  "does": "VerifiedGraph 를 이어받아 지도가 성공 기록과 다르면 돌지 않는다. derive.py 를 자식 프로세스로 돌려 facts/*.md · ranking.json · 모듈 그림을 만들고, ranking.json 에 수집 manifest 의 generation_id 가 찍힌다.",
+  "kind": "class",
+  "means": "검사를 지난 지도에서 파생물을 만드는 단계.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:172"
+ },
+ "codewiki.python.runner.mode1.graph.DeriveFactsStage.perform": {
+  "confidence": "HIGH",
+  "does": "VerifiedGraph.gate 로 성공 기록과 지도를 대조해 막히면 FAIL 이고 이유를 행에 적는다. 통과하면 super().perform() 으로 derive.py 를 돌린다.",
+  "kind": "method",
+  "means": "gate 를 통과했을 때만 파생물을 만드는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:185"
+ },
+ "codewiki.python.runner.mode1.context.RankingDoc": {
+  "confidence": "HIGH",
+  "does": "generation_id 한 칸만 본다 — 어느 수집 세대의 것인지다. 나머지는 facts.Ranking 이다. VerifiedGraph.gate 가 이 값을 성공 기록의 generation_id 와 견준다.",
+  "kind": "class",
+  "means": "ranking.json 을 단계 경계에서 보는 꼴.",
+  "module": "codewiki.python.runner.mode1.context",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/context.py:277"
  }
 }
