@@ -1229,6 +1229,102 @@ def test_golden_python_짧은_import_경로와_griffe_가_싣지_않은_모듈�
     assert (st["1차 이름 꼬리 맞춤"], st["형 별칭 펼침"], st["타입 변수"], st["빌트인"]) == (5, 2, 1, 1)
 
 
+def test_1차_모듈_경로는_완전_경로와_import_뿌리를_뗀_꼬리다() -> None:
+    """import 표가 1차 이름이나 심볼을 꼬리로 가리킨 폴더만 import 뿌리다. 모듈을 통째로 import 한 줄은 뿌리를 드러내지 않는다."""
+    symbols: list[pycalls.PySymbol] = [
+        {"name": "app.mach.store.load", "kind": "function", "module": "app.mach.store", "file": "app/mach/store.py", "line": 1},
+        {"name": "app.mach.json.dumps", "kind": "function", "module": "app.mach.json", "file": "app/mach/json.py", "line": 1},
+    ]
+    classes = {"app.run.ctx.Page"}
+    whole: dict[str, dict[str, str]] = {"app.run.stage": {"store": "store", "json": "json", "ctx": "ctx"}, "app.run.ctx": {}}
+    full = {"app.run.stage", "app.run.ctx", "app.mach.store", "app.mach.json"}
+    assert N.py_names(classes, {}, set(), whole, symbols)["modules"] == full
+    by_symbol = {**whole, "app.run.stage": {"load": "store.load"}}
+    assert N.py_names(classes, {}, set(), by_symbol, symbols)["modules"] == full | {"store", "json"}
+    by_class = {**whole, "app.run.stage": {"Page": "ctx.Page"}}
+    assert N.py_names(classes, {}, set(), by_class, symbols)["modules"] == full | {"ctx", "stage"}
+    assert N.py_names(classes, {}, set(), by_class)["modules"] == {"app.run.stage", "app.run.ctx", "ctx", "stage"}
+
+
+PYMOD_FILES = {
+    "pymod/__init__.py": "",
+    "pymod/run/__init__.py": "",
+    "pymod/run/stage.py": (
+        "import json\n"
+        "import store\n"
+        "import yaml\n"
+        "from store import Row\n"
+        "\n"
+        "\n"
+        "class Stage:\n"
+        "    rows: store.Rows\n"
+        "    one: Row\n"
+        "    enc: json.JSONEncoder\n"
+        "    loader: yaml.Loader\n"
+        "\n"
+        "    def run(self, verdicts: store.Verdicts) -> store.Row:\n"
+        "        raise NotImplementedError\n"
+    ),
+    "pymod/mach/store.py": (                                  # 이 폴더에는 __init__.py 가 없다
+        "class Row:\n"
+        "    pass\n"
+        "\n"
+        "\n"
+        "Rows = list[Row]\n"
+        "Verdicts = dict[str, list[str]]\n"
+    ),
+}
+
+
+def _pymod(root: Path, files: dict[str, str]) -> tuple[list[str], list[str], list[tuple[str, int, list[str]]]]:
+    """픽스처를 griffe 와 pycalls 로 수집해 정제한다.
+
+    (외부 노드 이름, `Stage` 에서 나가는 간선 `상대 kind label`, 해소 실패 · 결함 등급인 장부 줄 `(사유, 수, 표본)`) 을 정렬해 돌려준다.
+    """
+    dump = _griffe_dump(root, files, "pymod")
+    g, st = N.normalize_python(dump, str(root), "griffe test", calls=pycalls.collect(str(root), ["pymod"]))
+    by = {n["id"]: n["name"] for n in g["nodes"]}
+    externals = sorted(n["name"] for n in g["nodes"] if n["kind"] == "external")
+    out = sorted("%s %s %s" % (by[e["to"]], e["kind"], e["label"]) for e in g["edges"]
+                 if by[e["from"]] == "pymod.run.stage.Stage")
+    bad = [(r["reason"], r["count"], sorted(r["samples"])) for r in st.report() if r["class"] in ("unresolved", "fault")]
+    return externals, out, bad
+
+
+def test_golden_python_1차_모듈_아래의_이름은_외부로_접지_않고_이름_해소_실패로_센다(tmp_path: Path) -> None:
+    """griffe 가 싣지 않은 모듈의 형 별칭은 두 수집기 어느 쪽에도 없다. 그 이름은 모듈 이름을 단 외부 노드가 되지 않고 장부에 남는다.
+
+    같은 모듈의 클래스는 꼬리 맞춤으로 1차 노드에 가고, 1차 모듈과 겹치지 않는 표준 라이브러리 · 서드파티 이름은 그대로 외부다.
+    """
+    externals, out, bad = _pymod(tmp_path, PYMOD_FILES)
+    assert bad == [("이름 해소 실패", 2, ["store.Rows @ pymod.run.stage", "store.Verdicts @ pymod.run.stage"])]
+    assert externals == ["(표준) stdlib", "yaml"]
+    assert out == ["(표준) stdlib association enc",
+                   "pymod.mach.store.Row association one",
+                   "pymod.mach.store.Row dependency run()",
+                   "yaml association loader"]
+
+
+def test_golden_python_외부와_이름이_같은_1차_모듈은_import_뿌리_아래일_때만_1차_모듈로_읽는다(tmp_path: Path) -> None:
+    """`run/` 은 import 뿌리가 아니라서 `run/json.py` 가 있어도 `json.JSONEncoder` 는 표준 라이브러리다.
+
+    `mach/` 은 `from store import Row` 가 드러낸 import 뿌리라서 그 아래의 `json.py` · `yaml.py` 는 `json` · `yaml` 로 import 된다 —
+    그 이름으로 시작하는 점 이름은 외부로 접지 않는다.
+    """
+    helper = "def dumps() -> str:\n    return ''\n"
+    aliases = ["store.Rows @ pymod.run.stage", "store.Verdicts @ pymod.run.stage"]
+    externals, _, bad = _pymod(tmp_path / "a", {**PYMOD_FILES, "pymod/run/json.py": helper})
+    assert externals == ["(표준) stdlib", "yaml"]
+    assert bad == [("이름 해소 실패", 2, aliases)]
+
+    externals, out, bad = _pymod(tmp_path / "b", {**PYMOD_FILES, "pymod/mach/json.py": helper,
+                                                  "pymod/mach/yaml.py": helper})
+    assert externals == []
+    assert bad == [("이름 해소 실패", 4, sorted(aliases + ["json.JSONEncoder @ pymod.run.stage",
+                                                       "yaml.Loader @ pymod.run.stage"]))]
+    assert out == ["pymod.mach.store.Row association one", "pymod.mach.store.Row dependency run()"]
+
+
 def test_이_저장소의_미해결은_0_이고_외부_섬이_없다() -> None:
     """이 저장소의 수집 원본을 그대로 정제하면 해소 실패도 결함도 없고, 1차 모듈이 외부 섬으로 접히지 않는다."""
     raw = os.path.join(ROOT, "out", "codegraph-raw")

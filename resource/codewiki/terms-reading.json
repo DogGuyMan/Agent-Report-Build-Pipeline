@@ -1264,7 +1264,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1464"
+  "where": "src/codewiki/python/machine/normalize.py:1494"
  },
  "codewiki.python.machine.normalize.cs_asm2pkg": {
   "confidence": "HIGH",
@@ -1424,7 +1424,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1246"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1485"
+  "where": "src/codewiki/python/machine/normalize.py:1515"
  },
  "codewiki.python.machine.normalize.member_location": {
   "confidence": "HIGH",
@@ -1486,7 +1486,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1165"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1400"
+  "where": "src/codewiki/python/machine/normalize.py:1430"
  },
  "codewiki.python.machine.normalize.module_of": {
   "confidence": "HIGH",
@@ -1610,7 +1610,7 @@
  },
  "codewiki.python.machine.normalize.normalize_python": {
   "confidence": "HIGH",
-  "does": "griffe 의 모듈 트리를 평평하게 펴 클래스 이름을 모으고, py_module_attributes 로 모듈 속성을 타입 변수 · 형 별칭 · 함수 꼴 TypedDict 로 가려 함수 꼴 클래스를 클래스와 같은 자리의 1차 노드로 만든다(py_abstraction 으로 interface/abstract 표시도 붙인다). 각 클래스의 베이스 · 속성 주석 · 메서드 매개변수와 반환 주석, 함수 꼴 클래스의 필드를 py_names 가 지은 이름표로 py_walk_expr 에 걸어 관계 이름을 뽑고, 1차가 아니면 py_external_group 으로 외부 노드에 묶어 간선을 쌓는다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다. 버린 것은 Ledger 로 세어 지도와 함께 돌려준다.",
+  "does": "griffe 의 모듈 트리를 평평하게 펴 클래스 이름을 모으고, py_module_attributes 로 모듈 속성을 타입 변수 · 형 별칭 · 함수 꼴 TypedDict 로 가려 함수 꼴 클래스를 클래스와 같은 자리의 1차 노드로 만든다(py_abstraction 으로 interface/abstract 표시도 붙인다). 각 클래스의 베이스 · 속성 주석 · 메서드 매개변수와 반환 주석, 함수 꼴 클래스의 필드를 py_names 가 지은 이름표로 py_walk_expr 에 걸어 관계 이름을 뽑고, 노드가 없는 이름은 py_external_group 으로 외부 노드에 묶어 간선을 쌓는다. 다만 그 이름이나 앞머리가 1차 모듈 경로(PyNames.modules)면 외부로 접지 않고 이름 해소 실패로 표본과 함께 센다. calls 인자가 있으면 merge_py_calls 로 호출 관계까지 합치고, 마지막에 _assemble 로 완성한다. 버린 것은 Ledger 로 세어 지도와 함께 돌려준다.",
   "kind": "function",
   "means": "griffe가 뽑아낸 파이썬 클래스 정보(와 선택적으로 pycalls가 뽑아낸 호출 정보)를 이 프로젝트 공통의 코드 지도로 바꾸는 함수다.",
   "module": "codewiki.python.machine",
@@ -1653,7 +1653,7 @@
     "where": "src/codewiki/python/machine/normalize.py:1130"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1222"
+  "where": "src/codewiki/python/machine/normalize.py:1241"
  },
  "codewiki.python.machine.normalize.py_abstraction": {
   "confidence": "HIGH",
@@ -1700,7 +1700,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1125"
+  "where": "src/codewiki/python/machine/normalize.py:1143"
  },
  "codewiki.python.machine.normalize.py_walk_expr": {
   "confidence": "HIGH",
@@ -1723,7 +1723,7 @@
     "where": "src/codewiki/python/machine/normalize.py:957"
    }
   ],
-  "where": "src/codewiki/python/machine/normalize.py:1149"
+  "where": "src/codewiki/python/machine/normalize.py:1168"
  },
  "codewiki.python.machine.normalize.tracked_set": {
   "confidence": "HIGH",
@@ -25439,7 +25439,7 @@
  },
  "codewiki.python.machine.normalize.PyNames": {
   "confidence": "HIGH",
-  "does": "first_party(클래스 · 형 별칭 · 타입 변수 전부) · aliases(형 별칭 -> 값 식과 정의한 모듈) · typevars · imports(모듈별 import 표) · tails(두 마디 이상 점 경로 꼬리 -> 그렇게 끝나는 1차 이름들) 다섯 칸이다. py_names 가 짓는다.",
+  "does": "first_party(클래스 · 형 별칭 · 타입 변수 전부) · aliases(형 별칭 -> 값 식과 정의한 모듈) · typevars · imports(모듈별 import 표) · tails(두 마디 이상 점 경로 꼬리 -> 그렇게 끝나는 1차 이름들) · modules(1차 모듈을 import 할 수 있는 점 경로 — 완전 경로와 import 뿌리 아래의 꼬리) 여섯 칸이다. py_names 가 짓는다.",
   "kind": "class",
   "means": "파이썬 이름 해소가 보는 1차 이름표의 꼴.",
   "module": "codewiki.python.machine",
@@ -25449,13 +25449,13 @@
  },
  "codewiki.python.machine.normalize.py_names": {
   "confidence": "HIGH",
-  "does": "클래스 · 형 별칭 · 타입 변수의 이름을 합쳐 first_party 로 두고, 1차 이름마다 두 마디 이상인 꼬리를 전부 색인한다 — a.b.c.D 는 b.c.D 와 c.D 로 찾힌다. 마지막 마디 하나와 이름 전체는 꼬리로 치지 않는다.",
+  "does": "클래스 · 형 별칭 · 타입 변수의 이름을 합쳐 first_party 로 두고, 1차 이름마다 두 마디 이상인 꼬리를 전부 색인한다 — a.b.c.D 는 b.c.D 와 c.D 로 찾힌다. 마지막 마디 하나와 이름 전체는 꼬리로 치지 않는다. 1차 모듈(griffe 가 실은 모듈과 pycalls 심볼의 모듈)의 경로도 모은다 — 완전 경로와, import 뿌리를 뗀 꼬리다. import 뿌리는 어느 모듈의 import 표가 1차 이름이나 심볼 이름을 꼬리로 가리킬 때 그 이름에서 꼬리를 뗀 앞머리다.",
   "kind": "function",
   "means": "1차 이름표를 짓는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1094"
+  "where": "src/codewiki/python/machine/normalize.py:1095"
  },
  "codewiki.python.machine.normalize.py_expand": {
   "confidence": "HIGH",
@@ -25465,7 +25465,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1113"
+  "where": "src/codewiki/python/machine/normalize.py:1131"
  },
  "codewiki.python.machine.normalize.write_report": {
   "confidence": "HIGH",
@@ -25475,7 +25475,7 @@
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1455"
+  "where": "src/codewiki/python/machine/normalize.py:1485"
  },
  "codewiki.python.machine.source_inventory.FileEntry": {
   "confidence": "HIGH",

@@ -264,7 +264,7 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_module_attributes` | `(mods: dict[str, GriffeObject]) -> tuple[set[str], dict[str, tuple[GriffeExpr, str]], dict[str, GriffeObject]]` | `{모듈 점 경로: 모듈 객체}` 에서 `(타입 변수, 형 별칭, 함수 꼴 클래스)` 를 모은다. 열쇠는 완전 수식 이름이다. |
 | `py_form_fields` | `(form: GriffeObject) -> list[tuple[str \| None, GriffeExpr]]` | `TypedDict("X", {"a": int})` · `NamedTuple("X", [("a", int)])` 의 둘째 인자에서 필드를 꺼낸다. |
 | **`PyNames`** | *class* | 파이썬 이름 해소가 보는 1차 이름표. `py_names` 가 짓는다. |
-| `py_names` | `(classes: set[str], aliases: dict[str, tuple[GriffeExpr, str]], typevars: set[str], imports: dict[str, dict[str, str]]) -> PyNames` | 클래스 · 형 별칭 · 타입 변수의 이름을 모으고 꼬리 색인을 만든다. |
+| `py_names` | `(classes: set[str], aliases: dict[str, tuple[GriffeExpr, str]], typevars: set[str], imports: dict[str, dict[str, str]], symbols: Sequence[PySymbol] = ()) -> PyNames` | 클래스 · 형 별칭 · 타입 변수의 이름을 모으고 꼬리 색인과 1차 모듈 경로를 만든다. |
 | `py_expand` | `(name: str, mod_path: str, names: PyNames) -> str` | 모듈의 import 표 -> 같은 모듈의 1차 이름. 어느 쪽도 아니면 쓰인 그대로 돌려준다. |
 | `py_resolve` | `(name: str, mod_path: str, names: PyNames, stats: Ledger) -> str \| None` | 이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 이름 -> 점 경로 꼬리. |
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, names: PyNames, stats: Ledger, depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |

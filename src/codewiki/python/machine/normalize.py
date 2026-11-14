@@ -14,7 +14,7 @@ from typing import Any, Literal, Required, TypedDict, cast
 
 from clang_doc import Symbol, load_clang_doc
 from jsonio import write_json_atomic
-from pycalls import PyCallsDump
+from pycalls import PyCallsDump, PySymbol
 # 산출물 `codegraph.json` 의 계약은 **여기 하나**다. 이 파일에 다시 적지 않는다.
 from codegraph_types import CodeGraph, Edge, EdgeKind, Node
 
@@ -1087,16 +1087,25 @@ class PyNames(TypedDict):
     typevars: set[str]
     imports: dict[str, dict[str, str]]              # 모듈 -> 그 모듈의 import 표
     tails: dict[str, list[str]]                     # 두 마디 이상인 점 경로 꼬리 -> 그렇게 끝나는 1차 이름들
+    modules: set[str]                               # 1차 모듈을 import 할 수 있는 점 경로 — 완전 경로와 import 뿌리 아래의 꼬리
 
 
 # 1차 이름표를 짓는다.
 # 쓰는 것: 없음 · 쓰이는 곳: normalize_python
 def py_names(classes: set[str], aliases: dict[str, tuple[GriffeExpr, str]], typevars: set[str],
-             imports: dict[str, dict[str, str]]) -> PyNames:
-    """클래스 · 형 별칭 · 타입 변수의 이름을 모으고 꼬리 색인을 만든다.
+             imports: dict[str, dict[str, str]], symbols: Sequence[PySymbol] = ()) -> PyNames:
+    """클래스 · 형 별칭 · 타입 변수의 이름을 모으고 꼬리 색인과 1차 모듈 경로를 만든다.
 
     색인은 1차 이름마다 두 마디 이상인 꼬리를 전부 적는다 — `a.b.c.D` 는 `b.c.D` 와 `c.D` 로 찾힌다.
     마지막 마디 하나(`D`)와 이름 전체는 꼬리로 치지 않는다.
+
+    1차 모듈은 `imports` 의 열쇠(griffe 가 실은 모듈)와 `symbols`(pycalls 의 심볼)의 모듈이다.
+    모듈 경로는 완전 경로와, import 뿌리를 뗀 꼬리로 적는다. import 뿌리는 어느 모듈의 import 표가 1차 이름이나
+    심볼 이름을 꼬리로 가리킬 때 그 이름에서 꼬리를 뗀 앞머리다 — 꼬리의 정의는 색인과 같다.
+    1차 이름 `a.b.mode1.context.Mode1Context` 를 `mode1.context.Mode1Context` 로 import 하는 모듈이 있으면 `a.b` 가
+    뿌리이고, 모듈 `a.b.mode1.context` 는 `mode1.context` 로, `a.b.plan` 은 `plan` 으로도 적힌다.
+    뿌리로 드러나지 않은 폴더의 모듈은 완전 경로로만 적힌다 — `pkg` 가 뿌리가 아니면 `pkg/json.py` 는 `pkg.json` 일 뿐
+    `json` 이 아니다.
     """
     first_party = classes | set(aliases) | typevars
     tails: defaultdict[str, list[str]] = defaultdict(list)
@@ -1104,8 +1113,17 @@ def py_names(classes: set[str], aliases: dict[str, tuple[GriffeExpr, str]], type
         parts = full.split(".")
         for i in range(1, len(parts) - 1):
             tails[".".join(parts[i:])].append(full)
+    targets = {target for table in imports.values() for target in table.values()}
+    roots = {""}
+    for full in first_party | {s["name"] for s in symbols}:
+        parts = full.split(".")
+        roots.update(".".join(parts[:i]) for i in range(1, len(parts) - 1) if ".".join(parts[i:]) in targets)
+    modules: set[str] = set()
+    for path in set(imports) | {s["module"] for s in symbols}:
+        parts = path.split(".")
+        modules.update(".".join(parts[i:]) for i in range(len(parts)) if ".".join(parts[:i]) in roots)
     return {"first_party": first_party, "aliases": aliases, "typevars": typevars,
-            "imports": imports, "tails": dict(tails)}
+            "imports": imports, "tails": dict(tails), "modules": modules}
 
 
 # 식 안의 짧은 이름을 import 표와 같은 모듈로 편다.
@@ -1129,7 +1147,8 @@ def py_resolve(name: str, mod_path: str, names: PyNames, stats: Ledger) -> str |
     그렇게 편 이름이 1차가 아니고 점이 있으면 그 이름 전체를 꼬리로 갖는 1차 이름을 찾는다.
     하나면 그 이름이고, 둘 이상이면 고르지 않고 None 을 돌려준다.
 
-    어디에도 없으면 편 그대로 돌려준다 — 점이 있으면 외부 이름이고, 없으면 빌트인이거나 풀지 못한 이름이다.
+    어디에도 없으면 편 그대로 돌려준다 — 점이 없으면 빌트인이거나 풀지 못한 이름이고, 점이 있으면 외부 이름이거나
+    1차 모듈 아래의 이름이다. 뒤의 둘은 `normalize_python` 이 외부 노드를 만드는 자리에서 가른다.
     """
     key = py_expand(name, mod_path, names)
     if "." not in key or key in names["first_party"]:
@@ -1151,7 +1170,7 @@ def py_walk_expr(expr: GriffeExpr | None, mod_path: str, names: PyNames,
     """R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다.
 
     griffe 가 타입 주석을 식 트리로 주므로 제네릭 문법을 손으로 파싱할 필요가 없다.
-    돌려주는 것은 노드가 될 완전 수식 이름의 리스트다 — 1차 클래스이거나 점이 있는 외부 이름이다.
+    돌려주는 것은 관계의 상대가 될 완전 수식 이름의 리스트다 — 1차 클래스이거나 1차가 아닌 점 이름이다.
 
     이름 하나는 `py_resolve` 로 푼 뒤 갈린다. 형 별칭은 정의한 모듈의 문맥에서 값 식을 다시 걷는다 —
     서로를 가리키는 별칭은 깊이 한도에서 멎는다. 타입 변수와 빌트인은 노드가 아니라서 버린다.
@@ -1227,6 +1246,10 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     클래스가 곧 1차이고, 주석·상속에서 참조되지만 덤프에 없는 이름이 외부다.
     다만 `repo` 가 git 저장소면 git 이 추적하지 않는 모듈 파일의 클래스는 버린다 — griffe 는
     패키지 폴더를 디스크에서 훑으므로 추적 밖 사본까지 싣는다.
+
+    외부 노드는 1차 모듈의 이름을 달지 않는다. 어느 노드의 이름도 아닌 점 이름이 1차 모듈 경로(`PyNames.modules`)이거나
+    그 경로에 마디를 이어 붙인 꼴이면 외부로 접지 않고 `이름 해소 실패` 로 센다 — 그 모듈의 이름인데 두 수집기가 싣지 않았다.
+    표본은 `이름 @ 그 이름을 가리킨 클래스의 모듈` 이다.
 
     모듈 속성 가운데 함수 꼴 `TypedDict` · `NamedTuple` 은 클래스와 같이 노드가 되고 그 필드가 association 간선이 된다.
     형 별칭과 타입 변수는 노드가 아니다 — 주석이 가리키면 `py_walk_expr` 이 별칭은 값 식으로 펴고 타입 변수는 버린다.
@@ -1309,13 +1332,17 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
         merge_py_calls(nodes, node_id, edges, {"tool": calls["tool"], "symbols": calls["symbols"], "calls": []}, stats)
 
     names = py_names({n["name"] for n in nodes.values() if n["kind"] == "class"}, aliases, typevars,
-                     {path: mod.get("imports") or {} for path, (mod, _) in mods.items()})
+                     {path: mod.get("imports") or {} for path, (mod, _) in mods.items()},
+                     calls["symbols"] if calls is not None else ())
     collapsed: defaultdict[str, list[str]] = defaultdict(list)
 
-    def to_node(key: str) -> str:
-        """R2 — 외부 이름을 배포 이름 하나로 접는다."""
+    def to_node(key: str) -> str | None:
+        """R2 — 외부 이름을 배포 이름 하나로 접는다. 이름이나 그 앞머리가 1차 모듈 경로면 접지 않고 None 을 돌려준다."""
         if key in node_id:
             return node_id[key]
+        parts = key.split(".")
+        if any(".".join(parts[:i]) in names["modules"] for i in range(1, len(parts) + 1)):
+            return None
         g = py_external_group(key)
         nid = "X:" + g
         if nid not in nodes:
@@ -1332,6 +1359,9 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     def add(src_q: str, dst_key: str, kind: EdgeKind, label: str | None,
             file: str | None, line: int | None) -> None:
         s, d = node_id[src_q], to_node(dst_key)
+        if d is None:
+            stats.note("이름 해소 실패", "%s @ %s" % (dst_key, declared[src_q][1]))
+            return
         if s == d:
             stats["자기참조 버림"] += 1
             return
