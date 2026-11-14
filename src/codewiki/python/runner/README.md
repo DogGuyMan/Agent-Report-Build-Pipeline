@@ -259,6 +259,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `AnnotateSymbolsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `AnnotateSymbolsStage.shard_dir` | `(ctx: Mode1Context) -> str` |  |
+| `AnnotateSymbolsStage.claim_shard_dir` | `(ctx: Mode1Context) -> int` | 샤드 폴더를 지금 계획의 것으로 만들고, 옮긴 항목 수를 돌려준다. |
 | `AnnotateSymbolsStage.name_of` | `(plan: survey_plan.SurveyPlan) -> dict[str, str]` | 계획 전체의 `id -> name`. `depends_on` 은 노드 id 이고 레코드 키는 이름이라 이 표로 건넌다. |
 | `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> list[DepRow]` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만, 이름 순의 줄로 낸다. |
 | `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, deps: Sequence[DepRow], targets: Sequence[str] \| None = None, total: int = 0, pending: Sequence[PendingRow] = (), name_of: Mapping[str, str] \| None = None, faults: Sequence[str] = (), bad: str = '') -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |

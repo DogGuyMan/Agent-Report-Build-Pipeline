@@ -9741,7 +9741,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:21"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:22"
+  "where": "src/codewiki/python/runner/mode1/survey.py:25"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.apply_pass2": {
   "confidence": "HIGH",
@@ -9764,7 +9764,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:512"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:331"
+  "where": "src/codewiki/python/runner/mode1/survey.py:376"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_coverage": {
   "confidence": "HIGH",
@@ -9793,7 +9793,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:336"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:198"
+  "where": "src/codewiki/python/runner/mode1/survey.py:243"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_shard": {
   "confidence": "HIGH",
@@ -9822,7 +9822,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:319"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:168"
+  "where": "src/codewiki/python/runner/mode1/survey.py:213"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.check_shards": {
   "confidence": "HIGH",
@@ -9863,7 +9863,17 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:345"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:209"
+  "where": "src/codewiki/python/runner/mode1/survey.py:254"
+ },
+ "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.claim_shard_dir": {
+  "confidence": "HIGH",
+  "does": "batches.json 바이트의 sha256 을 구해, 샤드 폴더 안 '.plan' 에 적힌 batches_sha256 과 견준다. 폴더가 없으면 먼저 만든다. 같으면 아무것도 바꾸지 않고 0 을 돌려준다. '.plan' 이 없거나 읽히지 않거나 64자리 16진수가 아니면 도장이 없는 것으로 보고, '.plan' 과 '_stale' 을 뺀 모든 항목을 '_stale/<옛 도장 앞 12자>' 로(도장이 없으면 'unstamped', 그 이름이 이미 있으면 '-2', '-3' 을 붙여) 옮기고 옮긴 개수와 자리를 한 줄 찍는다. 그 뒤 새 도장을 jsonio.write_json_atomic 으로 쓰고 옮긴 항목 수를 돌려준다. 지우지 않는다.",
+  "kind": "method",
+  "means": "샤드 폴더가 지금 배치 계획의 것임을 도장으로 확인하고, 다른 계획의 샤드를 _stale 로 옮겨 두는 메서드.",
+  "module": "codewiki.python.runner.mode1.survey",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/survey.py:55"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.clear_quarantine": {
   "confidence": "HIGH",
@@ -9873,7 +9883,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:252"
+  "where": "src/codewiki/python/runner/mode1/survey.py:297"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.compare_plan": {
   "confidence": "HIGH",
@@ -9902,7 +9912,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:589"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:486"
+  "where": "src/codewiki/python/runner/mode1/survey.py:531"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.dep_excerpt": {
   "confidence": "HIGH",
@@ -9919,7 +9929,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:88"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:56"
+  "where": "src/codewiki/python/runner/mode1/survey.py:101"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.fault": {
   "confidence": "HIGH",
@@ -9942,7 +9952,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:298"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:158"
+  "where": "src/codewiki/python/runner/mode1/survey.py:203"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.fault_line": {
   "confidence": "HIGH",
@@ -9952,7 +9962,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:187"
+  "where": "src/codewiki/python/runner/mode1/survey.py:232"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.file_of": {
   "confidence": "HIGH",
@@ -9962,7 +9972,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:470"
+  "where": "src/codewiki/python/runner/mode1/survey.py:515"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.harvest": {
   "confidence": "MEDIUM",
@@ -9991,7 +10001,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:686"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:582"
+  "where": "src/codewiki/python/runner/mode1/survey.py:627"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.into_of": {
   "confidence": "HIGH",
@@ -10008,7 +10018,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:419"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:277"
+  "where": "src/codewiki/python/runner/mode1/survey.py:322"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.jobs": {
   "confidence": "HIGH",
@@ -10055,7 +10065,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:677"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:566"
+  "where": "src/codewiki/python/runner/mode1/survey.py:611"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.load_faults": {
   "confidence": "MEDIUM",
@@ -10081,7 +10091,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:379"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:244"
+  "where": "src/codewiki/python/runner/mode1/survey.py:289"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.load_records": {
   "confidence": "MEDIUM",
@@ -10107,7 +10117,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:529"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:358"
+  "where": "src/codewiki/python/runner/mode1/survey.py:403"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.merge_shards": {
   "confidence": "HIGH",
@@ -10130,7 +10140,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:566"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:363"
+  "where": "src/codewiki/python/runner/mode1/survey.py:408"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.name_of": {
   "confidence": "HIGH",
@@ -10147,7 +10157,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:75"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:50"
+  "where": "src/codewiki/python/runner/mode1/survey.py:95"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.nonnode_prompt": {
   "confidence": "HIGH",
@@ -10164,7 +10174,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:263"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:118"
+  "where": "src/codewiki/python/runner/mode1/survey.py:163"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pass2_prompt": {
   "confidence": "HIGH",
@@ -10174,7 +10184,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:320"
+  "where": "src/codewiki/python/runner/mode1/survey.py:365"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pending_excerpt": {
   "confidence": "HIGH",
@@ -10191,7 +10201,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:199"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:99"
+  "where": "src/codewiki/python/runner/mode1/survey.py:144"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.pending_section": {
   "confidence": "HIGH",
@@ -10205,7 +10215,7 @@
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.perform": {
   "confidence": "MEDIUM",
-  "does": "ctx.plan 이 없으면 BATCHES 파일에서 읽는다. cold 가 아니면 changes.json 을 읽어 계획과 어긋나면 FAIL 을 낸다. 바뀐 파일이 0개면 SKIP 으로 끝낸다. 아니면 샤드 폴더를 만들고 스키마를 쓰고, 지난 레코드를 baseline·merged 로 설정한 뒤 super().perform(ctx) 로 층 팬아웃을 돌리고, 성공하면 sweep 으로 전체 검문을 한 번 더 한다.",
+  "does": "ctx.plan 이 없으면 BATCHES 파일에서 읽는다. cold 가 아니면 changes.json 을 읽어 계획과 어긋나면 FAIL 을 낸다. 바뀐 파일이 0개면 SKIP 으로 끝낸다. 아니면 claim_shard_dir 로 샤드 폴더를 지금 계획의 것으로 만들고(없으면 만들고 도장을 찍으며, 도장이 다른 샤드는 _stale 로 옮긴다) 스키마를 쓰고, 지난 레코드를 baseline·merged 로 설정한 뒤 super().perform(ctx) 로 층 팬아웃을 돌리고, 성공하면 sweep 으로 전체 검문을 한 번 더 한다.",
   "kind": "method",
   "means": "이 단계를 실제로 실행하는 메서드. 계획을 읽고, 변경 여부를 확인하고, 층 팬아웃을 돌린 뒤 검문까지 시킨다.",
   "module": "codewiki.python.runner.mode1.survey",
@@ -10252,7 +10262,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:617"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:505"
+  "where": "src/codewiki/python/runner/mode1/survey.py:550"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.plan_files": {
   "confidence": "HIGH",
@@ -10269,7 +10279,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:586"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:481"
+  "where": "src/codewiki/python/runner/mode1/survey.py:526"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.plan_ids": {
   "confidence": "HIGH",
@@ -10286,7 +10296,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:329"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:192"
+  "where": "src/codewiki/python/runner/mode1/survey.py:237"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.prompt": {
   "confidence": "HIGH",
@@ -10296,7 +10306,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:32"
+  "where": "src/codewiki/python/runner/mode1/survey.py:35"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.qualified": {
   "confidence": "HIGH",
@@ -10313,7 +10323,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:580"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:475"
+  "where": "src/codewiki/python/runner/mode1/survey.py:520"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.quarantine": {
   "confidence": "HIGH",
@@ -10330,7 +10340,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:372"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:229"
+  "where": "src/codewiki/python/runner/mode1/survey.py:274"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.reads": {
   "confidence": "HIGH",
@@ -10353,7 +10363,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:33"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:35"
+  "where": "src/codewiki/python/runner/mode1/survey.py:38"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.repo": {
   "confidence": "HIGH",
@@ -10370,7 +10380,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:27"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:29"
+  "where": "src/codewiki/python/runner/mode1/survey.py:32"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.retry_section": {
   "confidence": "HIGH",
@@ -10410,7 +10420,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:664"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:563"
+  "where": "src/codewiki/python/runner/mode1/survey.py:608"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.shallow_of": {
   "confidence": "HIGH",
@@ -10420,7 +10430,7 @@
   "module": "codewiki.python.runner.mode1.survey",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/survey.py:268"
+  "where": "src/codewiki/python/runner/mode1/survey.py:313"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.shard_dir": {
   "confidence": "HIGH",
@@ -10437,7 +10447,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:42"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:44"
+  "where": "src/codewiki/python/runner/mode1/survey.py:51"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.survey_batch_prompt": {
   "confidence": "HIGH",
@@ -10466,7 +10476,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:177"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:71"
+  "where": "src/codewiki/python/runner/mode1/survey.py:116"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.sweep": {
   "confidence": "MEDIUM",
@@ -10510,7 +10520,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:660"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:540"
+  "where": "src/codewiki/python/runner/mode1/survey.py:585"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.unresolved_csv": {
   "confidence": "HIGH",
@@ -10527,7 +10537,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:453"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:311"
+  "where": "src/codewiki/python/runner/mode1/survey.py:356"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.unresolved_rows": {
   "confidence": "HIGH",
@@ -10556,7 +10566,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:434"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:288"
+  "where": "src/codewiki/python/runner/mode1/survey.py:333"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.warmup_section": {
   "confidence": "HIGH",
@@ -10602,7 +10612,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:290"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:144"
+  "where": "src/codewiki/python/runner/mode1/survey.py:189"
  },
  "codewiki.python.runner.mode1.survey.AnnotateSymbolsStage.writes": {
   "confidence": "HIGH",
@@ -10625,7 +10635,7 @@
     "where": "src/codewiki/python/runner/mode1/survey.py:36"
    }
   ],
-  "where": "src/codewiki/python/runner/mode1/survey.py:38"
+  "where": "src/codewiki/python/runner/mode1/survey.py:41"
  },
  "codewiki.python.runner.mode1.survey_files.AnnotateFilesStage": {
   "confidence": "HIGH",
@@ -10646,7 +10656,7 @@
  },
  "codewiki.python.runner.mode1.survey_files.AnnotateFilesStage.perform": {
   "confidence": "HIGH",
-  "does": "계획(SurveyPlan)과 코드그래프를 읽어 배치별 가중치와 의존 대상 수(into)를 계산한 뒤, ThreadPoolExecutor 로 배치마다 조사 프롬프트를 세션으로 제출한다. 세션이 끝날 때마다(on_done) 1패스면 샤드를 검문해 틀리면 격리하고, 2패스면 apply_pass2 로 병합해 틀리면 실패로 표시한다. 매번 write_merged 로 READING 과 UNRESOLVED 를 다시 쓰고, pass2_candidates 로 2패스 넣을 배치를 찾아 추가로 제출한다. 모든 세션이 끝나면 비노드 배치를 마저 돌리고, 실패가 없으면 sweep 으로 마무리해 Outcome 을 돌려준다.",
+  "does": "계획(SurveyPlan)과 코드그래프를 읽어 배치별 가중치와 의존 대상 수(into)를 계산하고, claim_shard_dir 로 샤드 폴더를 지금 계획의 것으로 만든다(도장이 다른 샤드는 _stale 로 옮긴다). 그 뒤 ThreadPoolExecutor 로 배치마다 조사 프롬프트를 세션으로 제출한다. 세션이 끝날 때마다(on_done) 1패스면 샤드를 검문해 틀리면 격리하고, 2패스면 apply_pass2 로 병합해 틀리면 실패로 표시한다. 매번 write_merged 로 READING 과 UNRESOLVED 를 다시 쓰고, pass2_candidates 로 2패스 넣을 배치를 찾아 추가로 제출한다. 모든 세션이 끝나면 비노드 배치를 마저 돌리고, 실패가 없으면 sweep 으로 마무리해 Outcome 을 돌려준다.",
   "kind": "method",
   "means": "파일 단위 조사 세션을 계획에 따라 병렬로 띄우고, 끝날 때마다 검문·병합·2패스 투입을 반복해 전체 조사를 끝내는 메소드다.",
   "module": "codewiki.python.runner.mode1.survey_files",

@@ -45,6 +45,7 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
         batches = {b["id"]: b for L in plan["layers"] for b in L.get("batches", [])}
         weight = {b["files"][0]: b.get("weight", 0.0) for b in batches.values() if b["files"]}
         d = self.shard_dir(ctx)
+        self.claim_shard_dir(ctx)
         os.makedirs(os.path.join(d, "_pass2"), exist_ok=True)
         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
         ctx.baseline = self.load_records(X.READING.locate(ctx))

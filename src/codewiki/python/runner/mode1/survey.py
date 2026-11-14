@@ -1,6 +1,8 @@
 """`annotate-symbols`. 층 오름차순 · 층 안 병렬로 전수조사 배치를 돌리고, 층마다 샤드를 합쳐 쓴다."""
+import hashlib
 import json
 import os
+import re
 import stat
 import sys
 import time
@@ -10,6 +12,7 @@ from typing import ClassVar, Literal, cast
 import msgspec
 
 from core import pipeline as P
+import jsonio
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
@@ -40,9 +43,51 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
 
     # ── 자리 ────────────────────────────────────────────────────────────
 
+    # 샤드 폴더 안의 계획 도장 파일과, 다른 계획의 항목을 옮겨 두는 하위 폴더. 둘 다 `.json` 샤드가 아니라 병합이 읽지 않는다.
+    PLAN_STAMP: ClassVar[str] = ".plan"
+    STALE_DIR: ClassVar[str] = "_stale"
+
     @staticmethod
     def shard_dir(ctx: Mode1Context) -> str:
         return os.path.join(X.raw_dir(ctx), "_shards")
+
+    @staticmethod
+    def claim_shard_dir(ctx: Mode1Context) -> int:
+        """샤드 폴더를 지금 계획의 것으로 만들고, 옮긴 항목 수를 돌려준다.
+
+        계획의 신원은 `batches.json` 바이트의 sha256 이고 폴더 안 `.plan` 이 그것을 적는다.
+        도장이 같으면 폴더를 그대로 둔다. 도장이 없거나 읽히지 않거나 다르면 `.plan` 과 `_stale/` 를 뺀
+        모든 항목(`.json.bad` · `_pass2/` 포함)을 `_stale/<옛 도장 앞 12자>/` 로 옮긴다 — 읽히는 옛 도장이
+        없으면 `unstamped`, 그 이름이 이미 있으면 `-2` · `-3` 을 붙인다. 옮긴 뒤에 새 도장을 쓰고, 지우지 않는다.
+        """
+        d = AnnotateSymbolsStage.shard_dir(ctx)
+        os.makedirs(d, exist_ok=True)
+        with open(X.BATCHES.locate(ctx), "rb") as f:
+            now = hashlib.sha256(f.read()).hexdigest()
+        stamp = os.path.join(d, AnnotateSymbolsStage.PLAN_STAMP)
+        try:
+            old = P.load(stamp, dict[str, str]).get("batches_sha256", "")
+        except (OSError, msgspec.DecodeError):
+            old = ""
+        if not re.fullmatch(r"[0-9a-f]{64}", old):
+            old = ""
+        if old == now:
+            return 0
+        keep = (AnnotateSymbolsStage.PLAN_STAMP, AnnotateSymbolsStage.STALE_DIR)
+        rest = sorted(entry for entry in os.listdir(d) if entry not in keep)
+        if rest:
+            name = old[:12] or "unstamped"
+            dest = os.path.join(d, AnnotateSymbolsStage.STALE_DIR, name)
+            k = 1
+            while os.path.exists(dest):
+                k += 1
+                dest = os.path.join(d, AnnotateSymbolsStage.STALE_DIR, "%s-%d" % (name, k))
+            os.makedirs(dest)
+            for entry in rest:
+                os.replace(os.path.join(d, entry), os.path.join(dest, entry))
+            print("샤드 폴더가 이 계획의 것이 아니다 — 항목 %d개를 %s 로 옮겼다" % (len(rest), dest), flush=True)
+        jsonio.write_json_atomic(stamp, {"batches_sha256": now}, indent=1)
+        return len(rest)
 
     # ── 프롬프트 — 배치 · 비노드 ─────────────────────────────────────────
 
@@ -527,7 +572,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
                 return P.Outcome(P.SKIP, row["why"], [row])
         n_sessions = sum(len(L.get("batches", [])) or 1 for L in ctx.plan["layers"])
         print("조사 세션 예상 %d개 (층 %d)" % (n_sessions, len(ctx.plan["layers"])), flush=True)
-        os.makedirs(self.shard_dir(ctx), exist_ok=True)
+        self.claim_shard_dir(ctx)
         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
         ctx.baseline = self.load_records(X.READING.locate(ctx))
         ctx.merged = dict(ctx.baseline)

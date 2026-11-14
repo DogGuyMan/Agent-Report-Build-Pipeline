@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "runner"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "machine"))
 import collect_manifest as CM  # noqa: E402
+import jsonio  # noqa: E402
 import manifest as MF  # noqa: E402
 from core import measure as M  # noqa: E402
 from core import pipeline as P  # noqa: E402
@@ -76,6 +77,20 @@ def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> Non
     with open(batches, "w", encoding="utf-8") as f:
         json.dump(plan, f)
     _fake_ranking(c)
+
+
+def _plan_digest(c: X.Mode1Context) -> str:
+    """디스크의 `batches.json` 바이트의 sha256 — 샤드 폴더 도장이 적는 계획의 신원."""
+    with open(X.BATCHES.locate(c), "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def _stamp(c: X.Mode1Context) -> None:
+    """샤드 폴더에 지금 `batches.json` 의 도장을 코드와 같은 꼴로 찍는다. 같은 계획으로 이어 가는(재개) 실행을 흉내 낸다 — `_gated` 뒤에 부른다."""
+    d = SV.AnnotateSymbolsStage.shard_dir(c)
+    os.makedirs(d, exist_ok=True)
+    jsonio.write_json_atomic(os.path.join(d, SV.AnnotateSymbolsStage.PLAN_STAMP),
+                             {"batches_sha256": _plan_digest(c)}, indent=1)
 
 
 # ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
@@ -1156,6 +1171,7 @@ def test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAI
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
     _gated(c)
     shards = raw / "_shards"; shards.mkdir()
+    _stamp(c)                                       # 같은 계획으로 이어 가는 실행 — 도장이 있어야 샤드가 남는다
     (shards / "L0-B00.json").write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")   # 샤드가 있어 세션은 안 뜬다
     out = SV.AnnotateSymbolsStage().perform(c)
     assert out.kind == P.FAIL and c.survey_ok is False
@@ -1170,10 +1186,142 @@ def test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
     _gated(c)
     shards = raw / "_shards"; shards.mkdir()
+    _stamp(c)
     (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
     out = SV.AnnotateSymbolsStage().perform(c)
     assert out.kind == P.OK and c.survey_ok is True
     assert out.rows[-1]["stage"] == "annotate-symbols/check-shards" and out.rows[-1]["ok"] is True
+
+
+# ── 샤드 폴더의 계획 도장 — 다른 계획의 샤드는 옮겨 두고 건너뛰지 않는다 ────────
+
+def _write_batches(c: X.Mode1Context, target: int = 8) -> None:
+    """배치 하나짜리 계획을 `batches.json` 으로 쓴다. `target` 이 다르면 바이트가 달라 계획의 신원이 바뀐다."""
+    plan = _one_batch_plan("L0-B00")
+    plan["target"] = target
+    path = X.BATCHES.locate(c)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(plan, f)
+
+
+def _names(folder: Path) -> list[str]:
+    return sorted(p.name for p in folder.iterdir())
+
+
+def test_도장이_없는_샤드는_unstamped_로_옮기고_그_배치를_다시_띄운다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L0-B00")
+    _write_batches(c)
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); (d / "_pass2").mkdir(parents=True)
+    old = {"f": {**_good_record(), "means": "옛 계획의 뜻"}}
+    (d / "L0-B00.json").write_text(json.dumps(old), encoding="utf-8")
+    (d / "L0-B00.json.bad").write_text("{", encoding="utf-8")
+    (d / "_pass2" / "L0-B00.json").write_text("{}", encoding="utf-8")
+    assert SV.AnnotateSymbolsStage().jobs(c, 0) == []           # claim_shard_dir 전에는 jobs 가 옛 샤드를 보고 건너뛴다
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 3
+    moved = d / "_stale" / "unstamped"
+    assert _names(moved) == ["L0-B00.json", "L0-B00.json.bad", "_pass2"]
+    assert json.loads((moved / "L0-B00.json").read_text(encoding="utf-8")) == old
+    assert _names(d) == [".plan", "_stale"]
+    assert json.loads((d / ".plan").read_text(encoding="utf-8")) == {"batches_sha256": _plan_digest(c)}
+    assert [bid for bid, _ in SV.AnnotateSymbolsStage().jobs(c, 0)] == ["L0-B00"]
+    out = capsys.readouterr().out
+    assert "항목 3개" in out and str(moved) in out and out.count("\n") == 1
+
+
+def test_도장이_지금_계획과_같으면_샤드를_그대로_두고_끝난_배치를_건너뛴다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L0-B00")
+    _write_batches(c)
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 0
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c))
+    (d / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    (d / "L0-B00.json.bad").write_text("{", encoding="utf-8")
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 0      # 이어 가는 실행 — 같은 계획이다
+    assert _names(d) == [".plan", "L0-B00.json", "L0-B00.json.bad"]
+    assert SV.AnnotateSymbolsStage().jobs(c, 0) == []
+    assert capsys.readouterr().out == ""
+
+
+def test_계획이_바뀌면_옛_샤드를_옛_도장_앞_12자_폴더로_옮기고_다시_옮겨도_덮지_않는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c))
+    _write_batches(c, 8); first = _plan_digest(c)
+    SV.AnnotateSymbolsStage.claim_shard_dir(c)
+    (d / "L0-B00.json").write_text("A1", encoding="utf-8")
+    _write_batches(c, 9); second = _plan_digest(c)
+    assert first != second and SV.AnnotateSymbolsStage.claim_shard_dir(c) == 1
+    assert (d / "_stale" / first[:12] / "L0-B00.json").read_text(encoding="utf-8") == "A1"
+    assert not (d / "L0-B00.json").exists()
+    (d / "L0-B00.json").write_text("B1", encoding="utf-8")
+    _write_batches(c, 8)                                        # 첫 계획으로 되돌아온다
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 1
+    assert (d / "_stale" / second[:12] / "L0-B00.json").read_text(encoding="utf-8") == "B1"
+    (d / "L0-B00.json").write_text("A2", encoding="utf-8")
+    _write_batches(c, 9)                                        # 첫 계획의 옛 도장 폴더가 이미 있다
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 1
+    assert (d / "_stale" / first[:12] / "L0-B00.json").read_text(encoding="utf-8") == "A1"
+    assert (d / "_stale" / (first[:12] + "-2") / "L0-B00.json").read_text(encoding="utf-8") == "A2"
+    assert _names(d) == [".plan", "_stale"]
+
+
+def test_샤드_폴더가_없거나_도장뿐이면_옮길_것_없이_도장만_새로_찍는다(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    c = _ctx(tmp_path)
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c))
+    _write_batches(c, 8)
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 0 and _names(d) == [".plan"]
+    _write_batches(c, 9)
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 0 and _names(d) == [".plan"]
+    assert json.loads((d / ".plan").read_text(encoding="utf-8")) == {"batches_sha256": _plan_digest(c)}
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("text", ["{ 깨진", "[]", "{}", '{"batches_sha256": 7}', '{"batches_sha256": "../../x"}'])
+def test_읽을_수_없는_도장은_도장이_없는_것으로_본다(tmp_path: Path, text: str) -> None:
+    c = _ctx(tmp_path)
+    _write_batches(c)
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    (d / ".plan").write_text(text, encoding="utf-8")
+    (d / "L0-B00.json").write_text("{}", encoding="utf-8")
+    assert SV.AnnotateSymbolsStage.claim_shard_dir(c) == 1
+    assert (d / "_stale" / "unstamped" / "L0-B00.json").exists()
+    assert json.loads((d / ".plan").read_text(encoding="utf-8")) == {"batches_sha256": _plan_digest(c)}
+
+
+def test_병합은_도장과_옮겨_둔_샤드를_읽지_않는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c))
+    _write_batches(c, 8)
+    SV.AnnotateSymbolsStage.claim_shard_dir(c)
+    (d / "L0-B00.json").write_text(json.dumps({"가": {"where": "a.py:1"}}), encoding="utf-8")
+    _write_batches(c, 9)
+    SV.AnnotateSymbolsStage.claim_shard_dir(c)                  # "가" 의 샤드가 _stale 로 간다
+    (d / "L0-B00.json").write_text(json.dumps({"나": {"where": "b.py:1"}}), encoding="utf-8")
+    assert (d / ".plan").is_file() and list((d / "_stale").rglob("*.json"))
+    assert sorted(SV.AnnotateSymbolsStage.merge_shards(str(d), {})) == ["나"]
+
+
+def test_annotate_symbols_는_도장이_없는_옛_샤드를_옮기고_그_배치를_다시_띄운다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    _gated(c)
+    shards = raw / "_shards"; shards.mkdir()
+    old = {"f": {**_good_record(), "means": "옛 계획의 뜻"}}
+    (shards / "L0-B00.json").write_text(json.dumps(old), encoding="utf-8")
+    asked: list[str] = []
+
+    def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        for label, _ in jobs:
+            asked.append(label)
+            (shards / (label + ".json")).write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+        return [(label, 0.0, 0, {}) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", layer)
+    out = SV.AnnotateSymbolsStage().perform(c)
+    assert out.kind == P.OK and asked == ["L0-B00"]
+    assert json.loads((shards / "_stale" / "unstamped" / "L0-B00.json").read_text(encoding="utf-8")) == old
+    assert json.loads((shards / ".plan").read_text(encoding="utf-8")) == {"batches_sha256": _plan_digest(c)}
 
 
 # ── 오류 인계 — 격리 사유 저장 · 재조사 프롬프트 · 세션 안 자가검사 ────────
@@ -1219,6 +1367,7 @@ def test_검문이_통과한_배치의_옛_격리_흔적은_치운다(tmp_path: 
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
     _gated(c)
     shards = raw / "_shards"; shards.mkdir()
+    _stamp(c)
     (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
     (shards / "L0-B00.json.bad").write_text("{", encoding="utf-8")
     (shards / "L0-B00.json.bad.why").write_text("[]", encoding="utf-8")
@@ -1719,6 +1868,34 @@ def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다
     faults = SV.AnnotateSymbolsStage.load_faults(str(raw / "_shards"), ids["c.py"])
     assert faults and faults[0]["kind"] == "coverage"
     assert "NONNODE" not in [r["stage"].split("/")[-1] for r in out.rows]      # 실패했으면 비노드 세션을 안 띄운다
+
+
+def test_파일_스케줄러는_도장이_없는_옛_샤드를_옮기고_그_배치를_다시_돌린다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    _gated(c)
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    old = {"옛.키": _rec("b.py:1")}
+    stale = raw / "_shards" / (ids["b.py"] + ".json")
+    (raw / "_shards" / "_pass2").mkdir(parents=True)
+    stale.write_text(json.dumps(old), encoding="utf-8")
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
+        ids["c.py"]: {"c.k": _rec("c.py:1")}, "NONNODE": {}}
+    calls: list[str] = []
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, calls))
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.OK, out.why
+    assert ids["b.py"] in calls                                  # 옛 샤드가 있어도 이 계획의 배치는 다시 돈다
+    moved = raw / "_shards" / "_stale" / "unstamped"
+    assert json.loads((moved / (ids["b.py"] + ".json")).read_text(encoding="utf-8")) == old
+    assert (moved / "_pass2").is_dir() and (raw / "_shards" / "_pass2").is_dir()
+    assert json.loads((raw / "_shards" / ".plan").read_text(encoding="utf-8")) == {"batches_sha256": _plan_digest(c)}
 
 
 def test_전략_file_이면_annotate_symbols_가_파일_단계이고_그래프_이름이_갈린다(tmp_path: Path):
