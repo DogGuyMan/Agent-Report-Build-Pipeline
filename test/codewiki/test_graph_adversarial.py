@@ -51,7 +51,6 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-@pytest.mark.xfail(strict=True, reason="Task 2")
 def test_깨진_JSON_은_파이프라인에서도_결함_파일과_핸드오프를_남긴다(repo: Path) -> None:
     raw(repo, "codegraph.json").write_text("{", encoding="utf-8")
     ctx = ctx_for(repo)

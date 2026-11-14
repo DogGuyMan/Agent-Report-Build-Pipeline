@@ -298,7 +298,8 @@ def reading_path(repo: str, root: str) -> str:
 LANG_SELECT = P.Artifact[Mode1Context](
     "lang-select.json", lambda c: os.path.join(raw_dir(c), "lang-select.json"), LangSelect)
 CODEGRAPH = P.Artifact[Mode1Context](
-    "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"), CodeGraphDoc)
+    "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"))
+# 꼴은 verify-graph 가 본다 — 경계가 먼저 막으면 깨진 JSON 이 결함 파일 없이 죽는다.
 GRAPH_VERIFIED = P.Artifact[Mode1Context](
     "graph-verified.json", lambda c: os.path.join(raw_dir(c), "graph-verified.json"), GraphVerifiedDoc)
 GRAPH_FAULTS = P.Artifact[Mode1Context](

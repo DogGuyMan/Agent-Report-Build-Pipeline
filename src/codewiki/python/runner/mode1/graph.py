@@ -47,7 +47,7 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
                 "--faults", X.GRAPH_FAULTS.locate(ctx), "--passed", X.GRAPH_VERIFIED.locate(ctx)]
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.CODEGRAPH]
+        return []          # 없는 지도도 이 단계가 unreadable 로 보고한다
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.GRAPH_VERIFIED]
