@@ -15,11 +15,12 @@ import warmup
 from manifest import WikiState
 from mode1 import context as X
 from mode1.context import Mode1Context, WikiPage
+from mode1.graph import VerifiedGraph
 from mode1.machine_stage import Mode1Machine
 from mode1.measured import Measured
 
 
-class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
+class OutlineWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     """목차 한 세션. 이미 있으면 세션 없이 OK — 산출물이 있으면 계약은 지켜진 것이다.
 
     `SKIP` 은 "산출물 없이 다음으로" 라는 뜻이라 여기에 맞지 않는다. `SKIP` 으로 내면
@@ -35,6 +36,9 @@ class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
     def prompt(self, ctx: Mode1Context) -> str:
         return self.wiki_catalogue_prompt(ctx.repo, ctx.root)
 
+    def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.CODEGRAPH, X.GRAPH_VERIFIED]
+
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.OUTLINE]
 
@@ -49,6 +53,9 @@ class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
+        why, _ = self.gate(ctx, need_batches=True)
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if os.path.exists(X.OUTLINE.locate(ctx)):
             row = self.row(t0, True, "목차가 이미 있다")
             row["skipped"] = True
@@ -56,7 +63,7 @@ class OutlineWikiStage(Measured, P.LlmStage[Mode1Context]):
         return super().perform(ctx)
 
 
-class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
+class WriteWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     """장들을 층 오름차순 병렬로. 이미 쓴 장은 건너뛰고, 따라잡은 기준 뒤 바뀐 파일을 인용하는 장만 다시 쓴다. 사람이 고친 장은 .bak 에 남기고 덮는다.
 
     기준은 `wiki-state.json` 의 `sources` 다 — 전량 · 증분이 같다. 기준이 있으면 해시를 적어 두지 않은 개요 장도
@@ -77,7 +84,7 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         return ""
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.OUTLINE, X.BATCHES]
+        return [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         # 장들은 LLM 자식 프로세스가 쓴다. "돌고 나면 있어야 한다" 는 선언이지 누가 쓰는가가 아니다 —
@@ -259,6 +266,10 @@ class WriteWikiStage(Measured, P.LlmStage[Mode1Context]):
         ctx.wiki_removed = self.remove_pages(wiki_dir, ctx.wiki_stale - edited)
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
+        t0 = time.monotonic()
+        why, _ = self.gate(ctx, need_batches=True)
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if ctx.plan is None:
             ctx.plan = P.load(X.BATCHES.locate(ctx), survey_plan.SurveyPlan)
         self.prepare(ctx)

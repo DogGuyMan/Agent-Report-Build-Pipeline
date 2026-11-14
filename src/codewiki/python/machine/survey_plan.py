@@ -97,6 +97,8 @@ class SurveyPlan(TypedDict):
     target: int
     layers: list[PlanLayer]
     totals: PlanTotals
+    codegraph_sha256: NotRequired[str]
+    generation_id: NotRequired[str]
 
 
 def layer_of(first: Collection[str],

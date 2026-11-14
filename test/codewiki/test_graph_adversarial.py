@@ -75,7 +75,6 @@ def test_줄_수_같은_소스_교체는_source_drift_다(repo: Path) -> None:
     assert doc["status"] == "failed" and doc["freshness"]["counts"] == {"source-drift": 1}
 
 
-@pytest.mark.xfail(strict=True, reason="Task 5")
 def test_V3_를_건너뛴_기록은_전수조사에_맞지_않는다(repo: Path) -> None:
     cg = raw(repo, "codegraph.json")
     cg.write_text(json.dumps(graph()), encoding="utf-8")
@@ -87,7 +86,6 @@ def test_V3_를_건너뛴_기록은_전수조사에_맞지_않는다(repo: Path)
     assert G.VerifiedGraph.gate(ctx_for(repo), need_batches=False)[0] != ""
 
 
-@pytest.mark.xfail(strict=True, reason="Task 5")
 def test_annotate_only_는_성공_기록_없이_돌지_않는다(repo: Path) -> None:
     raw(repo, "batches.json").write_text(json.dumps(survey_plan.plan(graph(), 8)), encoding="utf-8")
     raw(repo, "codegraph.json").write_text("{", encoding="utf-8")

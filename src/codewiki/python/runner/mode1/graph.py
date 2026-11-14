@@ -6,6 +6,8 @@ import time
 from collections import Counter
 from typing import cast
 
+import msgspec
+
 from core import pipeline as P
 import jsonio
 import survey_plan
@@ -86,7 +88,40 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
         return P.Outcome(P.FAIL, why, out.rows)
 
 
-class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
+class VerifiedGraph:
+    """검사를 지난 지도만 읽는 단계의 믹스인. 지도 바이트를 한 번 읽어 성공 기록과 파생물에 대조하고 그 바이트를 돌려준다."""
+
+    @staticmethod
+    def gate(ctx: Mode1Context, need_batches: bool, need_ranking: bool = False) -> tuple[str, bytes]:
+        """막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다.
+
+        `need_batches` 면 `batches.json` 이 지금 지도의 지문을 갖는지도 본다. `need_ranking` 은 받기만 하고 보지 않는다.
+        """
+        verified = X.GRAPH_VERIFIED.locate(ctx)
+        if not os.path.exists(verified):
+            return "성공 기록이 없다 — verify-graph 부터 돌린다", b""
+        doc = P.load(verified, X.GraphVerifiedDoc)
+        fit = doc["fit"]
+        if fit.get("survey") != "ready":
+            blocked = fit.get("blocked_by")
+            names = [str(x) for x in cast(list[object], blocked)] if isinstance(blocked, list) else []
+            return "성공 기록이 전수조사에 맞지 않는다 — %s" % ", ".join(names), b""
+        with open(X.CODEGRAPH.locate(ctx), "rb") as f:
+            raw = f.read()
+        now = hashlib.sha256(raw).hexdigest()
+        if doc["codegraph_sha256"] != now:
+            return "검사 뒤에 코드 지도가 바뀌었다 — verify-graph 부터 다시 돌린다", raw
+        if need_batches:
+            batches = X.BATCHES.locate(ctx)
+            if not os.path.exists(batches):
+                return "배치가 없다 — schedule-batches 부터 돌린다", raw
+            plan = P.load(batches, survey_plan.SurveyPlan)
+            if plan.get("codegraph_sha256") != now:
+                return "배치가 지금 지도의 것이 아니다 — schedule-batches 부터 다시 돌린다", raw
+        return "", raw
+
+
+class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
     """코드 지도를 배치로. 층 전략은 위상 층으로 나누고 증분이면 diff 의 `targets` 로 좁힌다.
     파일 전략은 파일 하나가 배치 하나이고 가중치 순이며 우선순위 CSV 를 함께 낸다. LLM 을 부르지 않는다."""
     name = "schedule-batches"
@@ -138,21 +173,13 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
         hi = round(n_sessions * cfg["usd_per_batch_max"])
         return "전수조사 세션 %d개 · 예상 $%d~%d · %s" % (n_sessions, lo, hi, "전량" if full else "증분")
 
-    @staticmethod
-    def stale_verification(codegraph: str, verified: str) -> str:
-        """성공 기록이 지금 지도의 것이 아니면 그 이유를, 맞으면 빈 문자열을 낸다."""
-        doc = P.load(verified, X.GraphVerifiedDoc)
-        with open(codegraph, "rb") as f:
-            now = hashlib.sha256(f.read()).hexdigest()
-        return "" if doc["codegraph_sha256"] == now else "검사 뒤에 코드 지도가 바뀌었다 — verify-graph 부터 다시 돌린다"
-
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        why = self.stale_verification(X.CODEGRAPH.locate(ctx), X.GRAPH_VERIFIED.locate(ctx))
+        why, raw = self.gate(ctx, need_batches=False)
         if why:
             return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         # 기계축 선언(`CodeGraph`)이 실물과 어긋나 최상위만 검증하고 넘길 때 `cast` 한다.
-        cg = cast(survey_plan.CodeGraph, P.load(X.CODEGRAPH.locate(ctx), X.CodeGraphDoc))
+        cg = cast(survey_plan.CodeGraph, msgspec.json.decode(raw, type=X.CodeGraphDoc))
         only = None if ctx.cold else ctx.targets
         if ctx.strategy == "file":
             ctx.plan = survey_plan.plan_by_file(cg)
@@ -161,6 +188,7 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
             print(X.FILE_PRIORITY.locate(ctx))
         else:
             ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
+        ctx.plan["codegraph_sha256"] = hashlib.sha256(raw).hexdigest()
         out_path = X.BATCHES.locate(ctx)
         jsonio.write_json_atomic(out_path, ctx.plan, indent=1)
         print("%s%s" % (out_path, " (증분: %d파일)" % len(only) if only else ""))

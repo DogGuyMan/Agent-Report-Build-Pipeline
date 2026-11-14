@@ -129,13 +129,14 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `VerifyGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `VerifyGraphStage.handoff_text` | `(cls, repo: str, codegraph: str, doc: verify_graph.VerifyDoc) -> str` | 결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지. |
 | `VerifyGraphStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+| **`VerifiedGraph`** | *class* | 검사를 지난 지도만 읽는 단계의 믹스인. 지도 바이트를 한 번 읽어 성공 기록과 파생물에 대조하고 그 바이트를 돌려준다. |
+| `VerifiedGraph.gate` | `(ctx: Mode1Context, need_batches: bool, need_ranking: bool = False) -> tuple[str, bytes]` | 막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다. |
 | **`ScheduleBatchesStage`** | *class* | 코드 지도를 배치로. 층 전략은 위상 층으로 나누고 증분이면 diff 의 `targets` 로 좁힌다. |
 | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
 | `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다. |
 | `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `전수조사 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 resource/codewiki/config.toml 의 [estimate]. |
-| `ScheduleBatchesStage.stale_verification` | `(codegraph: str, verified: str) -> str` | 성공 기록이 지금 지도의 것이 아니면 그 이유를, 맞으면 빈 문자열을 낸다. |
 | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 
 ---
@@ -323,6 +324,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`OutlineWikiStage`** | *class* | 목차 한 세션. 이미 있으면 세션 없이 OK — 산출물이 있으면 계약은 지켜진 것이다. |
 | `OutlineWikiStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
 | `OutlineWikiStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
+| `OutlineWikiStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `OutlineWikiStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `OutlineWikiStage.wiki_catalogue_prompt` | `(repo: str, root: str) -> str` | 페이지 목록과 **각 페이지가 인용할 심볼**을 먼저 받는다. |
 | `OutlineWikiStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |

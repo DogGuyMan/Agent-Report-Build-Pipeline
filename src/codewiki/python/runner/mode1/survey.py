@@ -15,10 +15,11 @@ from mode1 import context as X
 from mode1 import diff as D
 from mode1.context import (ROOT, DepRow, FaultKind, Mode1Context, Pass2DepRow, PendingRow, Record, Records,
                            RetryInputs, ShardFault, ShardRecords, SymbolRow, UnresolvedRow)
+from mode1.graph import VerifiedGraph
 from mode1.measured import Measured
 
 
-class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
+class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     """배치 하나 = 세션 하나. 층 사이에 이어지는 값(`baseline` · `merged`)은 **문맥 칸**에 둔다."""
     name = "annotate-symbols"
     emits = P.OK | P.FAIL | P.SKIP
@@ -32,7 +33,7 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
         return ""   # jobs 가 배치마다 만든다. 단일 프롬프트는 쓰이지 않는다
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.BATCHES] + ([] if ctx.cold else [X.CHANGES])
+        return [X.CODEGRAPH, X.GRAPH_VERIFIED, X.BATCHES] + ([] if ctx.cold else [X.CHANGES])
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.RECORD_SCHEMA, X.READING, X.DROPPED]
@@ -503,6 +504,9 @@ class AnnotateSymbolsStage(Measured, P.LlmStage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
+        why, _ = self.gate(ctx, need_batches=True)
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if ctx.plan is None:
             ctx.plan = P.load(X.BATCHES.locate(ctx), survey_plan.SurveyPlan)
             print("층 계획을 디스크에서 읽었다 — %s" % X.BATCHES.locate(ctx), flush=True)

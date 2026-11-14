@@ -48,6 +48,26 @@ def _verified(c: X.Mode1Context) -> None:
                    "checks_run": ["V0", "V1", "V2", "V3"], "fit": {"survey": "ready", "blocked_by": []}}, f)
 
 
+def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> None:
+    """`VerifiedGraph.gate` 를 지나는 입력을 깐다 — 지도(없으면 빈 지도), 그 지도의 성공 기록, 지도의 지문을 찍은 배치.
+
+    배치는 `plan`, 없으면 디스크의 `batches.json`, 그것도 없으면 `c.plan`, 그것도 없으면 빈 계획이다.
+    """
+    cg = X.CODEGRAPH.locate(c)
+    os.makedirs(os.path.dirname(cg), exist_ok=True)
+    if not os.path.exists(cg):
+        with open(cg, "w", encoding="utf-8") as f:
+            f.write('{"nodes": [], "edges": []}')
+    _verified(c)
+    batches = X.BATCHES.locate(c)
+    if plan is None:
+        plan = P.load(batches, survey_plan.SurveyPlan) if os.path.exists(batches) else (c.plan or _empty_plan())
+    with open(cg, "rb") as f:
+        plan["codegraph_sha256"] = hashlib.sha256(f.read()).hexdigest()
+    with open(batches, "w", encoding="utf-8") as f:
+        json.dump(plan, f)
+
+
 # ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
 
 
@@ -217,6 +237,7 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
     out = G.ScheduleBatchesStage().perform(c)
     assert out.kind == P.OK and seen["only"] == ["x.py"] and c.plan is not None
     assert (raw / "batches.json").exists()
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0] == ""      # 배치에 지도의 지문이 찍혀 있다
 
 
 def test_계획_요약은_층과_합계를_낸다():
@@ -401,6 +422,7 @@ def test_annotate_symbols_는_어긋난_계획을_돌리지_않는다(tmp_path: 
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     D.write_diff(str(raw / "changes.json"), _diff(["b.py"])["verdicts"], ["b.py"], 1, 2)
     (raw / "batches.json").write_text(json.dumps(_plan_with(["a.py", "b.py"])))
+    _gated(c)
     out = SV.AnnotateSymbolsStage().perform(c)
     assert out.kind == P.FAIL and "diff" in out.why
 
@@ -410,6 +432,7 @@ def test_annotate_symbols_는_바뀐_것이_없고_레코드가_있으면_SKIP(t
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
     (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    _gated(c)
     reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True)
     reading.write_text("{}")
     out = SV.AnnotateSymbolsStage().perform(c)
@@ -421,6 +444,7 @@ def test_annotate_symbols_는_레코드가_없으면_바뀐_것이_없어도_돈
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     D.write_diff(str(raw / "changes.json"), _no_change(), [], 1, 0)
     (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    _gated(c)
     out = SV.AnnotateSymbolsStage().perform(c)     # 층이 0개라 세션 없이 OK 로 끝난다
     assert out.kind == P.OK and c.survey_ok is True
 
@@ -464,6 +488,7 @@ def test_outline_wiki_는_목차_파일을_쓴다고_선언하고_있으면_세�
     assert W.OutlineWikiStage().writes(c) == [X.OUTLINE]
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "outline.json").write_text('{"pages": []}')
+    _gated(c)
     out = W.OutlineWikiStage().perform(c)          # 이미 있으면 세션 없이 OK — SKIP 이 아니다
     assert out.kind == P.OK and out.rows[0].get("skipped") is True
 
@@ -483,7 +508,7 @@ def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
     c.plan = {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
     st = W.WriteWikiStage()
     st.prepare(c)
-    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES]
+    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED]
     assert W.WriteWikiStage().writes(c) == [X.WIKI_DIR]
     assert [j[0] for j in st.jobs(c, 0)] == ["b.md"]
 
@@ -517,6 +542,7 @@ def test_write_wiki_는_끝나면_지문을_따라잡았다고_적는다(tmp_pat
     monkeypatch.setattr(P.LlmStage, "perform", ok)
     monkeypatch.setattr(W.WriteWikiStage, "prepare", no_prepare)
     ctx.plan = _empty_plan()
+    _gated(ctx)
     assert W.WriteWikiStage().perform(ctx).kind == P.OK
     state = P.load(X.WIKI_STATE.locate(ctx), MF.WikiState)
     assert state.get("snapshot_sha256") == hashlib.sha256(open(snap, "rb").read()).hexdigest()
@@ -614,6 +640,7 @@ def test_write_wiki_는_기준이_없으면_기존_장을_건너뛰고_따라잡
     (wiki / "a.md").write_text("옛 장\n", encoding="utf-8")
     monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.OK
     assert (wiki / "a.md").read_text(encoding="utf-8") == "옛 장\n"
     state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
@@ -629,6 +656,7 @@ def test_write_wiki_는_빈_위키를_처음_구우면_따라잡았다고_적는
     _snapshot(c, {"pkg/a.py": "새"})
     monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.OK
     state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
     assert state.get("sources") == {"pkg/a.py": "새"}
@@ -656,6 +684,7 @@ def test_write_wiki_가_한_층을_쓰고_실패하면_기준은_그대로이고
     (wiki / "a.md").write_text("사람이 고침 `pkg/a.py:1`\n", encoding="utf-8")
     monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
     c.plan = plan
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.FAIL
     after = P.load(state_path, MF.WikiState)
     assert after.get("sources") == sources and after.get("snapshot_sha256") == "옛"   # 실패한 실행은 기준을 옮기지 않는다
@@ -674,6 +703,7 @@ def _bake(c: X.Mode1Context, monkeypatch: pytest.MonkeyPatch, names: list[str], 
     _snapshot(c, snap)
     monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.OK and MF.wiki_caught_up(X.raw_dir(c))
     return Path(c.repo) / "docs" / "wiki"
 
@@ -768,6 +798,7 @@ def test_write_wiki_는_기준이_없으면_개요_밖_장도_기존_장으로_�
     _snapshot(c, {"pkg/a.py": "1판"})
     monkeypatch.setattr(P, "run_layer", _fake_layer(set()))
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.OK
     assert not c.wiki_first_bake and c.wiki_unknown == ["old.md"]
     assert (wiki / "a.md").exists() and not MF.wiki_caught_up(X.raw_dir(c))
@@ -787,6 +818,7 @@ def test_write_wiki_는_실패한_세션이_반쯤_쓴_장을_bak_로_옮겨_다
         return got + [("c.md", 0.0, 1, None)]
     monkeypatch.setattr(P, "run_layer", half)
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.FAIL
     assert not MF.wiki_caught_up(X.raw_dir(c))
     calls: list[str] = []
@@ -863,6 +895,7 @@ def test_write_wiki_는_성공한_세션이_장을_만들지_않아도_멈추지
     _snapshot(c, {"pkg/a.py": "1판"})
     monkeypatch.setattr(P, "run_layer", _noop_layer)
     c.plan = _empty_plan()
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.OK
     assert c.wiki_unwritten == ["a.md"] and not MF.wiki_caught_up(X.raw_dir(c))
     monkeypatch.setattr(P, "run_layer", _fake_layer(set()))      # 처음 굽기의 기준이 남아 다음 실행이 이어 굽는다
@@ -928,6 +961,7 @@ def test_전량에서는_annotate_symbols_가_SKIP_을_내지_않는다(tmp_path
     c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path), cold=True)
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "batches.json").write_text(json.dumps(_empty_plan()))
+    _gated(c)
     reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True); reading.write_text("{}")
     assert SV.AnnotateSymbolsStage().perform(c).kind == P.OK      # 층이 0개라 세션 없이 OK. 전량은 diff 를 안 본다
 
@@ -1107,6 +1141,7 @@ def test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAI
     c = _ctx(tmp_path); c.cold = True
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    _gated(c)
     shards = raw / "_shards"; shards.mkdir()
     (shards / "L0-B00.json").write_text('{"f": {"means": "a "b" c"}}', encoding="utf-8")   # 샤드가 있어 세션은 안 뜬다
     out = SV.AnnotateSymbolsStage().perform(c)
@@ -1120,6 +1155,7 @@ def test_annotate_symbols_는_샤드가_전부_맞으면_검문_행을_남기고
     c = _ctx(tmp_path); c.cold = True
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    _gated(c)
     shards = raw / "_shards"; shards.mkdir()
     (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
     out = SV.AnnotateSymbolsStage().perform(c)
@@ -1168,6 +1204,7 @@ def test_검문이_통과한_배치의_옛_격리_흔적은_치운다(tmp_path: 
     c = _ctx(tmp_path); c.cold = True
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    _gated(c)
     shards = raw / "_shards"; shards.mkdir()
     (shards / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
     (shards / "L0-B00.json.bad").write_text("{", encoding="utf-8")
@@ -1621,6 +1658,7 @@ def test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면
     (raw / "codegraph.json").write_text(json.dumps(cg))
     plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
     (raw / "batches.json").write_text(json.dumps(plan))
+    _gated(c)
     ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
     shards: dict[str, dict[str, object]] = {
         ids["b.py"]: {"b.g": _rec("b.py:1")},
@@ -1656,6 +1694,7 @@ def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다
     (raw / "codegraph.json").write_text(json.dumps(cg))
     plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
     (raw / "batches.json").write_text(json.dumps(plan))
+    _gated(c)
     ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
     shards: dict[str, dict[str, object]] = {
         ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
@@ -1728,6 +1767,7 @@ def test_write_wiki_처음_굽기가_한_층을_쓰고_실패하면_다음_실�
     _snapshot(c, {"pkg/a.py": "1판", "pkg/b.py": "1판"})
     monkeypatch.setattr(P, "run_layer", _fake_layer({"b.md"}))
     c.plan = plan
+    _gated(c)
     assert W.WriteWikiStage().perform(c).kind == P.FAIL
     state = P.load(X.WIKI_STATE.locate(c), MF.WikiState)
     assert state.get("sources") == {"pkg/a.py": "1판", "pkg/b.py": "1판"} and "snapshot_sha256" not in state
@@ -1870,7 +1910,8 @@ def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(
     repo = tmp_path / "대상"
     raw = repo / "out" / "codegraph-raw"
     raw.mkdir(parents=True)
-    for name in ("lang-select.json", "snapshot.json", "batches.json", "outline.json", "terms-db.json"):
+    for name in ("lang-select.json", "snapshot.json", "codegraph.json", "graph-verified.json", "batches.json",
+                 "outline.json", "terms-db.json"):
         (raw / name).write_text("{}", encoding="utf-8")
     # write-wiki 는 대역이라 상태를 쓰지 않는다 — 지문을 따라잡았다고 미리 적어 둔다
     (raw / "wiki-state.json").write_text(json.dumps({"snapshot_sha256": hashlib.sha256(b"{}").hexdigest()}))
@@ -2089,15 +2130,50 @@ def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() 
     assert "$.edges[4]" in text and "$.edges[5]" not in text
 
 
-def test_성공_기록이_지금_지도의_것이_아니면_배치를_짜지_않는다(tmp_path: Path) -> None:
-    cg, ok = tmp_path / "codegraph.json", tmp_path / "graph-verified.json"
-    cg.write_bytes(b'{"nodes": []}')
-    ok.write_text(json.dumps({"status": "passed", "codegraph_sha256": hashlib.sha256(b'{"nodes": []}').hexdigest(),
-                              "generation_id": None, "checks_run": ["V0", "V1", "V2", "V3"],
-                              "fit": {"survey": "ready", "blocked_by": []}}), encoding="utf-8")
-    assert G.ScheduleBatchesStage.stale_verification(str(cg), str(ok)) == ""
+def _map_at(c: X.Mode1Context, body: bytes) -> Path:
+    """`codegraph.json` 을 `body` 로 쓰고 그 자리를 낸다."""
+    cg = Path(X.CODEGRAPH.locate(c))
+    cg.parent.mkdir(parents=True, exist_ok=True)
+    cg.write_bytes(body)
+    return cg
+
+
+def test_검문은_성공_기록이_없으면_막는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    _map_at(c, b'{"nodes": []}')
+    assert G.VerifiedGraph.gate(c, need_batches=False)[0].startswith("성공 기록이 없다")
+
+
+def test_검문은_성공_기록이_지금_지도의_것이_아니면_막는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    cg = _map_at(c, b'{"nodes": []}')
+    _verified(c)
+    assert G.VerifiedGraph.gate(c, need_batches=False)[0] == ""
     cg.write_bytes(b'{"nodes": [1]}')
-    assert "바뀌었다" in G.ScheduleBatchesStage.stale_verification(str(cg), str(ok))
+    assert G.VerifiedGraph.gate(c, need_batches=False)[0].startswith("검사 뒤에")
+
+
+def test_검문은_배치가_없거나_지도의_지문이_없으면_막는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    _map_at(c, b'{"nodes": []}')
+    _verified(c)
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0].startswith("배치가 없다")
+    Path(X.BATCHES.locate(c)).write_text(json.dumps(_empty_plan()), encoding="utf-8")
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0].startswith("배치가 지금 지도의 것이 아니다")
+
+
+def test_검문은_모두_맞으면_빈_이유와_지금_지도의_바이트를_낸다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    cg = _map_at(c, b'{"nodes": []}')
+    _gated(c)
+    assert G.VerifiedGraph.gate(c, need_batches=True) == ("", cg.read_bytes())
+
+
+def test_지도를_읽는_LLM_단계_넷은_성공_기록을_읽는다(tmp_path: Path) -> None:
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path)
+    for st in (SV.AnnotateSymbolsStage(), SF.AnnotateFilesStage(), W.OutlineWikiStage(), W.WriteWikiStage()):
+        assert X.GRAPH_VERIFIED in st.reads(c) and X.CODEGRAPH in st.reads(c), st.name
 
 
 def test_검사가_실패한_실행은_지도를_다시_만드는_단계부터_재개한다() -> None:

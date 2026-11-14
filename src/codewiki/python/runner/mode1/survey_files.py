@@ -32,6 +32,9 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
+        why, _ = self.gate(ctx, need_batches=True)
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if ctx.plan is None:
             ctx.plan = P.load(X.BATCHES.locate(ctx), survey_plan.SurveyPlan)
         plan = ctx.plan
