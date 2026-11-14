@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기.
 
-## 열네 단계 — LLM 이 도는 칸은 **넷**이다
+## 열다섯 단계 — LLM 이 도는 칸은 **넷**이다
 
-    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ verify-graph ─▶ schedule-batches ─▶ annotate-symbols
-    ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki ─▶ seal-artifacts
+    lang-hint ─▶ lang-decide ─▶ detect-changes ─▶ collect-graph ─▶ verify-graph ─▶ derive-facts ─▶ schedule-batches
+    ─▶ annotate-symbols ─▶ snapshot-sources ─▶ verify-terms ─▶ outline-wiki ─▶ write-wiki ─▶ publish-wiki ─▶ verify-wiki
+    ─▶ seal-artifacts
 
 전량(`--cold`)에는 `detect-changes` 가 없다 — 대조할 옛 지문이 없어서다. 단계 클래스와 전이표는
 `src/codewiki/python/runner/mode1/` 패키지에 있고, 이 파일은 `main` 과 옛 이름 재수출만 갖는다.
@@ -14,8 +15,9 @@
 | `lang-hint` | LLM | 루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다 | `claude -p` 1회(가장 싼 Model) |
 | `lang-decide` | 기계 | 제안을 결정론으로 기각하거나 채택해 `lang-select.json` 을 쓴다 | `src/codewiki/python/machine/lang_select.py` |
 | `detect-changes` | 파이썬 | 옛 지문과 지금 소스를 대조해 `changes.json` 을 쓴다. 증분에만 | `src/codewiki/python/machine/warmup.py` |
-| `collect-graph` | 기계 | 정적 수집 → 코드 지도. 증분이면 diff 로 재수집 여부를 정한다 | `src/codewiki/python/runner/wiki/prep.py` |
+| `collect-graph` | 기계 | 정적 수집 → 코드 지도(`--collect-only` — 파생물은 뒤 단계가 만든다). 증분이면 diff 로 재수집 여부를 정한다 | `src/codewiki/python/runner/wiki/prep.py` |
 | `verify-graph` | 기계 | 코드 지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사한다. 결함이면 `graph-faults.json` · `graph-handoff.md` 를 남기고 멈추고, 통과하면 `graph-verified.json` | `src/codewiki/python/machine/verify_graph.py` |
+| `derive-facts` | 기계 | 검사를 지난 지도에서 `facts/*.md` · `ranking.json` · 모듈 그림을 만든다. 지도가 성공 기록과 다르면 돌지 않는다 | `src/codewiki/python/runner/wiki/derive.py` |
 | `schedule-batches` | 파이썬 | 코드 지도를 의존 위상 층과 배치로 나눈다(`batches.json`) | `src/codewiki/python/machine/survey_plan.py` |
 | `annotate-symbols` | LLM | 전수조사. 계획과 diff 를 대조한 뒤 **층 오름차순 · 층 안 병렬**로 배치를 돌린다 | `claude -p` 배치마다 1회 |
 | `snapshot-sources` | 파이썬 | 전수조사가 해낸 뒤에만 지문(`snapshot.json`)을 찍는다 | `src/codewiki/python/machine/warmup.py` |

@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from core import pipeline as P
 from mode1 import context as X
 from mode1.context import Mode1Context
-from mode1.graph import CollectGraphStage, ScheduleBatchesStage, VerifyGraphStage
+from mode1.graph import CollectGraphStage, DeriveFactsStage, ScheduleBatchesStage, VerifyGraphStage
 from mode1.lang import LangDecideStage, LangHintStage
 from mode1.scan import DetectChangesStage, SnapshotSourcesStage
 from mode1.seal import SealArtifactsStage
@@ -13,8 +13,8 @@ from mode1.survey_files import AnnotateFilesStage
 from mode1.terms import VerifyTermsStage
 from mode1.wiki import OutlineWikiStage, PublishWikiStage, VerifyWikiStage, WriteWikiStage
 
-ORDER = ["lang-hint", "lang-decide", "detect-changes", "collect-graph", "verify-graph", "schedule-batches",
-         "annotate-symbols", "snapshot-sources", "verify-terms", "outline-wiki", "write-wiki",
+ORDER = ["lang-hint", "lang-decide", "detect-changes", "collect-graph", "verify-graph", "derive-facts",
+         "schedule-batches", "annotate-symbols", "snapshot-sources", "verify-terms", "outline-wiki", "write-wiki",
          "publish-wiki", "verify-wiki", "seal-artifacts"]
 
 # 전량 그래프에는 없는 단계. 대조할 옛 지문이 없는데 대조 단계를 돌리지 않는다.
@@ -23,7 +23,7 @@ WARM_ONLY: set[str] = {"detect-changes"}
 # 옛 이름. `--only lang-select` 처럼 옛 명령줄이 그대로 돌게 한다.
 ALIASES = {
     "lang-select": ["lang-hint", "lang-decide"], "warmup": ["detect-changes"],
-    "prep": ["collect-graph", "verify-graph"], "survey-plan": ["schedule-batches"],
+    "prep": ["collect-graph", "verify-graph", "derive-facts"], "survey-plan": ["schedule-batches"],
     "survey": ["annotate-symbols"], "warmup-save": ["snapshot-sources"],
     "terms": ["verify-terms"], "wiki": ["outline-wiki", "write-wiki"],
     "wiki-catalogue": ["outline-wiki"], "wiki-pages": ["write-wiki"],
@@ -33,7 +33,7 @@ ALIASES = {
 STAGES: dict[str, P.Stage[Mode1Context]] = {
     "lang-hint": LangHintStage(), "lang-decide": LangDecideStage(),
     "detect-changes": DetectChangesStage(), "collect-graph": CollectGraphStage(), "verify-graph": VerifyGraphStage(),
-    "schedule-batches": ScheduleBatchesStage(), "annotate-symbols": AnnotateSymbolsStage(),
+    "derive-facts": DeriveFactsStage(), "schedule-batches": ScheduleBatchesStage(), "annotate-symbols": AnnotateSymbolsStage(),
     "snapshot-sources": SnapshotSourcesStage(), "verify-terms": VerifyTermsStage(),
     "outline-wiki": OutlineWikiStage(), "write-wiki": WriteWikiStage(),
     "publish-wiki": PublishWikiStage(), "verify-wiki": VerifyWikiStage(),

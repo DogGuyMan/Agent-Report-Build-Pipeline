@@ -13,7 +13,7 @@
 | [`mode1/context.py`](mode1/context.py) | Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 여기 칸이 있다. |
 | [`mode1/diff.py`](mode1/diff.py) | `changes.json` 의 꼴. 옛 판(지문)과 새 판(지금 소스)을 대조한 결과가 여기 남는다. |
 | [`mode1/edges.py`](mode1/edges.py) | Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 자기 다음을 모른다. |
-| [`mode1/graph.py`](mode1/graph.py) | `collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다. |
+| [`mode1/graph.py`](mode1/graph.py) | `collect-graph` · `verify-graph` · `derive-facts` · `schedule-batches`. 코드 지도를 만들고 검사한 뒤 파생물과 층 · 배치를 낸다. |
 | [`mode1/lang.py`](mode1/lang.py) | `lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다. |
 | [`mode1/machine_stage.py`](mode1/machine_stage.py) | 자식 프로세스 하나를 띄우는 Mode 1 단계의 베이스. 대상 저장소가 작업 폴더다. |
 | [`mode1/measured.py`](mode1/measured.py) | 측정 표의 행을 스스로 내는 단계의 믹스인. |
@@ -80,6 +80,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
 | **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위(`nodes` · `edges`)만. 노드와 간선 안은 열지 않는다. |
 | **`GraphVerifiedDoc`** | *class* | `graph-verified.json` 의 다섯 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.VerifyDoc` 다. |
+| **`RankingDoc`** | *class* | `ranking.json` 의 한 칸 — 단계 경계는 어느 수집 세대의 것인지만 본다. 나머지는 `facts.Ranking` 이다. |
 | **`LangSelect`** | *class* | `lang-select.json`. `language` 는 못 골랐으면 `null` 이다. |
 | **`Outline`** | *class* | `outline.json`. |
 | `reading_path` | `(repo: str, root: str) -> str` | 전수조사 원본 `terms-reading.json` 의 자리. |
@@ -117,7 +118,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 ## `graph.py`
 
-`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다.
+`collect-graph` · `verify-graph` · `derive-facts` · `schedule-batches`. 코드 지도를 만들고 검사한 뒤 파생물과 층 · 배치를 낸다.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
@@ -136,6 +137,11 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `VerifyGraphStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | **`VerifiedGraph`** | *class* | 검사를 지난 지도만 읽는 단계의 믹스인. 지도 바이트를 한 번 읽어 성공 기록과 파생물에 대조하고 그 바이트를 돌려준다. |
 | `VerifiedGraph.gate` | `(ctx: Mode1Context, need_batches: bool, need_ranking: bool = False) -> tuple[str, bytes]` | 막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다. |
+| **`DeriveFactsStage`** | *class* | 검사를 지난 지도에서 facts/*.md · ranking.json · 모듈 그림을 만든다. 지도가 성공 기록과 다르면 돌지 않는다. |
+| `DeriveFactsStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
+| `DeriveFactsStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `DeriveFactsStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `DeriveFactsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | **`ScheduleBatchesStage`** | *class* | 코드 지도를 배치로. 층 전략은 위상 층으로 나누고 증분이면 diff 의 `targets` 로 좁힌다. |
 | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |

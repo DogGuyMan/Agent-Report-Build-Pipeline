@@ -274,6 +274,11 @@ class GraphVerifiedDoc(TypedDict):
     fit: dict[str, object]
 
 
+class RankingDoc(TypedDict):
+    """`ranking.json` 의 한 칸 — 단계 경계는 어느 수집 세대의 것인지만 본다. 나머지는 `facts.Ranking` 이다."""
+    generation_id: str
+
+
 class LangSelect(TypedDict):
     """`lang-select.json`. `language` 는 못 골랐으면 `null` 이다."""
     language: str | None
@@ -317,6 +322,8 @@ GRAPH_FAULTS = P.Artifact[Mode1Context](
     "graph-faults.json", lambda c: os.path.join(raw_dir(c), "graph-faults.json"))
 GRAPH_HANDOFF = P.Artifact[Mode1Context](
     "graph-handoff.md", lambda c: os.path.join(raw_dir(c), "graph-handoff.md"))
+RANKING = P.Artifact[Mode1Context](
+    "ranking.json", lambda c: os.path.join(raw_dir(c), "ranking.json"), RankingDoc)
 SNAPSHOT = P.Artifact[Mode1Context](
     "snapshot.json", lambda c: os.path.join(raw_dir(c), "snapshot.json"))
 CHANGES = P.Artifact[Mode1Context](
@@ -348,7 +355,7 @@ WIKI_STATE = P.Artifact[Mode1Context](
 
 ARTIFACTS = [LANG_SELECT, CODEGRAPH, GRAPH_VERIFIED, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
              RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE, COLLECT_FINGERPRINT,
-             NORMALIZE_REPORT, SOURCE_INVENTORY, COLLECT_FAILURE]
+             NORMALIZE_REPORT, SOURCE_INVENTORY, COLLECT_FAILURE, RANKING]
 
 
 def snapshot_path(c: Mode1Context) -> str:

@@ -49,8 +49,15 @@ def _verified(c: X.Mode1Context, generation_id: str = "g1") -> None:
                    "checks_run": ["V0", "V1", "V2", "V3"], "fit": {"survey": "ready", "blocked_by": []}}, f)
 
 
+def _fake_ranking(c: X.Mode1Context) -> None:
+    """가짜 derive-facts 가 남기는 ranking.json — 성공 기록의 generation 을 찍는다."""
+    doc = P.load(X.GRAPH_VERIFIED.locate(c), X.GraphVerifiedDoc)
+    with open(X.RANKING.locate(c), "w", encoding="utf-8") as f:
+        json.dump({"generation_id": doc["generation_id"] or ""}, f)
+
+
 def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> None:
-    """`VerifiedGraph.gate` 를 지나는 입력을 깐다 — 지도(없으면 빈 지도), 그 지도의 성공 기록, 지도의 지문과 generation 을 찍은 배치.
+    """`VerifiedGraph.gate` 를 지나는 입력을 깐다 — 지도(없으면 빈 지도), 그 지도의 성공 기록, 지도의 지문과 generation 을 찍은 배치, 그 generation 을 찍은 ranking.json.
 
     배치는 `plan`, 없으면 디스크의 `batches.json`, 그것도 없으면 `c.plan`, 그것도 없으면 빈 계획이다.
     """
@@ -68,6 +75,7 @@ def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> Non
     plan["generation_id"] = P.load(X.GRAPH_VERIFIED.locate(c), X.GraphVerifiedDoc)["generation_id"] or ""
     with open(batches, "w", encoding="utf-8") as f:
         json.dump(plan, f)
+    _fake_ranking(c)
 
 
 # ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
@@ -512,7 +520,7 @@ def test_write_wiki_는_이미_쓴_장을_건너뛴다(tmp_path: Path):
     c.plan = {"target": 8, "layers": [], "totals": {"symbols": 0, "edges": 0, "levels": 0, "cyclic_symbols": 0}}
     st = W.WriteWikiStage()
     st.prepare(c)
-    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED]
+    assert W.WriteWikiStage().reads(c) == [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED, X.RANKING]
     assert W.WriteWikiStage().writes(c) == [X.WIKI_DIR]
     assert [j[0] for j in st.jobs(c, 0)] == ["b.md"]
 
@@ -926,8 +934,9 @@ def test_write_wiki_는_증분에서도_디스크에_있는_아래층_장을_싣
 # ── 10. 흐름 — 순서 · 별명 · 전이표 · 팩토리 ────────────────────────────
 
 
-def test_증분은_열넷_전량은_열셋():
-    assert len(E.ORDER) == 14
+def test_증분은_열다섯_전량은_열넷():
+    assert len(E.ORDER) == 15
+    assert len(E.plan_stages(None, None, cold=False)) == 15 and len(E.plan_stages(None, None, cold=True)) == 14
     assert "detect-changes" not in E.plan_stages(None, None, cold=True)
     assert "detect-changes" in E.plan_stages(None, None, cold=False)
     assert "snapshot-sources" in E.plan_stages(None, None, cold=True)
@@ -936,7 +945,7 @@ def test_증분은_열넷_전량은_열셋():
 def test_순서의_불변식_셋():
     i = E.ORDER.index
     assert i("detect-changes") < i("collect-graph") < i("schedule-batches") < i("annotate-symbols")
-    assert i("collect-graph") + 1 == i("verify-graph") == i("schedule-batches") - 1   # 검사는 지도 바로 뒤, 배치 바로 앞
+    assert i("collect-graph") + 1 == i("verify-graph") and i("verify-graph") + 1 == i("derive-facts") == i("schedule-batches") - 1   # 검사는 지도 바로 뒤, 파생물은 검사 바로 뒤, 배치는 그 바로 뒤
     assert i("annotate-symbols") + 1 == i("snapshot-sources") < i("verify-terms")   # 지문은 조사 바로 뒤
     assert i("verify-terms") < i("outline-wiki") < i("write-wiki") < i("publish-wiki") < i("verify-wiki")
 
@@ -945,7 +954,7 @@ def test_별명은_쪼갠_단계로_펴진다():
     assert E.expand(["lang-select", "publish-wiki"]) == ["lang-hint", "lang-decide", "publish-wiki"]
     assert E.expand(["wiki"]) == ["outline-wiki", "write-wiki"]
     assert E.expand(["warmup", "survey"]) == ["detect-changes", "annotate-symbols"]
-    assert E.expand(["prep"]) == ["collect-graph", "verify-graph"]
+    assert E.expand(["prep"]) == ["collect-graph", "verify-graph", "derive-facts"]
 
 
 def test_모르는_단계는_거부한다():
@@ -1915,7 +1924,7 @@ def test_세_번_재개해도_봉인은_terms_db_와_wiki_를_둘_다_싣는다(
     raw = repo / "out" / "codegraph-raw"
     raw.mkdir(parents=True)
     for name in ("lang-select.json", "snapshot.json", "codegraph.json", "graph-verified.json", "batches.json",
-                 "outline.json", "terms-db.json"):
+                 "ranking.json", "outline.json", "terms-db.json"):
         (raw / name).write_text("{}", encoding="utf-8")
     # write-wiki 는 대역이라 상태를 쓰지 않는다 — 지문을 따라잡았다고 미리 적어 둔다
     (raw / "wiki-state.json").write_text(json.dumps({"snapshot_sha256": hashlib.sha256(b"{}").hexdigest()}))
@@ -2242,6 +2251,54 @@ def test_검문은_모두_맞으면_빈_이유와_지금_지도의_바이트를_
     cg = _map_at(c, b'{"nodes": []}')
     _gated(c)
     assert G.VerifiedGraph.gate(c, need_batches=True) == ("", cg.read_bytes())
+
+
+def test_검문은_ranking_이_없거나_성공_기록과_다른_generation_이면_막는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    cg = _map_at(c, b'{"nodes": []}')
+    _gated(c)
+    ranking = Path(X.RANKING.locate(c))
+    assert G.VerifiedGraph.gate(c, need_batches=True, need_ranking=True) == ("", cg.read_bytes())
+    ranking.write_text(json.dumps({"generation_id": "g2"}), encoding="utf-8")       # 지도는 그대로이고 ranking 만 다른 세대다
+    assert G.VerifiedGraph.gate(c, need_batches=True, need_ranking=True)[0].startswith("ranking.json 의 generation")
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0] == ""                       # need_ranking 이 아니면 보지 않는다
+    ranking.unlink()
+    assert G.VerifiedGraph.gate(c, need_batches=True, need_ranking=True)[0].startswith("ranking.json 이 없다")
+    _fake_ranking(c)
+    assert G.VerifiedGraph.gate(c, need_batches=True, need_ranking=True)[0] == ""
+
+
+def test_derive_facts_는_검사를_지난_지도에서만_돈다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = X.Mode1Context(root=ROOT, model="m", repo=str(tmp_path))
+    _map_at(c, b'{"nodes": []}')
+    st = G.DeriveFactsStage()
+    assert st.reads(c) == [X.CODEGRAPH, X.GRAPH_VERIFIED] and st.writes(c) == [X.RANKING] and st.cwd(c) == c.repo
+    argv = st.argv(c)
+    assert os.path.isfile(argv[1]) and os.path.basename(argv[1]) == "derive.py" and argv[2] == c.repo
+    out = st.perform(c)
+    assert out.kind == P.FAIL and out.why.startswith("성공 기록이 없다")
+    assert [(r["stage"], r["ok"], r["why"]) for r in out.rows] == [("derive-facts", False, out.why)]
+    _verified(c)
+    ran: list[str] = []
+
+    def fake(self: P.MachineStage[X.Mode1Context], ctx: X.Mode1Context) -> P.Outcome:
+        ran.append(self.name)
+        return P.Outcome(P.OK, "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", fake)
+    assert st.perform(c).kind == P.OK and ran == ["derive-facts"]
+    _map_at(c, b'{"nodes": [1]}')                                                   # 검사 뒤에 지도가 바뀌었다
+    out = st.perform(c)
+    assert out.kind == P.FAIL and out.why.startswith("검사 뒤에") and ran == ["derive-facts"]
+
+
+def test_목차와_장_단계는_ranking_을_읽고_다른_generation_이면_돌지_않는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    _gated(c)
+    Path(X.RANKING.locate(c)).write_text(json.dumps({"generation_id": "다른 세대"}), encoding="utf-8")
+    for st in (W.OutlineWikiStage(), W.WriteWikiStage()):
+        assert X.RANKING in st.reads(c), st.name
+        out = st.perform(c)
+        assert out.kind == P.FAIL and out.why.startswith("ranking.json 의 generation"), st.name
 
 
 def test_지도를_읽는_LLM_단계_넷은_성공_기록을_읽는다(tmp_path: Path) -> None:

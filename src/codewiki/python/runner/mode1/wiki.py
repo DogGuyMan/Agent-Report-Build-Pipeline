@@ -37,7 +37,7 @@ class OutlineWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         return self.wiki_catalogue_prompt(ctx.repo, ctx.root)
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.CODEGRAPH, X.GRAPH_VERIFIED]
+        return [X.CODEGRAPH, X.GRAPH_VERIFIED, X.RANKING]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.OUTLINE]
@@ -53,7 +53,7 @@ class OutlineWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        why, _ = self.gate(ctx, need_batches=True)
+        why, _ = self.gate(ctx, need_batches=True, need_ranking=True)
         if why:
             return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if os.path.exists(X.OUTLINE.locate(ctx)):
@@ -84,7 +84,7 @@ class WriteWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         return ""
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED]
+        return [X.OUTLINE, X.BATCHES, X.CODEGRAPH, X.GRAPH_VERIFIED, X.RANKING]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         # 장들은 LLM 자식 프로세스가 쓴다. "돌고 나면 있어야 한다" 는 선언이지 누가 쓰는가가 아니다 —
@@ -267,7 +267,7 @@ class WriteWikiStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         t0 = time.monotonic()
-        why, _ = self.gate(ctx, need_batches=True)
+        why, _ = self.gate(ctx, need_batches=True, need_ranking=True)
         if why:
             return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
         if ctx.plan is None:

@@ -1,4 +1,4 @@
-"""`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다."""
+"""`collect-graph` · `verify-graph` · `derive-facts` · `schedule-batches`. 코드 지도를 만들고 검사한 뒤 파생물과 층 · 배치를 낸다."""
 import hashlib
 import os
 import sys
@@ -135,7 +135,7 @@ class VerifiedGraph:
         """막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다.
 
         `need_batches` 면 `batches.json` 이 지금 지도의 지문과 성공 기록의 generation 을 갖는지도 본다.
-        `need_ranking` 은 받기만 하고 보지 않는다.
+        `need_ranking` 이면 `ranking.json` 이 성공 기록의 generation 을 갖는지도 본다.
         """
         verified = X.GRAPH_VERIFIED.locate(ctx)
         if not os.path.exists(verified):
@@ -160,7 +160,34 @@ class VerifiedGraph:
                 return "배치가 지금 지도의 것이 아니다 — schedule-batches 부터 다시 돌린다", raw
             if plan.get("generation_id") != doc["generation_id"]:
                 return "배치의 generation 이 성공 기록과 다르다 — schedule-batches 부터 다시 돌린다", raw
+        if need_ranking:
+            ranking = X.RANKING.locate(ctx)
+            if not os.path.exists(ranking):
+                return "ranking.json 이 없다 — derive-facts 부터 돌린다", raw
+            if P.load(ranking, X.RankingDoc)["generation_id"] != (doc["generation_id"] or ""):
+                return "ranking.json 의 generation 이 성공 기록과 다르다 — derive-facts 부터 다시 돌린다", raw
         return "", raw
+
+
+class DeriveFactsStage(VerifiedGraph, Measured, Mode1Machine):
+    """검사를 지난 지도에서 facts/*.md · ranking.json · 모듈 그림을 만든다. 지도가 성공 기록과 다르면 돌지 않는다."""
+    name = "derive-facts"
+
+    def argv(self, ctx: Mode1Context) -> list[str]:
+        return self.wiki_argv(sys.executable, ctx.root, "derive.py", ctx.repo)
+
+    def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.CODEGRAPH, X.GRAPH_VERIFIED]
+
+    def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
+        return [X.RANKING]
+
+    def perform(self, ctx: Mode1Context) -> P.Outcome:
+        t0 = time.monotonic()
+        why, _ = self.gate(ctx, need_batches=False)
+        if why:
+            return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
+        return super().perform(ctx)
 
 
 class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
