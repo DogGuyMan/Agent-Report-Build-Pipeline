@@ -105,7 +105,6 @@ def test_고유_id_둘_같은_이름_은_용어_둘이다() -> None:
     assert len([r for r in terms.values() if r["kind"] != "module"]) == 2
 
 
-@pytest.mark.xfail(strict=True, reason="Task 4")
 def test_모듈_의존_누락과_음수_occurrences_는_결함이다(repo: Path) -> None:
     g = graph()
     g["nodes"].append(node("C2", "pkg2.g", "pkg2"))
@@ -118,7 +117,6 @@ def test_모듈_의존_누락과_음수_occurrences_는_결함이다(repo: Path)
     assert doc["integrity"]["counts"] == {"module-dep-mismatch": 1, "occurrences-range": 1}
 
 
-@pytest.mark.xfail(strict=True, reason="Task 4")
 def test_외부_노드만_있는_지도는_결함이다(repo: Path) -> None:
     g = graph()
     g["nodes"] = [{"id": "X:std", "name": "std", "kind": "external", "module": "__external__", "file": None, "line": None}]

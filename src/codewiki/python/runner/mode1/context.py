@@ -266,9 +266,12 @@ class CodeGraphDoc(TypedDict):
 
 
 class GraphVerifiedDoc(TypedDict):
-    """`graph-verified.json` 의 두 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.PassedDoc` 다."""
+    """`graph-verified.json` 의 다섯 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.VerifyDoc` 다."""
     status: Literal["passed"]
     codegraph_sha256: str
+    generation_id: str | None
+    checks_run: list[str]
+    fit: dict[str, object]
 
 
 class LangSelect(TypedDict):

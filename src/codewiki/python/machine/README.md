@@ -367,8 +367,12 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | **`Fault`** | *class* | 결함 하나. `at` 은 JSON 경로(`$.nodes[3].kind`)다. |
-| **`FaultsDoc`** | *class* | `graph-faults.json` — 결함이 있을 때만 있다. |
-| **`PassedDoc`** | *class* | `graph-verified.json` — 검사를 지난 지도의 기록. `codegraph_sha256` 이 그 지도 한 벌에만 묶는다. |
+| **`SectionDoc`** | *class* | 한 절의 결함 수와 코드별 수. |
+| **`FreshnessDoc`** | *class* | 최신성 절. `manifest` 는 수집 manifest 와의 대조 결과, `raw_provenance` 는 수집 원본이 prep 안에서 났는가. |
+| **`CoverageDoc`** | *class* | 범위 절. 소스 inventory 가 있을 때만 수가 채워진다. |
+| **`Capabilities`** | *class* | 이 수집기가 낼 수 있다고 주장하는 것. |
+| **`Fit`** | *class* | 목적별 적합성. 지금 목적은 전수조사(annotate-symbols) 하나다. |
+| **`VerifyDoc`** | *class* | `graph-verified.json`(status passed) 과 `graph-faults.json`(status failed) 의 공통 꼴. |
 | `fault` | `(code: str, at: str, detail: str) -> Fault` | 결함 하나를 만든다. 표에 없는 코드는 `KeyError` 다. |
 | `read_graph` | `(path: str) -> tuple[object, str, list[Fault]]` | V0 읽기 — 파일을 열어 JSON 으로 푼다. (문서, 바이트의 sha256, 결함) 을 낸다. 못 열거나 못 풀면 문서는 `None` 이다. |
 | **`Elements`** | *class* | V1 을 지난 원소(원래 자리 번호와 함께)와, 꼴이 틀려 뒤 층이 빼야 하는 것의 흔적. |
@@ -379,8 +383,11 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | `_line_count` | `(path: str) -> int \| None` | 파일의 줄 수. 일반 파일이 아니거나 못 열면 `None`. |
 | `check_sources` | `(el: Elements, repo: str) -> list[Fault]` | V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가. |
 | `_text` | `(d: dict[str, object] \| None, key: str) -> str \| None` | `d[key]` 가 문자열이면 그것을, 아니면 `None`. |
-| `verify` | `(path: str, repo: str \| None) -> FaultsDoc \| PassedDoc` | 네 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
-| `_replace` | `(keep: str, drop: str, doc: FaultsDoc \| PassedDoc) -> None` | 다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다. |
+| `capabilities_of` | `(language: str \| None) -> Capabilities` | 언어(수집기)별로 지도가 주장할 수 있는 것. |
+| `section` | `(faults: list[Fault], name: str) -> SectionDoc` | 결함 중 이 절에 속한 것의 수와 코드별 수. |
+| `fit_of` | `(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit` | 전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)은 맞지 않는다. |
+| `verify` | `(path: str, repo: str \| None) -> VerifyDoc` | 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
+| `_replace` | `(keep: str, drop: str, doc: VerifyDoc) -> None` | 다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` | `verify` 를 돌려 결과 파일 하나를 쓰고 다른 하나를 지운다. 통과면 0, 결함이면 1. |
 
 ---

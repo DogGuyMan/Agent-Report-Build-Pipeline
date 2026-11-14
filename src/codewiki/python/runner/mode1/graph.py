@@ -3,6 +3,7 @@ import hashlib
 import os
 import sys
 import time
+from collections import Counter
 from typing import cast
 
 from core import pipeline as P
@@ -53,15 +54,18 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
         return [X.GRAPH_VERIFIED]
 
     @classmethod
-    def handoff_text(cls, repo: str, codegraph: str, doc: verify_graph.FaultsDoc) -> str:
+    def handoff_text(cls, repo: str, codegraph: str, doc: verify_graph.VerifyDoc) -> str:
         """결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지."""
+        counts = Counter(f["code"] for f in doc["faults"])
         groups: list[dict[str, object]] = []
-        for code, n in sorted(doc["counts"].items(), key=lambda kv: (-kv[1], kv[0])):
-            groups.append({"code": code, "layer": verify_graph.LAYER[code], "count": n,
+        for code, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+            layer = verify_graph.LAYER[code]
+            groups.append({"code": code, "layer": layer, "section": verify_graph.SECTION_OF_LAYER[layer], "count": n,
                            "examples": [f for f in doc["faults"] if f["code"] == code][:cls.EXAMPLES]})
         return cls.load_prompt("verify-graph", repo=repo, codegraph=codegraph,
                                language=doc["language"] or "?", source_tool=doc["source_tool"] or "?",
-                               repo_commit=doc["repo_commit"] or "?", total=doc["total"], groups=groups)
+                               repo_commit=doc["repo_commit"] or "?", total=doc["total"],
+                               checks_run=" · ".join(doc["checks_run"]), fit=doc["fit"]["survey"], groups=groups)
 
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         out = super().perform(ctx)
@@ -73,7 +77,7 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
         faults = X.GRAPH_FAULTS.locate(ctx)
         if not os.path.exists(faults):
             return out                         # 검사기 자체가 죽었다 — 종료 코드가 이유다
-        doc = P.load(faults, verify_graph.FaultsDoc)
+        doc = P.load(faults, verify_graph.VerifyDoc)
         with open(handoff, "w", encoding="utf-8") as f:
             f.write(self.handoff_text(ctx.repo, X.CODEGRAPH.locate(ctx), doc))
         why = "코드 지도 결함 %d건 — %s" % (doc["total"], handoff)

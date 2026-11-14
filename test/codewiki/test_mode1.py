@@ -44,7 +44,8 @@ def _verified(c: X.Mode1Context) -> None:
     with open(X.CODEGRAPH.locate(c), "rb") as f:
         sha = hashlib.sha256(f.read()).hexdigest()
     with open(X.GRAPH_VERIFIED.locate(c), "w", encoding="utf-8") as f:
-        json.dump({"status": "passed", "codegraph_sha256": sha}, f)
+        json.dump({"status": "passed", "codegraph_sha256": sha, "generation_id": None,
+                   "checks_run": ["V0", "V1", "V2", "V3"], "fit": {"survey": "ready", "blocked_by": []}}, f)
 
 
 # ── 1. 문맥과 산출물 ────────────────────────────────────────────────────
@@ -2071,18 +2072,29 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
 
 def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() -> None:
     faults = [V.fault("dangling-edge", "$.edges[%d]" % i, "d") for i in range(7)] + [V.fault("unreadable", "$", "u")]
-    doc: V.FaultsDoc = {"status": "failed", "language": "python", "source_tool": "t", "repo_commit": None,
-                        "total": 8, "counts": {"dangling-edge": 7, "unreadable": 1}, "faults": faults}
+    doc: V.VerifyDoc = {
+        "status": "failed", "generation_id": None, "codegraph_sha256": None, "language": "python", "source_tool": "t",
+        "repo_commit": None, "nodes": 0, "edges": 0, "modules": 0, "checks_run": ["V0", "V1", "V2"],
+        "integrity": {"faults": 8, "counts": {"dangling-edge": 7, "unreadable": 1}},
+        "freshness": {"faults": 0, "counts": {}, "manifest": "missing", "sources_sha256": None,
+                      "raw_provenance": "unknown"},
+        "coverage": {"faults": 0, "counts": {}, "inventory": "missing", "files_total": 0, "collected": 0,
+                     "excluded": 0, "unsupported": 0, "failed": 0, "no_symbols": 0, "languages_not_collected": []},
+        "capabilities": {"methods": True, "calls": True, "resolution": "heuristic"},
+        "fit": {"survey": "blocked", "blocked_by": ["dangling-edge", "unreadable"]},
+        "total": 8, "faults": faults}
     text = G.VerifyGraphStage.handoff_text("/r", "/r/out/codegraph-raw/codegraph.json", doc)
     assert text.index("dangling-edge") < text.index("unreadable")
+    assert "수행한 검사 V0 · V1 · V2 · 전수조사 적합 blocked" in text and "integrity / V2 정합" in text
     assert "$.edges[4]" in text and "$.edges[5]" not in text
 
 
 def test_성공_기록이_지금_지도의_것이_아니면_배치를_짜지_않는다(tmp_path: Path) -> None:
     cg, ok = tmp_path / "codegraph.json", tmp_path / "graph-verified.json"
     cg.write_bytes(b'{"nodes": []}')
-    ok.write_text(json.dumps({"status": "passed", "codegraph_sha256": hashlib.sha256(b'{"nodes": []}').hexdigest()}),
-                  encoding="utf-8")
+    ok.write_text(json.dumps({"status": "passed", "codegraph_sha256": hashlib.sha256(b'{"nodes": []}').hexdigest(),
+                              "generation_id": None, "checks_run": ["V0", "V1", "V2", "V3"],
+                              "fit": {"survey": "ready", "blocked_by": []}}), encoding="utf-8")
     assert G.ScheduleBatchesStage.stale_verification(str(cg), str(ok)) == ""
     cg.write_bytes(b'{"nodes": [1]}')
     assert "바뀌었다" in G.ScheduleBatchesStage.stale_verification(str(cg), str(ok))

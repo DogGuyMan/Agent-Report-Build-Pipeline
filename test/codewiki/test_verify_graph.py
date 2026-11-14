@@ -51,9 +51,10 @@ def test_온전한_지도는_결함이_없다() -> None:
     assert _check(_graph()) == []
 
 
-def test_표는_네_층_스물한_코드다() -> None:
-    assert len(V.LAYER) == 21
+def test_표는_네_층_스물넷_코드고_층마다_절이_있다() -> None:
+    assert len(V.LAYER) == 24
     assert sorted(set(V.LAYER.values())) == ["V0 읽기", "V1 꼴", "V2 정합", "V3 근거"]
+    assert set(V.LAYER.values()) <= set(V.SECTION_OF_LAYER)
     with pytest.raises(KeyError):
         V.fault("없는-코드", "$", "")
 
@@ -85,7 +86,7 @@ def test_V1_원소의_꼴은_첫_오류에서_멈추지_않고_전부_모은다(
     assert [f["at"] for f in faults] == ["$.nodes[3]", "$.nodes[4].kind", "$.edges[2]", "$.modules[1]"]
 
 
-def test_V2_아홉_규칙이_저마다_결함을_낸다() -> None:
+def test_V2_열_규칙이_저마다_결함을_낸다() -> None:
     g = _graph(nodes=[_node("C1"), _node("C1"), EXT,
                       _node("X:bad", kind="external", module="pkg", file=None, line=None),
                       _node("C3", file=None)],
@@ -94,7 +95,7 @@ def test_V2_아홉_규칙이_저마다_결함을_낸다() -> None:
                modules=[{"id": "pkg", "depends_on": ["pkg", "zzz"]}, {"id": "ghost", "depends_on": []}])
     assert sorted(set(_codes(_check(g)))) == sorted([
         "duplicate-node", "external-node", "first-party-location", "dangling-edge", "external-source",
-        "external-constraint", "duplicate-edge", "module-list", "module-dep"])
+        "external-constraint", "duplicate-edge", "module-list", "module-dep", "module-dep-mismatch"])
 
 
 def test_V2_는_꼴이_틀린_노드_때문에_끊김을_만들지_않는다() -> None:
@@ -122,11 +123,21 @@ def test_결과_파일은_한쪽만_남고_통과는_같은_바이트다(tmp_pat
     argv = [str(cg), "--repo", str(tmp_path), "--faults", str(faults), "--passed", str(passed)]
     assert V.main(argv) == 0
     first = passed.read_bytes()
+    assert json.loads(first)["status"] == "passed" and json.loads(first)["integrity"]["faults"] == 0
     assert V.main(argv) == 0 and passed.read_bytes() == first and not faults.exists()
     assert json.loads(first)["codegraph_sha256"] == hashlib.sha256(cg.read_bytes()).hexdigest()
     cg.write_text("{", encoding="utf-8")
     assert V.main(argv) == 1 and not passed.exists()
-    assert json.loads(faults.read_text(encoding="utf-8"))["counts"] == {"unreadable": 1}
+    assert json.loads(faults.read_text(encoding="utf-8"))["integrity"]["counts"] == {"unreadable": 1}
+
+
+def test_결과_문서는_네_절과_수행_검사와_적합을_갖는다(tmp_path: Path) -> None:
+    p = tmp_path / "g.json"
+    p.write_text(json.dumps(_graph()), encoding="utf-8")
+    doc = V.verify(str(p), None)
+    assert doc["checks_run"] == ["V0", "V1", "V2"] and doc["fit"]["survey"] == "blocked"
+    assert set(doc) >= {"integrity", "freshness", "coverage", "capabilities", "fit", "generation_id"}
+    assert doc["capabilities"] == {"methods": True, "calls": True, "resolution": "heuristic"}
 
 
 REAL = os.path.join(ROOT, "out", "codegraph-raw", "codegraph.json")

@@ -26,9 +26,11 @@ LAYER: dict[str, str] = {
     "unreadable": "V0 읽기",
     "top-field": "V1 꼴", "schema-version": "V1 꼴", "language": "V1 꼴", "empty-graph": "V1 꼴",
     "node-shape": "V1 꼴", "edge-shape": "V1 꼴", "module-shape": "V1 꼴", "node-kind": "V1 꼴",
+    "external-only": "V1 꼴", "occurrences-range": "V1 꼴",
     "duplicate-node": "V2 정합", "duplicate-edge": "V2 정합", "dangling-edge": "V2 정합",
     "external-node": "V2 정합", "external-source": "V2 정합", "external-constraint": "V2 정합",
     "first-party-location": "V2 정합", "module-list": "V2 정합", "module-dep": "V2 정합",
+    "module-dep-mismatch": "V2 정합",
     "file-outside-repo": "V3 근거", "file-missing": "V3 근거", "line-out-of-range": "V3 근거",
 }
 # 노드의 kind. runner 의 RecordKind 안에 있어야 한다(test_mode1.py 가 대조한다).
@@ -46,27 +48,70 @@ class Fault(TypedDict):
     detail: str
 
 
-class FaultsDoc(TypedDict):
-    """`graph-faults.json` — 결함이 있을 때만 있다."""
-    status: Literal["failed"]
+# 층 -> 결과 문서의 절.
+SECTION_OF_LAYER: dict[str, str] = {"V0 읽기": "integrity", "V1 꼴": "integrity", "V2 정합": "integrity",
+                                    "V3 근거": "freshness"}
+# 기록에만 남고 통과를 막지 않는 코드.
+REPORT_ONLY: frozenset[str] = frozenset()
+
+
+class SectionDoc(TypedDict):
+    """한 절의 결함 수와 코드별 수."""
+    faults: int
+    counts: dict[str, int]
+
+
+class FreshnessDoc(SectionDoc):
+    """최신성 절. `manifest` 는 수집 manifest 와의 대조 결과, `raw_provenance` 는 수집 원본이 prep 안에서 났는가."""
+    manifest: Literal["ok", "missing", "mismatch"]
+    sources_sha256: str | None
+    raw_provenance: Literal["prep", "unknown"]
+
+
+class CoverageDoc(SectionDoc):
+    """범위 절. 소스 inventory 가 있을 때만 수가 채워진다."""
+    inventory: Literal["ok", "missing"]
+    files_total: int
+    collected: int
+    excluded: int
+    unsupported: int
+    failed: int
+    no_symbols: int
+    languages_not_collected: list[str]
+
+
+class Capabilities(TypedDict):
+    """이 수집기가 낼 수 있다고 주장하는 것."""
+    methods: bool
+    calls: bool
+    resolution: Literal["compiler", "heuristic", "none"]
+
+
+class Fit(TypedDict):
+    """목적별 적합성. 지금 목적은 전수조사(annotate-symbols) 하나다."""
+    survey: Literal["ready", "blocked"]
+    blocked_by: list[str]
+
+
+class VerifyDoc(TypedDict):
+    """`graph-verified.json`(status passed) 과 `graph-faults.json`(status failed) 의 공통 꼴."""
+    status: Literal["passed", "failed"]
+    generation_id: str | None
+    codegraph_sha256: str | None
     language: str | None
     source_tool: str | None
-    repo_commit: str | None
-    total: int
-    counts: dict[str, int]
-    faults: list[Fault]
-
-
-class PassedDoc(TypedDict):
-    """`graph-verified.json` — 검사를 지난 지도의 기록. `codegraph_sha256` 이 그 지도 한 벌에만 묶는다."""
-    status: Literal["passed"]
-    language: str
-    source_tool: str
     repo_commit: str | None
     nodes: int
     edges: int
     modules: int
-    codegraph_sha256: str
+    checks_run: list[str]
+    integrity: SectionDoc
+    freshness: FreshnessDoc
+    coverage: CoverageDoc
+    capabilities: Capabilities
+    fit: Fit
+    total: int
+    faults: list[Fault]
 
 
 def fault(code: str, at: str, detail: str) -> Fault:
@@ -137,7 +182,10 @@ def _items(d: dict[str, object], key: str) -> list[object]:
 
 
 def check_elements(d: dict[str, object]) -> tuple[Elements, list[Fault]]:
-    """V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다."""
+    """V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다.
+
+    간선의 `occurrences` 가 1 이상인지, 1차 노드가 하나라도 있는지도 본다.
+    """
     out: list[Fault] = []
     el = Elements([], [], [], set(), False, False)
     for i, raw in enumerate(_items(d, "nodes")):
@@ -154,11 +202,18 @@ def check_elements(d: dict[str, object]) -> tuple[Elements, list[Fault]]:
         if n["kind"] not in NODE_KINDS:
             out.append(fault("node-kind", "$.nodes[%d].kind" % i, "모르는 kind %r" % n["kind"]))
         el.nodes.append((i, n))
+    if el.nodes and all(n["kind"] == "external" for _, n in el.nodes):
+        out.append(fault("external-only", "$.nodes", "1차 노드가 하나도 없다 — 외부 노드 %d개뿐이다" % len(el.nodes)))
     for i, raw in enumerate(_items(d, "edges")):
         try:
-            el.edges.append((i, msgspec.convert(raw, Edge)))
+            edge = msgspec.convert(raw, Edge)
         except msgspec.ValidationError as e:
             out.append(fault("edge-shape", "$.edges[%d]" % i, str(e)))
+            continue
+        el.edges.append((i, edge))
+        occ = edge.get("occurrences")
+        if occ is not None and occ < 1:
+            out.append(fault("occurrences-range", "$.edges[%d].occurrences" % i, "%d — 1 이상이어야 한다" % occ))
     for i, raw in enumerate(_items(d, "modules")):
         try:
             el.modules.append((i, msgspec.convert(raw, Module)))
@@ -170,6 +225,8 @@ def check_elements(d: dict[str, object]) -> tuple[Elements, list[Fault]]:
 
 def check_consistency(el: Elements) -> list[Fault]:
     """V2 정합 — id 가 겹치지 않고, 간선이 있는 노드를 잇고, 외부 노드 규칙(R4 · R6)과 모듈 목록이 맞는가.
+
+    모듈의 `depends_on` 은 간선에서 다시 센 것(`normalize.py::_assemble` 의 유도와 같은 규칙)과 같아야 한다.
 
     V1 에서 꼴이 틀린 원소 때문에 생기는 끊김 · 목록 차이는 세지 않는다.
     """
@@ -210,6 +267,19 @@ def check_consistency(el: Elements) -> list[Fault]:
             out.append(fault("module-list", "$.modules", "목록의 모듈 %r 을 쓰는 노드가 없다" % m))
         for m in sorted({x for x in listed if listed.count(x) > 1}):
             out.append(fault("module-list", "$.modules", "모듈 %r 이 두 번 있다" % m))
+        module_of = {n["id"]: n["module"] for _, n in el.nodes}
+        expected: dict[str, set[str]] = {m: set() for m in listed}
+        for _, e in el.edges:
+            a, b = module_of.get(e["from"]), module_of.get(e["to"])
+            if kind_of.get(e["to"]) == "external" or not a or not b or a == b:
+                continue
+            expected.setdefault(a, set()).add(b)
+        for i, m in el.modules:
+            want, got = expected.get(m["id"], set()), set(m["depends_on"])
+            if want != got:
+                out.append(fault("module-dep-mismatch", "$.modules[%d].depends_on" % i,
+                                 "간선으로 센 것과 다르다 — 빠짐 %s · 남음 %s"
+                                 % (sorted(want - got) or "없음", sorted(got - want) or "없음")))
     ids = {m["id"] for _, m in el.modules}
     for i, m in el.modules:
         for dep in m["depends_on"]:
@@ -261,29 +331,64 @@ def _text(d: dict[str, object] | None, key: str) -> str | None:
     return v if isinstance(v, str) else None
 
 
-def verify(path: str, repo: str | None) -> FaultsDoc | PassedDoc:
-    """네 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다."""
+def capabilities_of(language: str | None) -> Capabilities:
+    """언어(수집기)별로 지도가 주장할 수 있는 것."""
+    if language == "python":
+        return {"methods": True, "calls": True, "resolution": "heuristic"}
+    if language in ("cpp", "csharp"):
+        return {"methods": False, "calls": False, "resolution": "compiler"}
+    return {"methods": False, "calls": False, "resolution": "none"}
+
+
+def section(faults: list[Fault], name: str) -> SectionDoc:
+    """결함 중 이 절에 속한 것의 수와 코드별 수."""
+    mine = [f for f in faults if SECTION_OF_LAYER[LAYER[f["code"]]] == name]
+    return {"faults": len(mine), "counts": dict(sorted(Counter(f["code"] for f in mine).items()))}
+
+
+def fit_of(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit:
+    """전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)은 맞지 않는다."""
+    why: list[str] = sorted({f["code"] for f in blocking})
+    if "V3" not in checks_run:
+        why.append("V3 를 돌리지 않았다 (--repo 없음)")
+    return {"survey": "ready" if status == "passed" and not why else "blocked", "blocked_by": why}
+
+
+def verify(path: str, repo: str | None) -> VerifyDoc:
+    """층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다."""
     doc, sha, faults = read_graph(path)
-    if not faults:
-        faults = check_top(doc)
+    checks = ["V0"]
     d = cast(dict[str, object], doc) if isinstance(doc, dict) else None
     el: Elements | None = None
+    if not faults:
+        faults = check_top(doc)
+        checks.append("V1")
     if d is not None:
         el, more = check_elements(d)
         faults = faults + more + check_consistency(el)
+        checks.append("V2")
         if repo is not None:
             faults = faults + check_sources(el, repo)
-    if faults or d is None or el is None:
-        counts = Counter(f["code"] for f in faults)
-        return {"status": "failed", "language": _text(d, "language"), "source_tool": _text(d, "source_tool"),
-                "repo_commit": _text(d, "repo_commit"), "total": len(faults),
-                "counts": dict(sorted(counts.items())), "faults": faults}
-    return {"status": "passed", "language": cast(str, d["language"]), "source_tool": cast(str, d["source_tool"]),
-            "repo_commit": _text(d, "repo_commit"), "nodes": len(el.nodes), "edges": len(el.edges),
-            "modules": len(el.modules), "codegraph_sha256": sha}
+            checks.append("V3")
+    blocking = [f for f in faults if f["code"] not in REPORT_ONLY]
+    status: Literal["passed", "failed"] = "failed" if blocking or d is None or el is None else "passed"
+    fresh, cover = section(faults, "freshness"), section(faults, "coverage")
+    freshness: FreshnessDoc = {"faults": fresh["faults"], "counts": fresh["counts"], "manifest": "missing",
+                               "sources_sha256": None, "raw_provenance": "unknown"}
+    coverage: CoverageDoc = {"faults": cover["faults"], "counts": cover["counts"], "inventory": "missing",
+                             "files_total": 0, "collected": 0, "excluded": 0, "unsupported": 0, "failed": 0,
+                             "no_symbols": 0, "languages_not_collected": []}
+    language = _text(d, "language")
+    return {"status": status, "generation_id": None, "codegraph_sha256": sha or None,
+            "language": language, "source_tool": _text(d, "source_tool"), "repo_commit": _text(d, "repo_commit"),
+            "nodes": len(el.nodes) if el else 0, "edges": len(el.edges) if el else 0,
+            "modules": len(el.modules) if el else 0, "checks_run": checks,
+            "integrity": section(faults, "integrity"), "freshness": freshness, "coverage": coverage,
+            "capabilities": capabilities_of(language), "fit": fit_of(status, checks, freshness, blocking),
+            "total": len(faults), "faults": faults}
 
 
-def _replace(keep: str, drop: str, doc: FaultsDoc | PassedDoc) -> None:
+def _replace(keep: str, drop: str, doc: VerifyDoc) -> None:
     """다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다."""
     if os.path.exists(drop):
         os.remove(drop)
@@ -304,8 +409,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("%s — 통과 · 노드 %d · 간선 %d · 모듈 %d" % (a.passed, got["nodes"], got["edges"], got["modules"]))
         return 0
     _replace(a.faults, a.passed, got)
-    print("%s — 결함 %d건 · %s" % (a.faults, got["total"], " · ".join("%s %d" % kv for kv in got["counts"].items())),
-          file=sys.stderr)
+    counts = sorted(Counter(f["code"] for f in got["faults"]).items())
+    print("%s — 결함 %d건 · %s" % (a.faults, got["total"], " · ".join("%s %d" % kv for kv in counts)), file=sys.stderr)
     return 1
 
 

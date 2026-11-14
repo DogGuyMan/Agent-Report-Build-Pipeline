@@ -4,13 +4,14 @@
 - 지도 `{{ codegraph }}`
 - 언어 `{{ language }}` · 수집기 `{{ source_tool }}` · 커밋 `{{ repo_commit }}`
 - 결함 {{ total }}건. 전부는 같은 폴더의 `graph-faults.json` 에 있다.
+- 수행한 검사 {{ checks_run }} · 전수조사 적합 {{ fit }}
 
 **검사를 완화해 통과시키지 말라.** 결함은 지도를 만든 쪽(수집기 · 정제)을 고쳐서 없앤다. `verify_graph.py` 의 규칙은 그 규칙이 틀렸다는 근거가 있을 때만 바꾸고, 그 근거를 끝의 "해결 불가" 양식으로 남긴다.
 
 ## 결함 — 많은 순
 {% for g in groups %}
 
-### `{{ g.code }}` · {{ g.layer }} · {{ g.count }}건
+### `{{ g.code }}` · {{ g.section }} / {{ g.layer }} · {{ g.count }}건
 {% for f in g.examples %}
 - `{{ f.at }}` — {{ f.detail }}
 {% endfor %}
@@ -20,7 +21,9 @@
 
 - **V0 읽기** — 지도 파일이 없거나 JSON 이 아니다. `collect-graph` 가 끝까지 돌았는지, 정제가 도중에 죽지 않았는지 본다.
 - **V1 꼴** — 정제가 계약(`src/codewiki/python/machine/codegraph_types.py`)의 필수 열쇠나 형을 빠뜨렸다. 그 언어의 `normalize_*` 와 `_assemble` 을 본다.
+- **V1 external-only** — 1차 노드가 없다: 수집기가 대상 폴더를 못 봤거나 R1 이 전부를 외부로 접었다.
 - **V2 정합** — 지도 안에서 서로 어긋난다(겹친 id · 끊긴 간선 · 외부 노드 규칙 · 모듈 목록). 정제의 접기 규칙 R1~R7 을 본다.
+- **V2 module-dep-mismatch** — `_assemble` 의 모듈 의존 유도(normalize.py)와 지도의 `depends_on` 이 다르다.
 - **V3 근거** — 노드 · 간선의 `file:line` 이 지금 저장소와 맞지 않는다. 지도가 낡았으면 다시 수집하면 사라진다.
 
 ## 보강 후보
