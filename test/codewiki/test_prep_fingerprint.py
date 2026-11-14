@@ -15,16 +15,34 @@ PREP = os.path.join(ROOT, "src", "codewiki", "python", "runner", "wiki", "prep.p
 MACHINE = Path(ROOT, "src", "codewiki", "python", "machine")
 
 
-def test_지문은_normalize_가_import_하는_이_저장소_모듈을_전부_담는다() -> None:
-    tree = ast.parse((MACHINE / "normalize.py").read_text(encoding="utf-8"))
-    local: set[str] = set()
+def _local_imports(path: Path) -> set[str]:
+    """파일이 import 하는 이 저장소 모듈의 상대 경로."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    out: set[str] = set()
     for n in ast.walk(tree):
-        if isinstance(n, ast.ImportFrom) and n.module and (MACHINE / f"{n.module}.py").exists():
-            local.add(n.module)
-        elif isinstance(n, ast.Import):
-            local |= {a.name for a in n.names if (MACHINE / f"{a.name}.py").exists()}
-    want = {f"src/codewiki/python/machine/{m}.py" for m in local | {"normalize"}}
-    assert want <= set(prep.COLLECT_CODE)
+        names = ([n.module] if isinstance(n, ast.ImportFrom) and n.module else
+                 [a.name for a in n.names] if isinstance(n, ast.Import) else [])
+        for name in names:
+            if name.startswith("codewiki.python."):
+                out.add("src/" + name.replace(".", "/") + ".py")
+            elif (MACHINE / f"{name}.py").exists():
+                out.add(f"src/codewiki/python/machine/{name}.py")
+    return {p for p in out if Path(ROOT, p).exists()}
+
+
+def test_지문은_prep_와_normalize_가_import_하는_이_저장소_모듈을_전부_담는다() -> None:
+    want = _local_imports(MACHINE / "normalize.py") | _local_imports(Path(PREP))
+    want |= {"src/codewiki/python/machine/normalize.py", "src/codewiki/python/runner/wiki/prep.py"}
+    assert want <= set(prep.COLLECT_CODE), sorted(want - set(prep.COLLECT_CODE))
+
+
+def test_설정_입력이_바뀌면_지문이_바뀐다(tmp_path: Path) -> None:
+    (tmp_path / ".clang-uml").write_text("add_compile_flags: [-std=c++20]\n", encoding="utf-8")
+    a = prep.config_inputs(str(tmp_path), "clang-uml")
+    (tmp_path / ".clang-uml").write_text("add_compile_flags: [-std=c++23]\n", encoding="utf-8")
+    b = prep.config_inputs(str(tmp_path), "clang-uml")
+    assert set(a) == {".clang-uml"} and a != b
+    assert prep.config_inputs(str(tmp_path), "griffe+pycalls") == {}
 
 
 def test_지문은_같은_입력이면_같고_수집기_판이_바뀌면_바뀐다() -> None:

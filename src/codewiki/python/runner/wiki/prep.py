@@ -20,8 +20,7 @@ from common.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional, cast
 
-# 수집 결과를 바꾸는 이 저장소의 코드. normalize.py 가 평평하게 import 하는 모듈은 전부 여기 있어야 한다
-# (test_prep_fingerprint.py 가 고정한다).
+# 수집 결과를 바꾸는 이 저장소의 코드 — prep.py 와 normalize.py 가 import 하는 이 저장소 모듈은 전부 여기 있어야 한다 (test_prep_fingerprint.py 가 고정한다).
 COLLECT_CODE = (
     "src/codewiki/python/machine/normalize.py",
     "src/codewiki/python/machine/codegraph_types.py",
@@ -29,6 +28,9 @@ COLLECT_CODE = (
     "src/codewiki/python/machine/pycalls.py",
     "src/codewiki/python/machine/jsonio.py",
     "src/codewiki/python/runner/wiki/prep.py",
+    "src/codewiki/python/runner/wiki/compdb.py",
+    "src/codewiki/python/runner/wiki/clang_doc.py",
+    "src/codewiki/python/runner/wiki/paths.py",
 )
 
 
@@ -58,8 +60,22 @@ def tool_versions(collector: Optional[str], py: str, raw: str, clang_doc: Option
     return got
 
 
-def collect_fingerprint(root: str, versions: dict[str, str]) -> str:
-    """수집 코드의 내용과 바깥 수집기 판을 합친 sha256. 커밋 해시가 아니라 내용이라 커밋 전 수정도 잡는다."""
+def config_inputs(repo: str, collector: Optional[str]) -> dict[str, str]:
+    """수집 결과를 바꾸는 대상 저장소의 설정 파일 — 상대 경로 -> 내용 sha256. clang-uml 만 갖는다."""
+    if collector != "clang-uml":
+        return {}
+    out: dict[str, str] = {}
+    for path in [os.path.join(repo, ".clang-uml")] + findCompdbs(repo):
+        try:
+            with open(path, "rb") as f:
+                out[os.path.relpath(path, repo)] = hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            continue
+    return out
+
+
+def collect_fingerprint(root: str, versions: dict[str, str], inputs: Optional[dict[str, str]] = None) -> str:
+    """수집 코드의 내용 · 바깥 수집기 판 · 설정 입력을 합친 sha256. 커밋 해시가 아니라 내용이라 커밋 전 수정도 잡는다."""
     h = hashlib.sha256()
     for rel in COLLECT_CODE:
         with open(os.path.join(root, rel), "rb") as f:
@@ -67,6 +83,8 @@ def collect_fingerprint(root: str, versions: dict[str, str]) -> str:
             h.update(hashlib.sha256(f.read()).digest())
     for name in sorted(versions):
         h.update(f"{name}={versions[name]}\0".encode())
+    for name in sorted(inputs or {}):
+        h.update(f"input:{name}={(inputs or {})[name]}\0".encode())
     return h.hexdigest()
 
 
@@ -183,7 +201,7 @@ if __name__ == "__main__":
             
     collector = fromSelect if fromSelect else collectorFor(os.listdir(repo))
     CLANG_DOC = clangDocPath() if collector == "clang-uml" else None
-    fingerprint = collect_fingerprint(ROOT, tool_versions(collector, PY, P["raw"], CLANG_DOC))
+    fingerprint = collect_fingerprint(ROOT, tool_versions(collector, PY, P["raw"], CLANG_DOC), config_inputs(repo, collector))
     recorded = recorded_fingerprint(P["fingerprint"], P["codegraph"])
 
     plan = prepPlan(

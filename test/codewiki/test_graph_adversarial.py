@@ -124,7 +124,6 @@ def test_외부_노드만_있는_지도는_결함이다(repo: Path) -> None:
     assert V.verify(str(cg), str(repo))["integrity"]["counts"] == {"external-only": 1}
 
 
-@pytest.mark.xfail(strict=True, reason="Task 8")
 def test_compdb_변경은_지문을_바꾼다(tmp_path: Path) -> None:
     for rel in prep.COLLECT_CODE:
         dst = tmp_path / rel
