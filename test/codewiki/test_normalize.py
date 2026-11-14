@@ -1417,3 +1417,32 @@ def test_정제가_끝나면_지도_옆에_버림_장부를_쓰고_같은_입력
     again = _run_normalize("--roslyn-dump", str(src), "--repo", str(tmp_path), "-o", str(out), "--report", str(elsewhere))
     assert again.returncode == 0, again.stderr
     assert elsewhere.read_bytes() == ledger.read_bytes()
+
+
+# ── 17. 골든 원본 재정제 — 저장된 지도만 읽는 골든 시험은 정제 변경을 못 잡는다
+@pytest.mark.parametrize("repo,var,raw,flag", [
+    pytest.param(CPP_REPO, "GRAPHICS_REPO", "full_class_all.json", "--clang-uml", id="cpp"),
+    pytest.param(CS_REPO, "CSHARP_REPO", "roslyn-dump.json", "--roslyn-dump", id="csharp"),
+])
+def test_골든_원본을_다시_정제하면_저장본과_같다(repo: str, var: str, raw: str, flag: str, tmp_path: Path) -> None:
+    """수집 원본을 임시 폴더로 다시 정제해 노드 · 간선 수를 저장된 지도와 센다. 다르면 두 쌍을 함께 내고 실패한다.
+
+    기대값은 저장본 그 자체다. 다를 때 어느 쪽이 맞는지는 사람이 장부의 표본을 읽고 정한다.
+    골든 저장소 환경변수가 없거나 그 저장소에 원본이 없으면 건너뛴다.
+    """
+    if not os.environ.get(var):
+        pytest.skip(f"${var} 가 없다")
+    raw_path = os.path.join(repo, "out/codegraph-raw", raw)
+    if not os.path.isfile(raw_path):
+        pytest.skip(f"원본 없음: {raw_path}")
+    stored_path = os.path.join(repo, "out/codegraph-raw/codegraph.json")
+    assert os.path.isfile(stored_path), f"원본은 있는데 저장된 지도가 없다: {stored_path}"
+    with open(stored_path, encoding="utf-8") as f:
+        stored = cast(CodeGraph, json.load(f))
+    out = tmp_path / "g.json"
+    got = _run_normalize(flag, raw_path, "--repo", repo, "-o", str(out), "--report", str(tmp_path / "r.json"))
+    assert got.returncode == 0, got.stderr
+    fresh = cast(CodeGraph, json.loads(out.read_text(encoding="utf-8")))
+    assert (len(fresh["nodes"]), len(fresh["edges"])) == (len(stored["nodes"]), len(stored["edges"])), (
+        "다시 정제 노드 %d · 간선 %d != 저장본 노드 %d · 간선 %d"
+        % (len(fresh["nodes"]), len(fresh["edges"]), len(stored["nodes"]), len(stored["edges"])))

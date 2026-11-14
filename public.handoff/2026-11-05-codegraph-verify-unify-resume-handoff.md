@@ -42,6 +42,7 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [ ] **B2 모르는 C++ 관계가 정상 종료한다.** 실측: 모르는 `type` 을 넣으면 `normalize.py:433` 이 세고 버린 뒤 exit 0. 해법: 장부에 `unknown-kind` 로 적고 `verify-graph` 가 결함으로 막는다.
 - [ ] **B3 정책 버림과 미해결 버림이 안 갈린다.** 해법: 사유마다 `policy` · `unresolved` 를 표로 고정한다(§5.4). 미해결만 경고나 결함이 된다.
 - [ ] **B4 C++ 끝점 해소 실패 48건의 정체를 모른다.** 실측: 관계 671개 중 48개. 끝점은 전부 원본 요소에 있다 — 없는 id 가 아니라 노드가 못 된 타입을 가리킨다. 해법: 장부 표본으로 정책인지 손실인지 판정한다.
+  - **Mac 절차.** `GRAPHICS_REPO=… .venv/bin/python src/codewiki/python/machine/normalize.py --clang-uml "$GRAPHICS_REPO/out/codegraph-raw/full_class_all.json" --repo "$GRAPHICS_REPO" -o <임시>/g.json --report <임시>/r.json` 를 돌리고 `r.json` 의 `끝점 해소 실패` 표본을 읽는다. 표본마다 대상 타입이 정책으로 버린 것이면 그 사유를 `normalize.py` 의 `DROP_CLASS` 에서 `policy` 로 옮기고, 잃은 정보면 정제를 고친다. 그때까지 골든 지도는 `verify-graph` 의 `unresolved-drop` 으로 막힌다 — 의도한 동작이지 회귀가 아니다.
 
 ### C. `collect-graph` 안에서 죽는 경우 (1 · 2 · 3단계)
 
@@ -80,7 +81,9 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [x] **G1 `survey_plan` 의 형 선언이 실물과 다르다.** 실측: `survey_plan.py:40` 의 `file: NotRequired[str]` 라 실제 지도가 `$.nodes[102].file` 에서 실패하고 러너가 `cast` 로 넘긴다. 해법: 공용 계약 형을 쓴다. — `6538e47` (축소 형을 실물에 맞췄고 `schedule-batches` 는 `cast` 없이 읽는다)
 - [x] **G2 계약 문구가 거짓이다.** 실측: `codegraph_types.py` 와 `src/codewiki/CLAUDE.md` 는 소비자 전부가 계약을 본다고 적지만 import 는 `normalize` · `terms_db` · `warmup` 뿐이다. 해법: 소비자를 맞추거나 문구를 고친다. — `6538e47`
 - [ ] **G3 골든 시험이 저장된 지도만 읽는다.** 실측: `test_normalize.py:126` 의 `_load` 는 `out/codegraph-raw/codegraph.json` 을 읽어 정제 변경을 못 잡는다. 해법: 수집 원본을 다시 정제해 대조하는 시험을 더한다.
+  - **Mac 절차.** 시험 `test_골든_원본을_다시_정제하면_저장본과_같다`(`test/codewiki/test_normalize.py`)가 그것이다. `$GRAPHICS_REPO` · `$CSHARP_REPO` 가 있고 그 저장소의 `out/codegraph-raw/` 에 원본(`full_class_all.json` · `roslyn-dump.json`)이 있을 때만 돈다. 변수를 걸고 `.venv/bin/python -m pytest test/codewiki/test_normalize.py -k 골든_원본 -q` 로 돌려 두 수가 같은지 본다. 다르면 시험이 두 쌍을 함께 내고 실패한다.
 - [ ] **G4 C++ 재정제가 저장본과 다르다.** 실측: 같은 원본에서 191 · 417 대신 195 · 419, 이름 일치 190/191. 해법: 원인을 찾고 기대값을 의도적으로 갱신한다.
+  - **Mac 절차.** B4 의 판정을 먼저 낸다 — 195 · 419 와 191 · 417 의 차이가 `끝점 해소 실패` 표본에서 오는지 본다. 그 뒤 G3 의 시험으로 다시 정제한 수와 저장본을 대조한다. 기대값은 Mac 세션이 정한다. 의도한 변경이면 `test_golden_counts` 의 기대값을 함께 고친다.
 - [ ] **G5 `render_classes.py` 를 부르는 파이프라인이 없다.** 소유 관계로 동작이 갈리는 유일한 코드다. 해법: 연결할지 문서에 도구로만 표시할지 결정한다.
 - [ ] **G6 아무도 안 읽는 칸.** 실측: `constraint` · `origin` · `attrs` · `signature` · `doc` · `platform`. 해법: 언어 전용 층으로 옮길지 지울지 결정한다. `external-constraint` 검사의 가치도 함께 본다.
 - [ ] **G7 스킬 문서가 실물과 다르다.** 실측: `.agents/skills/codebase-terms-survey/SKILL.md:189` 가 Mode 2 를 소비자로 적었지만 Mode 2 코드에 지도를 여는 곳이 없다. 해법: 문구 수정. 스킬 사본 규약을 따른다.
