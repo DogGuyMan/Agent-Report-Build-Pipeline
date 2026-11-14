@@ -1,11 +1,11 @@
 """test_normalize.py — 정규화 계층의 회귀 시험."""
+import ast
 import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
-from collections import Counter
 from pathlib import Path
 from typing import cast
 
@@ -599,9 +599,9 @@ PYFX_IMPORTS = {"Node": "pyfx.base.Node", "Optional": "typing.Optional",
 PYFX_FIRST = {"pyfx.base.Node", "pyfx.core.Engine"}
 
 
-def _walk(expr: "N.GriffeExpr | None") -> tuple[list[str], Counter[str]]:
+def _walk(expr: "N.GriffeExpr | None") -> tuple[list[str], N.Ledger]:
     """py_walk_expr 를 픽스처 문맥으로 감싼다. (결과, stats) 를 돌려준다."""
-    st: Counter[str] = Counter()
+    st = N.Ledger()
     got = N.py_walk_expr(expr, "pyfx.core", PYFX_IMPORTS, PYFX_FIRST, st)
     return got, st
 
@@ -1043,3 +1043,47 @@ def test_dataclass_가_만든_init_의_간선은_필드_줄을_근거로_쓴다(
     sig = [e for e in g["edges"] if e["label"] == "__init__(rows)"]
     assert sig and all(e["line"] == 10 for e in sig)
     assert all(e["line"] for e in g["edges"])
+
+
+# ── 14. 버림 장부 — 사유는 표의 열쇠이고 등급 · 수 · 이름 순으로 나온다.
+def test_소스의_사유_문자열은_전부_표에_있다() -> None:
+    """`stats[...]` 첨자와 `stats.note(...)` 의 사유는 상수 문자열이고 `DROP_CLASS` 의 열쇠여야 한다."""
+    tree = ast.parse(Path(N.__file__).read_text(encoding="utf-8"))
+    seen = 0
+    bad: list[str] = []
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Subscript) and isinstance(n.value, ast.Name) and n.value.id == "stats":
+            reason: ast.expr = n.slice
+        elif (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "note"
+              and isinstance(n.func.value, ast.Name) and n.func.value.id == "stats" and n.args):
+            reason = n.args[0]
+        else:
+            continue
+        seen += 1
+        if not (isinstance(reason, ast.Constant) and isinstance(reason.value, str)):
+            bad.append("%d 줄 — 사유가 상수 문자열이 아니다" % n.lineno)
+        elif reason.value not in N.DROP_CLASS:
+            bad.append("%d 줄 — %r 이 DROP_CLASS 에 없다" % (n.lineno, reason.value))
+    assert seen, "stats 를 쓰는 자리를 하나도 찾지 못했다"
+    assert not bad, "\n".join(bad)
+
+
+def test_장부는_등급_수_이름_순이고_표본은_다섯까지다() -> None:
+    st = N.Ledger()
+    st["1차 노드"] += 3
+    st["중복 간선 접음"] += 2
+    st["자기참조 버림"] += 7
+    st["R4 외부발 간선 버림"] += 7
+    st["모듈"] = 0                                    # 수가 0 이면 장부에 오르지 않는다
+    for i in range(8):
+        st.note("끝점 해소 실패", "s%d" % i)
+    st.note("모르는 관계 종류", "wormhole")
+    rows = st.report()
+    assert [r["reason"] for r in rows] == ["모르는 관계 종류", "끝점 해소 실패", "R4 외부발 간선 버림", "자기참조 버림",
+                                           "중복 간선 접음", "1차 노드"]
+    assert [r["class"] for r in rows] == ["fault", "unresolved", "policy", "policy", "policy", "count"]
+    assert rows[1]["count"] == 8 and rows[1]["samples"] == ["s0", "s1", "s2", "s3", "s4"]
+    assert rows[0]["samples"] == ["wormhole"] and rows[5]["samples"] == []
+    st["표에 없는 사유"] += 1
+    with pytest.raises(KeyError):
+        st.report()

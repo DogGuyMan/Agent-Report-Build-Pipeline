@@ -18,6 +18,62 @@ from pycalls import PyCallsDump
 # 산출물 `codegraph.json` 의 계약은 **여기 하나**다. 이 파일에 다시 적지 않는다.
 from codegraph_types import CodeGraph, Edge, EdgeKind, Node
 
+# ── 버림 장부 — 정제가 무엇을 왜 버렸는지 사유별로 센다.
+DropClass = Literal["count", "policy", "unresolved", "fault"]
+# 사유 -> 등급. 이 파일이 정책의 집이다(머리말). 표에 없는 사유를 적으면 KeyError — test_normalize 가 소스의 사유 전부를 대조한다.
+DROP_CLASS: dict[str, DropClass] = {
+    # policy — 규칙으로 버린 것
+    "R7 원시 타입 제외": "policy", "R7 원시 타입 버림": "policy", "R7 원시·암묵 기반 버림": "policy",
+    "R5 투과 래퍼": "policy", "R5 투과 래퍼 경유": "policy", "R5 투과 컨테이너 경유": "policy",
+    "중복 간선 접음": "policy", "자기참조 버림": "policy", "R4 외부발 간선 버림": "policy",
+    "R1 로 제거된 외부 노드": "policy", "containment 버림(자리 없음)": "policy", "clang-doc 1차 아님(버림)": "policy",
+    "enum 멤버 버림(플래그)": "policy", "소스 제네릭 인스턴스 접음": "policy", "git 추적 밖 모듈": "policy",
+    "호출이 기존 간선에 접힘": "policy", "dst TypeParameter 버림": "policy", "타입 변수": "policy", "빌트인": "policy",
+    # unresolved — 풀려야 했는데 못 푼 것(정보 손실)
+    "dst Error 버림": "unresolved", "끝점 해소 실패": "unresolved", "호출 양끝 해소 실패": "unresolved",
+    "식 깊이 초과": "unresolved", "이름이 아닌 식 버림": "unresolved", "이름 해소 실패": "unresolved",
+    "1차 이름 꼬리 겹침": "unresolved",
+    # fault — 수집기가 모르는 값을 냈다
+    "모르는 관계 종류": "fault",
+    # count — 버림이 아닌 셈
+    "1차 노드": "count", "외부 원본 타입": "count", "모듈": "count", "모듈 간 의존": "count", "중첩 클래스": "count",
+    "호출 간선": "count", "asm->pkg 사전": "count", "clang-doc 로 위치 갱신": "count", "pycalls 로 시그니처 보강": "count",
+    "clang-doc 신규 노드": "count", "pycalls 신규 노드": "count", "형 별칭 펼침": "count", "1차 이름 꼬리 맞춤": "count",
+    "함수 꼴 TypedDict 노드": "count",
+}
+ReasonRow = TypedDict("ReasonRow", {"reason": str, "class": DropClass, "count": int, "samples": list[str]})
+
+
+class ReportDoc(TypedDict):
+    """`normalize-report.json` — 이 지도 한 벌의 버림 장부. 시각이 없어 같은 입력이면 같은 바이트다."""
+    codegraph_sha256: str
+    language: str
+    source_tool: str
+    reasons: list[ReasonRow]
+
+
+class Ledger(Counter[str]):
+    """사유별 수와 표본(최대 5개). `stats[k] += 1` 은 그대로 되고, 표본을 남길 자리만 `note` 를 부른다."""
+    SAMPLES = 5
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.samples: dict[str, list[str]] = {}
+
+    def note(self, reason: str, sample: str) -> None:
+        self[reason] += 1
+        bucket = self.samples.setdefault(reason, [])
+        if len(bucket) < self.SAMPLES:
+            bucket.append(sample)
+
+    def report(self) -> list[ReasonRow]:
+        """수가 0 이 아닌 사유만, fault → unresolved → policy → count · 수 내림차순 · 이름순."""
+        rank = {"fault": 0, "unresolved": 1, "policy": 2, "count": 3}
+        rows: list[ReasonRow] = [{"reason": r, "class": DROP_CLASS[r], "count": n, "samples": self.samples.get(r, [])}
+                                 for r, n in self.items() if n]
+        return sorted(rows, key=lambda x: (rank[x["class"]], -x["count"], x["reason"]))
+
+
 # ── 입력측 형(C++). codegraph.json 계약이 아니라 clang-uml 이 주는 원시 JSON 의 모양이라
 #    codegraph_types.py 가 아니라 여기 산다. 실제로 읽는 열쇠만 적었다 —
 #    clang-uml 은 이보다 훨씬 많은 열쇠를 내지만 안 읽는 것을 적어 봐야 어긋날 자리만 는다.
@@ -303,7 +359,7 @@ def _doc_element(sym: Symbol) -> UmlIdentity:
 
 
 def merge_clang_doc(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] | None,
-                    repo: str, tracked: set[str] | None, stats: Counter[str]) -> None:
+                    repo: str, tracked: set[str] | None, stats: Ledger) -> None:
     """clang-doc 의 심볼을 clang-uml 이 만든 노드 표에 합친다.
 
     clang-uml 은 관계의 종류(합성/집약/의존)를 알고 clang-doc 은 심볼 전량(자유 함수·
@@ -339,7 +395,7 @@ def merge_clang_doc(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] | None
                 "file": sym["file"], "line": sym["line"],
             }
             by_name[qname] = nid
-            stats["clang-doc 신규 노드 " + sym["kind"]] += 1
+            stats.note("clang-doc 신규 노드", sym["kind"])
         # 빈 값은 키 자체를 만들지 않는다 — clang-doc 을 안 쓰는 저장소의 산출물이
         # 빈 문자열 두 개 때문에 통째로 달라지면 골든 대조가 무의미해진다.
         if sym["signature"]:
@@ -350,11 +406,11 @@ def merge_clang_doc(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] | None
 
 def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationship],
                   repo: str, source_tool: str,
-                  doc_symbols: Sequence[Symbol] = ()) -> tuple[CodeGraph, Counter[str]]:
+                  doc_symbols: Sequence[Symbol] = ()) -> tuple[CodeGraph, Ledger]:
     tracked = tracked_set(repo)
     by_id = {e["id"]: e for e in elements}
     by_display = {e.get("display_name"): e for e in elements}
-    stats: Counter[str] = Counter()
+    stats = Ledger()
 
     # ── 1패스: 노드를 정한다. 투과 래퍼는 노드가 되지 않는다(R5).
     #    외부는 R2 로 접는다. 접힌 원본은 추적을 위해 남긴다.
@@ -437,7 +493,7 @@ def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationshi
         srcs = resolve(r["source"])
         dsts = resolve(r["destination"])
         if not srcs or not dsts:
-            stats["끝점 해소 실패"] += 1
+            stats.note("끝점 해소 실패", "%s -> %s (%s)" % (r["source"], r["destination"], t))
             continue
 
         f, ln = member_location(src_el, r.get("label"))
@@ -469,8 +525,8 @@ def normalize_cpp(elements: list[UmlElement], relationships: list[UmlRelationshi
 
 
 def _assemble(nodes: dict[str, Node], edges: dict[tuple[str, str, str], Edge],
-              stats: Counter[str], *, language: str, source_tool: str,
-              repo: str) -> tuple[CodeGraph, Counter[str]]:
+              stats: Ledger, *, language: str, source_tool: str,
+              repo: str) -> tuple[CodeGraph, Ledger]:
     """언어 공통 꼬리 — R1 제거, 모듈 의존 유도, 최종 dict 조립.
 
     세 언어 파서(normalize_cpp / normalize_csharp / normalize_python)가 여기로 수렴한다.
@@ -646,7 +702,7 @@ def cs_external_group(asm: str | None, asm2pkg: dict[str, str]) -> str:
     return f"(벤더링) {asm}"
 
 
-def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Counter[str]]:
+def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Ledger]:
     # F5 게이트 — 참조 집합이 틀리면 dst 가 통째로 쓰레기가 된다.
     comp = dump["compilation"]
     if comp["errors"] or comp["unresolved_types"]:
@@ -657,7 +713,7 @@ def normalize_csharp(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Counter[st
     ty = {t["id"]: t for t in dump["types"]}
     asm2pkg = cs_asm2pkg(repo)
     src_asm = dump["compilation"]["assembly"]
-    stats: Counter[str] = Counter()
+    stats = Ledger()
     stats["asm->pkg 사전"] = len(asm2pkg)
 
     # 1차 판정은 file 유무가 아니라 어셈블리다. (float, float) 튜플은 netstandard 소속인데
@@ -920,7 +976,7 @@ def py_resolve(name: str, mod_path: str, imports: dict[str, str], first_party: s
 # 타입 식 하나에서 노드가 될 이름들을 뽑는다. R5 투과와 R7 거르기가 여기 있다.
 # 쓰는 것: py_expr_name, py_resolve · 쓰이는 곳: normalize_python
 def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str],
-                 first_party: set[str], stats: Counter[str], depth: int = 0) -> list[str]:
+                 first_party: set[str], stats: Ledger, depth: int = 0) -> list[str]:
     """R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다.
 
     griffe 가 타입 주석을 식 트리로 주므로 제네릭 문법을 손으로 파싱할 필요가 없다.
@@ -976,7 +1032,7 @@ def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str]
 # griffe 덤프를 공통 형식의 노드와 간선으로 바꾼다.
 # 쓰는 것: module_of, py_external_group, py_walk_expr, _assemble · 쓰이는 곳: normalize.main
 def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
-                     calls: PyCallsDump | None = None) -> tuple[CodeGraph, Counter[str]]:
+                     calls: PyCallsDump | None = None) -> tuple[CodeGraph, Ledger]:
     """griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다.
 
     1차/외부 판정에 별도 규칙이 없다 — griffe 는 지정한 패키지만 로드하므로 덤프에 나온
@@ -986,7 +1042,7 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
 
     `calls` 를 주면 `pycalls.py` 의 심볼과 호출을 합친다. 주지 않으면 그 병합만 건너뛴다.
     """
-    stats: Counter[str] = Counter()
+    stats = Ledger()
     tracked = tracked_set(repo)
 
     # ── 0패스: 모듈 트리를 평평하게 편다.
@@ -1135,7 +1191,7 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
 # 쓰는 것: module_of · 쓰이는 곳: normalize_python
 def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
                    edges: dict[tuple[str, str, str], Edge],
-                   calls: PyCallsDump, stats: Counter[str]) -> None:
+                   calls: PyCallsDump, stats: Ledger) -> None:
     """`pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다.
 
     griffe 는 클래스·상속·타입 주석을 알고, pycalls 는 함수 전량과 호출을 안다. 그래서
@@ -1168,12 +1224,15 @@ def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
         if sig:
             nodes[nid]["signature"] = sig
         node_id[sym["name"]] = nid
-        stats["pycalls 신규 노드 " + sym["kind"]] += 1
+        stats.note("pycalls 신규 노드", sym["kind"])
 
     for c in calls["calls"]:
         s, d = node_id.get(c["caller"]), node_id.get(c["callee"])
-        if s is None or d is None or s == d:
-            stats["호출 양끝 해소 실패"] += 1
+        if s is None or d is None:
+            stats.note("호출 양끝 해소 실패", "%s -> %s" % (c["caller"], c["callee"]))
+            continue
+        if s == d:
+            stats["자기참조 버림"] += 1          # 재귀 호출은 해소 실패가 아니라 정책으로 버린다
             continue
         key = (s, d, PY_KIND["sig"])
         if key in edges:

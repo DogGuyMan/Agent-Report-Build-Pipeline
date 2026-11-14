@@ -218,6 +218,11 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
+| **`ReportDoc`** | *class* | `normalize-report.json` — 이 지도 한 벌의 버림 장부. 시각이 없어 같은 입력이면 같은 바이트다. |
+| **`Ledger`** | *class* | 사유별 수와 표본(최대 5개). `stats[k] += 1` 은 그대로 되고, 표본을 남길 자리만 `note` 를 부른다. |
+| `Ledger.__init__` | `(self) -> None` |  |
+| `Ledger.note` | `(self, reason: str, sample: str) -> None` |  |
+| `Ledger.report` | `(self) -> list[ReasonRow]` | 수가 0 이 아닌 사유만, fault → unresolved → policy → count · 수 내림차순 · 이름순. |
 | **`SourceLocation`** | *class* | clang-uml 의 `source_location`. 남의 헤더가 아니라 이 저장소의 첫 사용 지점을 |
 | **`UmlMember`** | *class* | `elements[].members[]` 한 칸. 소유 간선의 근거 위치가 여기서 나온다. |
 | **`UmlTemplateParam`** | *class* | `elements[].template_parameters[]` 한 칸. R5 투과가 `type` 을 따라 내려간다. |
@@ -236,9 +241,9 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `node_name` | `(el: UmlElement) -> str` | 중첩 타입의 name 은 구분자가 :: 가 아니라 ## 이고 바깥 클래스가 namespace 에 없다. |
 | `doc_qualified_name` | `(sym: Symbol) -> str` | clang-doc 심볼의 완전 수식 이름. clang-uml 의 `display_name` 과 같은 축으로 맞춘다. |
 | `_doc_element` | `(sym: Symbol) -> UmlIdentity` | clang-doc 심볼을 `is_first_party` 가 읽는 꼴로 옮긴다. |
-| `merge_clang_doc` | `(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] \| None, repo: str, tracked: set[str] \| None, stats: Counter[str]) -> None` | clang-doc 의 심볼을 clang-uml 이 만든 노드 표에 합친다. |
-| `normalize_cpp` | `(elements: list[UmlElement], relationships: list[UmlRelationship], repo: str, source_tool: str, doc_symbols: Sequence[Symbol] = ()) -> tuple[CodeGraph, Counter[str]]` |  |
-| `_assemble` | `(nodes: dict[str, Node], edges: dict[tuple[str, str, str], Edge], stats: Counter[str], *, language: str, source_tool: str, repo: str) -> tuple[CodeGraph, Counter[str]]` | 언어 공통 꼬리 — R1 제거, 모듈 의존 유도, 최종 dict 조립. |
+| `merge_clang_doc` | `(nodes: dict[str, Node], doc_symbols: Sequence[Symbol] \| None, repo: str, tracked: set[str] \| None, stats: Ledger) -> None` | clang-doc 의 심볼을 clang-uml 이 만든 노드 표에 합친다. |
+| `normalize_cpp` | `(elements: list[UmlElement], relationships: list[UmlRelationship], repo: str, source_tool: str, doc_symbols: Sequence[Symbol] = ()) -> tuple[CodeGraph, Ledger]` |  |
+| `_assemble` | `(nodes: dict[str, Node], edges: dict[tuple[str, str, str], Edge], stats: Ledger, *, language: str, source_tool: str, repo: str) -> tuple[CodeGraph, Ledger]` | 언어 공통 꼬리 — R1 제거, 모듈 의존 유도, 최종 dict 조립. |
 | **`RoslynCompilation`** | *class* | `compilation` — F5 게이트가 보는 곳. |
 | **`RoslynType`** | *class* | `types[]` 한 칸. 1차 판정은 file 유무가 아니라 `assembly` 다. |
 | **`RoslynRelation`** | *class* | `relations[]` 한 칸. `origin` 과 `attrs` 는 C# 만 갖는 비대칭 기록이다. |
@@ -246,7 +251,7 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `cs_module_of` | `(path: str \| None) -> str \| None` | 모듈 경계 = 폴더 트리. `module_of`(C++)와 축이 같다. |
 | `cs_asm2pkg` | `(repo: str) -> dict[str, str]` | 어셈블리 이름 -> 패키지 id. `Library/PackageCache/<pkg>@<hash>/**/*.asmdef` 의 |
 | `cs_external_group` | `(asm: str \| None, asm2pkg: dict[str, str]) -> str` | R2 — 외부 하나 = 노드 하나. 입도는 패키지 이름. |
-| `normalize_csharp` | `(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Counter[str]]` |  |
+| `normalize_csharp` | `(dump: RoslynDump, repo: str) -> tuple[CodeGraph, Ledger]` |  |
 | **`GriffeExprNode`** | *class* | 식 트리 한 마디. `cls` 가 어느 마디인지 말하고, 나머지 열쇠는 마디마다 다르다. |
 | **`GriffeParam`** | *class* | `parameters[]` 한 칸. `self`·`cls` 와 주석 없는 매개변수는 호출부가 거른다. |
 | **`GriffeObject`** | *class* | 모듈·클래스·속성·함수를 한 형으로 받는다 — griffe 가 `kind` 로만 가르기 때문이다. |
@@ -254,9 +259,9 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_expr_name` | `(expr: GriffeExpr \| None) -> str \| None` | 식이 단순 이름이면 그 이름을, 아니면 None. |
 | `py_abstraction` | `(cls: GriffeObject) -> Literal['interface', 'abstract'] \| None` | 클래스가 인터페이스인가 추상 클래스인가. 구체면 None. |
 | `py_resolve` | `(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str` | 이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 클래스 -> 못 품. |
-| `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Counter[str], depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
-| `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Counter[str]]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
-| `merge_py_calls` | `(nodes: dict[str, Node], node_id: dict[str, str], edges: dict[tuple[str, str, str], Edge], calls: PyCallsDump, stats: Counter[str]) -> None` | `pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다. |
+| `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Ledger, depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
+| `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Ledger]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
+| `merge_py_calls` | `(nodes: dict[str, Node], node_id: dict[str, str], edges: dict[tuple[str, str, str], Edge], calls: PyCallsDump, stats: Ledger) -> None` | `pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다. |
 | `build_parser` | `() -> argparse.ArgumentParser` | 명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다. |
 | `main` | `() -> None` |  |
 

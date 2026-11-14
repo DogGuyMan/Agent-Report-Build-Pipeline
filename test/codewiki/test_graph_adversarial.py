@@ -155,7 +155,6 @@ def test_같은_파일의_두_컴파일_명령은_하나만_남고_장부에_남
     assert len(dropped) == 1 and dropped[0]["reason"] == "duplicate-config"
 
 
-@pytest.mark.xfail(strict=True, reason="Task 13")
 def test_자기_재귀_호출은_해소_실패가_아니다() -> None:
     nodes = {"C1": node("C1")}
     ids = {"pkg.f": "C1"}
