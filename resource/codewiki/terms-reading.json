@@ -24927,6 +24927,16 @@
   "uses": [],
   "where": "src/codewiki/python/machine/normalize.py:1187"
  },
+ "codewiki.python.machine.jsonio.write_json_atomic": {
+  "confidence": "HIGH",
+  "does": "같은 폴더에 mkstemp 로 임시 파일을 만들어 json.dump(ensure_ascii=False) 하고 os.replace 로 바꿔 끼운다. trailing_newline 이면 끝에 줄바꿈을 붙이고, 도중 예외면 임시 파일을 지우고 다시 던진다.",
+  "kind": "function",
+  "means": "JSON 을 반쪽 파일 없이 쓰는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/jsonio.py:7"
+ },
  "codewiki.python.machine.verify_graph.Fault": {
   "confidence": "HIGH",
   "does": "code · at(JSON 경로) · detail 세 칸이다.",
@@ -24937,25 +24947,65 @@
   "uses": [],
   "where": "src/codewiki/python/machine/verify_graph.py:41"
  },
- "codewiki.python.machine.verify_graph.FaultsDoc": {
+ "codewiki.python.machine.verify_graph.SectionDoc": {
   "confidence": "HIGH",
-  "does": "status failed · language · source_tool · repo_commit · total · counts(코드별 수) · faults.",
+  "does": "faults(결함 수)와 counts(코드별 수) 두 칸이다.",
   "kind": "class",
-  "means": "graph-faults.json 의 꼴.",
+  "means": "한 절의 결함 수와 코드별 수를 담는 꼴.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:48"
+  "where": "src/codewiki/python/machine/verify_graph.py:58"
  },
- "codewiki.python.machine.verify_graph.PassedDoc": {
+ "codewiki.python.machine.verify_graph.FreshnessDoc": {
   "confidence": "HIGH",
-  "does": "status passed · 언어 · 수집기 · 커밋 · 노드 · 간선 · 모듈 수 · codegraph_sha256. sha256 이 그 지도 한 벌에만 묶는다.",
+  "does": "SectionDoc 에 manifest(수집 manifest 와의 대조 결과) · sources_sha256 · raw_provenance(수집 원본이 prep 안에서 났는가)를 더한다.",
   "kind": "class",
-  "means": "graph-verified.json 의 꼴.",
+  "means": "최신성 절의 꼴.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:59"
+  "where": "src/codewiki/python/machine/verify_graph.py:64"
+ },
+ "codewiki.python.machine.verify_graph.CoverageDoc": {
+  "confidence": "HIGH",
+  "does": "SectionDoc 에 inventory 상태, 파일 수 칸(files_total · collected · excluded · unsupported · failed · no_symbols), 수집하지 않은 언어 목록을 더한다.",
+  "kind": "class",
+  "means": "범위 절의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:71"
+ },
+ "codewiki.python.machine.verify_graph.Capabilities": {
+  "confidence": "HIGH",
+  "does": "methods · calls 는 불리언이고 resolution 은 compiler · heuristic · none 중 하나다.",
+  "kind": "class",
+  "means": "수집기가 낼 수 있다고 주장하는 것의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:83"
+ },
+ "codewiki.python.machine.verify_graph.Fit": {
+  "confidence": "HIGH",
+  "does": "survey 가 ready 면 전수조사에 들어갈 수 있고 blocked 면 blocked_by 에 이유를 적는다.",
+  "kind": "class",
+  "means": "목적별 적합성의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:90"
+ },
+ "codewiki.python.machine.verify_graph.VerifyDoc": {
+  "confidence": "HIGH",
+  "does": "status · generation_id · codegraph_sha256 · 언어 · 수집기 · 커밋 · 노드 · 간선 · 모듈 수 · checks_run · 네 절(integrity · freshness · coverage · capabilities) · fit · total · faults 를 담는다.",
+  "kind": "class",
+  "means": "graph-verified.json 과 graph-faults.json 의 공통 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:96"
  },
  "codewiki.python.machine.verify_graph.Elements": {
   "confidence": "HIGH",
@@ -25057,15 +25107,45 @@
   "uses": [],
   "where": "src/codewiki/python/machine/verify_graph.py:257"
  },
- "codewiki.python.machine.verify_graph.verify": {
+ "codewiki.python.machine.verify_graph.capabilities_of": {
   "confidence": "HIGH",
-  "does": "read_graph → check_top → check_elements → check_consistency → (repo 가 있으면) check_sources. 결함이 있으면 FaultsDoc, 없으면 PassedDoc 을 낸다.",
+  "does": "python 이면 methods · calls 가 참이고 resolution 은 heuristic, cpp · csharp 면 둘 다 거짓이고 resolution 은 compiler, 그 밖이면 둘 다 거짓이고 none 이다.",
   "kind": "function",
-  "means": "네 층을 차례로 돌려 결과 문서 하나를 내는 함수.",
+  "means": "언어별로 지도가 주장할 수 있는 것을 내는 함수.",
   "module": "codewiki.python.machine",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/machine/verify_graph.py:263"
+  "where": "src/codewiki/python/machine/verify_graph.py:334"
+ },
+ "codewiki.python.machine.verify_graph.section": {
+  "confidence": "HIGH",
+  "does": "결함 코드의 층(LAYER)을 SECTION_OF_LAYER 로 절 이름에 옮겨 이 절에 속한 결함만 세고, 코드별 수를 코드 이름 순으로 낸다.",
+  "kind": "function",
+  "means": "결함 중 한 절에 속한 것의 수와 코드별 수를 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:343"
+ },
+ "codewiki.python.machine.verify_graph.fit_of": {
+  "confidence": "HIGH",
+  "does": "통과를 막는 결함의 코드를 모으고 V3 를 돌리지 않았으면 그 이유를 더한다. 통과했고 이유가 없을 때만 ready 다.",
+  "kind": "function",
+  "means": "전수조사에 들어갈 수 있는지 판정하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:349"
+ },
+ "codewiki.python.machine.verify_graph.verify": {
+  "confidence": "HIGH",
+  "does": "read_graph → check_top → check_elements → check_consistency → (repo 가 있으면) check_sources 를 돌려 수행한 검사 이름(checks_run)을 쌓고, 절별 결함 수 · capabilities · fit 을 붙인 VerifyDoc 을 낸다.",
+  "kind": "function",
+  "means": "층을 차례로 돌려 결과 문서 하나를 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:357"
  },
  "codewiki.python.machine.verify_graph._replace": {
   "confidence": "HIGH",
@@ -25147,15 +25227,25 @@
   "uses": [],
   "where": "src/codewiki/python/runner/mode1/graph.py:66"
  },
- "codewiki.python.runner.mode1.graph.ScheduleBatchesStage.stale_verification": {
+ "codewiki.python.runner.mode1.graph.VerifiedGraph": {
   "confidence": "HIGH",
-  "does": "graph-verified.json 의 codegraph_sha256 과 지금 codegraph.json 의 sha256 이 다르면 이유를, 같으면 빈 문자열을 낸다.",
-  "kind": "method",
-  "means": "성공 기록이 지금 지도의 것인지 보는 메서드.",
+  "does": "gate 한 메서드로 성공 기록 · 지도 · 배치를 대조한다.",
+  "kind": "class",
+  "means": "검사를 지난 지도만 읽는 단계의 믹스인.",
   "module": "codewiki.python.runner.mode1.graph",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/mode1/graph.py:138"
+  "where": "src/codewiki/python/runner/mode1/graph.py:91"
+ },
+ "codewiki.python.runner.mode1.graph.VerifiedGraph.gate": {
+  "confidence": "HIGH",
+  "does": "성공 기록이 없거나 전수조사에 맞지 않거나 지도가 검사 뒤에 바뀌었거나, need_batches 일 때 배치에 지금 지도의 지문이 없으면 이유를 내고 모두 맞으면 빈 문자열을 낸다. 해시를 낸 바이트를 함께 돌려줘 호출자가 같은 바이트를 파싱하게 한다.",
+  "kind": "method",
+  "means": "단계를 막을 이유와 지금 지도의 바이트를 내는 메서드.",
+  "module": "codewiki.python.runner.mode1.graph",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/runner/mode1/graph.py:95"
  },
  "codewiki.python.runner.mode1.edges.restart_from": {
   "confidence": "HIGH",
@@ -25169,7 +25259,7 @@
  },
  "codewiki.python.runner.mode1.context.GraphVerifiedDoc": {
   "confidence": "HIGH",
-  "does": "status passed 와 codegraph_sha256 두 칸만 본다.",
+  "does": "status passed · codegraph_sha256 · generation_id · checks_run · fit 다섯 칸만 본다.",
   "kind": "class",
   "means": "graph-verified.json 을 단계 경계에서 보는 꼴.",
   "module": "codewiki.python.runner.mode1.context",
