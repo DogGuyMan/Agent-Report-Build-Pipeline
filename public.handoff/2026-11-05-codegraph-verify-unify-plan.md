@@ -792,7 +792,7 @@ The check layers are exactly as in the "🔎 Check layers" table above — **V0 
 | 🐞 `{"nodes":[{"x":1}]}` passes the boundary and hits a `KeyError` in `survey_plan` (A1) | V1 tries converting each element to `Node` · `Edge` · `Module` | Elements missing required keys · types are caught before the LLM | One fault per element, all of them (A3) | ✅ |
 | 🐞 Version 1 · an empty map pass (A2) | `schema-version` · `empty-graph` | A plan with 0 symbols does not succeed | Both are faults | ✅ |
 | 🐞 Nothing looks at inconsistencies inside the map | V2's nine rules | Breakage is noticed immediately when normalization is changed in stages 4~6 | 0 faults on this repository's map | ✅ |
-| 🐞 Source locations are not checked (A4) | V3 — inside the repository · exists · line range | A stale map does not reach the LLM | Stale map 78 faults · fresh map 0 after `b85127b` | ✅ |
+| 🐞 Source locations are not checked (A4) | V3 — inside the repository · exists · line range | A map citing deleted files or overflowing lines does not reach the LLM (content changes on the same lines are not seen — stage 2 of the 2026-11-13 plan adds source-drift) | Stale map 78 faults · fresh map 0 after `b85127b` | ✅ |
 | 🐞 There is no place to reuse a pass record (A5) | On a pass, `graph-verified.json` (map sha256), which `schedule-batches` compares | If the map changes after the check, no batches are scheduled | FAIL if the sha differs | ✅ |
 | 🐞 `--resume` simply reruns the failed stage (F1) | `RESTART_AT = {"verify-graph": "collect-graph"}` | The check runs after the fixed collector · normalization has gone into the map | Resume starts from `collect-graph` | ✅ |
 
@@ -1775,6 +1775,8 @@ def _fake_verified(ctx: X.Mode1Context) -> None:
 - [ ] **Step 5: Finish** — if everything passes, change stages 1 · 2 in the status table to ✅ and ask the user whether to push to `origin main`. Any remaining failure is reported as unfixed, with its symptoms and the bisection result
 
 ---
+
+> ⚠ **superseded 2026-11-13** — replaced by `2026-11-13-codegraph-facts-generation-plan.md` (the review's order 0~6). Kept for the history of the entry decisions only.
 
 # Stages 3~6 — outline (each stage gets its own detailed plan once its entry decision is made)
 

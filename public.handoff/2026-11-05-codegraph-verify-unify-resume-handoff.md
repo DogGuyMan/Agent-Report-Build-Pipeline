@@ -2,6 +2,7 @@
 
 > **이 문서가 다음 세션의 단일 진입점이다.** Mode 1 의 `codegraph.json` 을 LLM 앞에서 검증하고 언어 간 입도를 맞추는 작업이다. 조사와 실측은 끝났고 **구현은 0** 이다.
 > **작성** 2026-11-05 · 브랜치 `main` · HEAD `89269d8` · `origin/main` 보다 12 커밋 앞섬
+> ⚠ **2026-11-13 정정** — 위 "구현은 0" 과 §0 · §1 의 "코드 변경 없음" 은 작성 시점 값이다. 같은 날 1 · 2단계가 끝났다(`bef937a`). 진행 상태는 **§2 체크박스와 계획의 Status 표가 정본**이다. 11-09 적대적 검토 F10 이 이 어긋남을 짚었다. **상태 표의 정본은 `2026-11-13-codegraph-facts-generation-plan.md` 다.** 아래 §0 · §1 · §7 은 2026-11-05 작성 시점 글이고, 체크리스트 §2 만 계속 갱신한다. §7 의 "지도 안 `verification` 칸" 설계는 👍 2026-11-05 결정(별도 파일 `graph-verified.json`)으로 대체됐다. 진입점은 `2026-11-13-all-in-one-root-guide.md` 다.
 > **대체하는 문서** 없음. `docs/handoffs/remain-process-merged.md` 는 별개 작업이다.
 > ⚠ 작성 세션 중에 브랜치가 `mode-boundaries` 에서 `main` 으로 바뀌고 HEAD 가 움직였다. 시작할 때 `git status -sb` · `git log --oneline -8` 을 다시 재라.
 > ⚠ 이 문서와 조사 자료는 `public.handoff/` 에 있고 git 이 추적한다. 공개 저장소이므로 기계별 경로와 비밀을 적지 않는다.
@@ -9,18 +10,18 @@
 ## 0. 한눈에
 
 - **무엇을 하나.** `collect-graph` 가 낸 코드 지도를 검사하지 않은 채 LLM 단계로 넘기는 구멍을 막고, C++ · C# · Python 지도의 입도를 맞춘다. 사용자는 이 작업에 다섯 문제(정제의 조용한 버림, 수집 중 사망, C++ · C# 호출 부재, 혼합 언어, 수집기 수정 뒤 `--resume`)를 함께 묶으라고 지시했다.
-- **어디까지 왔나.** 코드 변경 없음. `verify-graph` 첫 구현은 시험까지 썼다가 사용자 지시로 전부 되돌렸다. 그 뒤 조사 · 실측을 끝냈다.
+- **어디까지 왔나.** 1 · 2단계(지문 · 원자적 쓰기 · `verify-graph` V0~V3) 끝 — `9066c57` … `bef937a`. 적대적 검토(2026-11-09)가 경계 밖 구멍 11건을 재현했고, 그 반영 계획이 `2026-11-13-codegraph-facts-generation-plan.md` 다.
 - **가장 큰 결론.** 스키마는 이미 하나다. 문제는 정제가 메서드를 버리고 호출을 안 모으는 것이다. 호출은 Joern · SCIP 없이 이미 쓰는 Roslyn 과 clang 으로 실제 골든에서 추출했다.
-- **다음 행동.** 구현 전에 사용자에게 §4.3 의 결정을 받는다. 그다음 1단계(도구 지문과 안전한 쓰기)를 TDD 로 시작한다. **설계 확인 없이 구현부터 들어가지 마라** — 지난번에 그렇게 해서 되돌렸다.
+- **다음 행동.** `2026-11-13-codegraph-facts-generation-plan.md` 의 Task 1 부터. 결정은 그 문서의 "✅ Decided" 표에 있다 — 다시 열지 않는다. 👍 2026-11-14 구현 승인 — Task 1~24 는 별도 worktree 의 브랜치 `codegraph-facts-generation` 에서 한다.
 - **정본 문서.** §3 표. 충돌하면 이 문서가 이긴다.
 
 ## 1. 상태 (작성 시점 — 다시 재라)
 
 ```
-HEAD      89269d8 [chore] : 쓰지 않는 저장소 분리 작업물 제거
-브랜치    main (origin/main 보다 12 앞섬). mode-boundaries 브랜치는 이제 없다
-미커밋    코드 변경 없음
-게이트    이번 세션은 코드를 안 고쳐서 전체 게이트를 돌리지 않았다. 시작 전에 기준선을 잰다
+HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
+브랜치    main = origin/main + 2
+미커밋    문서뿐 (2026-11-14 의 Task 0 커밋이 올린다)
+게이트    수치 기록은 없다. 2026-11-13 수집 923개 — 통과 수는 계획의 Task 25 가 Before 커밋에서 잰다
 ```
 
 ## 2. 체크리스트 — 실측 문제와 해법
@@ -95,8 +96,12 @@ HEAD      89269d8 [chore] : 쓰지 않는 저장소 분리 작업물 제거
 |---|---|---|---|
 | 이 문서 | `public.handoff/2026-11-05-codegraph-verify-unify-resume-handoff.md` | 추적 | 단일 진입점 |
 | 구현 계획 | `public.handoff/2026-11-05-codegraph-verify-unify-plan.md`(영어 정본) · `.ko.md`(한국어 번역본) | 추적 | 1 · 2단계 Task 단위 상세(지문 · 원자적 쓰기 · `verify-graph` V0~V3) · 3~6단계 개요. 👍 승인 2026-11-05 — 이 문서의 §4.3 결정 1~4 와 단계 순서가 거기서 바뀌었다 |
-| 3단계 설계 사양 | `public.handoff/2026-11-08-codegraph-stage3-design.md`(영어 정본) · `.ko.md`(한국어 번역본) | 추적 | 버림 장부 · 크래시 제거 · 수집 실패 기록 · `derive-facts` · 계약 문구(B1~B3 · B5 · C1 · C3 · C5 · C6 · G1 · G2). **승인 전** — 검토용으로 먼저 올렸다 |
-| H4 기준 검토 권고 | `public.handoff/2026-11-13-h4-review-recommendations-handoff.md` | 추적 | 외부 연구 종합(H4) 기준으로 세 mode 를 대조한 권고 R1~R7 · 결정 질문 Q1~Q5. 구현 지시가 아니다. 이 문서와 3단계 설계 뒤에 선다 |
+| 3단계 설계 사양 | `public.handoff/2026-11-08-codegraph-stage3-design.md`(영어 정본) · `.ko.md`(한국어 번역본) | 추적 | 버림 장부 · 크래시 제거 · 수집 실패 기록 · `derive-facts` · 계약 문구(B1~B3 · B5 · C1 · C3 · C5 · C6 · G1 · G2). 2026-11-13 반영 계획에 **흡수됐다**(3단계, Task 13~24). S1~S6 은 그 계획에서 유효하다 |
+| H4 기준 검토 권고 | `public.handoff/2026-11-13-h4-review-recommendations-handoff.md` | 추적 | 외부 연구 종합(H4) 기준으로 세 mode 를 대조한 권고 R1~R7 · 결정 질문 Q1~Q5. 구현 지시가 아니다. 이 문서와 3단계 설계 뒤에 선다. **§3 권고표는 아래 적대적 점검 §8 로 대체됐다** |
+| 적대적 검토(지도 검증) | `public.handoff/2026-11-09-codegraph-adversarial-review.md` + 같은 이름 폴더의 `repro.py` · `results.json` | 추적 | 1 · 2단계 구현과 3~6단계 계획의 반례 12건(재현 스크립트 · 2026-11-13 HEAD 에서 12/12 재현)과 대안 구조 F1~F11. 3단계 설계의 S1 · S3 · 열쇠 꼴 유지와 충돌한다 — 처분 👍 2026-11-10 · 11-13: 반례는 회귀 명세(계획 Task 1), 구조는 계획의 Decided 표 |
+| 적대적 점검(핸드오프 넷) | `public.handoff/2026-11-13-h4-adversarial-review-handoff.md` | 추적 | H4 권고 §3 을 대체하는 정본(§8) · 문서 간 중복 · 충돌 · 결정 Q1'~Q7'. **H4 권고를 읽기 전에 먼저 본다** |
+| **Root 지침(합본)** | `public.handoff/2026-11-13-all-in-one-root-guide.md` | 추적 | **이 트랙의 진입점.** 반영 계획과 적대적 점검의 충돌 판정 · 구현 트랙과 측정 트랙의 통합 순서 · 지침 묶음 · 남은 결정. 다른 문서를 읽기 전에 먼저 본다 |
+| 적대적 검토 반영 계획 | `public.handoff/2026-11-13-codegraph-facts-generation-plan.md`(영어 정본) · `.ko.md`(요약 번역본) | 추적 | 0~6단계. 3단계 설계 사양을 흡수했다. **상태 표의 정본.** 👍 2026-11-14 구현 승인 |
 | 조사 보고서 | `public.handoff/언어 불문 코드 그래프 통일.md` | 추적 | 도구 · 스키마 · UML 조사. 일부 값은 §4.2 가 정정한다 |
 | 측정 스크립트 | `public.handoff/언어 불문 코드 그래프 통일/scripts/` | 추적 | §9 의 재현 명령 |
 | 측정 결과 | `public.handoff/언어 불문 코드 그래프 통일/results/` | 추적 | 정제 출력 · 파일 열기 기록 · 칸 추적 |
@@ -235,7 +240,7 @@ clang-uml 시퀀스 다이어그램은 시작 지점 지정이 필수이고 전�
 
 ## 7. `verify-graph` 설계 (첫 구현을 되돌린 뒤의 정본)
 
-시험 본문은 보존하지 않았다. 아래 동작 목록이 명세다.
+⚠ **superseded** — 이 절의 "지도 안 `verification` 칸" 과 "산출물 사슬" 은 구현되지 않았다. 실물은 2026-11-05 계획 2단계와 2026-11-13 계획 1단계다. 시험 본문은 보존하지 않았다. 아래 동작 목록이 명세다.
 
 **구조.** `src/codewiki/python/machine/verify_graph.py`(판정만, 산문 없음)와 `mode1/graph.py` 의 `VerifyGraphStage(P.PromptResource, Mode1Machine)`. `VerifyTermsStage` 와 같은 구조로, `super().perform()` 을 감싼다. 결함 표는 `resource/codewiki/graph-faults.toml`, 핸드오프 글은 `resource/codewiki/prompts/verify-graph.md`(단계당 한 파일, `prompt_names = ("verify-graph",)`).
 
@@ -326,3 +331,6 @@ python3 clangd_calls.py <임시 폴더>                        # call_probe_samp
 | 2026-11-04~05 | 다섯 문제의 해법 조사와 실측. 수집기 원본 오인(532 → 890)을 찾아 정정 |
 | 2026-11-05 | 이 핸드오프 작성. 실측 문제와 해법을 체크리스트로 정리 |
 | 2026-11-05 | 핸드오프와 조사 자료를 `docs/` 에서 `public.handoff/` 로 옮겨 git 추적 대상으로 바꿈 |
+| 2026-11-13 | 머리말 "구현은 0" 정정 한 줄 · §3 색인에 11-09 적대적 검토(미커밋)와 11-13 적대적 점검 추가 |
+| 2026-11-13 | §3 색인에 Root 지침(합본) 한 행 · 적대적 점검 행의 git 칸을 "추적" 에서 "미커밋" 으로 바로잡음 |
+| 2026-11-14 | 계획 Task 0 — 머리말에 상태 표의 정본과 진입점 · §0 의 두 줄 · §1 상태 넉 줄 · §3 색인(11-09 검토 · 점검 · Root 지침을 추적으로, 반영 계획 한 행, 3단계 사양은 흡수됨) · §7 superseded 표시 |

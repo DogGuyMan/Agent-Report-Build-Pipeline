@@ -331,6 +331,6 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
 - **Note — `out/codegraph-raw/collect-fingerprint.json` 이 재수집을 정한다.** 수집 코드(`prep.py` 의 `COLLECT_CODE`) 내용과 수집기 판의 지문이 다르거나
   지도가 그 지문을 쓸 때의 지도가 아니면, 소스가 그대로여도 `prep` 이 다시 수집한다. 다시 수집하기로 하면 옛 지도와 지문부터 지우고,
   지도는 임시 파일을 거쳐 바꿔 끼운다(`normalize.write_json_atomic`).
-- **Note — schedule-batches 는 graph-verified.json 의 codegraph_sha256 이 지금 지도와 같을 때만 돈다.** `verify-graph` 가
-  지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사해 결함을 전부 모으고, 하나라도 있으면 `out/codegraph-raw/graph-faults.json` 과
-  `graph-handoff.md` 를 남기고 멈춘다. 그 실행을 `--resume` 하면 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).
+- **Note — `verify-graph` 가 보장하는 것은 "열리고 · 열쇠가 맞고 · 안에서 어긋나지 않고 · 인용한 파일이 저장소 안에 그 줄 수 이상으로 있다" 까지다.**
+  같은 줄의 내용이 바뀐 것은 보지 않는다(2026-11-13 계획 2단계 `source-drift` 가 더한다). `schedule-batches` 는 `graph-verified.json` 의 `codegraph_sha256` 이 지금 지도와 같을 때만 돈다.
+  검사가 실패하면 `out/codegraph-raw/graph-faults.json` 과 `graph-handoff.md` 가 남고, `--resume` 은 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).

@@ -792,7 +792,7 @@ R.write_text(json.dumps(recs, ensure_ascii=False, indent=1) + "\n", encoding="ut
 | 🐞 `{"nodes":[{"x":1}]}` 가 경계를 지나 `survey_plan` 에서 `KeyError` (A1) | V1 이 원소마다 `Node` · `Edge` · `Module` 로 바꿔 본다 | 필수 열쇠 · 형이 빠진 원소를 LLM 앞에서 잡는다 | 결함이 원소마다 하나씩, 전부(A3) | ✅ |
 | 🐞 판 1 · 빈 지도가 통과한다 (A2) | `schema-version` · `empty-graph` | 심볼 0개 계획이 성공하지 않는다 | 둘 다 결함 | ✅ |
 | 🐞 지도 안의 어긋남을 보는 곳이 없다 | V2 아홉 규칙 | 4~6단계에서 정제를 고칠 때 깨짐을 바로 안다 | 이 저장소 지도 0건 | ✅ |
-| 🐞 소스 위치를 안 본다 (A4) | V3 — 저장소 안 · 있음 · 줄 범위 | 낡은 지도가 LLM 에 가지 않는다 | 낡은 지도 78건 · `b85127b` 뒤 새 지도 0건 | ✅ |
+| 🐞 소스 위치를 안 본다 (A4) | V3 — 저장소 안 · 있음 · 줄 범위 | 지운 파일을 인용하거나 줄 수를 넘는 지도가 LLM 에 가지 않는다(같은 줄의 내용 변경은 보지 않는다 — 2026-11-13 계획 2단계가 source-drift 를 더한다) | 낡은 지도 78건 · `b85127b` 뒤 새 지도 0건 | ✅ |
 | 🐞 통과 기록을 재사용할 자리가 없다 (A5) | 통과하면 `graph-verified.json`(지도 sha256), `schedule-batches` 가 대조 | 검사 뒤 지도가 바뀌면 배치를 짜지 않는다 | sha 다르면 FAIL | ✅ |
 | 🐞 `--resume` 이 실패한 단계를 그대로 다시 돈다 (F1) | `RESTART_AT = {"verify-graph": "collect-graph"}` | 고친 수집기 · 정제가 지도에 들어간 뒤 검사한다 | 재개가 `collect-graph` 부터 | ✅ |
 
@@ -1775,6 +1775,8 @@ def _fake_verified(ctx: X.Mode1Context) -> None:
 - [ ] **Step 5: 끝** — 모두 통과하면 상태 표의 1 · 2단계를 ✅ 로 바꾸고, `origin main` 에 푸시할지 사용자에게 묻는다. 남은 실패는 고치지 못한 채로 그 증상과 이분 탐색 결과를 보고한다
 
 ---
+
+> ⚠ **superseded 2026-11-13** — `2026-11-13-codegraph-facts-generation-plan.md`(검토의 순서 0~6)로 대체됐다. 진입 결정의 이력으로만 남긴다.
 
 # 3~6단계 — 개요 (각 단계는 입구 결정이 나면 상세 계획을 따로 쓴다)
 

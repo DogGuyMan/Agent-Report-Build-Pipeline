@@ -4,7 +4,7 @@
 > 📄 근거: `public.handoff/2026-11-05-codegraph-verify-unify-resume-handoff.md`(이하 핸드오프) §2 B · C · G · §5.4 · §6 · §7, `public.handoff/2026-11-05-codegraph-verify-unify-plan.md`(1 · 2단계 계획). 이 세션에서 읽은 코드: `normalize.py:350-470,519-562,640-760,828-1062,1186-1262` · `prep.py:1-60,142-147,282-292` · `mode1/graph.py:18-151` · `edges.py:16-55` · `verify_graph.py:24-301` · `survey_plan.py:36-50` · `codegraph_types.py:1-20` · `qa/gates/test_prompt_resources.py:120-141`
 > 🔒 지킬 규칙: 검사를 완화해 통과시키지 않는다 · `codegraph.json` 의 **열쇠 꼴**은 그대로(내용은 바뀐다 — 아래 🗘) · `codegraph_types.py` 는 **문구만** 바뀌고 아래 diff 를 먼저 보였다 · 코드 주석은 현 상황만 · 긴 글은 `resource/` · 커밋 · 푸시는 사용자 요청 때만
 > 🧪 검증: 1 · 2단계와 같은 규칙 — **Task 마다 구현 → 커밋, 시험은 끝에 한 번, 실패하면 `git bisect run` 으로 이분 탐색**(👍 2026-11-05)
-> ✋ 승인: **승인 전** — 사용자 요청으로 검토용으로 먼저 올렸다(2026-11-09). 영어 정본은 `public.handoff/2026-11-08-codegraph-stage3-design.md`, 이 파일은 번역본이다. 승인되면 `writing-plans` 로 Task 단위 계획을 쓴다
+> ✋ 승인: **승인 전** — 사용자 요청으로 검토용으로 먼저 올렸다(2026-11-09). 영어 정본은 `public.handoff/2026-11-08-codegraph-stage3-design.md`, 이 파일은 번역본이다. 승인되면 `writing-plans` 로 Task 단위 계획을 쓴다. **2026-11-13:** `2026-11-13-codegraph-facts-generation-plan.md`(3단계, Task 13~24)에 흡수됐다 — 11-13 교차 점검의 Q2' · Q3' 는 그 계획의 Decided 표가 답했다(검토 순서 채택 · S1~S6 유지). S1~S6 은 거기서 유효하다. 이 문서는 Python 해소 규칙(S3 · S5)과 버림 등급표의 근거로 남는다.
 
 ---
 
