@@ -304,6 +304,12 @@ CODEGRAPH = P.Artifact[Mode1Context](
     "codegraph.json", lambda c: os.path.join(raw_dir(c), "codegraph.json"))
 COLLECT_FINGERPRINT = P.Artifact[Mode1Context](
     "collect-fingerprint.json", lambda c: os.path.join(raw_dir(c), "collect-fingerprint.json"))
+NORMALIZE_REPORT = P.Artifact[Mode1Context](
+    "normalize-report.json", lambda c: os.path.join(raw_dir(c), "normalize-report.json"))
+SOURCE_INVENTORY = P.Artifact[Mode1Context](
+    "source-inventory.json", lambda c: os.path.join(raw_dir(c), "source-inventory.json"))
+COLLECT_FAILURE = P.Artifact[Mode1Context](
+    "collect-failure.json", lambda c: os.path.join(raw_dir(c), "collect-failure.json"))
 # 꼴은 verify-graph 가 본다 — 경계가 먼저 막으면 깨진 JSON 이 결함 파일 없이 죽는다.
 GRAPH_VERIFIED = P.Artifact[Mode1Context](
     "graph-verified.json", lambda c: os.path.join(raw_dir(c), "graph-verified.json"), GraphVerifiedDoc)
@@ -341,7 +347,8 @@ WIKI_STATE = P.Artifact[Mode1Context](
     "wiki-state.json", lambda c: os.path.join(raw_dir(c), "wiki-state.json"))
 
 ARTIFACTS = [LANG_SELECT, CODEGRAPH, GRAPH_VERIFIED, SNAPSHOT, CHANGES, BATCHES, FILE_PRIORITY, UNRESOLVED, DROPPED,
-             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE, COLLECT_FINGERPRINT]
+             RECORD_SCHEMA, READING, TERMS_DB, OUTLINE, WIKI_DIR, RESUME, MANIFEST, WIKI_STATE, COLLECT_FINGERPRINT,
+             NORMALIZE_REPORT, SOURCE_INVENTORY, COLLECT_FAILURE]
 
 
 def snapshot_path(c: Mode1Context) -> str:

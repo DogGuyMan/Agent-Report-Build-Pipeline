@@ -2109,11 +2109,21 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
             "repo_commit": None, "edges": [], "modules": [{"id": "a", "depends_on": []}],
             "nodes": [{"id": "C1", "name": "a.f", "kind": "function", "module": "a", "file": "a.py", "line": 1}]}
     (raw / "codegraph.json").write_text(json.dumps(good), encoding="utf-8")
-    manifest = CM.build_manifest("fp", {}, X.CODEGRAPH.locate(ctx), ctx.repo, "griffe+pycalls")
+    ledger = {"codegraph_sha256": hashlib.sha256((raw / "codegraph.json").read_bytes()).hexdigest(),
+              "language": "python", "source_tool": "t", "reasons": []}
+    Path(X.NORMALIZE_REPORT.locate(ctx)).write_text(json.dumps(ledger), encoding="utf-8")
+    inventory = Path(X.SOURCE_INVENTORY.locate(ctx))
+    inventory.write_text(json.dumps({"selected": "py", "files": {"a.py": {"language": "py", "status": "collected"}},
+                                     "languages": {"py": {"files": 1, "collector": "griffe+pycalls", "collected": True}}}),
+                         encoding="utf-8")
+    manifest = CM.build_manifest("fp", {}, X.CODEGRAPH.locate(ctx), ctx.repo, "griffe+pycalls",
+                                 inventory_sha256=CM.file_sha256(str(inventory)) or "")
     Path(X.COLLECT_FINGERPRINT.locate(ctx)).write_text(json.dumps(manifest), encoding="utf-8")
     assert st.perform(ctx).kind == P.OK
     assert not handoff.exists() and not Path(X.GRAPH_FAULTS.locate(ctx)).exists()
     assert Path(X.GRAPH_VERIFIED.locate(ctx)).exists()
+    Path(X.NORMALIZE_REPORT.locate(ctx)).unlink()            # 단계는 장부 · inventory · 실패 기록의 자리를 검사기에 넘긴다
+    assert st.perform(ctx).kind == P.FAIL and "report-stale" in handoff.read_text(encoding="utf-8")
 
 
 def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() -> None:

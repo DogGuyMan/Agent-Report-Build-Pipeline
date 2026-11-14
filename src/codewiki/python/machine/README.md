@@ -26,7 +26,7 @@
 | [`survey_plan.py`](survey_plan.py) | 전수조사 배치 계획. |
 | [`terms_db.py`](terms_db.py) | 코드베이스 용어 전수 수집. |
 | [`verify_citations.py`](verify_citations.py) | 문서의 file:line 인용을 기계로 판정한다 (L1/L2/L3). |
-| [`verify_graph.py`](verify_graph.py) | codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다. |
+| [`verify_graph.py`](verify_graph.py) | codegraph.json 과 수집이 남긴 기록(버림 장부 · 소스 inventory · 실패 기록)을 층별로 검사해 결함을 전부 모은다. |
 | [`warmup.py`](warmup.py) | 전수조사를 매번 전량 다시 하지 않게 하는 파일별 캐시와 무효화. |
 
 ---
@@ -412,7 +412,7 @@ git 이 추적하는 소스 파일을 언어별로 세고 파일마다 수집 �
 
 ## `verify_graph.py`
 
-codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다.
+codegraph.json 과 수집이 남긴 기록(버림 장부 · 소스 inventory · 실패 기록)을 층별로 검사해 결함을 전부 모은다.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
@@ -437,7 +437,13 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | `capabilities_of` | `(language: str \| None) -> Capabilities` | 언어(수집기)별로 지도가 주장할 수 있는 것. |
 | `section` | `(faults: list[Fault], name: str) -> SectionDoc` | 결함 중 이 절에 속한 것의 수와 코드별 수. |
 | `fit_of` | `(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit` | 전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)과 수집 manifest 와 맞지 않는 기록은 맞지 않는다. |
-| `verify` | `(path: str, repo: str \| None, manifest: str \| None = None) -> VerifyDoc` | 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
+| **`FailureDoc`** | *class* | `collect-failure.json` — prep 의 한 단계가 죽었다. |
+| `_load` | `(path: str \| None, t: type[T]) -> T \| str \| None` | 없으면 `None`, 못 읽으면 이유 문자열, 읽히면 문서. |
+| `_blank_coverage` | `(sec: SectionDoc) -> CoverageDoc` | inventory 를 보지 못한 범위 절 — 수는 모두 0 이다. |
+| `check_coverage` | `(sha: str, language: str \| None, manifest: CollectManifest \| None, report: str \| None, inventory: str \| None, failure: str \| None) -> tuple[list[Fault], CoverageDoc, list[str]]` | 범위 — 수집이 죽지 않았고, 장부가 이 지도의 것이며 정보 손실 · 결함 사유가 없고, inventory 가 수집 범위를 말하는가. |
+| `verify_empty` | `(faults: list[Fault]) -> VerifyDoc` | 지도 없이 낸 결과 문서 — 검사를 하나도 돌리지 않았고 전수조사에 맞지 않는다. |
+| `failure_doc` | `(failure: FailureDoc) -> VerifyDoc` | 수집이 죽어 지도가 없을 때 collect-graph 가 쓰는 결함 문서 — 꼴은 검사기와 같다. |
+| `verify` | `(path: str, repo: str \| None, manifest: str \| None = None, report: str \| None = None, inventory: str \| None = None, failure: str \| None = None) -> VerifyDoc` | 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
 | `_replace` | `(keep: str, drop: str, doc: VerifyDoc) -> None` | 다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` | `verify` 를 돌려 결과 파일 하나를 쓰고 다른 하나를 지운다. 통과면 0, 결함이면 1. |
 

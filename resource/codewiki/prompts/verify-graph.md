@@ -26,6 +26,10 @@
 - **V2 module-dep-mismatch** — `_assemble` 의 모듈 의존 유도(normalize.py)와 지도의 `depends_on` 이 다르다.
 - **V3 근거** — 노드 · 간선의 `file:line` 이 지금 저장소와 맞지 않는다. 지도가 낡았으면 다시 수집하면 사라진다.
 - **최신성 source-drift / generation-mismatch / freshness-unknown** — 지도를 만든 뒤 소스가 바뀌었거나, manifest 가 다른 지도의 것이거나, prep 밖에서 만든 지도다. 다시 수집하면 사라진다 — 검사를 완화하지 않는다.
+- **V4 장부 unknown-kind / unresolved-drop / report-stale** — normalize.py 의 DROP_CLASS 와 표본을 본다. 정제를 고쳐 사유를 없앤다 — 표의 등급을 바꿔 통과시키지 않는다.
+- **범위 language-not-collected / coverage-gap** — 막지 않는다. 지도가 말하지 않는 파일 · 언어다. 전수조사 결과에 그 범위를 적는다.
+- **범위 inventory-stale** — inventory 가 없거나 이번 수집의 것이 아니다. 다시 수집하면 사라진다.
+- **수집 collect-failed** — collect-failure.json 의 단계 · stderr 꼬리를 본다.
 
 ## 보강 후보
 

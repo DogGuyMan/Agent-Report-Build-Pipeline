@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""verify_graph.py — codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다.
+"""verify_graph.py — codegraph.json 과 수집이 남긴 기록(버림 장부 · 소스 inventory · 실패 기록)을 층별로 검사해 결함을 전부 모은다.
 
-    python3 verify_graph.py <codegraph.json> --faults <graph-faults.json> --passed <graph-verified.json> [--repo <저장소>] [--manifest <collect-fingerprint.json>]
+    python3 verify_graph.py <codegraph.json> --faults <graph-faults.json> --passed <graph-verified.json> [--repo <저장소>] [--manifest <collect-fingerprint.json>] [--report <normalize-report.json>] [--inventory <source-inventory.json>] [--failure <collect-failure.json>]
 
 결함이 없으면 `--faults` 를 지우고 `--passed` 를 쓴다(종료 0). 결함이 있으면 `--passed` 를 지우고 `--faults` 를 쓴다(종료 1).
 `--repo` 가 없으면 근거 층(V3)과 manifest 대조를 건너뛴다. `--manifest` 가 없거나 못 읽으면 최신성을 알 수 없다는 결함이다.
-시각을 적지 않아 같은 입력이면 같은 바이트다.
+`--report` · `--inventory` 는 지도를 읽었을 때만 보고, 주었는데 없거나 못 읽으면 결함이다. `--failure` 는 그 파일이 있을 때만 결함이다.
+`REPORT_ONLY` 코드는 기록에만 남고 통과를 막지 않는다. 시각을 적지 않아 같은 입력이면 같은 바이트다.
 """
 import argparse
 import hashlib
@@ -15,13 +16,15 @@ import sys
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, TypedDict, cast, get_type_hints
+from typing import Literal, TypedDict, TypeVar, cast, get_type_hints
 
 import msgspec
 
 from codegraph_types import CodeGraph, Edge, Module, Node
-from collect_manifest import CollectManifest, sources_digest
+from collect_manifest import CollectManifest, file_sha256, sources_digest
 from jsonio import write_json_atomic
+from normalize import ReportDoc
+from source_inventory import InventoryDoc
 
 # 결함 코드 -> 층. 표와 코드가 1대1이다(test_verify_graph.py 가 고정한다).
 LAYER: dict[str, str] = {
@@ -35,6 +38,9 @@ LAYER: dict[str, str] = {
     "module-dep-mismatch": "V2 정합",
     "file-outside-repo": "V3 근거", "file-missing": "V3 근거", "line-out-of-range": "V3 근거",
     "freshness-unknown": "V3 근거", "generation-mismatch": "V3 근거", "source-drift": "V3 근거",
+    "collect-failed": "수집",
+    "report-stale": "V4 장부", "unknown-kind": "V4 장부", "unresolved-drop": "V4 장부",
+    "inventory-stale": "범위", "language-not-collected": "범위", "coverage-gap": "범위",
 }
 # 노드의 kind. runner 의 RecordKind 안에 있어야 한다(test_mode1.py 가 대조한다).
 NODE_KINDS = frozenset({"function", "method", "class", "struct", "enum", "interface", "delegate", "record", "external"})
@@ -53,9 +59,10 @@ class Fault(TypedDict):
 
 # 층 -> 결과 문서의 절.
 SECTION_OF_LAYER: dict[str, str] = {"V0 읽기": "integrity", "V1 꼴": "integrity", "V2 정합": "integrity",
-                                    "V3 근거": "freshness"}
-# 기록에만 남고 통과를 막지 않는 코드.
-REPORT_ONLY: frozenset[str] = frozenset()
+                                    "V3 근거": "freshness",
+                                    "수집": "coverage", "V4 장부": "coverage", "범위": "coverage"}
+# 기록에만 남고 통과를 막지 않는 코드 — 지도가 말하지 않는 언어 · 파일이다.
+REPORT_ONLY: frozenset[str] = frozenset({"language-not-collected", "coverage-gap"})
 
 
 class SectionDoc(TypedDict):
@@ -385,10 +392,122 @@ def fit_of(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking
     return {"survey": "ready" if status == "passed" and not why else "blocked", "blocked_by": why}
 
 
-def verify(path: str, repo: str | None, manifest: str | None = None) -> VerifyDoc:
+class FailureDoc(TypedDict):
+    """`collect-failure.json` — prep 의 한 단계가 죽었다."""
+    status: Literal["failed"]
+    step: str
+    argv: list[str]
+    returncode: int
+    stderr_tail: list[str]
+
+
+T = TypeVar("T")
+
+
+def _load(path: str | None, t: type[T]) -> T | str | None:
+    """없으면 `None`, 못 읽으면 이유 문자열, 읽히면 문서."""
+    if path is None or not os.path.exists(path):
+        return None
+    try:
+        with open(path, "rb") as f:
+            return msgspec.json.decode(f.read(), type=t)
+    except (OSError, msgspec.DecodeError) as e:
+        return str(e)
+
+
+def _blank_coverage(sec: SectionDoc) -> CoverageDoc:
+    """inventory 를 보지 못한 범위 절 — 수는 모두 0 이다."""
+    return {"faults": sec["faults"], "counts": sec["counts"], "inventory": "missing", "files_total": 0, "collected": 0,
+            "excluded": 0, "unsupported": 0, "failed": 0, "no_symbols": 0, "languages_not_collected": []}
+
+
+def check_coverage(sha: str, language: str | None, manifest: CollectManifest | None, report: str | None,
+                   inventory: str | None, failure: str | None) -> tuple[list[Fault], CoverageDoc, list[str]]:
+    """범위 — 수집이 죽지 않았고, 장부가 이 지도의 것이며 정보 손실 · 결함 사유가 없고, inventory 가 수집 범위를 말하는가.
+
+    결함 · 범위 절 문서 · 돌린 검사 이름을 낸다. `report` · `inventory` 는 경로를 받았을 때만 보고 그 파일이 없으면 결함이다.
+    `failure` 는 그 파일이 있을 때만 결함이다.
+    """
+    out: list[Fault] = []
+    ran: list[str] = []
+    died = _load(failure, FailureDoc)
+    if isinstance(died, str):
+        out.append(fault("collect-failed", "$", "수집 실패 기록을 읽을 수 없다: %s" % died))
+    elif died is not None:
+        out.append(fault("collect-failed", "$", "%s 가 종료 코드 %d 로 죽었다: %s"
+                         % (died["step"], died["returncode"], (died["stderr_tail"] or ["(stderr 없음)"])[-1])))
+    if report is not None:
+        ran.append("V4")
+        ledger = _load(report, ReportDoc)
+        if ledger is None or isinstance(ledger, str):
+            out.append(fault("report-stale", "$", "장부가 없거나 읽을 수 없다: %s" % (ledger or report)))
+        elif ledger["codegraph_sha256"] != sha or ledger["language"] != language:
+            out.append(fault("report-stale", "$", "장부는 다른 지도(%s…)의 것이다" % ledger["codegraph_sha256"][:12]))
+        else:
+            for row in ledger["reasons"]:
+                at = "$.reasons[%r]" % row["reason"]
+                if row["class"] == "fault":
+                    out.append(fault("unknown-kind", at, "%d건 — 표본 %s" % (row["count"], row["samples"])))
+                elif row["class"] == "unresolved":
+                    out.append(fault("unresolved-drop", at, "%d건 — 표본 %s" % (row["count"], row["samples"])))
+    seen: InventoryDoc | None = None
+    uncollected: list[str] = []
+    if inventory is not None:
+        ran.append("coverage")
+        listed = _load(inventory, InventoryDoc)
+        if listed is None or isinstance(listed, str):
+            out.append(fault("inventory-stale", "$", "inventory 가 없거나 읽을 수 없다: %s" % (listed or inventory)))
+        elif manifest is not None and manifest["inventory_sha256"] != file_sha256(inventory):
+            out.append(fault("inventory-stale", "$", "inventory 가 manifest 의 것이 아니다"))
+        else:
+            seen = listed
+            uncollected = sorted(lang for lang, row in listed["languages"].items() if not row["collected"])
+            for lang in uncollected:
+                info = listed["languages"][lang]
+                out.append(fault("language-not-collected", "$.languages[%r]" % lang,
+                                 "%d개 파일 — 수집기 %s" % (info["files"], info["collector"])))
+            for rel in sorted(listed["files"]):
+                if listed["files"][rel]["status"] == "no-symbols":
+                    out.append(fault("coverage-gap", "$.files[%r]" % rel, "고른 언어의 파일인데 지도가 인용하지 않는다"))
+    doc = _blank_coverage(section(out, "coverage"))
+    if seen is not None:
+        by: Counter[str] = Counter(e["status"] for e in seen["files"].values())
+        doc["inventory"] = "ok"
+        doc["files_total"] = len(seen["files"])
+        doc["collected"] = by["collected"]
+        doc["excluded"] = by["excluded"]
+        doc["unsupported"] = by["unsupported"]
+        doc["failed"] = by["failed"]
+        doc["no_symbols"] = by["no-symbols"]
+        doc["languages_not_collected"] = uncollected
+    return out, doc, ran
+
+
+def verify_empty(faults: list[Fault]) -> VerifyDoc:
+    """지도 없이 낸 결과 문서 — 검사를 하나도 돌리지 않았고 전수조사에 맞지 않는다."""
+    fresh = section(faults, "freshness")
+    return {"status": "failed", "generation_id": None, "codegraph_sha256": None, "language": None, "source_tool": None,
+            "repo_commit": None, "nodes": 0, "edges": 0, "modules": 0, "checks_run": [],
+            "integrity": section(faults, "integrity"),
+            "freshness": {"faults": fresh["faults"], "counts": fresh["counts"], "manifest": "missing",
+                          "sources_sha256": None, "raw_provenance": "unknown"},
+            "coverage": _blank_coverage(section(faults, "coverage")),
+            "capabilities": capabilities_of(None),
+            "fit": {"survey": "blocked", "blocked_by": sorted({f["code"] for f in faults})},
+            "total": len(faults), "faults": faults}
+
+
+def failure_doc(failure: FailureDoc) -> VerifyDoc:
+    """수집이 죽어 지도가 없을 때 collect-graph 가 쓰는 결함 문서 — 꼴은 검사기와 같다."""
+    return verify_empty([fault("collect-failed", "$", "%s 가 종료 코드 %d 로 죽었다" % (failure["step"], failure["returncode"]))])
+
+
+def verify(path: str, repo: str | None, manifest: str | None = None, report: str | None = None,
+           inventory: str | None = None, failure: str | None = None) -> VerifyDoc:
     """층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다.
 
     `repo` 가 있으면 근거 층 뒤에 수집 manifest 를 대조한다. `repo` 가 없으면 manifest 는 보지 않는다.
+    그 뒤 범위 절이 수집 실패 기록 · 버림 장부 · 소스 inventory 를 본다. 장부와 inventory 는 지도를 읽었을 때만 본다.
     """
     doc, sha, faults = read_graph(path)
     checks = ["V0"]
@@ -412,16 +531,17 @@ def verify(path: str, repo: str | None, manifest: str | None = None) -> VerifyDo
             faults = faults + drift
             if manifest is not None and os.path.exists(manifest):
                 checks.append("manifest")
+    language = _text(d, "language")
+    covered, coverage, ran = check_coverage(sha, language, found, report if d is not None else None,
+                                            inventory if d is not None else None, failure)
+    faults = faults + covered
+    checks = checks + ran
     blocking = [f for f in faults if f["code"] not in REPORT_ONLY]
     status: Literal["passed", "failed"] = "failed" if blocking or d is None or el is None else "passed"
-    fresh, cover = section(faults, "freshness"), section(faults, "coverage")
+    fresh = section(faults, "freshness")
     freshness: FreshnessDoc = {"faults": fresh["faults"], "counts": fresh["counts"], "manifest": state,
                                "sources_sha256": sources_digest(now) if now else None,
                                "raw_provenance": found["raw_provenance"] if found else "unknown"}
-    coverage: CoverageDoc = {"faults": cover["faults"], "counts": cover["counts"], "inventory": "missing",
-                             "files_total": 0, "collected": 0, "excluded": 0, "unsupported": 0, "failed": 0,
-                             "no_symbols": 0, "languages_not_collected": []}
-    language = _text(d, "language")
     return {"status": status, "generation_id": found["generation_id"] if found and state == "ok" else None,
             "codegraph_sha256": sha or None,
             "language": language, "source_tool": _text(d, "source_tool"), "repo_commit": _text(d, "repo_commit"),
@@ -445,10 +565,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("codegraph", help="검사할 codegraph.json")
     ap.add_argument("--repo", default=None, help="근거 층(V3)의 기준 저장소. 없으면 V3 와 manifest 대조를 건너뛴다")
     ap.add_argument("--manifest", default=None, help="prep 이 쓴 collect-fingerprint.json. 없으면 freshness-unknown")
+    ap.add_argument("--report", default=None, help="정제가 쓴 버림 장부 normalize-report.json. 주었는데 없으면 report-stale")
+    ap.add_argument("--inventory", default=None, help="prep 이 쓴 source-inventory.json. 주었는데 없으면 inventory-stale")
+    ap.add_argument("--failure", default=None, help="prep 이 죽으며 남긴 collect-failure.json. 있으면 collect-failed")
     ap.add_argument("--faults", required=True, help="결함이 있으면 쓰는 graph-faults.json")
     ap.add_argument("--passed", required=True, help="통과하면 쓰는 graph-verified.json")
     a = ap.parse_args(argv)
-    got = verify(a.codegraph, a.repo, a.manifest)
+    got = verify(a.codegraph, a.repo, a.manifest, a.report, a.inventory, a.failure)
     if got["status"] == "passed":
         _replace(a.passed, a.faults, got)
         print("%s — 통과 · 노드 %d · 간선 %d · 모듈 %d" % (a.passed, got["nodes"], got["edges"], got["modules"]))
