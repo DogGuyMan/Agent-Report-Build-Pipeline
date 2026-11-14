@@ -18,12 +18,45 @@ from mode1.machine_stage import Mode1Machine
 from mode1.measured import Measured
 
 
-class CollectGraphStage(Mode1Machine):
-    """정적 수집 → 코드 지도. 전량이면 `--force`, 증분이면 `--diff changes.json`."""
+class GraphFaultReport(P.PromptResource):
+    """결함 문서를 쓰고 핸드오프를 렌더하는 믹스인. `collect-graph` · `verify-graph` 가 쓴다. 템플릿 이름은 단계 이름이다."""
+    prompt_dir = X.PROMPT_DIR
+    EXAMPLES = 5
+    name: str
+
+    def write_faults(self, ctx: Mode1Context, doc: verify_graph.VerifyDoc) -> str:
+        """결함 문서를 쓰고 성공 기록을 지운다 — 두 파일이 함께 남지 않는다."""
+        verified = X.GRAPH_VERIFIED.locate(ctx)
+        if os.path.exists(verified):
+            os.remove(verified)
+        path = X.GRAPH_FAULTS.locate(ctx)
+        jsonio.write_json_atomic(path, doc, indent=1, trailing_newline=True)
+        return path
+
+    def write_handoff(self, ctx: Mode1Context, doc: verify_graph.VerifyDoc, **extra: object) -> str:
+        """코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지. 절 이름도 함께 — 어디를 볼지 말한다. `extra` 는 단계 템플릿이 더 받는 값이다."""
+        counts = Counter(f["code"] for f in doc["faults"])
+        groups: list[dict[str, object]] = []
+        for code, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+            layer = verify_graph.LAYER[code]
+            groups.append({"code": code, "layer": layer, "section": verify_graph.SECTION_OF_LAYER[layer], "count": n,
+                           "examples": [f for f in doc["faults"] if f["code"] == code][:self.EXAMPLES]})
+        text = self.load_prompt(self.name, repo=ctx.repo, total=doc["total"], groups=groups,
+                                checks_run=" · ".join(doc["checks_run"]) or "없음", fit=doc["fit"]["survey"], **extra)
+        path = X.GRAPH_HANDOFF.locate(ctx)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return path
+
+
+class CollectGraphStage(GraphFaultReport, Mode1Machine):
+    """정적 수집 → 코드 지도. 전량이면 `--force`, 증분이면 `--diff changes.json`. 수집 · 정제만 한다(`--collect-only`).
+    prep 이 죽으며 남긴 `collect-failure.json` 은 결함 문서와 핸드오프로 옮겨 멈춘다."""
     name = "collect-graph"
+    prompt_names = ("collect-graph",)
 
     def argv(self, ctx: Mode1Context) -> list[str]:
-        argv = self.wiki_argv(sys.executable, ctx.root, "prep.py", ctx.repo)
+        argv = self.wiki_argv(sys.executable, ctx.root, "prep.py", ctx.repo) + ["--collect-only"]
         if ctx.cold:
             argv.append("--force")
         else:
@@ -36,13 +69,31 @@ class CollectGraphStage(Mode1Machine):
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.CODEGRAPH, X.COLLECT_FINGERPRINT, X.NORMALIZE_REPORT, X.SOURCE_INVENTORY]
 
+    def perform(self, ctx: Mode1Context) -> P.Outcome:
+        out = super().perform(ctx)
+        handoff = X.GRAPH_HANDOFF.locate(ctx)
+        if out.kind == P.OK:
+            if os.path.exists(handoff):
+                os.remove(handoff)
+            return out
+        failure_path = X.COLLECT_FAILURE.locate(ctx)
+        if not os.path.exists(failure_path):
+            return out                         # prep 이 기록을 남기지 못하고 죽었다 — 종료 코드가 이유다
+        failure = P.load(failure_path, verify_graph.FailureDoc)
+        doc = verify_graph.failure_doc(failure)
+        self.write_faults(ctx, doc)
+        handoff = self.write_handoff(ctx, doc, step=failure["step"], returncode=failure["returncode"],
+                                     stderr_tail=failure["stderr_tail"])
+        why = "수집 실패 — %s (종료 %d) — %s" % (failure["step"], failure["returncode"], handoff)
+        for row in out.rows:
+            row["why"] = why
+        return P.Outcome(P.FAIL, why, out.rows)
 
-class VerifyGraphStage(P.PromptResource, Mode1Machine):
+
+class VerifyGraphStage(GraphFaultReport, Mode1Machine):
     """코드 지도를 LLM 단계 앞에서 검사한다. 결함이 있으면 결함 JSON 옆에 핸드오프를 남기고 멈춘다."""
     name = "verify-graph"
-    prompt_dir = X.PROMPT_DIR
     prompt_names = ("verify-graph",)
-    EXAMPLES = 5
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         return [sys.executable, os.path.join(ctx.root, "src", "codewiki", "python", "machine", "verify_graph.py"),
@@ -57,20 +108,6 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
         return [X.GRAPH_VERIFIED]
 
-    @classmethod
-    def handoff_text(cls, repo: str, codegraph: str, doc: verify_graph.VerifyDoc) -> str:
-        """결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지."""
-        counts = Counter(f["code"] for f in doc["faults"])
-        groups: list[dict[str, object]] = []
-        for code, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
-            layer = verify_graph.LAYER[code]
-            groups.append({"code": code, "layer": layer, "section": verify_graph.SECTION_OF_LAYER[layer], "count": n,
-                           "examples": [f for f in doc["faults"] if f["code"] == code][:cls.EXAMPLES]})
-        return cls.load_prompt("verify-graph", repo=repo, codegraph=codegraph,
-                               language=doc["language"] or "?", source_tool=doc["source_tool"] or "?",
-                               repo_commit=doc["repo_commit"] or "?", total=doc["total"],
-                               checks_run=" · ".join(doc["checks_run"]), fit=doc["fit"]["survey"], groups=groups)
-
     def perform(self, ctx: Mode1Context) -> P.Outcome:
         out = super().perform(ctx)
         handoff = X.GRAPH_HANDOFF.locate(ctx)
@@ -82,8 +119,8 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
         if not os.path.exists(faults):
             return out                         # 검사기 자체가 죽었다 — 종료 코드가 이유다
         doc = P.load(faults, verify_graph.VerifyDoc)
-        with open(handoff, "w", encoding="utf-8") as f:
-            f.write(self.handoff_text(ctx.repo, X.CODEGRAPH.locate(ctx), doc))
+        handoff = self.write_handoff(ctx, doc, codegraph=X.CODEGRAPH.locate(ctx), language=doc["language"] or "?",
+                                     source_tool=doc["source_tool"] or "?", repo_commit=doc["repo_commit"] or "?")
         why = "코드 지도 결함 %d건 — %s" % (doc["total"], handoff)
         for row in out.rows:
             row["why"] = why

@@ -121,15 +121,18 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| **`CollectGraphStage`** | *class* | 정적 수집 → 코드 지도. 전량이면 `--force`, 증분이면 `--diff changes.json`. |
+| **`GraphFaultReport`** | *class* | 결함 문서를 쓰고 핸드오프를 렌더하는 믹스인. `collect-graph` · `verify-graph` 가 쓴다. 템플릿 이름은 단계 이름이다. |
+| `GraphFaultReport.write_faults` | `(self, ctx: Mode1Context, doc: verify_graph.VerifyDoc) -> str` | 결함 문서를 쓰고 성공 기록을 지운다 — 두 파일이 함께 남지 않는다. |
+| `GraphFaultReport.write_handoff` | `(self, ctx: Mode1Context, doc: verify_graph.VerifyDoc, **extra) -> str` | 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지. 절 이름도 함께 — 어디를 볼지 말한다. `extra` 는 단계 템플릿이 더 받는 값이다. |
+| **`CollectGraphStage`** | *class* | 정적 수집 → 코드 지도. 전량이면 `--force`, 증분이면 `--diff changes.json`. 수집 · 정제만 한다(`--collect-only`). |
 | `CollectGraphStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `CollectGraphStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `CollectGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+| `CollectGraphStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | **`VerifyGraphStage`** | *class* | 코드 지도를 LLM 단계 앞에서 검사한다. 결함이 있으면 결함 JSON 옆에 핸드오프를 남기고 멈춘다. |
 | `VerifyGraphStage.argv` | `(self, ctx: Mode1Context) -> list[str]` |  |
 | `VerifyGraphStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
 | `VerifyGraphStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
-| `VerifyGraphStage.handoff_text` | `(cls, repo: str, codegraph: str, doc: verify_graph.VerifyDoc) -> str` | 결함 문서를 이어받을 핸드오프 글로. 코드별로 묶어 많은 순, 예시는 `EXAMPLES` 개까지. |
 | `VerifyGraphStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | **`VerifiedGraph`** | *class* | 검사를 지난 지도만 읽는 단계의 믹스인. 지도 바이트를 한 번 읽어 성공 기록과 파생물에 대조하고 그 바이트를 돌려준다. |
 | `VerifiedGraph.gate` | `(ctx: Mode1Context, need_batches: bool, need_ranking: bool = False) -> tuple[str, bytes]` | 막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다. |

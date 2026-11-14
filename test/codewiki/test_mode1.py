@@ -217,6 +217,7 @@ def test_prep_은_전량이면_force_증분이면_diff_를_넘긴다(tmp_path: P
     assert "--force" in G.CollectGraphStage().argv(c) and "--diff" not in G.CollectGraphStage().argv(c)
     c.cold = False
     assert "--diff" in G.CollectGraphStage().argv(c) and "--force" not in G.CollectGraphStage().argv(c)
+    assert "--collect-only" in G.CollectGraphStage().argv(c)      # 파생물은 검사 뒤 단계가 만든다
 
 
 def test_terms_argv_는_정적_지도를_위치_인자로_준다():
@@ -2126,7 +2127,7 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
     assert st.perform(ctx).kind == P.FAIL and "report-stale" in handoff.read_text(encoding="utf-8")
 
 
-def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() -> None:
+def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지(tmp_path: Path) -> None:
     faults = [V.fault("dangling-edge", "$.edges[%d]" % i, "d") for i in range(7)] + [V.fault("unreadable", "$", "u")]
     doc: V.VerifyDoc = {
         "status": "failed", "generation_id": None, "codegraph_sha256": None, "language": "python", "source_tool": "t",
@@ -2139,10 +2140,60 @@ def test_핸드오프는_코드별로_많은_순이고_예시는_다섯까지() 
         "capabilities": {"methods": True, "calls": True, "resolution": "heuristic"},
         "fit": {"survey": "blocked", "blocked_by": ["dangling-edge", "unreadable"]},
         "total": 8, "faults": faults}
-    text = G.VerifyGraphStage.handoff_text("/r", "/r/out/codegraph-raw/codegraph.json", doc)
+    ctx = _ctx(tmp_path)
+    Path(X.raw_dir(ctx)).mkdir(parents=True)
+    path = G.VerifyGraphStage().write_handoff(ctx, doc, codegraph=X.CODEGRAPH.locate(ctx), language="python", source_tool="t", repo_commit="?")
+    assert path == X.GRAPH_HANDOFF.locate(ctx)
+    text = Path(path).read_text(encoding="utf-8")
     assert text.index("dangling-edge") < text.index("unreadable")
     assert "수행한 검사 V0 · V1 · V2 · 전수조사 적합 blocked" in text and "integrity / V2 정합" in text
     assert "$.edges[4]" in text and "$.edges[5]" not in text
+
+
+def _dies_with_record(self: P.MachineStage[X.Mode1Context], c: X.Mode1Context) -> P.Outcome:
+    """prep 이 griffe 에서 죽으며 실패 기록을 남긴 것처럼 하는 가짜 `perform`."""
+    record = {"status": "failed", "step": "griffe", "argv": ["python", "-m", "griffe", "dump"], "returncode": 3,
+              "stderr_tail": ["Traceback (most recent call last):", "ModuleNotFoundError: 없는 모듈"]}
+    Path(X.COLLECT_FAILURE.locate(c)).write_text(json.dumps(record), encoding="utf-8")
+    return P.Outcome(P.FAIL, "종료 코드 3", [{"stage": self.name, "seconds": 0.0, "usage": M.normalize_usage(None),
+                                             "ok": False, "why": "종료 코드 3"}])
+
+
+def test_수집이_실패_기록을_남기고_죽으면_결함_문서와_핸드오프를_남긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    raw = Path(X.raw_dir(c))
+    raw.mkdir(parents=True)
+    stale = Path(X.GRAPH_VERIFIED.locate(c))
+    stale.write_text("{}", encoding="utf-8")        # 옛 성공 기록 — 수집이 죽으면 남지 않는다
+    monkeypatch.setattr(P.MachineStage, "perform", _dies_with_record)
+    out = G.CollectGraphStage().perform(c)
+    assert out.kind == P.FAIL and out.why.startswith("수집 실패 — griffe (종료 3)")
+    assert [r["why"] for r in out.rows] == [out.why]
+    faults = json.loads(Path(X.GRAPH_FAULTS.locate(c)).read_text(encoding="utf-8"))
+    assert [f["code"] for f in faults["faults"]] == ["collect-failed"] and faults["fit"]["survey"] == "blocked"
+    text = Path(X.GRAPH_HANDOFF.locate(c)).read_text(encoding="utf-8")
+    assert "죽은 단계 `griffe` · 종료 코드 3" in text and "ModuleNotFoundError: 없는 모듈" in text and "`collect-failed`" in text
+    assert not stale.exists()
+
+
+def test_수집이_실패_기록_없이_죽으면_종료_코드만_남기고_성공하면_옛_핸드오프를_지운다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path)
+    Path(X.raw_dir(c)).mkdir(parents=True)
+
+    def dies(self: P.MachineStage[X.Mode1Context], ctx: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.FAIL, "종료 코드 1", [])
+
+    def lives(self: P.MachineStage[X.Mode1Context], ctx: X.Mode1Context) -> P.Outcome:
+        return P.Outcome(P.OK, "", [])
+    monkeypatch.setattr(P.MachineStage, "perform", dies)
+    out = G.CollectGraphStage().perform(c)
+    assert out.kind == P.FAIL and out.why == "종료 코드 1"
+    assert not Path(X.GRAPH_FAULTS.locate(c)).exists() and not Path(X.GRAPH_HANDOFF.locate(c)).exists()
+    Path(X.GRAPH_HANDOFF.locate(c)).write_text("옛 핸드오프", encoding="utf-8")
+    monkeypatch.setattr(P.MachineStage, "perform", lives)
+    assert G.CollectGraphStage().perform(c).kind == P.OK
+    assert not Path(X.GRAPH_HANDOFF.locate(c)).exists()
 
 
 def _map_at(c: X.Mode1Context, body: bytes) -> Path:
