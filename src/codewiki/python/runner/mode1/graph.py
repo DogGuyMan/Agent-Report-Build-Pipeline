@@ -178,8 +178,7 @@ class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
         why, raw = self.gate(ctx, need_batches=False)
         if why:
             return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
-        # 기계축 선언(`CodeGraph`)이 실물과 어긋나 최상위만 검증하고 넘길 때 `cast` 한다.
-        cg = cast(survey_plan.CodeGraph, msgspec.json.decode(raw, type=X.CodeGraphDoc))
+        cg = msgspec.json.decode(raw, type=survey_plan.CodeGraph)
         only = None if ctx.cold else ctx.targets
         if ctx.strategy == "file":
             ctx.plan = survey_plan.plan_by_file(cg)

@@ -6,6 +6,7 @@ import os
 import sys
 from typing import cast
 
+import msgspec
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -246,3 +247,11 @@ def test_가중치_csv_는_원값과_가중치를_함께_적는다():
     lines = text.splitlines()
     assert lines[0] == "file,out,into,interfaces,abstracts,weight"
     assert lines[1].startswith("b.py,0,1,0,0,") and lines[2].startswith("a.py,1,0,0,0,")
+
+
+def test_자기_지도_스냅샷은_계획기의_형으로_엄격하게_읽힌다():
+    """`file` · `line` 이 `null` 인 외부 노드가 있어도 형이 맞는다 — 러너가 `cast` 없이 읽는다."""
+    with open(os.path.join(ROOT, "test", "codewiki", "fixtures", "codegraph-self.json"), encoding="utf-8") as f:
+        raw = json.load(f)
+    got = msgspec.convert(raw, CodeGraph)
+    assert any(n.get("file") is None for n in got["nodes"])

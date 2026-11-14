@@ -28,7 +28,7 @@
 |---|---|
 | `normalize.py` | 수집기 출력을 코드 지도(`codegraph.json`)로 정규화. **C++ · C# · Python 세 경로가 한 파일에 있다** |
 | `pycalls.py` | 파이썬 소스에서 심볼과 **호출 관계**를 뽑는다(`ast` 만 씀). griffe 가 못 내는 것을 채운다 |
-| `codegraph_types.py` | `codegraph.json` 계약 한 곳. 생산자와 소비자가 전부 여기를 본다 |
+| `codegraph_types.py` | `codegraph.json` 계약 한 곳. 생산자와 검사기가 쓴다. 다른 소비자는 축소 형 |
 | `declmap.py` | 소스에서 선언 목록을 훑는다. 언어 넷(`cpp` `cs` `py` `ts`) |
 | `clang_doc.py` | `clang-doc` 의 흩어진 JSON 을 평평한 심볼 목록으로 |
 | `facts.py` | 코드 지도에서 사람이 읽는 사실 표(`facts/*.md`)와 `ranking.json` 을 만든다 |
@@ -322,9 +322,8 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
   같은 폴더가 아니라 파일 머리에서 `sys.path` 에 자기 폴더 · `src/`(`core` · `common` 이 그 아래) · `python/machine/` 을 직접 넣는다.
 - **Gotcha — 증분 그래프의 `--only prep` 은 거부된다.** `collect-graph` 가 `changes.json` 을 읽는다고 선언해서다.
   `--only warmup,prep` 이나 `--only prep --cold` 로 간다. 옛 단계 이름은 `mode1.edges.ALIASES` 로 `--only` · `--skip` 에서 산다.
-- **Gotcha — 기계축 선언이 실물과 어긋난다.** `codegraph.json` 은 `survey_plan.CodeGraph` 로 strict 검증에
-  실패하고(`GraphNode.file` 에 `null`), `warmup.json` 은 `warmup.Manifest` 로 실패한다(`Entry.mtime` 없음).
-  러너는 `CodeGraphDoc`(최상위만)으로 보고 `cast` 로 넘긴다. 지문은 존재만 본다.
+- **Gotcha — 기계축 선언이 실물과 어긋난다.** `warmup.json` 은 `warmup.Manifest` 로 strict 검증에
+  실패한다(`Entry.mtime` 없음). 지문은 존재만 본다.
 - **Note — 자기호스팅 코드 지도에는 시험이 없다.** `report-wiki prep` 은 최상위 `test/` 를 건너뛴다. 시험이
   `test/` 로 모인 2026-10-31 부터 `resource/codewiki/terms-reading.json` 의 시험 기호 레코드(약 600)는 지도에 노드가 없어
   "근거 없음" 으로 나온다 — 실패가 아니다.

@@ -1,8 +1,9 @@
 # codegraph.json(스키마 v2)의 모양을 적어 둔 파일. 실행되는 코드가 없다.
-# 쓰는 것: 없음 · 쓰이는 곳: normalize, facts, survey_plan, verify_citations, render_modules, render_classes
+# 쓰는 것: 없음 · 쓰이는 곳(import): normalize, terms_db, warmup, verify_graph
 """codegraph_types.py — `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳.
 
-생산자(`normalize.py::_assemble`)와 소비자 전부가 여기 하나를 본다.
+생산자(`normalize.py::_assemble`)와 검사기(`verify_graph.py`)가 이 형을 쓴다. survey_plan · facts ·
+render_modules · render_classes · verify_citations 는 읽는 칸만 적은 축소 형을 따로 둔다.
 
 이 파일에 로직을 넣지 마라. 여기는 `src/spec/typescript/src/types.ts` 의 파이썬 짝이다 — 모양만 적는다.
 정책(접기 규칙 R1~R7 · kind 사상)은 `normalize.py` 에만 있다.

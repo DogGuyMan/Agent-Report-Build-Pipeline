@@ -37,8 +37,8 @@ GraphNode = TypedDict("GraphNode", {
     "id": str,
     "name": NotRequired[str],
     "kind": NotRequired[str],
-    "file": NotRequired[str],
-    "line": NotRequired[int],
+    "file": NotRequired[str | None],
+    "line": NotRequired[int | None],
     "abstraction": NotRequired[str],     # 클래스 노드만 — "interface" | "abstract"
 })
 GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str})
