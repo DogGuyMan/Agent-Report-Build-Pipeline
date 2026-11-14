@@ -16,6 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "src", "codewiki", "python", "runner"), os.path.join(ROOT, "src", "codewiki", "python", "machine"),
                 os.path.join(ROOT, "src", "codewiki", "python", "viz")]
 import normalize as N  # noqa: E402
+import pycalls  # noqa: E402
 from clang_doc import Symbol  # noqa: E402
 from codegraph_types import CodeGraph  # noqa: E402
 
@@ -585,26 +586,28 @@ def test_py_resolve_prefers_import_table_then_same_module() -> None:
     griffe 는 식 안의 이름을 짧은 이름으로만 준다. 완전 수식 이름은 모듈의 imports 표로만
     복원할 수 있다.
     """
-    imports = {"Node": "pyfx.base.Node", "json": "json"}
-    fp = {"pyfx.core.Engine", "pyfx.core.Local"}
-    assert N.py_resolve("Node", "pyfx.core", imports, fp) == "pyfx.base.Node"
-    assert N.py_resolve("json.JSONEncoder", "pyfx.core", imports, fp) == "json.JSONEncoder"
-    assert N.py_resolve("Local", "pyfx.core", imports, fp) == "pyfx.core.Local"
-    # import 표에도 없고 같은 모듈 1차도 아니면 손대지 않는다 — 빌트인과 타입변수가 여기다.
-    assert N.py_resolve("list", "pyfx.core", imports, fp) == "list"
-    assert N.py_resolve("T", "pyfx.core", imports, fp) == "T"
+    names = N.py_names({"pyfx.core.Engine", "pyfx.core.Local"}, {}, set(),
+                       {"pyfx.core": {"Node": "pyfx.base.Node", "json": "json"}})
+    st = N.Ledger()
+    assert N.py_resolve("Node", "pyfx.core", names, st) == "pyfx.base.Node"
+    assert N.py_resolve("json.JSONEncoder", "pyfx.core", names, st) == "json.JSONEncoder"
+    assert N.py_resolve("Local", "pyfx.core", names, st) == "pyfx.core.Local"
+    # import 표에도 없고 같은 모듈 1차도 아니면 손대지 않는다 — 빌트인과 선언 없는 이름이 여기다.
+    assert N.py_resolve("list", "pyfx.core", names, st) == "list"
+    assert N.py_resolve("T", "pyfx.core", names, st) == "T"
+    assert sum(st.values()) == 0                    # 꼬리를 맞춘 적도 겹친 적도 없다
 
 
 # 이 절의 식 리터럴은 griffe 의 실제 출력 모양 그대로다.
 PYFX_IMPORTS = {"Node": "pyfx.base.Node", "Optional": "typing.Optional",
                 "json": "json", "abc": "collections.abc", "Generic": "typing.Generic"}
-PYFX_FIRST = {"pyfx.base.Node", "pyfx.core.Engine"}
+PYFX_NAMES = N.py_names({"pyfx.base.Node", "pyfx.core.Engine"}, {}, set(), {"pyfx.core": PYFX_IMPORTS})
 
 
 def _walk(expr: "N.GriffeExpr | None") -> tuple[list[str], N.Ledger]:
     """py_walk_expr 를 픽스처 문맥으로 감싼다. (결과, stats) 를 돌려준다."""
     st = N.Ledger()
-    got = N.py_walk_expr(expr, "pyfx.core", PYFX_IMPORTS, PYFX_FIRST, st)
+    got = N.py_walk_expr(expr, "pyfx.core", PYFX_NAMES, st)
     return got, st
 
 
@@ -685,13 +688,13 @@ def test_py_walk_drops_ellipsis_and_typing_plumbing() -> None:
     assert st2["R7 원시 타입 버림"] == 1
 
 
-def test_py_walk_drops_unresolvable_type_variable() -> None:
-    """투과 컨테이너를 지나 도달한 타입변수 T 는 해소 실패로 죽는다 — 노드가 아니다."""
+def test_py_walk_counts_undeclared_bare_name_as_unresolved() -> None:
+    """투과 컨테이너를 지나 도달한 맨 이름 T 가 타입 변수로 선언된 적이 없으면 해소 실패다 — 노드가 아니다."""
     got, st = _walk({"cls": "ExprSubscript",
                      "left": {"cls": "ExprName", "name": "list"},
                      "slice": {"cls": "ExprName", "name": "T"}})
     assert got == []
-    assert st["해소 실패(빌트인·타입변수)"] == 1
+    assert st["이름 해소 실패"] == 1 and st.samples["이름 해소 실패"] == ["T @ pyfx.core"]
 
 
 def test_py_walk_stops_at_depth_limit() -> None:
@@ -702,6 +705,73 @@ def test_py_walk_stops_at_depth_limit() -> None:
     got, st = _walk(expr)
     assert got == []
     assert st["식 깊이 초과"] >= 1
+
+
+def _name(dotted: str) -> N.GriffeExpr:
+    """점 이름 하나의 식. 마디가 하나면 ExprName, 둘 이상이면 ExprAttribute 다."""
+    parts: list[N.GriffeExpr] = [{"cls": "ExprName", "name": p} for p in dotted.split(".")]
+    return parts[0] if len(parts) == 1 else {"cls": "ExprAttribute", "values": parts}
+
+
+def test_점_경로_꼬리가_하나면_맞추고_둘이면_겹침이다() -> None:
+    """import 표가 준 짧은 점 경로를 꼬리로 갖는 1차 이름이 하나면 그 이름이고, 둘이면 고르지 않는다."""
+    full = "codewiki.python.runner.mode1.context.Mode1Context"
+    imports = {"pkg.stage": {"Mode1Context": "mode1.context.Mode1Context", "X": "mode1.context",
+                             "Enc": "json.JSONEncoder"}}
+    one = N.py_names({full}, {}, set(), imports)
+    st = N.Ledger()
+    assert N.py_walk_expr(_name("Mode1Context"), "pkg.stage", one, st) == [full]
+    assert N.py_walk_expr(_name("X.Mode1Context"), "pkg.stage", one, st) == [full]
+    assert st["1차 이름 꼬리 맞춤"] == 2
+    # 꼬리가 맞는 1차 이름이 없으면 외부 이름 그대로다. 마지막 마디 하나는 꼬리가 아니다.
+    assert N.py_walk_expr(_name("Enc"), "pkg.stage", one, st) == ["json.JSONEncoder"]
+    assert N.py_walk_expr(_name("context.Mode1Context"), "pkg.stage", one, st) == [full]
+    assert N.py_resolve("Mode1Context", "pkg.other", one, st) == "Mode1Context"
+    assert st["1차 이름 꼬리 맞춤"] == 3 and st["1차 이름 꼬리 겹침"] == 0
+
+    two = N.py_names({full, "spec.python.runner.mode1.context.Mode1Context"}, {}, set(), imports)
+    st = N.Ledger()
+    assert N.py_walk_expr(_name("Mode1Context"), "pkg.stage", two, st) == []
+    rows = [(r["reason"], r["class"], r["count"], r["samples"]) for r in st.report()]
+    assert rows == [("1차 이름 꼬리 겹침", "unresolved", 1, ["mode1.context.Mode1Context @ pkg.stage"])]
+    # 완전 수식 이름으로 쓰면 꼬리를 보지 않는다 — 다른 1차 이름의 꼬리이기도 해도 그 이름 자신이다.
+    nested = N.py_names({"mode1.context.Mode1Context", full}, {}, set(), imports)
+    assert N.py_walk_expr(_name("Mode1Context"), "pkg.stage", nested, N.Ledger()) == ["mode1.context.Mode1Context"]
+
+
+def test_타입_변수와_빌트인은_정책이고_나머지는_해소_실패다() -> None:
+    """선언된 타입 변수와 빌트인은 규칙으로 버린다. 점이 없는데 어디에도 없는 이름과 문자열 리터럴은 정보 손실이다."""
+    names = N.py_names({"pyfx.base.Node"}, {}, {"pyfx.core.C"},
+                       {"pyfx.core": {}, "pyfx.other": {"C": "core.C"}})
+    st = N.Ledger()
+    for name, mod in (("C", "pyfx.core"), ("C", "pyfx.other"), ("Exception", "pyfx.core"),
+                      ("list", "pyfx.core"), ("Mystery", "pyfx.core")):
+        assert N.py_walk_expr(_name(name), mod, names, st) == []
+    assert N.py_walk_expr("'Node'", "pyfx.core", names, st) == []
+    got = {r["reason"]: (r["class"], r["count"], r["samples"]) for r in st.report()}
+    assert got == {
+        "이름 해소 실패": ("unresolved", 1, ["Mystery @ pyfx.core"]),
+        "이름이 아닌 식 버림": ("unresolved", 1, []),
+        "타입 변수": ("policy", 2, ["C @ pyfx.core", "C @ pyfx.other"]),
+        "빌트인": ("policy", 2, ["Exception @ pyfx.core", "list @ pyfx.core"]),
+        "1차 이름 꼬리 맞춤": ("count", 1, []),
+    }
+
+
+def test_형_별칭은_정의한_모듈의_import_표로_값_식을_따라간다() -> None:
+    """별칭을 쓴 모듈이 아니라 정의한 모듈의 문맥에서 값 식을 걷는다. 서로를 가리키는 별칭은 깊이 한도에서 멎는다."""
+    aliases: dict[str, tuple[N.GriffeExpr, str]] = {
+        "pyfx.ctx.Pages": ({"cls": "ExprSubscript", "left": _name("list"), "slice": _name("Page")}, "pyfx.ctx"),
+        "pyfx.ctx.A": (_name("B"), "pyfx.ctx"),
+        "pyfx.ctx.B": (_name("A"), "pyfx.ctx"),
+    }
+    names = N.py_names({"pyfx.base.Node"}, aliases, set(),
+                       {"pyfx.ctx": {"Page": "pyfx.base.Node"}, "pyfx.core": {"Pages": "ctx.Pages"}})
+    st = N.Ledger()
+    assert N.py_walk_expr(_name("Pages"), "pyfx.core", names, st) == ["pyfx.base.Node"]
+    assert (st["형 별칭 펼침"], st["1차 이름 꼬리 맞춤"], st["R5 투과 컨테이너 경유"]) == (1, 1, 1)
+    assert N.py_walk_expr(_name("A"), "pyfx.ctx", names, st) == []
+    assert st["식 깊이 초과"] == 1
 
 
 def _pyfx_dump(root: str) -> N.GriffeDump:
@@ -1101,6 +1171,78 @@ def test_패스0은_점_이름_호출과_합집합_PEP695_별칭과_NamedTuple_�
     by = {n["id"]: n["name"] for n in g["nodes"]}
     out = [(by[e["from"]], by[e["to"]], e["kind"], e["label"], e["line"]) for e in g["edges"]]
     assert out == [("pyalias.m.Pt", "pyalias.m.Row", "association", "row", 14)]
+
+
+# ── 13-2. 이름 해소 — 짧은 import 경로 · griffe 가 싣지 않은 모듈 · 이 저장소의 수집 원본
+PYTAIL_FILES = {
+    "pytail/__init__.py": "",
+    "pytail/run/__init__.py": "",
+    "pytail/run/ctx.py": (
+        "from typing import Literal, TypeVar\n"
+        "\n"
+        "\n"
+        "class Page:\n"
+        "    pass\n"
+        "\n"
+        "\n"
+        "Pages = list[Page]\n"
+        'Kind = Literal["a", "b"]\n'
+        'T = TypeVar("T")\n'
+    ),
+    "pytail/run/stage.py": (
+        "import plan\n"
+        "from ctx import Kind, Page, Pages, T\n"
+        "\n"
+        "\n"
+        "class Stage:\n"
+        "    kind: Kind\n"
+        "\n"
+        "    def run(self, p: plan.Plan, pages: Pages, one: Page, t: T) -> Exception:\n"
+        "        raise NotImplementedError\n"
+    ),
+    "pytail/mach/plan.py": "class Plan:\n    pass\n",          # 이 폴더에는 __init__.py 가 없다
+}
+
+
+def test_golden_python_짧은_import_경로와_griffe_가_싣지_않은_모듈의_클래스도_1차_노드로_간다(tmp_path: Path) -> None:
+    """`sys.path` 에 넣은 폴더에서 import 한 이름을 griffe 는 짧은 경로로 주고, `__init__.py` 없는 하위 폴더는 싣지 않는다.
+
+    꼬리 맞춤이 그 둘을 1차 노드로 잇는다 — 클래스 · 형 별칭 · 타입 변수, 그리고 pycalls 만 아는 클래스.
+    """
+    dump = _griffe_dump(tmp_path, PYTAIL_FILES, "pytail")
+    assert sorted(dump["pytail"].get("members") or {}) == ["run"]             # mach/ 는 덤프에 없다
+    stage = _member(_member(dump["pytail"], "run"), "stage")
+    assert stage.get("imports") == {"plan": "plan", "Kind": "ctx.Kind", "Page": "ctx.Page",
+                                    "Pages": "ctx.Pages", "T": "ctx.T"}
+    calls = pycalls.collect(str(tmp_path), ["pytail"])
+    assert "pytail.mach.plan.Plan" in {s["name"] for s in calls["symbols"]}
+
+    g, st = N.normalize_python(dump, str(tmp_path), "griffe test", calls=calls)
+    by = {n["id"]: n["name"] for n in g["nodes"]}
+    out = sorted((by[e["to"]], e["kind"], e["label"], e.get("occurrences", 1)) for e in g["edges"]
+                 if by[e["from"]] == "pytail.run.stage.Stage")
+    assert out == [("(표준) stdlib", "association", "kind", 1),                 # Kind -> Literal[...]
+                   ("pytail.mach.plan.Plan", "dependency", "run(p)", 1),
+                   ("pytail.run.ctx.Page", "dependency", "run(pages)", 2)]      # Pages -> list[Page] 와 Page
+    assert [n["name"] for n in g["nodes"] if n["kind"] == "external"] == ["(표준) stdlib"]
+    assert not [r for r in st.report() if r["class"] in ("unresolved", "fault")]
+    assert (st["1차 이름 꼬리 맞춤"], st["형 별칭 펼침"], st["타입 변수"], st["빌트인"]) == (5, 2, 1, 1)
+
+
+def test_이_저장소의_미해결은_0_이고_외부_섬이_없다() -> None:
+    """이 저장소의 수집 원본을 그대로 정제하면 해소 실패도 결함도 없고, 1차 모듈이 외부 섬으로 접히지 않는다."""
+    raw = os.path.join(ROOT, "out", "codegraph-raw")
+    paths = [os.path.join(raw, "griffe.json"), os.path.join(raw, "pycalls.json")]
+    for p in paths:
+        if not os.path.isfile(p):
+            pytest.skip(f"산출물 없음: {p}")
+    dump: N.GriffeDump = json.load(open(paths[0], encoding="utf-8"))
+    calls: pycalls.PyCallsDump = json.load(open(paths[1], encoding="utf-8"))
+    g, st = N.normalize_python(dump, ROOT, "griffe test", calls=calls)
+    bad = [(r["reason"], r["count"], r["samples"]) for r in st.report() if r["class"] in ("unresolved", "fault")]
+    assert not bad, bad
+    islands = {n["name"] for n in g["nodes"] if n["kind"] == "external"}
+    assert not islands & {"mode1", "warmup", "survey_plan", "verify_graph", "manifest"}, sorted(islands)
 
 
 def test_지도는_끊겨도_옛_파일을_지키고_임시_파일을_남기지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

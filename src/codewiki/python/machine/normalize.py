@@ -7,7 +7,7 @@
 접기 규칙 R1~R7 과 kind enum 사상이 여기에만 있다. 언어 도구는 원시 사실만 내고
 정책은 전부 이 파일이 쥔다.
 """
-import argparse, hashlib, json, os, re, subprocess, sys
+import argparse, builtins, hashlib, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from typing import Any, Literal, Required, TypedDict, cast
@@ -965,7 +965,7 @@ def py_external_group(target: str) -> str:
 
 
 # 타입 식 트리에서 쓰인 그대로의 점 이름을 꺼낸다.
-# 쓰는 것: 없음 · 쓰이는 곳: py_walk_expr
+# 쓰는 것: 없음 · 쓰이는 곳: py_abstraction, py_module_attributes, py_walk_expr
 def py_expr_name(expr: GriffeExpr | None) -> str | None:
     """식이 단순 이름이면 그 이름을, 아니면 None.
 
@@ -1079,29 +1079,83 @@ def py_form_fields(form: GriffeObject) -> list[tuple[str | None, GriffeExpr]]:
     return [(k.strip("'\"") if isinstance(k, str) else None, v) for k, v in pairs]
 
 
-# 식 안의 짧은 이름을 완전 수식 이름으로 편다.
-# 쓰는 것: 없음 · 쓰이는 곳: py_walk_expr
-def py_resolve(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str:
-    """이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 클래스 -> 못 품.
+class PyNames(TypedDict):
+    """파이썬 이름 해소가 보는 1차 이름표. `py_names` 가 짓는다."""
 
-    못 풀면 **쓰인 그대로** 돌려준다. 빌트인(`list`)과 타입변수(`T`)가 그 자리이고,
-    호출자는 "점이 없는데 1차도 아니다" 로 그 둘을 걸러낸다.
+    first_party: set[str]                           # 1차 이름 전부 — 클래스 · 형 별칭 · 타입 변수
+    aliases: dict[str, tuple[GriffeExpr, str]]      # 형 별칭 -> (값 식, 정의한 모듈)
+    typevars: set[str]
+    imports: dict[str, dict[str, str]]              # 모듈 -> 그 모듈의 import 표
+    tails: dict[str, list[str]]                     # 두 마디 이상인 점 경로 꼬리 -> 그렇게 끝나는 1차 이름들
+
+
+# 1차 이름표를 짓는다.
+# 쓰는 것: 없음 · 쓰이는 곳: normalize_python
+def py_names(classes: set[str], aliases: dict[str, tuple[GriffeExpr, str]], typevars: set[str],
+             imports: dict[str, dict[str, str]]) -> PyNames:
+    """클래스 · 형 별칭 · 타입 변수의 이름을 모으고 꼬리 색인을 만든다.
+
+    색인은 1차 이름마다 두 마디 이상인 꼬리를 전부 적는다 — `a.b.c.D` 는 `b.c.D` 와 `c.D` 로 찾힌다.
+    마지막 마디 하나(`D`)와 이름 전체는 꼬리로 치지 않는다.
     """
+    first_party = classes | set(aliases) | typevars
+    tails: defaultdict[str, list[str]] = defaultdict(list)
+    for full in sorted(first_party):
+        parts = full.split(".")
+        for i in range(1, len(parts) - 1):
+            tails[".".join(parts[i:])].append(full)
+    return {"first_party": first_party, "aliases": aliases, "typevars": typevars,
+            "imports": imports, "tails": dict(tails)}
+
+
+# 식 안의 짧은 이름을 import 표와 같은 모듈로 편다.
+# 쓰는 것: 없음 · 쓰이는 곳: py_resolve, py_walk_expr
+def py_expand(name: str, mod_path: str, names: PyNames) -> str:
+    """모듈의 import 표 -> 같은 모듈의 1차 이름. 어느 쪽도 아니면 쓰인 그대로 돌려준다."""
     head, _, rest = name.partition(".")
+    imports = names["imports"].get(mod_path, {})
     if head in imports:
         return imports[head] + ("." + rest if rest else "")
     same = f"{mod_path}.{name}" if mod_path else name
-    return same if same in first_party else name
+    return same if same in names["first_party"] else name
+
+
+# 식 안의 이름을 완전 수식 이름으로 푼다.
+# 쓰는 것: py_expand · 쓰이는 곳: py_walk_expr
+def py_resolve(name: str, mod_path: str, names: PyNames, stats: Ledger) -> str | None:
+    """이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 이름 -> 점 경로 꼬리.
+
+    `sys.path` 에 넣은 디렉토리에서 import 한 이름은 import 표에 짧은 경로(`mode1.context.Mode1Context`)로 온다.
+    그렇게 편 이름이 1차가 아니고 점이 있으면 그 이름 전체를 꼬리로 갖는 1차 이름을 찾는다.
+    하나면 그 이름이고, 둘 이상이면 고르지 않고 None 을 돌려준다.
+
+    어디에도 없으면 편 그대로 돌려준다 — 점이 있으면 외부 이름이고, 없으면 빌트인이거나 풀지 못한 이름이다.
+    """
+    key = py_expand(name, mod_path, names)
+    if "." not in key or key in names["first_party"]:
+        return key
+    found = names["tails"].get(key, [])
+    if len(found) > 1:
+        stats.note("1차 이름 꼬리 겹침", "%s @ %s" % (key, mod_path))
+        return None
+    if found:
+        stats["1차 이름 꼬리 맞춤"] += 1
+        return found[0]
+    return key
 
 
 # 타입 식 하나에서 노드가 될 이름들을 뽑는다. R5 투과와 R7 거르기가 여기 있다.
-# 쓰는 것: py_expr_name, py_resolve · 쓰이는 곳: normalize_python
-def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str],
-                 first_party: set[str], stats: Ledger, depth: int = 0) -> list[str]:
+# 쓰는 것: py_expr_name, py_expand, py_resolve · 쓰이는 곳: normalize_python
+def py_walk_expr(expr: GriffeExpr | None, mod_path: str, names: PyNames,
+                 stats: Ledger, depth: int = 0) -> list[str]:
     """R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다.
 
     griffe 가 타입 주석을 식 트리로 주므로 제네릭 문법을 손으로 파싱할 필요가 없다.
-    돌려주는 것은 완전 수식 이름의 리스트다. 1차인지 외부인지는 호출자가 정한다.
+    돌려주는 것은 노드가 될 완전 수식 이름의 리스트다 — 1차 클래스이거나 점이 있는 외부 이름이다.
+
+    이름 하나는 `py_resolve` 로 푼 뒤 갈린다. 형 별칭은 정의한 모듈의 문맥에서 값 식을 다시 걷는다 —
+    서로를 가리키는 별칭은 깊이 한도에서 멎는다. 타입 변수와 빌트인은 노드가 아니라서 버린다.
+    점이 없는데 그 어느 것도 아니면 풀지 못한 이름이다.
     """
     if depth > 8:
         stats["식 깊이 초과"] += 1
@@ -1115,43 +1169,56 @@ def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str]
         cls = expr.get("cls")
 
         if cls == "ExprBinOp":                # `Node | None` — 합집합이므로 양쪽 다 본다
-            return (py_walk_expr(expr.get("left"), mod_path, imports, first_party, stats, depth + 1)
-                    + py_walk_expr(expr.get("right"), mod_path, imports, first_party, stats, depth + 1))
+            return (py_walk_expr(expr.get("left"), mod_path, names, stats, depth + 1)
+                    + py_walk_expr(expr.get("right"), mod_path, names, stats, depth + 1))
 
         if cls == "ExprTuple":                # `dict[str, Node]` 의 속
             out: list[str] = []
             for e in expr.get("elements", []):
-                out.extend(py_walk_expr(e, mod_path, imports, first_party, stats, depth + 1))
+                out.extend(py_walk_expr(e, mod_path, names, stats, depth + 1))
             return out
 
         if cls == "ExprSubscript":
-            head = py_resolve(py_expr_name(expr.get("left")) or "", mod_path, imports, first_party)
+            head = py_expand(py_expr_name(expr.get("left")) or "", mod_path, names)
             if head in PY_TRANSPARENT:        # R5 — 껍데기를 벗고 속으로 내려간다
                 stats["R5 투과 컨테이너 경유"] += 1
-                return py_walk_expr(expr.get("slice"), mod_path, imports, first_party, stats, depth + 1)
+                return py_walk_expr(expr.get("slice"), mod_path, names, stats, depth + 1)
             # 투과 대상이 아니면 컨테이너 자신이 관계의 상대다 (인터페이스·사용자 제네릭).
-            return py_walk_expr(expr.get("left"), mod_path, imports, first_party, stats, depth + 1)
+            return py_walk_expr(expr.get("left"), mod_path, names, stats, depth + 1)
 
     name = py_expr_name(expr)
-    if not name:
+    if not name or name[:1] in ("'", '"'):     # 따옴표를 낀 맨 문자열은 문자열 리터럴이다
         stats["이름이 아닌 식 버림"] += 1
         return []
     if name in PY_R7:                          # R7 — 쓰인 그대로가 이미 원시 타입
         stats["R7 원시 타입 버림"] += 1
         return []
-    key = py_resolve(name, mod_path, imports, first_party)
+    key = py_resolve(name, mod_path, names, stats)
+    if key is None:                            # 꼬리가 둘 이상의 1차 이름에 맞았다
+        return []
     if key in PY_R7:                           # R7 — 펴 보니 원시 타입 (typing.Any 등)
         stats["R7 원시 타입 버림"] += 1
         return []
-    if key not in first_party and "." not in key:
-        # import 표에도 없고 1차도 아닌 맨 이름 — 빌트인이거나 타입변수다. 노드가 아니다.
-        stats["해소 실패(빌트인·타입변수)"] += 1
+    if key in names["aliases"]:
+        stats["형 별칭 펼침"] += 1
+        value, home = names["aliases"][key]
+        return py_walk_expr(value, home, names, stats, depth + 1)
+    if key in names["typevars"]:
+        stats.note("타입 변수", "%s @ %s" % (name, mod_path))
         return []
-    return [key]
+    if key in names["first_party"] or "." in key:
+        return [key]
+    # import 표에도 없고 1차도 아닌 맨 이름이다.
+    if hasattr(builtins, key):
+        stats.note("빌트인", "%s @ %s" % (name, mod_path))
+    else:
+        stats.note("이름 해소 실패", "%s @ %s" % (name, mod_path))
+    return []
 
 
 # griffe 덤프를 공통 형식의 노드와 간선으로 바꾼다.
-# 쓰는 것: module_of, py_module_attributes, py_form_fields, py_external_group, py_walk_expr, _assemble · 쓰이는 곳: normalize.main
+# 쓰는 것: module_of, py_module_attributes, py_form_fields, py_names, py_external_group, py_walk_expr, merge_py_calls, _assemble
+# 쓰이는 곳: normalize.main
 def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
                      calls: PyCallsDump | None = None) -> tuple[CodeGraph, Ledger]:
     """griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다.
@@ -1162,8 +1229,10 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     패키지 폴더를 디스크에서 훑으므로 추적 밖 사본까지 싣는다.
 
     모듈 속성 가운데 함수 꼴 `TypedDict` · `NamedTuple` 은 클래스와 같이 노드가 되고 그 필드가 association 간선이 된다.
+    형 별칭과 타입 변수는 노드가 아니다 — 주석이 가리키면 `py_walk_expr` 이 별칭은 값 식으로 펴고 타입 변수는 버린다.
 
     `calls` 를 주면 `pycalls.py` 의 심볼과 호출을 합친다. 주지 않으면 그 병합만 건너뛴다.
+    심볼은 간선보다 먼저 노드가 된다 — griffe 가 싣지 않은 모듈의 클래스도 주석이 가리킬 수 있다.
     """
     stats = Ledger()
     tracked = tracked_set(repo)
@@ -1234,6 +1303,13 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
         node_id[qname] = nid
         stats["1차 노드"] += 1
 
+    edges: dict[tuple[str, str, str], Edge] = {}
+    if calls is not None:
+        # 노드는 두 수집기의 합집합이다. 호출은 주석 간선 뒤에 합치므로 여기서는 심볼만 넘긴다.
+        merge_py_calls(nodes, node_id, edges, {"tool": calls["tool"], "symbols": calls["symbols"], "calls": []}, stats)
+
+    names = py_names({n["name"] for n in nodes.values() if n["kind"] == "class"}, aliases, typevars,
+                     {path: mod.get("imports") or {} for path, (mod, _) in mods.items()})
     collapsed: defaultdict[str, list[str]] = defaultdict(list)
 
     def to_node(key: str) -> str:
@@ -1253,9 +1329,6 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
 
     # ── 2패스: 간선. 적용 순서 R5/R7(py_walk_expr) -> R2(to_node) -> R1/R3 은 _assemble.
     #    R4(외부발 간선)는 여기서 발생하지 않는다 — 간선의 출발은 언제나 1차 클래스다.
-    edges: dict[tuple[str, str, str], Edge] = {}
-    first_party = set(declared)
-
     def add(src_q: str, dst_key: str, kind: EdgeKind, label: str | None,
             file: str | None, line: int | None) -> None:
         s, d = node_id[src_q], to_node(dst_key)
@@ -1273,12 +1346,10 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
 
     for qname in sorted(classes):
         cls, mod_path = classes[qname]
-        imports: dict[str, str] = mods[mod_path][0].get("imports") or {}
         rel = mods[mod_path][1]
 
-        def walk(expr: GriffeExpr | None, _mp: str = mod_path,
-                 _im: dict[str, str] = imports) -> list[str]:
-            return py_walk_expr(expr, _mp, _im, first_party, stats)
+        def walk(expr: GriffeExpr | None, _mp: str = mod_path) -> list[str]:
+            return py_walk_expr(expr, _mp, names, stats)
 
         bases: list[GriffeExpr] = cls.get("bases") or []
         for b in bases:
@@ -1311,16 +1382,15 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     # 함수 꼴 클래스의 필드는 클래스 속성 주석과 같은 관계다. 라벨은 필드 이름이다.
     for qname in sorted(forms):
         mod_path = qname.rpartition(".")[0]
-        form_imports: dict[str, str] = mods[mod_path][0].get("imports") or {}
         for label, typ in py_form_fields(forms[qname]):
-            for key in py_walk_expr(typ, mod_path, form_imports, first_party, stats):
+            for key in py_walk_expr(typ, mod_path, names, stats):
                 add(qname, key, PY_KIND["attr"], label, mods[mod_path][1], forms[qname].get("lineno"))
 
     if calls is not None:
-        merge_py_calls(nodes, node_id, edges, calls, stats)
+        merge_py_calls(nodes, node_id, edges, {"tool": calls["tool"], "symbols": [], "calls": calls["calls"]}, stats)
 
-    for nid, names in collapsed.items():
-        nodes[nid]["collapsed_from"] = sorted(set(names))
+    for nid, keys in collapsed.items():
+        nodes[nid]["collapsed_from"] = sorted(set(keys))
 
     return _assemble(nodes, edges, stats, language="python", source_tool=source_tool, repo=repo)
 
