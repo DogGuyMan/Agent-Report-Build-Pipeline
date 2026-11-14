@@ -633,11 +633,8 @@ def test_py_r5_unwraps_optional_and_pep604_union() -> None:
     got_a, _ = _walk({"cls": "ExprSubscript",
                       "left": {"cls": "ExprName", "name": "Optional"},
                       "slice": {"cls": "ExprName", "name": "Node"}})
-    # `operator` 는 griffe 가 실제로 내지만 `GriffeExprNode` 에는 없다 — normalize 가
-    # 읽지 않는 열쇠라서다. 픽스처를 실제 모양대로 두려고 여기만 좁게 뚫는다.
-    got_b, _ = _walk(cast("N.GriffeExpr", {"cls": "ExprBinOp",
-                                           "left": {"cls": "ExprName", "name": "Node"},
-                                           "operator": "|", "right": "None"}))
+    got_b, _ = _walk({"cls": "ExprBinOp", "left": {"cls": "ExprName", "name": "Node"},
+                      "operator": "|", "right": "None"})
     assert got_a == ["pyfx.base.Node"]
     assert got_b == ["pyfx.base.Node"]
 
@@ -1013,6 +1010,97 @@ def test_golden_python_marks_interface_and_abstract_classes(tmp_path: Path) -> N
     assert by["Shape"].get("abstraction") == "abstract"
     assert by["Half"].get("abstraction") == "abstract"       # 베이스 없이 데코레이터만으로도
     assert "abstraction" not in by["Square"]
+
+
+# ── 13-1. 모듈 속성 — 타입 변수 · 형 별칭 · 함수 꼴 클래스. 식의 꼴은 진짜 griffe 덤프로 고정한다.
+PYATTR_FILES = {
+    "pyattr/__init__.py": "",
+    "pyattr/m.py": (
+        "from typing import TypedDict, TypeVar\n"
+        "\n"
+        "\n"
+        "class WikiPage:\n"
+        "    pass\n"
+        "\n"
+        "\n"
+        'C = TypeVar("C", bound=WikiPage)\n'
+        "Pages = list[WikiPage]\n"
+        'CodeEdge = TypedDict("CodeEdge", {"from": str, "page": WikiPage})\n'
+        "LIMIT = 8\n"
+    ),
+}
+
+PYALIAS_FILES = {
+    "pyalias/__init__.py": "",
+    "pyalias/m.py": (
+        "import typing\n"
+        "from typing import NamedTuple, ParamSpec\n"
+        "\n"
+        "\n"
+        "class Row:\n"
+        "    pass\n"
+        "\n"
+        "\n"
+        'Q = typing.TypeVar("Q")\n'
+        'P = ParamSpec("P")\n'
+        "Maybe = Row | None\n"
+        "Same = Row\n"
+        "type Rows = list[Row]\n"
+        'Pt = NamedTuple("Pt", [("x", int), ("row", Row)])\n'
+        'NAME = "Row"\n'
+        "TOTAL = len(NAME) + 1\n"
+    ),
+}
+
+
+def _member(obj: N.GriffeObject, name: str) -> N.GriffeObject:
+    """griffe 객체의 멤버 하나. `members` 는 이름으로 키질한 dict 다."""
+    return (obj.get("members") or {})[name]
+
+
+def test_패스0은_TypeVar_별칭_함수꼴_TypedDict_를_가른다(tmp_path: Path) -> None:
+    """모듈 속성 넷이 타입 변수 · 형 별칭 · 함수 꼴 클래스 · 상수로 갈린다. 호출 식은 griffe 가 낸 꼴 그대로 본다."""
+    dump = _griffe_dump(tmp_path, PYATTR_FILES, "pyattr")
+    mod = _member(dump["pyattr"], "m")
+    call = _member(mod, "C").get("value")
+    assert isinstance(call, dict) and call.get("cls") == "ExprCall"
+    called = call.get("function")
+    assert isinstance(called, dict) and (called.get("cls"), called.get("name")) == ("ExprName", "TypeVar")
+    assert call.get("arguments", [])[:1] == ["'C'"]              # 문자열 인자는 따옴표를 낀 맨 문자열이다
+    assert _member(mod, "LIMIT").get("value") == "8"             # 리터럴은 식 객체가 아니다
+
+    typevars, aliases, forms = N.py_module_attributes({"pyattr.m": mod})
+    assert typevars == {"pyattr.m.C"}
+    assert set(aliases) == {"pyattr.m.Pages"}
+    value, where = aliases["pyattr.m.Pages"]
+    assert where == "pyattr.m" and isinstance(value, dict) and value.get("cls") == "ExprSubscript"
+    assert set(forms) == {"pyattr.m.CodeEdge"}
+    assert [name for name, _ in N.py_form_fields(forms["pyattr.m.CodeEdge"])] == ["from", "page"]
+
+    g, st = N.normalize_python(dump, str(tmp_path), "griffe test")
+    by = {n["id"]: n["name"] for n in g["nodes"]}
+    form = [n for n in g["nodes"] if n["name"] == "pyattr.m.CodeEdge"]
+    assert [(n["kind"], n["file"], n["line"]) for n in form] == [("class", "pyattr/m.py", 10)]
+    out = [(by[e["to"]], e["kind"], e["label"], e["line"]) for e in g["edges"] if e["from"] == form[0]["id"]]
+    assert out == [("pyattr.m.WikiPage", "association", "page", 10)]     # str 은 R7 로 죽고 라벨은 필드 이름이다
+    assert st["함수 꼴 TypedDict 노드"] == 1 and st["1차 노드"] == 2
+
+
+def test_패스0은_점_이름_호출과_합집합_PEP695_별칭과_NamedTuple_목록도_읽는다(tmp_path: Path) -> None:
+    """`typing.TypeVar(...)` · `ParamSpec` · `A | None` · `type X = ...` · `NamedTuple("X", [...])`. 문자열과 `+` 식은 상수다."""
+    dump = _griffe_dump(tmp_path, PYALIAS_FILES, "pyalias")
+    mod = _member(dump["pyalias"], "m")
+    assert _member(mod, "Rows").get("kind") == "type alias"      # PEP 695 는 attribute 가 아니다
+    typevars, aliases, forms = N.py_module_attributes({"pyalias.m": mod})
+    assert typevars == {"pyalias.m.Q", "pyalias.m.P"}
+    assert set(aliases) == {"pyalias.m.Maybe", "pyalias.m.Same", "pyalias.m.Rows"}
+    assert set(forms) == {"pyalias.m.Pt"}
+    assert [name for name, _ in N.py_form_fields(forms["pyalias.m.Pt"])] == ["x", "row"]
+
+    g, _ = N.normalize_python(dump, str(tmp_path), "griffe test")
+    by = {n["id"]: n["name"] for n in g["nodes"]}
+    out = [(by[e["from"]], by[e["to"]], e["kind"], e["label"], e["line"]) for e in g["edges"]]
+    assert out == [("pyalias.m.Pt", "pyalias.m.Row", "association", "row", 14)]
 
 
 def test_지도는_끊겨도_옛_파일을_지키고_임시_파일을_남기지_않는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

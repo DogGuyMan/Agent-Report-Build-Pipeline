@@ -876,11 +876,15 @@ class GriffeExprNode(TypedDict, total=False):
 
     cls: str
     name: str                       # ExprName
-    values: list["GriffeExpr"]      # ExprAttribute — `abc.Mapping` 의 마디들
+    values: list["GriffeExpr"]      # ExprAttribute — `abc.Mapping` 의 마디들 · ExprDict — 값들
     left: "GriffeExpr"              # ExprBinOp / ExprSubscript
     right: "GriffeExpr"             # ExprBinOp
+    operator: str                   # ExprBinOp — `|` 면 합집합이다
     slice: "GriffeExpr"             # ExprSubscript — `[...]` 의 속
-    elements: list["GriffeExpr"]    # ExprTuple
+    elements: list["GriffeExpr"]    # ExprTuple · ExprList
+    function: "GriffeExpr"          # ExprCall — 부른 이름
+    arguments: list["GriffeExpr"]   # ExprCall — 문자열 인자는 따옴표를 낀 맨 문자열(`"'C'"`)이다
+    keys: list["GriffeExpr | None"]  # ExprDict — 열쇠들. `**펼침` 자리는 None 이다
 
 
 GriffeExpr = str | GriffeExprNode
@@ -898,6 +902,7 @@ class GriffeObject(TypedDict, total=False):
 
     `filepath` 는 `__init__.py` 가 있으면 그 파일 경로(str), 없으면 디렉토리 목록(list)이다.
     `members` 는 list 가 아니라 이름으로 키질한 dict 다.
+    `value` 는 속성(`X = ...`)과 `type alias`(`type X = ...`)의 오른쪽 식이다. 리터럴이면 맨 문자열로 온다.
     """
 
     kind: str
@@ -910,6 +915,7 @@ class GriffeObject(TypedDict, total=False):
     parameters: list[GriffeParam]
     returns: "GriffeExpr | None"
     labels: list[str]
+    value: "GriffeExpr | None"
 
 
 # griffe dump 의 뿌리 — 최상위 패키지 이름 -> 모듈 트리.
@@ -995,6 +1001,84 @@ def py_abstraction(cls: GriffeObject) -> Literal["interface", "abstract"] | None
     return None
 
 
+# 모듈 속성의 값이 이 이름들의 호출이면 상수가 아니다. 부른 이름의 마지막 마디로 가린다.
+PY_TYPEVAR_CALLS = {"TypeVar", "ParamSpec", "TypeVarTuple"}
+PY_CLASS_CALLS = {"TypedDict", "NamedTuple"}
+
+
+# 모듈 속성을 타입 변수 · 형 별칭 · 함수 꼴 클래스로 가른다.
+# 쓰는 것: py_expr_name · 쓰이는 곳: normalize_python
+def py_module_attributes(mods: dict[str, GriffeObject]) -> tuple[set[str], dict[str, tuple[GriffeExpr, str]],
+                                                                 dict[str, GriffeObject]]:
+    """`{모듈 점 경로: 모듈 객체}` 에서 `(타입 변수, 형 별칭, 함수 꼴 클래스)` 를 모은다. 열쇠는 완전 수식 이름이다.
+
+    griffe 는 모듈 수준 `X = ...` 를 `module-attribute` 라벨이 붙은 attribute 로, `type X = ...` 를
+    kind `type alias` 로 낸다. 값의 꼴이 갈래를 정한다.
+
+      · `TypeVar` · `ParamSpec` · `TypeVarTuple` 호출        -> 타입 변수
+      · 첫 인자가 문자열인 `TypedDict` · `NamedTuple` 호출    -> 함수 꼴 클래스. 값은 그 속성 객체다
+      · 이름 · 첨자 · `|` 식                                  -> 형 별칭 `(값 식, 정의한 모듈)`
+      · 그 밖의 호출과 리터럴                                 -> 상수. 싣지 않는다
+    """
+    typevars: set[str] = set()
+    aliases: dict[str, tuple[GriffeExpr, str]] = {}
+    forms: dict[str, GriffeObject] = {}
+    for mod_path, mod in mods.items():
+        members: dict[str, GriffeObject] = mod.get("members") or {}
+        for name, m in members.items():
+            kind = m.get("kind")
+            if kind == "attribute":
+                if "module-attribute" not in (m.get("labels") or []):
+                    continue
+            elif kind != "type alias":
+                continue
+            value = m.get("value")
+            if not isinstance(value, dict):       # 값이 없거나 리터럴이다
+                continue
+            full = f"{mod_path}.{name}"
+            cls = value.get("cls")
+            if cls == "ExprCall":
+                called = (py_expr_name(value.get("function")) or "").rsplit(".", 1)[-1]
+                args: list[GriffeExpr] = value.get("arguments") or []
+                if called in PY_TYPEVAR_CALLS:
+                    typevars.add(full)
+                elif called in PY_CLASS_CALLS and args and isinstance(args[0], str) and args[0][:1] in ("'", '"'):
+                    forms[full] = m
+            elif cls in ("ExprName", "ExprAttribute", "ExprSubscript") or (
+                    cls == "ExprBinOp" and value.get("operator") == "|"):
+                aliases[full] = (value, mod_path)
+    return typevars, aliases, forms
+
+
+# 함수 꼴 클래스의 필드 표를 (이름, 타입 식) 으로 편다.
+# 쓰는 것: 없음 · 쓰이는 곳: normalize_python
+def py_form_fields(form: GriffeObject) -> list[tuple[str | None, GriffeExpr]]:
+    """`TypedDict("X", {"a": int})` · `NamedTuple("X", [("a", int)])` 의 둘째 인자에서 필드를 꺼낸다.
+
+    사전은 ExprDict, 짝의 목록은 ExprTuple 을 담은 ExprList 로 온다. 필드 이름은 따옴표를 낀 맨 문자열이라 벗긴다.
+    둘째 인자가 없으면 빈 목록이다. 그 두 꼴이 아니면 인자 식을 이름 없는 필드 하나로 돌려준다 —
+    읽지 못한 식은 `py_walk_expr` 이 사유를 붙여 센다.
+    """
+    value = form.get("value")
+    arguments: list[GriffeExpr] = (value.get("arguments") or []) if isinstance(value, dict) else []
+    positional = [a for a in arguments if not (isinstance(a, dict) and a.get("cls") == "ExprKeyword")]
+    if len(positional) < 2:
+        return []
+    table = positional[1]
+    pairs: list[tuple[GriffeExpr | None, GriffeExpr]] = []
+    if isinstance(table, dict) and table.get("cls") == "ExprDict":
+        pairs = list(zip(table.get("keys") or [], table.get("values") or []))
+    elif isinstance(table, dict) and table.get("cls") == "ExprList":
+        for el in table.get("elements") or []:
+            pair: list[GriffeExpr] = (el.get("elements") or []) if isinstance(el, dict) else []
+            if len(pair) != 2:
+                return [(None, table)]
+            pairs.append((pair[0], pair[1]))
+    else:
+        return [(None, table)]
+    return [(k.strip("'\"") if isinstance(k, str) else None, v) for k, v in pairs]
+
+
 # 식 안의 짧은 이름을 완전 수식 이름으로 편다.
 # 쓰는 것: 없음 · 쓰이는 곳: py_walk_expr
 def py_resolve(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str:
@@ -1067,7 +1151,7 @@ def py_walk_expr(expr: GriffeExpr | None, mod_path: str, imports: dict[str, str]
 
 
 # griffe 덤프를 공통 형식의 노드와 간선으로 바꾼다.
-# 쓰는 것: module_of, py_external_group, py_walk_expr, _assemble · 쓰이는 곳: normalize.main
+# 쓰는 것: module_of, py_module_attributes, py_form_fields, py_external_group, py_walk_expr, _assemble · 쓰이는 곳: normalize.main
 def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
                      calls: PyCallsDump | None = None) -> tuple[CodeGraph, Ledger]:
     """griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다.
@@ -1076,6 +1160,8 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     클래스가 곧 1차이고, 주석·상속에서 참조되지만 덤프에 없는 이름이 외부다.
     다만 `repo` 가 git 저장소면 git 이 추적하지 않는 모듈 파일의 클래스는 버린다 — griffe 는
     패키지 폴더를 디스크에서 훑으므로 추적 밖 사본까지 싣는다.
+
+    모듈 속성 가운데 함수 꼴 `TypedDict` · `NamedTuple` 은 클래스와 같이 노드가 되고 그 필드가 association 간선이 된다.
 
     `calls` 를 주면 `pycalls.py` 의 심볼과 호출을 합친다. 주지 않으면 그 병합만 건너뛴다.
     """
@@ -1125,11 +1211,18 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
         walk_module(obj, root)
     stats["모듈"] = len(mods)
 
-    # ── 1패스: 1차 클래스 -> 노드. 이름은 완전 수식 점 이름이다.
+    # 모듈 속성은 클래스가 아니지만 주석이 이름으로 가리킨다. 함수 꼴 클래스는 클래스와 같은 자리에서 노드가 된다.
+    typevars, aliases, forms = py_module_attributes({path: mod for path, (mod, _) in mods.items()})
+    declared: dict[str, tuple[GriffeObject, str]] = dict(classes)
+    for qname, attr in forms.items():
+        declared[qname] = (attr, qname.rpartition(".")[0])
+        stats["함수 꼴 TypedDict 노드"] += 1
+
+    # ── 1패스: 1차 클래스 -> 노드. 이름은 완전 수식 점 이름이다. 함수 꼴 클래스의 줄은 그 대입문의 줄이다.
     node_id: dict[str, str] = {}
     nodes: dict[str, Node] = {}
-    for qname in sorted(classes):
-        cls, mod_path = classes[qname]
+    for qname in sorted(declared):
+        cls, mod_path = declared[qname]
         rel = mods[mod_path][1]
         nid = "C%d" % (len(nodes) + 1)
         nodes[nid] = {
@@ -1161,7 +1254,7 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
     # ── 2패스: 간선. 적용 순서 R5/R7(py_walk_expr) -> R2(to_node) -> R1/R3 은 _assemble.
     #    R4(외부발 간선)는 여기서 발생하지 않는다 — 간선의 출발은 언제나 1차 클래스다.
     edges: dict[tuple[str, str, str], Edge] = {}
-    first_party = set(classes)
+    first_party = set(declared)
 
     def add(src_q: str, dst_key: str, kind: EdgeKind, label: str | None,
             file: str | None, line: int | None) -> None:
@@ -1214,6 +1307,14 @@ def normalize_python(dump: GriffeDump, repo: str, source_tool: str,
                         add(qname, key, PY_KIND["sig"], f"{mname}({p['name']})", rel, line)
                 for key in walk(m.get("returns")):
                     add(qname, key, PY_KIND["sig"], f"{mname}()", rel, at)
+
+    # 함수 꼴 클래스의 필드는 클래스 속성 주석과 같은 관계다. 라벨은 필드 이름이다.
+    for qname in sorted(forms):
+        mod_path = qname.rpartition(".")[0]
+        form_imports: dict[str, str] = mods[mod_path][0].get("imports") or {}
+        for label, typ in py_form_fields(forms[qname]):
+            for key in py_walk_expr(typ, mod_path, form_imports, first_party, stats):
+                add(qname, key, PY_KIND["attr"], label, mods[mod_path][1], forms[qname].get("lineno"))
 
     if calls is not None:
         merge_py_calls(nodes, node_id, edges, calls, stats)

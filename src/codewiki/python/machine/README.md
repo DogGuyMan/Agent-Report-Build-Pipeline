@@ -260,6 +260,8 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_external_group` | `(target: str) -> str` | R2 — 외부 하나 = 노드 하나. 입도는 import 루트 이름이다. |
 | `py_expr_name` | `(expr: GriffeExpr \| None) -> str \| None` | 식이 단순 이름이면 그 이름을, 아니면 None. |
 | `py_abstraction` | `(cls: GriffeObject) -> Literal['interface', 'abstract'] \| None` | 클래스가 인터페이스인가 추상 클래스인가. 구체면 None. |
+| `py_module_attributes` | `(mods: dict[str, GriffeObject]) -> tuple[set[str], dict[str, tuple[GriffeExpr, str]], dict[str, GriffeObject]]` | `{모듈 점 경로: 모듈 객체}` 에서 `(타입 변수, 형 별칭, 함수 꼴 클래스)` 를 모은다. 열쇠는 완전 수식 이름이다. |
+| `py_form_fields` | `(form: GriffeObject) -> list[tuple[str \| None, GriffeExpr]]` | `TypedDict("X", {"a": int})` · `NamedTuple("X", [("a", int)])` 의 둘째 인자에서 필드를 꺼낸다. |
 | `py_resolve` | `(name: str, mod_path: str, imports: dict[str, str], first_party: set[str]) -> str` | 이름 해소 순서: 모듈의 import 표 -> 같은 모듈의 1차 클래스 -> 못 품. |
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Ledger, depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
 | `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Ledger]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
