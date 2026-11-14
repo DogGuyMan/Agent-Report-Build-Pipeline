@@ -1,11 +1,11 @@
 """재개 JSON. 모든 중단이 이것을 남기고, 팩토리가 이것을 읽어 멈춘 자리부터 짓는다."""
-import json
 import os
 from collections.abc import Iterable
 from typing import NotRequired, TypedDict
 
 from core import measure as M
 from core import pipeline as P
+from jsonio import write_json_atomic
 
 
 class ResumeDoc(TypedDict):
@@ -29,9 +29,7 @@ def write_resume(path: str, graph: str, rows: list[M.StageRow], order: list[str]
     doc: ResumeDoc = {"graph": graph, "failed_at": failed_at,
                       "why": failed[0].get("why") or "", "done": done, "rows": rows,
                       "verified": sorted(verified)}
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False, indent=1)
+    write_json_atomic(path, doc, indent=1)
     return doc
 
 

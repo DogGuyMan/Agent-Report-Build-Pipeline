@@ -7,12 +7,13 @@
 접기 규칙 R1~R7 과 kind enum 사상이 여기에만 있다. 언어 도구는 원시 사실만 내고
 정책은 전부 이 파일이 쥔다.
 """
-import argparse, json, os, re, subprocess, sys, tempfile
+import argparse, json, os, re, subprocess, sys
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from typing import Any, Literal, Required, TypedDict, cast
 
 from clang_doc import Symbol, load_clang_doc
+from jsonio import write_json_atomic
 from pycalls import PyCallsDump
 # 산출물 `codegraph.json` 의 계약은 **여기 하나**다. 이 파일에 다시 적지 않는다.
 from codegraph_types import CodeGraph, Edge, EdgeKind, Node
@@ -1182,20 +1183,6 @@ def merge_py_calls(nodes: dict[str, Node], node_id: dict[str, str],
         edges[key] = {"from": s, "to": d, "kind": PY_KIND["sig"],
                       "label": "호출", "file": c["file"], "line": c["line"]}
         stats["호출 간선"] += 1
-
-
-def write_json_atomic(path: str, obj: object) -> None:
-    """JSON 을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다."""
-    folder = os.path.dirname(os.path.abspath(path))
-    fd, tmp = tempfile.mkstemp(dir=folder, prefix="." + os.path.basename(path) + ".", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(obj, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, path)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
 
 
 def build_parser() -> argparse.ArgumentParser:

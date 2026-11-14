@@ -15,6 +15,7 @@ if os.path.join(ROOT, "src") not in sys.path:
 from codewiki.python.runner.wiki.paths import wikiPaths, collectorFor, collectorFromSelect  # noqa: E402
 from codewiki.python.runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig  # noqa: E402
 from codewiki.python.runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
+from codewiki.python.machine.jsonio import write_json_atomic  # noqa: E402
 from common.python import pythonPath  # noqa: E402
 
 from typing import Any, Optional, cast
@@ -26,6 +27,7 @@ COLLECT_CODE = (
     "src/codewiki/python/machine/codegraph_types.py",
     "src/codewiki/python/machine/clang_doc.py",
     "src/codewiki/python/machine/pycalls.py",
+    "src/codewiki/python/machine/jsonio.py",
     "src/codewiki/python/runner/wiki/prep.py",
 )
 
@@ -276,8 +278,7 @@ if __name__ == "__main__":
             # 끊겨 깨진 지문 파일은 recorded_fingerprint 가 None 으로 읽어 다음에 다시 수집한다.
             with open(P["codegraph"], "rb") as g:
                 sha = hashlib.sha256(g.read()).hexdigest()
-            with open(P["fingerprint"], "w", encoding="utf-8") as f:
-                json.dump({"fingerprint": fingerprint, "codegraph_sha256": sha}, f, indent=1)
+            write_json_atomic(P["fingerprint"], {"fingerprint": fingerprint, "codegraph_sha256": sha}, indent=1)
             
         elif step == "facts":
             detail = os.path.join(P["raw"], "roslyn-dump.json")

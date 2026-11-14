@@ -1,12 +1,12 @@
 """`collect-graph` · `schedule-batches`. 코드 지도를 만들고 층과 배치로 나눈다."""
 import hashlib
-import json
 import os
 import sys
 import time
 from typing import cast
 
 from core import pipeline as P
+import jsonio
 import survey_plan
 import verify_graph
 from mode1 import context as X
@@ -158,9 +158,7 @@ class ScheduleBatchesStage(Measured, P.Stage[Mode1Context]):
         else:
             ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
         out_path = X.BATCHES.locate(ctx)
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(ctx.plan, f, ensure_ascii=False, indent=1)
+        jsonio.write_json_atomic(out_path, ctx.plan, indent=1)
         print("%s%s" % (out_path, " (증분: %d파일)" % len(only) if only else ""))
         for line in self.plan_summary(ctx.plan):
             print(line)

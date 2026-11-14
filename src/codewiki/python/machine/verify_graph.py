@@ -19,6 +19,7 @@ from typing import Literal, TypedDict, cast, get_type_hints
 import msgspec
 
 from codegraph_types import CodeGraph, Edge, Module, Node
+from jsonio import write_json_atomic
 
 # 결함 코드 -> 층. 표와 코드가 1대1이다(test_verify_graph.py 가 고정한다).
 LAYER: dict[str, str] = {
@@ -286,10 +287,7 @@ def _replace(keep: str, drop: str, doc: FaultsDoc | PassedDoc) -> None:
     """다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다."""
     if os.path.exists(drop):
         os.remove(drop)
-    os.makedirs(os.path.dirname(os.path.abspath(keep)), exist_ok=True)
-    with open(keep, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False, indent=1)
-        f.write("\n")
+    write_json_atomic(keep, doc, indent=1, trailing_newline=True)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

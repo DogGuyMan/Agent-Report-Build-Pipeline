@@ -14,6 +14,7 @@
 | [`facts.py`](facts.py) | codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든다. |
 | [`file_cache.py`](file_cache.py) | 파일 통독 캐시. |
 | [`fix_citation_paths.py`](fix_citation_paths.py) | 인용의 맨 파일명을 저장소 기준 전체 경로로 보강한다. |
+| [`jsonio.py`](jsonio.py) | JSON 파일을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다. |
 | [`lang_select.py`](lang_select.py) | 어떤 정적 수집기를 돌릴지 고른다. |
 | [`manifest.py`](manifest.py) | Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본과 manifest.json 을 낸다. |
 | [`normalize.py`](normalize.py) | 언어별 정적 분석 산출물을 codegraph.json(스키마 v2)으로 바꾼다. |
@@ -145,6 +146,16 @@ codegraph.json 에서 deep-wiki 주입물(facts/*.md + ranking.json)을 만든�
 
 ---
 
+## `jsonio.py`
+
+JSON 파일을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `write_json_atomic` | `(path: str, obj: object, indent: int = 2, trailing_newline: bool = False) -> None` | `path` 를 `obj` 의 JSON 으로 바꿔 끼운다. 같은 입력이면 같은 바이트다. |
+
+---
+
 ## `lang_select.py`
 
 어떤 정적 수집기를 돌릴지 고른다.
@@ -227,7 +238,6 @@ Mode 1 산출물을 봉인한다 — `docs/codegraph/` 에 terms-db.json 사본�
 | `py_walk_expr` | `(expr: GriffeExpr \| None, mod_path: str, imports: dict[str, str], first_party: set[str], stats: Counter[str], depth: int = 0) -> list[str]` | R5 — 컨테이너 껍데기를 벗기고 안의 타입 이름들을 모아 돌려준다. |
 | `normalize_python` | `(dump: GriffeDump, repo: str, source_tool: str, calls: PyCallsDump \| None = None) -> tuple[CodeGraph, Counter[str]]` | griffe dump(JSON) -> codegraph.json. C++/C# 과 같은 모양(노드 -> 간선 -> _assemble)이다. |
 | `merge_py_calls` | `(nodes: dict[str, Node], node_id: dict[str, str], edges: dict[tuple[str, str, str], Edge], calls: PyCallsDump, stats: Counter[str]) -> None` | `pycalls.py` 가 뽑은 함수·메서드와 호출을 합친다. |
-| `write_json_atomic` | `(path: str, obj: object) -> None` | JSON 을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 끼운다. 도중에 끊겨도 옛 파일이 그대로 남는다. |
 | `build_parser` | `() -> argparse.ArgumentParser` | 명령줄 규약. `--clang-doc` 과 `--py-calls` 는 배타 그룹에 넣지 않는다. |
 | `main` | `() -> None` |  |
 
