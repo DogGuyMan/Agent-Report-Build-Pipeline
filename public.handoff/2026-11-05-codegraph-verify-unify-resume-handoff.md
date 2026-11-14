@@ -99,8 +99,8 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [x] **I-F8(규칙 셋) 외부 노드만 있는 지도 · 음수 `occurrences` · 간선과 다른 `depends_on` 이 통과한다.** 해법: `external-only` · `occurrences-range` · `module-dep-mismatch` 결함과 네 절로 나뉜 결과 문서. — `bf21a0e`
 - [x] **I-F9(원자적 쓰기) 결과 파일을 직접 덮어써서 중단 시 잘릴 수 있다.** 해법: `jsonio.write_json_atomic` 하나로 검사 결과 · 지문 · 배치 · 재개 파일을 쓴다. 입력 변경에 따른 무효화는 I-F4 의 몫이다. — `f85f42f`
 - [x] **I-F1(checks_run · fit) 통과가 무엇을 봤는지 말하지 않는다.** 해법: 결과 문서의 `checks_run` 과 `fit` — V3 를 건너뛴 기록은 전수조사에 맞지 않는다. — `bf21a0e` · `11fe6d0`
-- [ ] **I-F1(source-drift) 줄 수가 같은 채 바뀐 소스를 못 잡는다.** 계획 Task 9 · Task 10.
-- [ ] **I-F4 수집 지문이 실제 입력 의존성을 빠뜨린다.** 계획 Task 8 · Task 9 · Task 11.
+- [x] **I-F1(source-drift) 줄 수가 같은 채 바뀐 소스를 못 잡는다.** 해법: 수집 manifest 가 인용 파일마다의 소스 sha 를 적고 `verify-graph` 가 지금 바이트와 대조해 `source-drift` · `generation-mismatch` · `freshness-unknown` 을 낸다. — `2c1d9cc` · `9ca4bd0`
+- [x] **I-F4 수집 지문이 실제 입력 의존성을 빠뜨린다.** 해법: 지문이 `prep` 이 import 하는 모듈과 `.clang-uml` · `compile_commands.json` 내용까지 덮고, manifest 의 `generation_id` 를 배치가 이어받아 성공 기록과 대조한다. — `71a8440` · `2c1d9cc` · `7460a7a`
 - [ ] **I-F6 호출이 타입 간선에 접히면 호출 위치가 사라진다.** 자기참조 사유는 계획 Task 13, `Edge.sites` 는 4단계.
 - [ ] **I-F7 C++ 빌드 설정을 하나로 뭉갠다.** 경로 규칙과 첫 설정은 계획 Task 18, 선언된 단일 설정의 표시는 5단계.
 - [ ] **I-F5 안정 ID 만 바꾸면 오버로드가 후단에서 사라진다.** 4단계.

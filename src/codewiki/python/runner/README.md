@@ -76,7 +76,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `_no_names` | `() -> list[str]` |  |
 | **`Mode1Context`** | *class* | 칸마다 이름과 형이 있다. 자루(dict)는 없다. |
 | `raw_dir` | `(c: Mode1Context) -> str` |  |
-| **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과 |
+| **`CodeGraphDoc`** | *class* | `codegraph.json` 의 최상위(`nodes` · `edges`)만. 노드와 간선 안은 열지 않는다. |
 | **`GraphVerifiedDoc`** | *class* | `graph-verified.json` 의 다섯 칸 — 단계 경계는 이것만 본다. 전체 꼴은 `verify_graph.VerifyDoc` 다. |
 | **`LangSelect`** | *class* | `lang-select.json`. `language` 는 못 골랐으면 `null` 이다. |
 | **`Outline`** | *class* | `outline.json`. |

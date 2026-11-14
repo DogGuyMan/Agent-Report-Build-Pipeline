@@ -258,8 +258,8 @@ def raw_dir(c: Mode1Context) -> str:
 
 
 class CodeGraphDoc(TypedDict):
-    """`codegraph.json` 의 최상위만. 노드 안은 기계축 선언(`survey_plan.CodeGraph`)이 실물과
-    어긋나(`file` 에 `null` 이 온다) 러너는 열지 않는다 — `survey_plan.plan` 에 넘길 때 `cast` 한다.
+    """`codegraph.json` 의 최상위(`nodes` · `edges`)만. 노드와 간선 안은 열지 않는다.
+    `schedule-batches` 는 지도 바이트를 `survey_plan.CodeGraph` 로 직접 읽고, 이 꼴로 읽은 지도를 `survey_plan` 에 넘기는 `--dry-run` 만 `cast` 한다.
     """
     nodes: list[dict[str, object]]
     edges: list[dict[str, object]]

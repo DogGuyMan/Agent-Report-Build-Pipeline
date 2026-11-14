@@ -1420,8 +1420,8 @@
    {
     "kind": "dependency",
     "label": "calls",
-    "to": "codewiki.python.machine.normalize.write_json_atomic",
-    "where": "src/codewiki/python/machine/normalize.py:1259"
+    "to": "codewiki.python.machine.jsonio.write_json_atomic",
+    "where": "src/codewiki/python/machine/normalize.py:1246"
    }
   ],
   "where": "src/codewiki/python/machine/normalize.py:1221"
@@ -24907,25 +24907,15 @@
   "uses": [],
   "where": "src/codewiki/python/runner/wiki/prep.py:59"
  },
- "codewiki.python.runner.wiki.prep.recorded_fingerprint": {
+ "codewiki.python.runner.wiki.prep.config_inputs": {
   "confidence": "HIGH",
-  "does": "collect-fingerprint.json 의 fingerprint 를 내되, 파일이 없거나 깨졌거나 codegraph_sha256 이 지금 codegraph.json 의 sha256 과 다르면 None 을 낸다.",
+  "does": "collector 가 clang-uml 일 때만 .clang-uml 과 findCompdbs 가 찾은 compile_commands 파일의 상대 경로와 내용 sha256 을 담고 그 밖이면 빈 dict 다. 못 여는 파일은 건너뛴다.",
   "kind": "function",
-  "means": "마지막으로 만든 지도의 지문을 읽는 함수.",
+  "means": "수집 결과를 바꾸는 대상 저장소의 설정 파일 해시를 모으는 함수.",
   "module": "codewiki.python.runner.wiki.prep",
   "source": "reading",
   "uses": [],
-  "where": "src/codewiki/python/runner/wiki/prep.py:71"
- },
- "codewiki.python.machine.normalize.write_json_atomic": {
-  "confidence": "HIGH",
-  "does": "같은 폴더에 mkstemp 로 임시 파일을 만들어 json.dump(ensure_ascii=False, indent=2) 하고 os.replace 로 바꿔 끼운다. 도중 예외면 임시 파일을 지우고 다시 던진다.",
-  "kind": "function",
-  "means": "JSON 을 반쪽 파일 없이 쓰는 함수.",
-  "module": "codewiki.python.machine",
-  "source": "reading",
-  "uses": [],
-  "where": "src/codewiki/python/machine/normalize.py:1187"
+  "where": "src/codewiki/python/runner/wiki/prep.py:65"
  },
  "codewiki.python.machine.jsonio.write_json_atomic": {
   "confidence": "HIGH",
@@ -24936,6 +24926,96 @@
   "source": "reading",
   "uses": [],
   "where": "src/codewiki/python/machine/jsonio.py:7"
+ },
+ "codewiki.python.machine.collect_manifest.CollectManifest": {
+  "confidence": "HIGH",
+  "does": "수집기 지문(fingerprint) · 바깥 도구 판(tool_versions) · 설정 입력(config_inputs) · 지도 sha256 · 인용 파일별 소스 sha256(sources)과 그 묶음 해시(sources_sha256) · 원본 출처(raw_provenance) · generation_id 를 담는다. generation_id 가 지도 · 소스 · 수집기 셋을 한 이름으로 묶는다.",
+  "kind": "class",
+  "means": "한 번의 수집을 적은 manifest 의 꼴.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:8"
+ },
+ "codewiki.python.machine.collect_manifest.file_sha256": {
+  "confidence": "HIGH",
+  "does": "파일을 바이트 그대로 읽어 sha256 16진 문자열을 낸다. 없거나 못 열면 None 이다.",
+  "kind": "function",
+  "means": "파일의 바이트 sha256 을 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:20"
+ },
+ "codewiki.python.machine.collect_manifest.cited_files": {
+  "confidence": "HIGH",
+  "does": "codegraph.json 을 열어 nodes 와 edges 의 file 이 문자열인 것만 중복 없이 모아 이름순 목록으로 낸다.",
+  "kind": "function",
+  "means": "지도가 인용한 파일 목록을 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:29"
+ },
+ "codewiki.python.machine.collect_manifest.hash_sources": {
+  "confidence": "HIGH",
+  "does": "저장소 아래 파일마다 sha256 을 {상대 경로: sha} 로 낸다. 없거나 못 여는 파일은 \"missing\" 이다.",
+  "kind": "function",
+  "means": "인용 파일마다 지금 내용의 해시를 내는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:41"
+ },
+ "codewiki.python.machine.collect_manifest.sources_digest": {
+  "confidence": "HIGH",
+  "does": "상대 경로 이름순으로 `경로=해시` 줄을 이어 붙여 sha256 한다. 파일 하나의 이름이나 내용이 달라져도 값이 달라진다.",
+  "kind": "function",
+  "means": "파일별 해시를 하나의 해시로 묶는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:46"
+ },
+ "codewiki.python.machine.collect_manifest.generation_id": {
+  "confidence": "HIGH",
+  "does": "수집기 지문 · 지도 sha256 · 소스 묶음 해시를 줄바꿈으로 이어 sha256 한다. 셋 중 하나만 달라도 다른 세대다.",
+  "kind": "function",
+  "means": "수집 한 번에 붙이는 세대 이름을 짓는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:54"
+ },
+ "codewiki.python.machine.collect_manifest.build_manifest": {
+  "confidence": "HIGH",
+  "does": "지도 파일의 sha256 과 인용 파일의 지금 해시(hash_sources · sources_digest)를 재고 generation_id 를 붙여 CollectManifest 를 낸다. collector 가 roslyn-dump 면 원본이 prep 밖에서 나므로 raw_provenance 가 unknown 이고 아니면 prep 이다.",
+  "kind": "function",
+  "means": "수집 직후의 manifest 를 짓는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:59"
+ },
+ "codewiki.python.machine.collect_manifest.read_manifest": {
+  "confidence": "HIGH",
+  "does": "파일이 없거나 JSON 이 깨졌거나 필수 칸이 빠졌거나 기록된 codegraph_sha256 이 지금 지도의 sha256 과 다르면 None 을 낸다. 다시 수집하라는 뜻이다.",
+  "kind": "function",
+  "means": "기록된 manifest 를 읽는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:74"
+ },
+ "codewiki.python.machine.collect_manifest.changed_sources": {
+  "confidence": "HIGH",
+  "does": "manifest 의 sources 에 적힌 파일을 지금 다시 해시해 기록과 다른 것을 이름순으로 낸다. 없어진 파일도 든다.",
+  "kind": "function",
+  "means": "manifest 가 적은 파일 가운데 내용이 달라진 것을 고르는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/collect_manifest.py:90"
  },
  "codewiki.python.machine.verify_graph.Fault": {
   "confidence": "HIGH",
@@ -25097,6 +25177,16 @@
   "uses": [],
   "where": "src/codewiki/python/machine/verify_graph.py:233"
  },
+ "codewiki.python.machine.verify_graph.check_manifest": {
+  "confidence": "HIGH",
+  "does": "manifest 경로가 없거나 파일이 없거나 못 읽으면 freshness-unknown 하나와 상태 missing 을 낸다. 기록된 codegraph_sha256 이 지금 지도와 다르면 generation-mismatch 와 상태 mismatch 를 낸다. 맞으면 인용 파일의 지금 해시를 기록과 견줘 기록에 없는 파일이나 해시가 다른 파일마다 source-drift 를 내고 상태는 ok 다.",
+  "kind": "function",
+  "means": "최신성 — 수집 manifest 가 이 지도의 것이고 인용 파일이 수집 때와 같은지 검사하는 함수.",
+  "module": "codewiki.python.machine",
+  "source": "reading",
+  "uses": [],
+  "where": "src/codewiki/python/machine/verify_graph.py:335"
+ },
  "codewiki.python.machine.verify_graph._text": {
   "confidence": "HIGH",
   "does": "d 가 있고 d[key] 가 str 이면 그것을, 아니면 None 을 낸다.",
@@ -25239,7 +25329,7 @@
  },
  "codewiki.python.runner.mode1.graph.VerifiedGraph.gate": {
   "confidence": "HIGH",
-  "does": "성공 기록이 없거나 전수조사에 맞지 않거나 지도가 검사 뒤에 바뀌었거나, need_batches 일 때 배치에 지금 지도의 지문이 없으면 이유를 내고 모두 맞으면 빈 문자열을 낸다. 해시를 낸 바이트를 함께 돌려줘 호출자가 같은 바이트를 파싱하게 한다.",
+  "does": "성공 기록이 없거나 전수조사에 맞지 않거나 지도가 검사 뒤에 바뀌었거나, need_batches 일 때 배치가 없거나 배치에 찍힌 지도 지문(codegraph_sha256)이나 generation_id 가 성공 기록과 다르면 이유를 내고 모두 맞으면 빈 문자열을 낸다. 해시를 낸 바이트를 함께 돌려줘 호출자가 같은 바이트를 파싱하게 한다.",
   "kind": "method",
   "means": "단계를 막을 이유와 지금 지도의 바이트를 내는 메서드.",
   "module": "codewiki.python.runner.mode1.graph",

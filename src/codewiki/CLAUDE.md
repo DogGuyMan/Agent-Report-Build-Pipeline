@@ -327,10 +327,10 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
 - **Note — 자기호스팅 코드 지도에는 시험이 없다.** `report-wiki prep` 은 최상위 `test/` 를 건너뛴다. 시험이
   `test/` 로 모인 2026-10-31 부터 `resource/codewiki/terms-reading.json` 의 시험 기호 레코드(약 600)는 지도에 노드가 없어
   "근거 없음" 으로 나온다 — 실패가 아니다.
-- **Note — `out/codegraph-raw/collect-fingerprint.json` 이 재수집을 정한다.** 수집 코드(`prep.py` 의 `COLLECT_CODE`) 내용과 수집기 판의 지문이 다르거나
-  지도가 그 지문을 쓸 때의 지도가 아니면, 소스가 그대로여도 `prep` 이 다시 수집한다. 다시 수집하기로 하면 옛 지도와 지문부터 지우고,
-  지도는 임시 파일을 거쳐 바꿔 끼운다(`normalize.write_json_atomic`).
-- **Note — `verify-graph` 가 보장하는 것은 "열리고 · 열쇠가 맞고 · 안에서 어긋나지 않고 · 인용한 파일이 저장소 안에 그 줄 수 이상으로 있다" 까지다.**
-  같은 줄의 내용이 바뀐 것은 보지 않는다(2026-11-13 계획 2단계 `source-drift` 가 더한다). `schedule-batches` 는 `graph-verified.json` 의 `codegraph_sha256` 이 지금 지도와 같을 때만 돈다.
-  결과 문서는 `integrity` · `freshness` · `coverage` · `capabilities` 네 절과 `checks_run` · `fit` 을 갖고, `schedule-batches` · `annotate-symbols` · `outline-wiki` · `write-wiki` 는 `VerifiedGraph.gate` 로 같은 기록을 대조한다.
+- **Note — `collect-fingerprint.json` 은 수집 manifest 다** — 수집 코드 · 수집기 판 · `.clang-uml` · `compile_commands.json` 의 지문, 지도 sha, 인용한 파일마다의 소스 sha, 그 셋을 묶은 `generation_id`, 원본 출처(`prep` · roslyn 은 `unknown`).
+  지문이나 인용 파일의 내용이 다르면 `--diff` 없이도 `prep` 이 다시 수집한다. `verify-graph` 는 이 manifest 와 대조해 `source-drift` · `generation-mismatch` · `freshness-unknown` 을 낸다.
+  재수집하기로 하면 옛 지도 · manifest · 성공 기록 · 결함 파일부터 지우고, 지도와 manifest 는 임시 파일을 거쳐 바꿔 끼운다(`jsonio.write_json_atomic`).
+- **Note — `verify-graph` 가 보장하는 것은 "열리고 · 열쇠가 맞고 · 안에서 어긋나지 않고 · 인용한 파일이 저장소 안에 그 줄 수 이상으로 있고 · 그 파일의 바이트가 수집 때와 같다" 까지다.**
+  같은 줄의 내용이 바뀐 것은 인용한 파일의 sha 를 manifest 의 소스 sha 와 대조해 `source-drift` 로 잡는다. `schedule-batches` 는 `graph-verified.json` 의 `codegraph_sha256` 이 지금 지도와 같을 때만 돈다.
+  결과 문서는 `integrity` · `freshness` · `coverage` · `capabilities` 네 절과 `checks_run` · `fit` 을 갖고, `schedule-batches` · `annotate-symbols` · `outline-wiki` · `write-wiki` 는 `VerifiedGraph.gate` 로 같은 기록을 대조하며 배치의 `codegraph_sha256` · `generation_id` 도 성공 기록과 같아야 한다.
   검사가 실패하면 `out/codegraph-raw/graph-faults.json` 과 `graph-handoff.md` 가 남고, `--resume` 은 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).
