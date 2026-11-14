@@ -95,7 +95,8 @@ class VerifiedGraph:
     def gate(ctx: Mode1Context, need_batches: bool, need_ranking: bool = False) -> tuple[str, bytes]:
         """막힐 이유(빈 문자열이면 통과)와 지금 지도의 바이트. 해시를 낸 바이트를 그대로 파싱해야 바꿔 끼우기 경쟁이 없다.
 
-        `need_batches` 면 `batches.json` 이 지금 지도의 지문을 갖는지도 본다. `need_ranking` 은 받기만 하고 보지 않는다.
+        `need_batches` 면 `batches.json` 이 지금 지도의 지문과 성공 기록의 generation 을 갖는지도 본다.
+        `need_ranking` 은 받기만 하고 보지 않는다.
         """
         verified = X.GRAPH_VERIFIED.locate(ctx)
         if not os.path.exists(verified):
@@ -118,6 +119,8 @@ class VerifiedGraph:
             plan = P.load(batches, survey_plan.SurveyPlan)
             if plan.get("codegraph_sha256") != now:
                 return "배치가 지금 지도의 것이 아니다 — schedule-batches 부터 다시 돌린다", raw
+            if plan.get("generation_id") != doc["generation_id"]:
+                return "배치의 generation 이 성공 기록과 다르다 — schedule-batches 부터 다시 돌린다", raw
         return "", raw
 
 
@@ -188,6 +191,7 @@ class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
         else:
             ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
         ctx.plan["codegraph_sha256"] = hashlib.sha256(raw).hexdigest()
+        ctx.plan["generation_id"] = P.load(X.GRAPH_VERIFIED.locate(ctx), X.GraphVerifiedDoc)["generation_id"] or ""
         out_path = X.BATCHES.locate(ctx)
         jsonio.write_json_atomic(out_path, ctx.plan, indent=1)
         print("%s%s" % (out_path, " (증분: %d파일)" % len(only) if only else ""))

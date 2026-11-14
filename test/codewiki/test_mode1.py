@@ -15,6 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "runner"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "machine"))
+import collect_manifest as CM  # noqa: E402
 import manifest as MF  # noqa: E402
 from core import measure as M  # noqa: E402
 from core import pipeline as P  # noqa: E402
@@ -39,17 +40,17 @@ def _ctx(tmp_path: Path) -> X.Mode1Context:
     return X.Mode1Context(root="/r", model="m", repo=str(tmp_path))
 
 
-def _verified(c: X.Mode1Context) -> None:
+def _verified(c: X.Mode1Context, generation_id: str = "g1") -> None:
     """지도를 검사를 지난 것으로 둔다 — schedule-batches 는 성공 기록의 sha256 이 지금 지도와 같아야 돈다."""
     with open(X.CODEGRAPH.locate(c), "rb") as f:
         sha = hashlib.sha256(f.read()).hexdigest()
     with open(X.GRAPH_VERIFIED.locate(c), "w", encoding="utf-8") as f:
-        json.dump({"status": "passed", "codegraph_sha256": sha, "generation_id": None,
+        json.dump({"status": "passed", "codegraph_sha256": sha, "generation_id": generation_id,
                    "checks_run": ["V0", "V1", "V2", "V3"], "fit": {"survey": "ready", "blocked_by": []}}, f)
 
 
 def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> None:
-    """`VerifiedGraph.gate` 를 지나는 입력을 깐다 — 지도(없으면 빈 지도), 그 지도의 성공 기록, 지도의 지문을 찍은 배치.
+    """`VerifiedGraph.gate` 를 지나는 입력을 깐다 — 지도(없으면 빈 지도), 그 지도의 성공 기록, 지도의 지문과 generation 을 찍은 배치.
 
     배치는 `plan`, 없으면 디스크의 `batches.json`, 그것도 없으면 `c.plan`, 그것도 없으면 빈 계획이다.
     """
@@ -64,6 +65,7 @@ def _gated(c: X.Mode1Context, plan: survey_plan.SurveyPlan | None = None) -> Non
         plan = P.load(batches, survey_plan.SurveyPlan) if os.path.exists(batches) else (c.plan or _empty_plan())
     with open(cg, "rb") as f:
         plan["codegraph_sha256"] = hashlib.sha256(f.read()).hexdigest()
+    plan["generation_id"] = P.load(X.GRAPH_VERIFIED.locate(c), X.GraphVerifiedDoc)["generation_id"] or ""
     with open(batches, "w", encoding="utf-8") as f:
         json.dump(plan, f)
 
@@ -238,6 +240,7 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
     assert out.kind == P.OK and seen["only"] == ["x.py"] and c.plan is not None
     assert (raw / "batches.json").exists()
     assert G.VerifiedGraph.gate(c, need_batches=True)[0] == ""      # 배치에 지도의 지문이 찍혀 있다
+    assert c.plan.get("generation_id") == "g1"                      # 성공 기록의 generation 도 찍혀 있다
 
 
 def test_계획_요약은_층과_합계를_낸다():
@@ -2106,6 +2109,8 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
             "repo_commit": None, "edges": [], "modules": [{"id": "a", "depends_on": []}],
             "nodes": [{"id": "C1", "name": "a.f", "kind": "function", "module": "a", "file": "a.py", "line": 1}]}
     (raw / "codegraph.json").write_text(json.dumps(good), encoding="utf-8")
+    manifest = CM.build_manifest("fp", {}, X.CODEGRAPH.locate(ctx), ctx.repo, "griffe+pycalls")
+    Path(X.COLLECT_FINGERPRINT.locate(ctx)).write_text(json.dumps(manifest), encoding="utf-8")
     assert st.perform(ctx).kind == P.OK
     assert not handoff.exists() and not Path(X.GRAPH_FAULTS.locate(ctx)).exists()
     assert Path(X.GRAPH_VERIFIED.locate(ctx)).exists()
@@ -2160,6 +2165,15 @@ def test_검문은_배치가_없거나_지도의_지문이_없으면_막는다(t
     assert G.VerifiedGraph.gate(c, need_batches=True)[0].startswith("배치가 없다")
     Path(X.BATCHES.locate(c)).write_text(json.dumps(_empty_plan()), encoding="utf-8")
     assert G.VerifiedGraph.gate(c, need_batches=True)[0].startswith("배치가 지금 지도의 것이 아니다")
+
+
+def test_검문은_배치의_generation_이_성공_기록과_다르면_막는다(tmp_path: Path) -> None:
+    c = _ctx(tmp_path)
+    _map_at(c, b'{"nodes": []}')
+    _gated(c)
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0] == ""
+    _verified(c, generation_id="g2")      # 지도는 그대로이고 수집 세대만 바뀌었다
+    assert G.VerifiedGraph.gate(c, need_batches=True)[0].startswith("배치의 generation")
 
 
 def test_검문은_모두_맞으면_빈_이유와_지금_지도의_바이트를_낸다(tmp_path: Path) -> None:
