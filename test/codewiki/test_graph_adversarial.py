@@ -63,7 +63,6 @@ def test_깨진_JSON_은_파이프라인에서도_결함_파일과_핸드오프�
     assert raw(repo, "graph-handoff.md").exists()
 
 
-@pytest.mark.xfail(strict=True, reason="Task 10")
 def test_줄_수_같은_소스_교체는_source_drift_다(repo: Path) -> None:
     cg = raw(repo, "codegraph.json")
     cg.write_text(json.dumps(graph()), encoding="utf-8")

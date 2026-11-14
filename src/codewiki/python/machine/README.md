@@ -399,13 +399,14 @@ codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결
 | `_items` | `(d: dict[str, object], key: str) -> list[object]` | `d[key]` 가 목록이면 그것을, 아니면 빈 목록을 낸다 — 목록이 아닌 것은 `check_top` 이 이미 셌다. |
 | `check_elements` | `(d: dict[str, object]) -> tuple[Elements, list[Fault]]` | V1 꼴(원소) — 원소마다 따로 계약 형(`Node` · `Edge` · `Module`)으로 바꿔 본다. 첫 오류에서 멈추지 않고 전부 모은다. |
 | `check_consistency` | `(el: Elements) -> list[Fault]` | V2 정합 — id 가 겹치지 않고, 간선이 있는 노드를 잇고, 외부 노드 규칙(R4 · R6)과 모듈 목록이 맞는가. |
-| `_line_count` | `(path: str) -> int \| None` | 파일의 줄 수. 일반 파일이 아니거나 못 열면 `None`. |
-| `check_sources` | `(el: Elements, repo: str) -> list[Fault]` | V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가. |
+| `_file_facts` | `(path: str) -> tuple[int, str] \| None` | 파일의 (줄 수, 바이트의 sha256). 일반 파일이 아니거나 못 열면 `None`. |
+| `check_sources` | `(el: Elements, repo: str) -> tuple[list[Fault], dict[str, str]]` | V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가. |
+| `check_manifest` | `(manifest_path: str \| None, sha: str, now: dict[str, str]) -> tuple[list[Fault], Literal['ok', 'missing', 'mismatch'], CollectManifest \| None]` | 최신성 — 수집 manifest 가 이 지도의 것이고, 인용 파일의 지금 바이트가 수집 시점과 같은가. |
 | `_text` | `(d: dict[str, object] \| None, key: str) -> str \| None` | `d[key]` 가 문자열이면 그것을, 아니면 `None`. |
 | `capabilities_of` | `(language: str \| None) -> Capabilities` | 언어(수집기)별로 지도가 주장할 수 있는 것. |
 | `section` | `(faults: list[Fault], name: str) -> SectionDoc` | 결함 중 이 절에 속한 것의 수와 코드별 수. |
-| `fit_of` | `(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit` | 전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)은 맞지 않는다. |
-| `verify` | `(path: str, repo: str \| None) -> VerifyDoc` | 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
+| `fit_of` | `(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit` | 전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)과 수집 manifest 와 맞지 않는 기록은 맞지 않는다. |
+| `verify` | `(path: str, repo: str \| None, manifest: str \| None = None) -> VerifyDoc` | 층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다. |
 | `_replace` | `(keep: str, drop: str, doc: VerifyDoc) -> None` | 다른 쪽 결과 파일을 먼저 지우고 이쪽을 쓴다 — 도중에 끊겨도 두 파일이 함께 남지 않는다. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` | `verify` 를 돌려 결과 파일 하나를 쓰고 다른 하나를 지운다. 통과면 0, 결함이면 1. |
 

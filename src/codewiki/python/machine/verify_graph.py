@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """verify_graph.py — codegraph.json 을 읽기 · 꼴 · 정합 · 근거 네 층으로 검사해 결함을 전부 모은다.
 
-    python3 verify_graph.py <codegraph.json> --faults <graph-faults.json> --passed <graph-verified.json> [--repo <저장소>]
+    python3 verify_graph.py <codegraph.json> --faults <graph-faults.json> --passed <graph-verified.json> [--repo <저장소>] [--manifest <collect-fingerprint.json>]
 
 결함이 없으면 `--faults` 를 지우고 `--passed` 를 쓴다(종료 0). 결함이 있으면 `--passed` 를 지우고 `--faults` 를 쓴다(종료 1).
-`--repo` 가 없으면 근거 층(V3)을 건너뛴다. 시각을 적지 않아 같은 입력이면 같은 바이트다.
+`--repo` 가 없으면 근거 층(V3)과 manifest 대조를 건너뛴다. `--manifest` 가 없거나 못 읽으면 최신성을 알 수 없다는 결함이다.
+시각을 적지 않아 같은 입력이면 같은 바이트다.
 """
 import argparse
 import hashlib
@@ -19,6 +20,7 @@ from typing import Literal, TypedDict, cast, get_type_hints
 import msgspec
 
 from codegraph_types import CodeGraph, Edge, Module, Node
+from collect_manifest import CollectManifest, sources_digest
 from jsonio import write_json_atomic
 
 # 결함 코드 -> 층. 표와 코드가 1대1이다(test_verify_graph.py 가 고정한다).
@@ -32,6 +34,7 @@ LAYER: dict[str, str] = {
     "first-party-location": "V2 정합", "module-list": "V2 정합", "module-dep": "V2 정합",
     "module-dep-mismatch": "V2 정합",
     "file-outside-repo": "V3 근거", "file-missing": "V3 근거", "line-out-of-range": "V3 근거",
+    "freshness-unknown": "V3 근거", "generation-mismatch": "V3 근거", "source-drift": "V3 근거",
 }
 # 노드의 kind. runner 의 RecordKind 안에 있어야 한다(test_mode1.py 가 대조한다).
 NODE_KINDS = frozenset({"function", "method", "class", "struct", "enum", "interface", "delegate", "record", "external"})
@@ -290,22 +293,26 @@ def check_consistency(el: Elements) -> list[Fault]:
     return out
 
 
-def _line_count(path: str) -> int | None:
-    """파일의 줄 수. 일반 파일이 아니거나 못 열면 `None`."""
+def _file_facts(path: str) -> tuple[int, str] | None:
+    """파일의 (줄 수, 바이트의 sha256). 일반 파일이 아니거나 못 열면 `None`."""
     if not os.path.isfile(path):
         return None
     try:
         with open(path, "rb") as f:
-            return sum(1 for _ in f)
+            raw = f.read()
     except OSError:
         return None
+    return raw.count(b"\n") + (1 if raw and not raw.endswith(b"\n") else 0), hashlib.sha256(raw).hexdigest()
 
 
-def check_sources(el: Elements, repo: str) -> list[Fault]:
-    """V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가."""
+def check_sources(el: Elements, repo: str) -> tuple[list[Fault], dict[str, str]]:
+    """V3 근거 — 노드와 간선의 `file` 이 저장소 안의 실제 파일이고 `line` 이 1 이상 그 파일 끝 이하인가.
+
+    결함과 함께, 연 파일마다 지금 바이트의 sha256(`{상대 경로: sha}`)을 낸다. 없는 파일은 들어 있지 않다.
+    """
     out: list[Fault] = []
     root = os.path.realpath(repo)
-    count: dict[str, int | None] = {}
+    facts: dict[str, tuple[int, str] | None] = {}
     places = ([("$.nodes[%d]" % i, n["file"], n["line"]) for i, n in el.nodes]
               + [("$.edges[%d]" % i, e["file"], e["line"]) for i, e in el.edges])
     for at, file, line in places:
@@ -315,14 +322,36 @@ def check_sources(el: Elements, repo: str) -> list[Fault]:
         if os.path.isabs(file) or os.path.commonpath([root, full]) != root:
             out.append(fault("file-outside-repo", at + ".file", "저장소 밖 경로 %r" % file))
             continue
-        if file not in count:
-            count[file] = _line_count(full)
-        n = count[file]
-        if n is None:
+        if file not in facts:
+            facts[file] = _file_facts(full)
+        got = facts[file]
+        if got is None:
             out.append(fault("file-missing", at + ".file", "파일이 없다: %s" % file))
-        elif line is not None and not 1 <= line <= n:
-            out.append(fault("line-out-of-range", at + ".line", "%d줄 — %s 는 %d줄이다" % (line, file, n)))
-    return out
+        elif line is not None and not 1 <= line <= got[0]:
+            out.append(fault("line-out-of-range", at + ".line", "%d줄 — %s 는 %d줄이다" % (line, file, got[0])))
+    return out, {rel: got[1] for rel, got in facts.items() if got is not None}
+
+
+def check_manifest(manifest_path: str | None, sha: str, now: dict[str, str]
+                   ) -> tuple[list[Fault], Literal["ok", "missing", "mismatch"], CollectManifest | None]:
+    """최신성 — 수집 manifest 가 이 지도의 것이고, 인용 파일의 지금 바이트가 수집 시점과 같은가."""
+    if manifest_path is None or not os.path.exists(manifest_path):
+        return [fault("freshness-unknown", "$", "수집 manifest 가 없다 — prep 이 지도를 만들었는지 알 수 없다")], "missing", None
+    try:
+        with open(manifest_path, "rb") as f:
+            m = msgspec.json.decode(f.read(), type=CollectManifest)
+    except (OSError, msgspec.DecodeError) as e:
+        return [fault("freshness-unknown", "$", "수집 manifest 를 읽을 수 없다: %s" % e)], "missing", None
+    if m["codegraph_sha256"] != sha:
+        return [fault("generation-mismatch", "$", "manifest 는 다른 지도(%s…)의 것이다" % m["codegraph_sha256"][:12])], "mismatch", m
+    out: list[Fault] = []
+    for rel in sorted(set(now) | set(m["sources"])):
+        then, cur = m["sources"].get(rel), now.get(rel, "missing")
+        if then is None:
+            out.append(fault("source-drift", "$.sources[%r]" % rel, "manifest 에 없는 파일을 인용한다"))
+        elif then != cur:
+            out.append(fault("source-drift", "$.sources[%r]" % rel, "수집 때 %s… 지금 %s…" % (then[:12], cur[:12])))
+    return out, "ok", m
 
 
 def _text(d: dict[str, object] | None, key: str) -> str | None:
@@ -347,19 +376,27 @@ def section(faults: list[Fault], name: str) -> SectionDoc:
 
 
 def fit_of(status: str, checks_run: list[str], freshness: FreshnessDoc, blocking: list[Fault]) -> Fit:
-    """전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)은 맞지 않는다."""
+    """전수조사에 들어갈 수 있는가. 구조만 본 기록(V3 없음)과 수집 manifest 와 맞지 않는 기록은 맞지 않는다."""
     why: list[str] = sorted({f["code"] for f in blocking})
     if "V3" not in checks_run:
         why.append("V3 를 돌리지 않았다 (--repo 없음)")
+    if freshness["manifest"] != "ok":
+        why.append("수집 manifest 와 맞지 않는다 (%s)" % freshness["manifest"])
     return {"survey": "ready" if status == "passed" and not why else "blocked", "blocked_by": why}
 
 
-def verify(path: str, repo: str | None) -> VerifyDoc:
-    """층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다."""
+def verify(path: str, repo: str | None, manifest: str | None = None) -> VerifyDoc:
+    """층을 차례로 돌려 결과 문서 하나를 낸다. 앞 층이 열지 못한 것은 뒤 층이 보지 않는다.
+
+    `repo` 가 있으면 근거 층 뒤에 수집 manifest 를 대조한다. `repo` 가 없으면 manifest 는 보지 않는다.
+    """
     doc, sha, faults = read_graph(path)
     checks = ["V0"]
     d = cast(dict[str, object], doc) if isinstance(doc, dict) else None
     el: Elements | None = None
+    now: dict[str, str] = {}
+    state: Literal["ok", "missing", "mismatch"] = "missing"
+    found: CollectManifest | None = None
     if not faults:
         faults = check_top(doc)
         checks.append("V1")
@@ -368,18 +405,25 @@ def verify(path: str, repo: str | None) -> VerifyDoc:
         faults = faults + more + check_consistency(el)
         checks.append("V2")
         if repo is not None:
-            faults = faults + check_sources(el, repo)
+            cited, now = check_sources(el, repo)
+            faults = faults + cited
             checks.append("V3")
+            drift, state, found = check_manifest(manifest, sha, now)
+            faults = faults + drift
+            if manifest is not None and os.path.exists(manifest):
+                checks.append("manifest")
     blocking = [f for f in faults if f["code"] not in REPORT_ONLY]
     status: Literal["passed", "failed"] = "failed" if blocking or d is None or el is None else "passed"
     fresh, cover = section(faults, "freshness"), section(faults, "coverage")
-    freshness: FreshnessDoc = {"faults": fresh["faults"], "counts": fresh["counts"], "manifest": "missing",
-                               "sources_sha256": None, "raw_provenance": "unknown"}
+    freshness: FreshnessDoc = {"faults": fresh["faults"], "counts": fresh["counts"], "manifest": state,
+                               "sources_sha256": sources_digest(now) if now else None,
+                               "raw_provenance": found["raw_provenance"] if found else "unknown"}
     coverage: CoverageDoc = {"faults": cover["faults"], "counts": cover["counts"], "inventory": "missing",
                              "files_total": 0, "collected": 0, "excluded": 0, "unsupported": 0, "failed": 0,
                              "no_symbols": 0, "languages_not_collected": []}
     language = _text(d, "language")
-    return {"status": status, "generation_id": None, "codegraph_sha256": sha or None,
+    return {"status": status, "generation_id": found["generation_id"] if found and state == "ok" else None,
+            "codegraph_sha256": sha or None,
             "language": language, "source_tool": _text(d, "source_tool"), "repo_commit": _text(d, "repo_commit"),
             "nodes": len(el.nodes) if el else 0, "edges": len(el.edges) if el else 0,
             "modules": len(el.modules) if el else 0, "checks_run": checks,
@@ -399,11 +443,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     """`verify` 를 돌려 결과 파일 하나를 쓰고 다른 하나를 지운다. 통과면 0, 결함이면 1."""
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("codegraph", help="검사할 codegraph.json")
-    ap.add_argument("--repo", default=None, help="근거 층(V3)의 기준 저장소. 없으면 V3 를 건너뛴다")
+    ap.add_argument("--repo", default=None, help="근거 층(V3)의 기준 저장소. 없으면 V3 와 manifest 대조를 건너뛴다")
+    ap.add_argument("--manifest", default=None, help="prep 이 쓴 collect-fingerprint.json. 없으면 freshness-unknown")
     ap.add_argument("--faults", required=True, help="결함이 있으면 쓰는 graph-faults.json")
     ap.add_argument("--passed", required=True, help="통과하면 쓰는 graph-verified.json")
     a = ap.parse_args(argv)
-    got = verify(a.codegraph, a.repo)
+    got = verify(a.codegraph, a.repo, a.manifest)
     if got["status"] == "passed":
         _replace(a.passed, a.faults, got)
         print("%s — 통과 · 노드 %d · 간선 %d · 모듈 %d" % (a.passed, got["nodes"], got["edges"], got["modules"]))

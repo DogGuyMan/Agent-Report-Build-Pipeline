@@ -25,6 +25,7 @@
 - **V2 정합** — 지도 안에서 서로 어긋난다(겹친 id · 끊긴 간선 · 외부 노드 규칙 · 모듈 목록). 정제의 접기 규칙 R1~R7 을 본다.
 - **V2 module-dep-mismatch** — `_assemble` 의 모듈 의존 유도(normalize.py)와 지도의 `depends_on` 이 다르다.
 - **V3 근거** — 노드 · 간선의 `file:line` 이 지금 저장소와 맞지 않는다. 지도가 낡았으면 다시 수집하면 사라진다.
+- **최신성 source-drift / generation-mismatch / freshness-unknown** — 지도를 만든 뒤 소스가 바뀌었거나, manifest 가 다른 지도의 것이거나, prep 밖에서 만든 지도다. 다시 수집하면 사라진다 — 검사를 완화하지 않는다.
 
 ## 보강 후보
 

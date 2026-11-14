@@ -9,6 +9,7 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path[:0] = [os.path.join(ROOT, "src"), os.path.join(ROOT, "src", "codewiki", "python", "machine")]
+import collect_manifest as CM  # noqa: E402
 import verify_graph as V  # noqa: E402
 
 Obj = dict[str, object]
@@ -51,8 +52,8 @@ def test_온전한_지도는_결함이_없다() -> None:
     assert _check(_graph()) == []
 
 
-def test_표는_네_층_스물넷_코드고_층마다_절이_있다() -> None:
-    assert len(V.LAYER) == 24
+def test_표는_네_층_스물일곱_코드고_층마다_절이_있다() -> None:
+    assert len(V.LAYER) == 27
     assert sorted(set(V.LAYER.values())) == ["V0 읽기", "V1 꼴", "V2 정합", "V3 근거"]
     assert set(V.LAYER.values()) <= set(V.SECTION_OF_LAYER)
     with pytest.raises(KeyError):
@@ -112,15 +113,19 @@ def test_V3_저장소_밖_없는_파일_줄_넘침(tmp_path: Path) -> None:
                       _node("C4", file="../밖.py"), _node("C5", file="/etc/passwd")],
                edges=[_edge("C1", "C2", line=0)], modules=[{"id": "pkg", "depends_on": []}])
     el, _ = V.check_elements(g)
-    assert _codes(V.check_sources(el, str(tmp_path))) == [
+    faults, shas = V.check_sources(el, str(tmp_path))
+    assert _codes(faults) == [
         "line-out-of-range", "file-missing", "file-outside-repo", "file-outside-repo", "line-out-of-range"]
+    assert shas == {"a.py": hashlib.sha256((tmp_path / "a.py").read_bytes()).hexdigest()}   # 연 파일만 든다
 
 
 def test_결과_파일은_한쪽만_남고_통과는_같은_바이트다(tmp_path: Path) -> None:
     (tmp_path / "a.py").write_text("def f():\n    return g()\ndef g():\n    return 1\n", encoding="utf-8")
     cg, faults, passed = tmp_path / "codegraph.json", tmp_path / "graph-faults.json", tmp_path / "graph-verified.json"
     cg.write_text(json.dumps(_graph()), encoding="utf-8")
-    argv = [str(cg), "--repo", str(tmp_path), "--faults", str(faults), "--passed", str(passed)]
+    manifest = tmp_path / "collect-fingerprint.json"
+    manifest.write_text(json.dumps(CM.build_manifest("fp", {}, str(cg), str(tmp_path), "griffe+pycalls")), encoding="utf-8")
+    argv = [str(cg), "--repo", str(tmp_path), "--manifest", str(manifest), "--faults", str(faults), "--passed", str(passed)]
     assert V.main(argv) == 0
     first = passed.read_bytes()
     assert json.loads(first)["status"] == "passed" and json.loads(first)["integrity"]["faults"] == 0
@@ -138,6 +143,62 @@ def test_결과_문서는_네_절과_수행_검사와_적합을_갖는다(tmp_pa
     assert doc["checks_run"] == ["V0", "V1", "V2"] and doc["fit"]["survey"] == "blocked"
     assert set(doc) >= {"integrity", "freshness", "coverage", "capabilities", "fit", "generation_id"}
     assert doc["capabilities"] == {"methods": True, "calls": True, "resolution": "heuristic"}
+
+
+def _mapped(tmp_path: Path) -> Path:
+    """`a.py` 와 그것을 인용하는 지도를 쓰고 지도의 자리를 낸다."""
+    (tmp_path / "a.py").write_text("def f():\n    return g()\ndef g():\n    return 1\n", encoding="utf-8")
+    cg = tmp_path / "codegraph.json"
+    cg.write_text(json.dumps(_graph()), encoding="utf-8")
+    return cg
+
+
+def _manifest(tmp_path: Path, cg: Path) -> Path:
+    """지금 지도와 소스로 수집 manifest 를 쓰고 그 자리를 낸다."""
+    m = tmp_path / "collect-fingerprint.json"
+    m.write_text(json.dumps(CM.build_manifest("fp", {}, str(cg), str(tmp_path), "griffe+pycalls")), encoding="utf-8")
+    return m
+
+
+def test_manifest_없음은_freshness_unknown_이고_적합하지_않다(tmp_path: Path) -> None:
+    cg = _mapped(tmp_path)
+    for manifest in (None, str(tmp_path / "없음.json")):
+        doc = V.verify(str(cg), str(tmp_path), manifest=manifest)
+        assert doc["status"] == "failed" and doc["freshness"]["counts"] == {"freshness-unknown": 1}
+        assert doc["freshness"]["manifest"] == "missing" and doc["generation_id"] is None
+        assert "manifest" not in doc["checks_run"]
+        assert doc["fit"]["survey"] == "blocked" and "freshness-unknown" in doc["fit"]["blocked_by"]
+
+
+def test_옛_꼴의_manifest_는_읽을_수_없어_freshness_unknown(tmp_path: Path) -> None:
+    cg = _mapped(tmp_path)
+    old = tmp_path / "collect-fingerprint.json"
+    old.write_text(json.dumps({"fingerprint": "f", "codegraph_sha256": hashlib.sha256(cg.read_bytes()).hexdigest()}),
+                   encoding="utf-8")
+    doc = V.verify(str(cg), str(tmp_path), manifest=str(old))
+    assert doc["freshness"]["counts"] == {"freshness-unknown": 1} and doc["freshness"]["manifest"] == "missing"
+
+
+def test_다른_지도의_manifest_는_generation_mismatch(tmp_path: Path) -> None:
+    cg = _mapped(tmp_path)
+    m = _manifest(tmp_path, cg)
+    cg.write_text(json.dumps(_graph(), indent=1), encoding="utf-8")   # 내용은 같고 바이트가 다르다
+    doc = V.verify(str(cg), str(tmp_path), manifest=str(m))
+    assert doc["status"] == "failed" and doc["freshness"]["counts"] == {"generation-mismatch": 1}
+    assert doc["freshness"]["manifest"] == "mismatch" and doc["generation_id"] is None
+
+
+def test_같은_줄_수의_다른_내용은_source_drift(tmp_path: Path) -> None:
+    cg = _mapped(tmp_path)
+    m = _manifest(tmp_path, cg)
+    want = json.loads(m.read_text(encoding="utf-8"))["generation_id"]
+    ok = V.verify(str(cg), str(tmp_path), manifest=str(m))
+    assert ok["status"] == "passed" and ok["generation_id"] == want and ok["freshness"]["manifest"] == "ok"
+    assert ok["checks_run"] == ["V0", "V1", "V2", "V3", "manifest"] and ok["fit"]["survey"] == "ready"
+    (tmp_path / "a.py").write_text("def f():\n    return 2\ndef g():\n    return 3\n", encoding="utf-8")
+    doc = V.verify(str(cg), str(tmp_path), manifest=str(m))
+    assert doc["status"] == "failed" and doc["freshness"]["counts"] == {"source-drift": 1}
+    assert doc["generation_id"] == want
 
 
 REAL = os.path.join(ROOT, "out", "codegraph-raw", "codegraph.json")

@@ -34,7 +34,7 @@ class CollectGraphStage(Mode1Machine):
         return [] if ctx.cold else [X.CHANGES]
 
     def writes(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
-        return [X.CODEGRAPH]
+        return [X.CODEGRAPH, X.COLLECT_FINGERPRINT]
 
 
 class VerifyGraphStage(P.PromptResource, Mode1Machine):
@@ -46,7 +46,7 @@ class VerifyGraphStage(P.PromptResource, Mode1Machine):
 
     def argv(self, ctx: Mode1Context) -> list[str]:
         return [sys.executable, os.path.join(ctx.root, "src", "codewiki", "python", "machine", "verify_graph.py"),
-                X.CODEGRAPH.locate(ctx), "--repo", ctx.repo,
+                X.CODEGRAPH.locate(ctx), "--repo", ctx.repo, "--manifest", X.COLLECT_FINGERPRINT.locate(ctx),
                 "--faults", X.GRAPH_FAULTS.locate(ctx), "--passed", X.GRAPH_VERIFIED.locate(ctx)]
 
     def reads(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]:
