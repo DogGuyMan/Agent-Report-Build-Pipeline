@@ -29,8 +29,10 @@
 | [`wiki/check.py`](wiki/check.py) | — |
 | [`wiki/clang_doc.py`](wiki/clang_doc.py) | — |
 | [`wiki/compdb.py`](wiki/compdb.py) | — |
+| [`wiki/derive.py`](wiki/derive.py) | 검사를 지난 지도에서 파생물을 만든다: facts/*.md · ranking.json · 모듈 그림. derive-facts 단계와 report-wiki prep 의 꼬리가 부른다. |
 | [`wiki/paths.py`](wiki/paths.py) | — |
 | [`wiki/prep.py`](wiki/prep.py) | — |
+| [`wiki/proc.py`](wiki/proc.py) | 자식 프로세스 하나를 돌리고, 죽으면 실패 기록을 남긴다. prep 과 derive 가 함께 쓴다. |
 
 ---
 
@@ -423,6 +425,17 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 
 ---
 
+## `derive.py`
+
+검사를 지난 지도에서 파생물을 만든다: facts/*.md · ranking.json · 모듈 그림. derive-facts 단계와 report-wiki prep 의 꼬리가 부른다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `derive_steps` | `(repo: str, paths: dict[str, str], py: str, generation_id: str) -> None` | facts → render-modules. ranking.json 에 generation_id 를 찍는다. |
+| `main` | `() -> int` |  |
+
+---
+
 ## `paths.py`
 
 
@@ -445,8 +458,17 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 | `config_inputs` | `(repo: str, collector: Optional[str]) -> dict[str, str]` | 수집 결과를 바꾸는 대상 저장소의 설정 파일 — 상대 경로 -> 내용 sha256. clang-uml 만 갖는다. |
 | `collect_fingerprint` | `(root: str, versions: dict[str, str], inputs: Optional[dict[str, str]] = None) -> str` | 수집 코드의 내용 · 바깥 수집기 판 · 설정 입력을 합친 sha256. 커밋 해시가 아니라 내용이라 커밋 전 수정도 잡는다. |
 | `needs_collect` | `(has_codegraph: bool, verdicts: dict[str, list[str]] \| None, force: bool = False, tool_changed: bool = False, source_changed: bool = False) -> bool` | 수집기를 다시 돌릴 것인가. |
-| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False, toolChanged: bool = False, sourceChanged: bool = False) -> dict[str, Any]` |  |
+| `prepPlan` | `(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool, verdicts: dict[str, list[str]] \| None = None, force: bool = False, toolChanged: bool = False, sourceChanged: bool = False, collectOnly: bool = False) -> dict[str, Any]` |  |
 | `pyRoots` | `(repo: str) -> list[str]` |  |
 | `excluded_files` | `(repo: str, collector: Optional[str], droppedCompdb: list[dict[str, Any]], compdbFiles: list[str]) -> dict[str, str]` | 수집 범위에서 빠지는 추적 파일과 그 사유. 파이썬은 `pyRoots` 밖이고, C++ 은 compile_commands 가 버렸거나 싣지 않은 것이다. |
-| `run` | `(cmd: str, args: list[str], cwd: Optional[str] = None) -> None` |  |
+
+---
+
+## `proc.py`
+
+자식 프로세스 하나를 돌리고, 죽으면 실패 기록을 남긴다. prep 과 derive 가 함께 쓴다.
+
+| 심볼 | 시그니처 | 하는 일 |
+|---|---|---|
+| `run` | `(step: str, cmd: str, args: list[str], cwd: Optional[str] = None, failure_path: Optional[str] = None) -> None` | stderr 를 화면에 흘리면서 끝 40줄을 쥔다. 종료 코드가 0 이 아니면 `collect-failure.json` 을 쓰고 그 코드로 끝낸다. |
 

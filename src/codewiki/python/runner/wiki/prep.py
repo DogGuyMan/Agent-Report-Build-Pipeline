@@ -15,6 +15,8 @@ if os.path.join(ROOT, "src") not in sys.path:
 from codewiki.python.runner.wiki.paths import wikiPaths, collectorFor, collectorFromSelect  # noqa: E402
 from codewiki.python.runner.wiki.compdb import findCompdbs, mergeEntries, relativeFiles, clangUmlConfig, readAuthorConfig  # noqa: E402
 from codewiki.python.runner.wiki.clang_doc import clangDocPath, clangDocArgs  # noqa: E402
+from codewiki.python.runner.wiki.derive import derive_steps  # noqa: E402
+from codewiki.python.runner.wiki.proc import run  # noqa: E402
 from codewiki.python.machine.jsonio import write_json_atomic  # noqa: E402
 from codewiki.python.machine.collect_manifest import build_manifest, changed_sources, cited_files, file_sha256, read_manifest  # noqa: E402
 from codewiki.python.machine.source_inventory import InventoryDoc, build_inventory, language_for, language_of, mark_no_symbols, tracked_files  # noqa: E402
@@ -31,10 +33,13 @@ COLLECT_CODE = (
     "src/codewiki/python/machine/jsonio.py",
     "src/codewiki/python/machine/collect_manifest.py",
     "src/codewiki/python/machine/source_inventory.py",
+    "src/codewiki/python/machine/lang_select.py",
     "src/codewiki/python/runner/wiki/prep.py",
     "src/codewiki/python/runner/wiki/compdb.py",
     "src/codewiki/python/runner/wiki/clang_doc.py",
     "src/codewiki/python/runner/wiki/paths.py",
+    "src/codewiki/python/runner/wiki/proc.py",
+    "src/codewiki/python/runner/wiki/derive.py",
 )
 
 
@@ -108,8 +113,8 @@ def needs_collect(has_codegraph: bool, verdicts: dict[str, list[str]] | None,
 
 def prepPlan(collector: Optional[str], hasCodegraph: bool, hasClangUmlConfig: bool, hasRoslynDump: bool, hasClangDoc: bool,
              verdicts: dict[str, list[str]] | None = None, force: bool = False,
-             toolChanged: bool = False, sourceChanged: bool = False) -> dict[str, Any]:
-    tail = ["facts", "render-modules"]
+             toolChanged: bool = False, sourceChanged: bool = False, collectOnly: bool = False) -> dict[str, Any]:
+    tail = [] if collectOnly else ["facts", "render-modules"]
     if not needs_collect(hasCodegraph, verdicts, force, toolChanged, sourceChanged):
         return {"steps": tail, "blocked": None}
     if collector == "clang-uml":
@@ -171,21 +176,17 @@ def excluded_files(repo: str, collector: Optional[str], droppedCompdb: list[dict
                 out.setdefault(rel, "not-in-compdb")
     return out
 
-def run(cmd: str, args: list[str], cwd: Optional[str] = None) -> None:
-    r = subprocess.run([cmd] + args, cwd=cwd)
-    if r.returncode != 0:
-        print(f"실패 — {cmd} {' '.join(args)}", file=sys.stderr)
-        sys.exit(r.returncode if r.returncode else 1)
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="정적 수집 → 코드 지도 → 사실 파일 · 모듈 그림")
     ap.add_argument("repo", help="저장소 경로")
     ap.add_argument("--diff", default=None, help="changes.json. 있으면 그 판정으로 재수집 여부를 정한다")
     ap.add_argument("--force", action="store_true", help="지도가 있어도 무조건 다시 수집한다 (전량)")
+    ap.add_argument("--collect-only", action="store_true", help="수집 · 정제만. 파생물은 derive-facts 단계가 검사 뒤에 만든다")
     a = ap.parse_args()
     repoArg = cast(str, a.repo)
     diffPath = cast(Optional[str], a.diff)
     force = bool(a.force)
+    collectOnly = bool(a.collect_only)
     verdicts: dict[str, list[str]] | None = None
     if diffPath:
         with open(diffPath, encoding="utf-8") as f:
@@ -204,6 +205,8 @@ if __name__ == "__main__":
         
     P = wikiPaths(repo)
     PY = pythonPath(ROOT, sys.platform, dict(os.environ))
+    if os.path.exists(P["failure"]):
+        os.remove(P["failure"])
     
     selectPath = os.path.join(P["raw"], "lang-select.json")
     fromSelect = None
@@ -228,6 +231,7 @@ if __name__ == "__main__":
         force=force,
         toolChanged=recorded is None or recorded["fingerprint"] != fingerprint,
         sourceChanged=bool(recorded and changed_sources(recorded, repo)),
+        collectOnly=collectOnly,
     )
     
     print(f"대상 {repo}")
@@ -244,6 +248,8 @@ if __name__ == "__main__":
 
     if plan["blocked"]:
         print(f"막힘 — {plan['blocked']}", file=sys.stderr)
+        write_json_atomic(P["failure"], {"status": "failed", "step": "plan", "argv": [sys.executable] + sys.argv,
+                                         "returncode": 1, "stderr_tail": [str(plan["blocked"])]}, indent=1)
         sys.exit(1)
         
     os.makedirs(P["raw"], exist_ok=True)
@@ -264,6 +270,7 @@ if __name__ == "__main__":
                 lists.append([])
         entries = mergeEntries(lists, repo, droppedCompdb)
 
+    manifest = recorded
     # 수집 전에 쓴다 — 수집이 죽어도 무엇을 모으려 했는지가 남는다.
     inventory: Optional[InventoryDoc] = None
     if "normalize" in plan["steps"]:
@@ -289,21 +296,21 @@ if __name__ == "__main__":
             )
             with open(cfg, "w", encoding="utf-8") as f:
                 f.write(cfg_content)
-            run("clang-uml", ["-c", cfg, "-g", "json"], repo)
+            run("clang-uml", "clang-uml", ["-c", cfg, "-g", "json"], repo, failure_path=P["failure"])
             
         elif step == "clang-doc":
             os.makedirs(docOutDir, exist_ok=True)
             if CLANG_DOC:
-                run(CLANG_DOC, clangDocArgs(
+                run("clang-doc", CLANG_DOC, clangDocArgs(
                     outDir=docOutDir, repo=repo, flags=authorFlags,
                     compdbPath=os.path.join(compdbDir, "compile_commands.json")
-                ), repo)
+                ), repo, failure_path=P["failure"])
             
         elif step == "griffe":
-            run(PY, ["-m", "griffe", "dump"] + [r.removeprefix("src/") for r in pyRoots(repo)] + ["-o", os.path.join(P["raw"], "griffe.json"), "-s", repo, "-s", os.path.join(repo, "src")], repo)
+            run("griffe", PY, ["-m", "griffe", "dump"] + [r.removeprefix("src/") for r in pyRoots(repo)] + ["-o", os.path.join(P["raw"], "griffe.json"), "-s", repo, "-s", os.path.join(repo, "src")], repo, failure_path=P["failure"])
             
         elif step == "pycalls":
-            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "pycalls.py")] + pyRoots(repo) + ["--repo", repo, "-o", os.path.join(P["raw"], "pycalls.json")])
+            run("pycalls", PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "pycalls.py")] + pyRoots(repo) + ["--repo", repo, "-o", os.path.join(P["raw"], "pycalls.json")], failure_path=P["failure"])
             
         elif step == "normalize":
             arg = []
@@ -317,22 +324,21 @@ if __name__ == "__main__":
             if "clang-doc" in plan["steps"]:
                 arg.extend(["--clang-doc", docOutDir])
                 
-            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"], "--report", P["report"]])
+            run("normalize", PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "normalize.py")] + arg + ["--repo", repo, "-o", P["codegraph"], "--report", P["report"]], failure_path=P["failure"])
             if inventory is not None:
                 mark_no_symbols(inventory, set(cited_files(P["codegraph"])))
                 write_json_atomic(P["inventory"], inventory, indent=1)
             # 끊겨 깨진 manifest 는 read_manifest 가 None 으로 읽어 다음에 다시 수집한다.
-            write_json_atomic(P["fingerprint"], build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs,
-                                                               inventory_sha256=file_sha256(P["inventory"]) or ""), indent=1)
-            
-        elif step == "facts":
-            detail = os.path.join(P["raw"], "roslyn-dump.json")
-            extra = ["--detail", detail] if os.path.exists(detail) else []
-            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "facts.py"), P["codegraph"], "--repo", repo] + extra + ["-o", P["raw"]])
-            
-        elif step == "render-modules":
-            run(PY, [os.path.join(ROOT, "src", "codewiki", "python", "viz", "render_modules.py"), P["codegraph"], "-o", os.path.join(P["raw"], "modules")])
+            manifest = build_manifest(fingerprint, versions, P["codegraph"], repo, collector, inputs,
+                                      inventory_sha256=file_sha256(P["inventory"]) or "")
+            write_json_atomic(P["fingerprint"], manifest, indent=1)
 
-    print("\n준비 끝. 다음은 사람(스킬)의 차례다:")
-    print(f"  재료  {P['raw']}/facts/ · {P['raw']}/ranking.json · {P['codegraph']}")
-    print(f"  산문  {P['wiki']}/  <- deep-wiki 스킬이 여기에 쓴다 (추적 경로)")
+    if manifest is not None and ("facts" in plan["steps"] or "render-modules" in plan["steps"]):
+        derive_steps(repo, P, PY, manifest["generation_id"])
+
+    if collectOnly:
+        print(f"\n수집 끝. facts · ranking.json · 모듈 그림은 검사를 지난 뒤 derive-facts 단계가 만든다 — 지도 {P['codegraph']}")
+    else:
+        print("\n준비 끝. 다음은 사람(스킬)의 차례다:")
+        print(f"  재료  {P['raw']}/facts/ · {P['raw']}/ranking.json · {P['codegraph']}")
+        print(f"  산문  {P['wiki']}/  <- deep-wiki 스킬이 여기에 쓴다 (추적 경로)")

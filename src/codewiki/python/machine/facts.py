@@ -7,7 +7,7 @@
 표는 전량을 낸다. 상한을 두는 곳은 표에 명시하고 총량을 함께 적는다.
 인용 형식은 deep-wiki 로컬 규격 `(path:line)` 이다 — 위키가 그대로 옮겨 적어야 L3 가 잴 수 있다.
 
-  facts.py <codegraph.json> --repo <저장소> [--detail <roslyn-dump.json>] [-o <출력디렉토리>]
+  facts.py <codegraph.json> --repo <저장소> [--detail <roslyn-dump.json>] [--generation <generation_id>] [-o <출력디렉토리>]
 
 --detail 은 C# 전용이다. 진입점 재료(unity.is_monobehaviour 등)는 codegraph.json 에 없고
 roslyn-dump.json 에만 있다.
@@ -21,6 +21,8 @@ from collections import Counter, defaultdict
 from typing import NotRequired, TypedDict
 
 import networkx as nx
+
+from jsonio import write_json_atomic
 
 HOTSPOT_TOP = 30   # hotspot 표의 표시 상한. 전체 수는 함께 적는다(no silent caps).
 
@@ -103,6 +105,7 @@ class Ranking(TypedDict):
     classes: list[ClassRow]
     modules: list[ModuleRow]
     hotspot: HotspotBlock
+    generation_id: NotRequired[str]
 
 
 class RoslynType(TypedDict):
@@ -217,6 +220,7 @@ def main() -> int:
     ap.add_argument("--repo", required=True)
     ap.add_argument("--detail", help="C# 전용 — roslyn-dump.json (unity 진입점 재료)")
     ap.add_argument("-o", "--out", help="출력 디렉토리. 기본: codegraph.json 옆")
+    ap.add_argument("--generation", default="", help="수집 generation_id — ranking.json 에 찍는다")
     a = ap.parse_args()
 
     g: CodeGraph = json.load(open(a.codegraph, encoding="utf-8"))
@@ -261,8 +265,10 @@ def main() -> int:
             "total_tracked_in_log": len(hotspot) if hotspot else 0,
         },
     }
+    if a.generation:
+        ranking["generation_id"] = a.generation
     rpath = os.path.join(base, "ranking.json")
-    json.dump(ranking, open(rpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    write_json_atomic(rpath, ranking, indent=1)
 
     # ── facts/modules.md
     lines = [f"# 모듈 사실 표 — {lang} ({commit})", "", HEAD_NOTE]

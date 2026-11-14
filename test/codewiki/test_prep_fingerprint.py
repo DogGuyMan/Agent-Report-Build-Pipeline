@@ -32,7 +32,8 @@ def _local_imports(path: Path) -> set[str]:
 
 
 def test_지문은_prep_와_normalize_가_import_하는_이_저장소_모듈을_전부_담는다() -> None:
-    want = _local_imports(MACHINE / "normalize.py") | _local_imports(Path(PREP))
+    want = (_local_imports(MACHINE / "normalize.py") | _local_imports(Path(PREP)) | _local_imports(MACHINE / "source_inventory.py")
+            | _local_imports(MACHINE / "collect_manifest.py"))
     want |= {"src/codewiki/python/machine/normalize.py", "src/codewiki/python/runner/wiki/prep.py"}
     assert want <= set(prep.COLLECT_CODE), sorted(want - set(prep.COLLECT_CODE))
 
@@ -145,12 +146,17 @@ def test_정제가_실패하면_옛_지도와_옛_지문이_남지_않는다(tmp
     assert not (raw / "collect-fingerprint.json").exists()
     assert not (raw / "normalize-report.json").exists()
     assert json.loads((raw / "source-inventory.json").read_text(encoding="utf-8"))["selected"] == "cs"   # 옛 것은 지워지고 수집 전에 쓴 새 것이 남는다
+    failure = json.loads((raw / "collect-failure.json").read_text(encoding="utf-8"))
+    assert failure["status"] == "failed" and failure["step"] == "normalize" and failure["returncode"] != 0
+    assert failure["stderr_tail"]
 
 
 def test_수집이_막혀도_옛_지도가_남지_않는다(tmp_path: Path) -> None:
     repo = _cs_repo(tmp_path)
     got = _run(repo, "--force")
     assert got.returncode == 1 and "막힘" in got.stderr
+    failure = json.loads((repo / "out" / "codegraph-raw" / "collect-failure.json").read_text(encoding="utf-8"))
+    assert failure["step"] == "plan" and failure["returncode"] == 1 and "roslyn-dump.json" in failure["stderr_tail"][0]
     assert not (repo / "out" / "codegraph-raw" / "codegraph.json").exists()
     assert not (repo / "out" / "codegraph-raw" / "normalize-report.json").exists()
     assert not (repo / "out" / "codegraph-raw" / "source-inventory.json").exists()
@@ -177,6 +183,8 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     inventory = json.loads(inv_path.read_text(encoding="utf-8"))
     assert inventory["selected"] == "py" and inventory["languages"]["py"]["collected"] is True
     assert rec["inventory_sha256"] == hashlib.sha256(inv_path.read_bytes()).hexdigest()
+    assert json.loads((raw / "ranking.json").read_text(encoding="utf-8"))["generation_id"] == rec["generation_id"]
+    assert not (raw / "collect-failure.json").exists()
 
     kept = inv_path.read_bytes()
     again = _run(repo)
@@ -189,6 +197,18 @@ def test_수집에_성공하면_지문을_남기고_지문이_다르면_다시_�
     assert "단계 griffe -> pycalls -> normalize" in third.stdout
     rec = json.loads((raw / "collect-fingerprint.json").read_text(encoding="utf-8"))
     assert rec["inventory_sha256"] == hashlib.sha256(inv_path.read_bytes()).hexdigest()
+    assert json.loads((raw / "ranking.json").read_text(encoding="utf-8"))["generation_id"] == rec["generation_id"]
+
+
+def test_collect_only_는_꼬리를_빼고_prep_은_넣는다() -> None:
+    full = prep.prepPlan("griffe+pycalls", True, False, False, False, force=True)
+    only = prep.prepPlan("griffe+pycalls", True, False, False, False, force=True, collectOnly=True)
+    assert full["steps"] == ["griffe", "pycalls", "normalize", "facts", "render-modules"]
+    assert only["steps"] == ["griffe", "pycalls", "normalize"]
+    assert prep.prepPlan("clang-uml", False, True, False, True, collectOnly=True)["steps"] == ["clang-uml", "clang-doc", "normalize"]
+    assert prep.prepPlan("roslyn-dump", False, False, True, False, collectOnly=True)["steps"] == ["normalize"]
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False)["steps"] == ["facts", "render-modules"]
+    assert prep.prepPlan("griffe+pycalls", True, False, False, False, collectOnly=True)["steps"] == []   # 다시 수집할 것이 없으면 꼬리 없이 아무것도 하지 않는다
 
 
 def test_소스_내용이_바뀌면_diff_없이도_다시_수집한다(tmp_path: Path) -> None:
