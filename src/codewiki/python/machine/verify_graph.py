@@ -511,7 +511,6 @@ def verify(path: str, repo: str | None, manifest: str | None = None, report: str
     """
     doc, sha, faults = read_graph(path)
     checks = ["V0"]
-    d = cast(dict[str, object], doc) if isinstance(doc, dict) else None
     el: Elements | None = None
     now: dict[str, str] = {}
     state: Literal["ok", "missing", "mismatch"] = "missing"
@@ -519,6 +518,7 @@ def verify(path: str, repo: str | None, manifest: str | None = None, report: str
     if not faults:
         faults = check_top(doc)
         checks.append("V1")
+    d = cast(dict[str, object], doc) if isinstance(doc, dict) else None
     if d is not None:
         el, more = check_elements(d)
         faults = faults + more + check_consistency(el)
