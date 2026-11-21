@@ -243,7 +243,7 @@ export CSHARP_REPO="$HOME/<...>/StickRushGame"
 ```
 
 🔵 2026-08-31 실측 — 변수 없이 (그때 `machine/` 에 있던) 기계 시험은 **188 통과 · 19 건너뜀**이다.
-건너뛰는 19개는 `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` 쪽 골든이라
+건너뛰는 21개는 `$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO` 쪽 골든이라
 그 저장소가 있어야 돈다. **건너뜀은 실패가 아니다.**
 
 **함정.** 골든 경로 상수는 값이 없을 때 빈 문자열이 되면 안 된다. `os.path.join("", "out/…")` 이

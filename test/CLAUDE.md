@@ -17,12 +17,12 @@ cd $REPO_ROOT
 .venv/bin/python -m pytest test/spec -q             # 한 mode
 .venv/bin/python -m pytest -k "링크" -q              # 이름으로 고르기
 npm test                                            # pretest 가 src/spec/typescript/lib.mjs 로 .tmp/ 에 lib.mjs 를 굽고 node --test
-GRAPHICS_REPO=… CSHARP_REPO=… .venv/bin/python -m pytest -q   # 골든 19개까지 돈다
+GRAPHICS_REPO=… CSHARP_REPO=… .venv/bin/python -m pytest -q   # 골든 21개까지 돈다
 ```
 
 ## 비직관적인 것 (Gotchas)
 
-- **건너뜀 19개는 실패가 아니다.** 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가 없어서다. 전부 `test/codewiki/` 쪽이다.
+- **건너뜀 21개는 실패가 아니다.** 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가 없어서다. 전부 `test/codewiki/` 쪽이다.
 - **pytest 설정 파일이 없다.** 저장소 루트에서 `test_*.py` 를 전부 모은다. 루트 밖에서 돌리면 import 경로가 어긋난다.
 - **시험 파일마다 자기 `sys.path` 를 넣는다.** 다른 시험이 먼저 넣은 폴더에 기대면 그 파일만 따로 돌릴 때 깨진다 — 위 표의 줄을 쓴다.
   코드는 `src/` 아래 있고 `src/` 는 패키지가 아니다 — `from core import …` · `from spec.python.viz.… import …` 는 `os.path.join(ROOT, "src")` 가 있어야 된다.

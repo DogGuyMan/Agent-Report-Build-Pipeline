@@ -47,3 +47,6 @@ docs/*
 **/skills/mcp-builder
 **/skills/microsoft-docs
 **/skills/podcast-generation
+
+# 확신도 관찰 세션 기록 — 기계 경로가 들어 있다
+.confidence/

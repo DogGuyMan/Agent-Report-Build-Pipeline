@@ -13,7 +13,7 @@
 | [`resource/CLAUDE.md`](resource/CLAUDE.md) | **코드가 읽기만 하는 것** — 프롬프트 · 결함 표 · 템플릿 · 골든 꼴 · 전수조사 레코드 · 설정값 `resource/codewiki/config.toml`(Mode 1 의 Model id · 비용 어림 `[estimate]` — 시작할 때 예상 비용 한 줄) · `resource/spec/config.toml`(Mode 2 의 Model 별명 `opus` · 원본 문서 자리 규칙). mode 별로 |
 | [`qa/CLAUDE.md`](qa/CLAUDE.md) | 저장소 규약 게이트 다섯과 실행기 측정값 |
 | `contracts/` · 설명 문서 `contract-mode1-artifacts.md`(git 밖 `docs/`) | **Mode 1 산출물 계약** — Mode 1 이 대상 저장소 `docs/codegraph/` 에 봉인하고(`src/codewiki/python/machine/manifest.py`) Mode 1.5 · 2 가 판정한다(`src/common/evidence.py`). 계약 JSON 은 형에서 생성한다(`tools/gen_contract.py`) |
-| [`test/CLAUDE.md`](test/CLAUDE.md) | 모듈 시험 — mode 별 폴더 · 건너뜀 19 의 이유 |
+| [`test/CLAUDE.md`](test/CLAUDE.md) | 모듈 시험 — mode 별 폴더 · 건너뜀 21 의 이유 |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 두 저장소에 걸친 구조 · 데이터 흐름 · 다이어그램 |
 | `docs/decisions/` | 결정 기록 — 디렉토리 정리(0014) |
 | `public.handoff/` | 세션을 넘겨 이어 갈 작업의 핸드오프와 조사 자료. `docs/` 와 달리 git 이 추적하고 공개되므로 기계별 경로와 비밀을 적지 않는다 |
@@ -33,14 +33,14 @@
 옛 저장소는 **CSS 의 출처**와 **장르 참고** 이상으로 쓰지 않는다. "정본" 은 *표기 규약의 기준*이라는
 뜻으로만 남고 옛 HTML 은 **"옛 출력"** 이라 부른다.
 
-## 이 저장소의 현재 상태 (🔵 2026-11-04 Mac 실측 — 커밋 · 테스트 · 타입 행. 나머지 행은 2026-09-13)
+## 이 저장소의 현재 상태 (🔵 2026-11-21 Mac 실측 — 커밋 · 테스트 · 타입 행. 나머지 행은 2026-09-13)
 
 파이프라인 `report-spec init` → `report-spec build` → `report-spec check` 가 실제 스펙 디렉토리에서 end-to-end 로 동작한다. (옛 이름 `report` 도 위임으로 계속 동작한다.)
 
 | 항목 | 실측값 |
 |---|---|
-| 측정 기준 커밋 / 태그 | `main` 병합 커밋 / `v1`(이 Mac 의 로컬 태그 — `7e73103` 을 가리키고 `origin` 에는 없다) — API 는 추가만이라 태그 그대로 |
-| 테스트 | `pytest` **875 통과 · 20 건너뜀**(`out/` 이 없는 새 클론은 하나 더 건너뛴다) · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만) |
+| 측정 기준 커밋 / 태그 | `main` `d02565f` / `v1`(이 Mac 의 로컬 태그 — `7e73103` 을 가리키고 `origin` 에는 없다) — API 는 추가만이라 태그 그대로 |
+| 테스트 | `pytest` **989 통과 · 22 건너뜀 · 2 xfail**(xfail 둘은 4단계가 고칠 반례다. `out/` 이 없는 새 클론은 더 건너뛴다) · `npm test` **8개**(JS 경계 `src/spec/typescript/svg.mjs` 만) |
 | 타입 | `tsc --noEmit` 통과 · `pyright` strict **0 errors** |
 | 컴포넌트 export | 17개 (보고서 블록 11개 + `Page` `Section` `EvidenceNote` + 용어집 3종) |
 | 빌드 산출물 `<script>` | 용어집 없으면 **0개**, 있으면 **1개**(용어 그래프 런타임 약 65KB) |
@@ -76,18 +76,18 @@ npm run typecheck        # tsc --noEmit (이 저장소의 src/spec/typescript/sr
 npm run typecheck:py     # pyright strict
 ```
 
-### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-11-04 Mac 실측 — 전부 초록)
+### 게이트 여섯 — 전부 초록이어야 한다 (🔵 2026-11-21 Mac 실측 — 전부 초록)
 
 | 게이트 | 명령 | 지금 |
 |---|---|---|
-| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 875 통과 · 20 건너뜀 |
+| 파이썬 시험 | `.venv/bin/python -m pytest -q` | 989 통과 · 22 건너뜀 · 2 xfail |
 | JS 시험 | `npm test` | 8 통과 |
 | TS 타입 | `npm run typecheck` | 통과 |
 | 파이썬 타입 | `npm run typecheck:py` | 0 errors |
 | README 표류 | `.venv/bin/python tools/gen_readme.py --check src/codewiki/python/runner src/codewiki/python/machine src/codewiki/python/viz src/term/python/runner src/spec/python/runner src/spec/python/viz src/core src/common tools` | 9개 일치 |
 | 환경 | `npm run doctor` | 필수 전부 있다 |
 
-**건너뜀은 실패가 아니다.** 19개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
+**건너뜀은 실패가 아니다.** 21개는 골든 저장소 환경변수(`$GRAPHICS_REPO` · `$CSHARP_REPO` · `$CPP_REPO`)가
 없어서고, 나머지는 입력이 없는 시험이다 — 위키 게이트(`docs/wiki/` 없음)와 이 기계의 코드 지도 시험
 (`out/codegraph-raw/codegraph.json` 없음 · `report-wiki prep .` 을 돌리면 돈다). 그래서 건너뜀 수는 새 클론과 prep 뒤가 다르다.
 
@@ -281,7 +281,7 @@ $GRAPHICS_REPO/doc/
   파일 템플릿의 자리표시는 `{{이름}}` 하나다.
   `qa/gates/test_prompt_resources.py` 가 막는다 — 긴 글(문자열 상수 · f-문자열)은 `codewiki` · `term` · `spec` · `core` · `common` · `tools` 의
   파이썬(시험 파일 제외)에서 찾고, 프롬프트 글은 전부 Jinja2 로 컴파일되어야 하며 줄 끝 공백과 `{#` 를 두지 않는다.
-- 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.**
+- 확신도는 🔵/🟡/💭 + 정수. **🔵는 이번 세션에서 실제로 읽은 file:line 또는 실제로 돌린 명령의 출력만 인정.** 표기의 계약(티어 구간 · 정수는 확률이 아님 · 주관 표지 💭 에는 숫자를 붙이지 않음)과 그 검사기는 `confidence-and-sourcing` 스킬의 것이다 — 이 저장소의 코드는 표기를 검사하지 않는다.
 - 결정은 `[제안됨]` 으로 먼저 기록하고 검증 후 승격.
 - 객관 사실과 💭 주관 판단을 한 문장에 섞지 않는다.
 - 구조 신설 제안 시 `design-decision-discipline` §2.5 의 4항목을 공개하고 §2.7 의 축을 선언한다.
