@@ -122,7 +122,7 @@ HEAD      구현 브랜치 codegraph-facts-generation 5e66a4b (2026-11-21) — m
 - [x] **J4 파생 산출물 단계의 실패는 수집 실패 기록에 적지 않는다.** `26284ea`
 - [x] **J5 `lang_select.count_sources` 가 `git ls-files -z` 로 세어 비 ASCII 경로를 빠뜨리지 않는다.** `35ef600`
 - [ ] **J6 재수출 · `NewType` 이름이 다른 Python 대상에서 미해결로 잡힌다.** 측정: `_pytest` 3 → 30 · networkx 1 → 14 · packaging 0 → 4 · pygments 0 → 1. 해소 규칙은 따로 설계한다
-- [ ] **J7 `.venv` 가 심볼릭 링크면 `run_mode1.py` 와 그것을 import 하는 시험이 자기를 끝없이 다시 실행한다.** `_bootstrap_venv` 가 `sys.prefix` 를 `<저장소>/.venv` 와 비교한다. 별도 작업 트리에서는 실제 venv 를 만든다
+- [x] **J7 `.venv` 가 심볼릭 링크면 `run_mode1.py` 와 그것을 import 하는 시험이 자기를 끝없이 다시 실행했다.** 원인: `_bootstrap_venv` 가 `sys.prefix` 를 `<저장소>/.venv` 와 절대경로로 견줬는데, 링크된 `.venv` 의 `sys.prefix` 는 링크가 가리키는 곳이다. 해법: realpath 로 견주고, 재실행은 표식 환경변수로 한 번만 한다 — 그 뒤에도 `.venv` 가 아니면 stderr 에 알리고 지금 해석기로 계속한다
 - [ ] **J8 `fit.blocked_by` 가 V3 를 못 돌린 이유를 언제나 `--repo 없음` 으로 적는다.** `--repo` 를 줬고 지도를 못 읽은 경우에도 그렇다. 문구를 바꿀지는 결정이 필요하다
 - [x] **J9 최종 시험에서 고친 넷.** pyright strict 오류(`45fdedf` · `412a770` · `56dbd31`)와 재개 시험의 픽스처(`5e66a4b`)
 

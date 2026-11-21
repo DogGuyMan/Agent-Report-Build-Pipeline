@@ -96,11 +96,11 @@ import sys
 
 
 def _bootstrap_venv() -> None:
-    """`.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다.
+    """`.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. 재실행은 한 번뿐이다.
 
-    survey_plan.py 가 networkx 를 곧장 import 하므로, 그 import 가 일어나기 전에
-    해석기 자체를 바꿔치기해야 한다. 재실행된 프로세스가 그대로 끝까지 돌고 끝나므로
-    별도의 "해제" 코드는 없다 — 다른 코드는 여전히 `sys.executable` 만 본다.
+    survey_plan.py 가 networkx 를 곧장 import 하므로, 그 import 가 일어나기 전에 해석기를 바꿔치기한다.
+    재실행된 프로세스는 표식 환경변수 `REPORT_VENV_REEXEC` 를 보고 다시 재실행하지 않는다.
+    그때도 `.venv` 가 아니면 stderr 에 한 줄을 남기고 지금 해석기로 계속한다.
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
     venv_dir = os.path.join(repo_root, ".venv")
@@ -108,13 +108,13 @@ def _bootstrap_venv() -> None:
         else os.path.join(venv_dir, "bin", "python3")
     if not os.path.exists(venv_python):
         return
-    # sys.executable 을 realpath 로 비교하면 안 된다 — .venv/bin/python3 는 시스템 파이썬
-    # 바이너리로 가는 심볼릭 링크라, realpath 를 풀면 venv 밖의 실제 경로와 같아져 버려서
-    # "이미 venv 안" 으로 오판하고 재실행을 건너뛴다. sys.prefix 는 pyvenv.cfg 로 정해지므로
-    # 심볼릭 링크를 풀지 않은 채로도 정확히 venv 인지 아닌지를 가른다.
-    if os.path.abspath(sys.prefix) == os.path.abspath(venv_dir):
+    # sys.executable 은 시스템 파이썬으로 가는 링크라 못 쓴다. sys.prefix 를 보되, `.venv` 가 링크일 수 있어 realpath 로 견준다.
+    reexecuted = os.environ.pop("REPORT_VENV_REEXEC", None) is not None
+    if os.path.realpath(sys.prefix) == os.path.realpath(venv_dir):
         return
-    os.execv(venv_python, [venv_python] + sys.argv)
+    if not reexecuted:
+        os.execve(venv_python, [venv_python] + sys.argv, {**os.environ, "REPORT_VENV_REEXEC": "1"})
+    print(f"run_mode1: .venv 로 재실행했지만 해석기가 {sys.prefix} 다 — 다시 실행하지 않고 계속한다", file=sys.stderr)
 
 
 _bootstrap_venv()

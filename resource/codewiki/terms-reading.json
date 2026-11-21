@@ -12030,7 +12030,7 @@
  },
  "codewiki.python.runner.run_mode1._bootstrap_venv": {
   "confidence": "HIGH",
-  "does": "저장소 뿌리 아래 .venv/bin/python3(윈도우면 .venv/Scripts/python.exe) 경로를 계산한다. 그 파일이 없으면 그냥 돌아간다. sys.prefix 를 venv 디렉터리와 절대경로로 비교해 이미 .venv 안이면 돌아간다. 아니면 os.execv 로 같은 인자(sys.argv)를 넘겨 .venv 파이썬으로 현재 프로세스를 통째로 바꿔치기한다.",
+  "does": "저장소 뿌리 아래 .venv/bin/python3(윈도우면 .venv/Scripts/python.exe) 경로를 계산한다. 그 파일이 없으면 그냥 돌아간다. sys.prefix 와 venv 디렉터리를 realpath 로 견줘 이미 .venv 안이면 돌아간다(.venv 가 심볼릭 링크여도 같다고 본다). 아니면 표식 환경변수 REPORT_VENV_REEXEC 를 실어 os.execve 로 같은 인자(sys.argv)의 .venv 파이썬으로 현재 프로세스를 통째로 바꿔치기한다. 표식을 달고 들어왔는데도 .venv 가 아니면 다시 재실행하지 않고 stderr 에 한 줄을 남긴 뒤 지금 해석기로 계속한다.",
   "kind": "function",
   "means": "지금 이 스크립트를 실행하는 파이썬이 .venv 안의 것인지 확인하고, 아니면 .venv 파이썬으로 갈아타서 처음부터 다시 실행하는 함수다.",
   "module": "codewiki.python.runner.run_mode1",

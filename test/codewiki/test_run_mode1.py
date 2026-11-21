@@ -8,6 +8,7 @@
 """
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -595,3 +596,34 @@ def test_배치_프롬프트의_범위_지시문이_같은_자리를_말한다()
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     p = R.survey_batch_prompt(root, root, _배치(), [], targets=["src/codewiki/python/machine/warmup.py"], total=39)
     assert "지난 조사 결과가 %s 에 이미 있다" % R.reading_path(root, root) in p
+
+
+def _linked_repo(tmp_path: Path) -> Path:
+    """`src` 와 `resource` 만 이 저장소로 이은 빈 저장소 뿌리. `.venv` 는 시험이 만든다."""
+    for name in ("src", "resource"):
+        (tmp_path / name).symlink_to(Path(ROOT, name))
+    return tmp_path
+
+
+def _help(repo: Path, python: Path) -> subprocess.CompletedProcess[str]:
+    """그 뿌리의 `run_mode1.py --help` 를 돌린다. 끝나지 않으면 `TimeoutExpired` 가 난다."""
+    script = repo / "src" / "codewiki" / "python" / "runner" / "run_mode1.py"
+    return subprocess.run([str(python), str(script), "--help"], cwd=repo, capture_output=True, text=True, timeout=60)
+
+
+def test_venv_가_심볼릭_링크여도_재실행이_끝난다(tmp_path: Path) -> None:
+    """`.venv` 가 링크면 `sys.prefix` 는 링크가 가리키는 곳이다. 그래도 `.venv` 안으로 본다."""
+    repo = _linked_repo(tmp_path)
+    (repo / ".venv").symlink_to(sys.prefix)
+    done = _help(repo, repo / ".venv" / "bin" / "python3")
+    assert done.returncode == 0 and "usage" in done.stdout
+    assert "다시 실행하지 않고" not in done.stderr
+
+
+def test_재실행_뒤에도_venv_가_아니면_다시_재실행하지_않는다(tmp_path: Path) -> None:
+    """`.venv/bin/python3` 가 다른 해석기로 가는 링크면 재실행해도 `sys.prefix` 가 `.venv` 가 되지 않는다."""
+    repo = _linked_repo(tmp_path)
+    (repo / ".venv" / "bin").mkdir(parents=True)
+    (repo / ".venv" / "bin" / "python3").symlink_to(Path(sys.prefix, "bin", "python3"))
+    done = _help(repo, Path(sys.executable))
+    assert "다시 실행하지 않고 계속한다" in done.stderr
