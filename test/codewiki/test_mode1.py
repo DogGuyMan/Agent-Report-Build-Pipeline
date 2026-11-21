@@ -2296,8 +2296,8 @@ def test_지도_검사_단계는_실패하면_핸드오프를_남기고_통과�
             "repo_commit": None, "edges": [], "modules": [{"id": "a", "depends_on": []}],
             "nodes": [{"id": "C1", "name": "a.f", "kind": "function", "module": "a", "file": "a.py", "line": 1}]}
     (raw / "codegraph.json").write_text(json.dumps(good), encoding="utf-8")
-    ledger = {"codegraph_sha256": hashlib.sha256((raw / "codegraph.json").read_bytes()).hexdigest(),
-              "language": "python", "source_tool": "t", "reasons": []}
+    ledger: dict[str, object] = {"codegraph_sha256": hashlib.sha256((raw / "codegraph.json").read_bytes()).hexdigest(),
+                                 "language": "python", "source_tool": "t", "reasons": []}
     Path(X.NORMALIZE_REPORT.locate(ctx)).write_text(json.dumps(ledger), encoding="utf-8")
     inventory = Path(X.SOURCE_INVENTORY.locate(ctx))
     inventory.write_text(json.dumps({"selected": "py", "files": {"a.py": {"language": "py", "status": "collected"}},
