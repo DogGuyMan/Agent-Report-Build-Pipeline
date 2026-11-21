@@ -7,6 +7,7 @@
 
 | 파일 | 하는 일 |
 |---|---|
+| [`__init__.py`](__init__.py) | — |
 | [`clang_doc.py`](clang_doc.py) | clang-doc 이 흩뿌린 JSON 을 평평한 심볼 목록 하나로 모은다. |
 | [`clangd_refs.py`](clangd_refs.py) | clangd 에 stdio JSON-RPC 로 직접 말해 역방향 참조를 받아온다 (E6). |
 | [`codegraph_types.py`](codegraph_types.py) | `codegraph.json`(schema_version 2) 의 계약을 적어 둔 한 곳. |

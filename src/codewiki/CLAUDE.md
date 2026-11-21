@@ -343,3 +343,4 @@ GRAPHICS_REPO=... CSHARP_REPO=... .venv/bin/python -m pytest test/codewiki -q
   결과 문서는 `integrity` · `freshness` · `coverage` · `capabilities` 네 절과 `checks_run` · `fit` 을 갖고, `schedule-batches` · `annotate-symbols` · `outline-wiki` · `write-wiki` 는 `VerifiedGraph.gate` 로 같은 기록을 대조하며 배치의 `codegraph_sha256` · `generation_id` 도 성공 기록과 같아야 한다.
   `source-inventory.json` 은 언어별 소스 파일 수와 파일마다의 수집 상태를 적고, `verify-graph` 는 수집하지 않은 언어(`language-not-collected`)와 고른 언어인데 지도가 인용하지 않는 파일(`coverage-gap`)을 범위 절에 기록만 하고 통과를 막지 않는다.
   검사가 실패하면 `out/codegraph-raw/graph-faults.json` 과 `graph-handoff.md` 가 남고, `--resume` 은 `collect-graph` 부터 다시 돈다(`mode1.edges.RESTART_AT`).
+- **Note — griffe 는 `__init__.py` 가 없는 폴더의 모듈을 싣지 않는다.** `src/` 아래에서 추적되는 `.py` 가 있는 폴더는 전부 패키지다. 빠지면 그 폴더의 형 별칭과 주석 간선이 지도에 실리지 않는다 — `test/codewiki/test_source_inventory.py` 의 `test_src_아래_파이썬_폴더는_전부_패키지다` 가 지킨다.

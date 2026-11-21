@@ -25,6 +25,7 @@
 | [`mode1/terms.py`](mode1/terms.py) | `verify-terms`. 읽기 레코드를 인용 검사하고 용어 DB 로 투영한다. |
 | [`mode1/wiki.py`](mode1/wiki.py) | `outline-wiki` · `write-wiki` · `publish-wiki` · `verify-wiki`. 산문을 쓰고 사이트로 짓고 대조한다. |
 | [`run_mode1.py`](run_mode1.py) | Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리고 단계마다 시간과 토큰을 재는 실행기. |
+| [`wiki/__init__.py`](wiki/__init__.py) | — |
 | [`wiki/build.py`](wiki/build.py) | — |
 | [`wiki/check.py`](wiki/check.py) | — |
 | [`wiki/clang_doc.py`](wiki/clang_doc.py) | — |

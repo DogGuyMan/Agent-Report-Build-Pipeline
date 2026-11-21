@@ -73,3 +73,11 @@ def test_이_저장소의_언어별_파일_수는_추적_파일을_따로_센_�
     assert {"cs", "py", "ts"} <= set(inv["languages"])
     assert {lang: row["files"] for lang, row in inv["languages"].items()} == {lang: n for lang, n in want.items() if n}
     assert len(inv["files"]) == sum(want.values())
+
+
+def test_src_아래_파이썬_폴더는_전부_패키지다() -> None:
+    """griffe 는 `__init__.py` 가 없는 폴더의 모듈을 싣지 않는다. 추적되는 `.py` 가 있는 `src/` 아래 폴더는 전부 그 파일을 갖는다."""
+    out = subprocess.run(["git", "ls-files", "-z", "--", "src"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    folders = {os.path.dirname(p) for p in out.split("\0") if p.endswith(".py")}
+    missing = sorted(d for d in folders if not os.path.isfile(os.path.join(ROOT, d, "__init__.py")))
+    assert not missing, missing
