@@ -5,6 +5,7 @@ import io
 import json
 import sys
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -18,16 +19,17 @@ import normalize  # noqa: E402
 import survey_plan  # noqa: E402
 import terms_db  # noqa: E402
 import verify_graph as V  # noqa: E402
+from codegraph_types import CodeGraph, Edge, Node  # noqa: E402
 from codewiki.python.runner.wiki import compdb, prep  # noqa: E402
 from core import pipeline as P  # noqa: E402
 from mode1 import context as X, edges as E, graph as G  # noqa: E402
 
 
-def node(id: str, name: str = "pkg.f", module: str = "pkg", file: str = "a.py") -> dict[str, object]:
+def node(id: str, name: str = "pkg.f", module: str = "pkg", file: str = "a.py") -> Node:
     return {"id": id, "name": name, "kind": "function", "module": module, "file": file, "line": 1}
 
 
-def graph() -> dict[str, object]:
+def graph() -> CodeGraph:
     return {"schema_version": 2, "language": "python", "platform": "linux", "source_tool": "probe",
             "repo_commit": None, "nodes": [node("C1")], "edges": [], "modules": [{"id": "pkg", "depends_on": []}]}
 
@@ -56,7 +58,7 @@ def test_깨진_JSON_은_파이프라인에서도_결함_파일과_핸드오프�
     ctx = ctx_for(repo)
     pipeline = E.build_mode1_graph(ctx, only=["verify-graph"], skip=None)
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        rows = P.Pipeline().run(pipeline, ctx)
+        rows = P.Pipeline[X.Mode1Context]().run(pipeline, ctx)
     assert rows[0]["ok"] is False
     doc = json.loads(raw(repo, "graph-faults.json").read_text(encoding="utf-8"))
     assert doc["total"] == 1 and doc["faults"][0]["code"] == "unreadable"   # Task 2 와 Task 4 의 꼴 양쪽에서 참
@@ -86,7 +88,7 @@ def test_V3_를_건너뛴_기록은_전수조사에_맞지_않는다(repo: Path)
 
 
 def test_annotate_only_는_성공_기록_없이_돌지_않는다(repo: Path) -> None:
-    raw(repo, "batches.json").write_text(json.dumps(survey_plan.plan(graph(), 8)), encoding="utf-8")
+    raw(repo, "batches.json").write_text(json.dumps(survey_plan.plan(cast(survey_plan.CodeGraph, graph()), 8)), encoding="utf-8")
     raw(repo, "codegraph.json").write_text("{", encoding="utf-8")
     ctx = ctx_for(repo)
     # annotate-symbols 가 graph-verified.json 을 읽는다고 선언하면 시뮬레이터의 산출물 사슬 검사가 시작 전에 막는다
@@ -157,9 +159,9 @@ def test_같은_파일의_두_컴파일_명령은_하나만_남고_장부에_남
 def test_자기_재귀_호출은_해소_실패가_아니다() -> None:
     nodes = {"C1": node("C1")}
     ids = {"pkg.f": "C1"}
-    edges: dict[tuple[str, str, str], dict[str, object]] = {}
+    edges: dict[tuple[str, str, str], Edge] = {}
     stats = normalize.Ledger()
-    normalize.merge_py_calls(nodes, ids, edges, {"symbols": [], "calls": [
+    normalize.merge_py_calls(nodes, ids, edges, {"tool": "probe", "symbols": [], "calls": [
         {"caller": "pkg.f", "callee": "pkg.f", "file": "a.py", "line": 1}]}, stats)
     assert edges == {} and stats["자기참조 버림"] == 1 and stats["호출 양끝 해소 실패"] == 0
 
@@ -168,9 +170,9 @@ def test_자기_재귀_호출은_해소_실패가_아니다() -> None:
 def test_호출이_타입_간선에_접혀도_호출_위치가_남는다() -> None:
     nodes = {"C1": node("C1"), "C2": node("C2", "pkg.g")}
     ids = {"pkg.f": "C1", "pkg.g": "C2"}
-    edges = {("C1", "C2", "dependency"): {"from": "C1", "to": "C2", "kind": "dependency",
-                                           "label": "type annotation", "file": "a.py", "line": 1}}
-    normalize.merge_py_calls(nodes, ids, edges, {"symbols": [], "calls": [
+    edges: dict[tuple[str, str, str], Edge] = {("C1", "C2", "dependency"): {
+        "from": "C1", "to": "C2", "kind": "dependency", "label": "type annotation", "file": "a.py", "line": 1}}
+    normalize.merge_py_calls(nodes, ids, edges, {"tool": "probe", "symbols": [], "calls": [
         {"caller": "pkg.f", "callee": "pkg.g", "file": "a.py", "line": 9}]}, normalize.Ledger())
-    e = edges[("C1", "C2", "dependency")]
-    assert e["occurrences"] == 2 and {"file": "a.py", "line": 9, "label": "호출"} in e["sites"]
+    e = cast(dict[str, object], edges[("C1", "C2", "dependency")])   # `sites` 는 계약 `Edge` 에 없는 열쇠다
+    assert e["occurrences"] == 2 and {"file": "a.py", "line": 9, "label": "호출"} in cast(list[object], e["sites"])
