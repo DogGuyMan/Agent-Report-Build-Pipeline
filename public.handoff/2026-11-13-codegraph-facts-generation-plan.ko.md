@@ -95,7 +95,7 @@
 | 🐞 F1 성공 기록 = 지도 sha 만(`verify_graph.py:59-68`); 같은 줄의 본문 변경이 통과; 계획 문구가 V3 를 과장 | `checks_run` · `fit`(1단계) · 수집 시점의 인용 파일별 `sources_sha256` → `source-drift`(2단계); 문구 정정(0단계) | 성공 기록이 지도 **와** 소스 바이트 **와** 수집기에 묶인다 | 같은 줄의 `def completely_different()` → `source-drift` 1 | ❌ |
 | 🐞 F4 `COLLECT_CODE`(`prep.py:24-30`) 에 `compdb.py` · 러너 `clang_doc.py` · `paths.py` 없음; 시험은 `normalize` import 만 봄; `--diff` 없는 직접 `report-wiki prep` 은 소스를 안 봄; C# `--force` 는 옛 덤프 재정제 | 지문 확대(코드 + `.clang-uml` + `compile_commands.json` 바이트); `needs_collect` 에 manifest `sources` 기반 `source_changed`; C# `raw_provenance: "unknown"` 보고 | `wiki/` 어디의 수집기 수정도 재수집; 소스 수정은 `--diff` 없이도 재수집 | `compdb.py` 바이트 변경 → 지문 다름 | ❌ |
 | 🐞 B1~B3 · C1 · C3 · C5 · C6(3단계 사양) | `Ledger` · `DROP_CLASS` · `normalize-report.json` · `CS_KIND.get` · `validate_raw` · `collect-failure.json` · `GraphFaultReport` · `derive-facts` | 버림이 분류되고 크래시가 결함이 되며 파생물은 검사 지난 지도에서 나온다 | 이 저장소: 미해결 0 · 결함 0(👍 S3) | ❌ |
-| 🐞 E1 · F8-coverage 소수 언어가 말없이 빠짐(이 저장소: py 125 · ts 13 · cs 1 추적) | ★ `source-inventory.json` 언어별 · 파일별 상태; coverage 절 + `language-not-collected` · `coverage-gap`(보고) | 수집 못 한 것이 성공 기록과 핸드오프에 있다 | 이 저장소 → `languages_not_collected: ["cs", "ts"]` | ❌ |
+| 🐞 E1 · F8-coverage 소수 언어가 말없이 빠짐(이 저장소: cpp 1 · cs 1 · ts 13 추적, py 는 git ls-files -z 로 센다) | ★ `source-inventory.json` 언어별 · 파일별 상태; coverage 절 + `language-not-collected` · `coverage-gap`(보고) | 수집 못 한 것이 성공 기록과 핸드오프에 있다 | 이 저장소 → `languages_not_collected: ["cpp", "cs", "ts"]` | ❌ |
 | 🐞 F7 `mergeEntries` 가 파일명으로 명령 하나만 남기고 상대 `file` 을 버림(`compdb.py:39-52`) | `file` 을 `directory` 기준으로 풀고 첫 설정만 남기며 나머지는 장부 | clang 규약에 맞고 버린 선택이 보인다 | 명령 2 → 항목 1 + `excluded(policy: duplicate-config)` 1 | ❌ |
 | 🐞 F6 타입 간선에 접힌 호출이 위치를 잃음; 재귀가 `호출 양끝 해소 실패` 로 셈(`normalize.py:1174`) | 3단계: 사유 `자기참조 버림(policy)`; 4단계: `Edge.sites` 가 발생 전부를 보존 | 사실이 보기 정책을 견딘다 | 4단계 | ❌ |
 | 🐞 F5 `terms_db` 가 `name` 으로 레코드 키를 잡음(`terms_db.py:134`); id 둘 · 이름 하나 → 레코드 하나 | 4단계: `symbol_id` 를 끝까지 결합 열쇠로; 이름은 표시 | 메서드 승격이 오버로드를 잃지 않는다 | 4단계 | ❌ |
@@ -164,7 +164,7 @@
 
 ## ⚠️ 알려진 한계 · 미검증
 
-- Task 2~24 의 어느 것도 이 세션에서 돌리지 않았다 — "⏭ 기대" 는 읽은 코드에서 낸 예측이다; 실측 둘은 재현된 반례 12건(🔵 바이트 동일 재실행)과 inventory 수 `cs 1 · py 125 · ts 13`(🔵 `git ls-files`).
+- Task 2~24 의 어느 것도 이 세션에서 돌리지 않았다 — "⏭ 기대" 는 읽은 코드에서 낸 예측이다; 실측 둘은 재현된 반례 12건(🔵 바이트 동일 재실행)과 inventory 수 `cs 1 · py 125 · ts 13`(`-z` 없는 `git ls-files` 라 비 ASCII 경로가 빠진 값 — 정본 끝 절이 대체).
 - 다른 `TypedDict` 를 **상속**한 `TypedDict`(`FreshnessDoc(SectionDoc)`)의 `msgspec` 디코딩 `[미검증]` — 거부하면 JSON 을 바꾸지 않고 칸을 펼친다.
 - `COLLECTOR[lang]` 은 `Lang` 리터럴 열쇠다; `source_inventory.build_inventory` 의 `# pyright: ignore` 는 대안이고 `cast(Lang, lang)` 하나가 낫다.
 - 네 단계의 `reads` 에 `GRAPH_VERIFIED` · `CODEGRAPH` · `RANKING` 을 더하면 시뮬레이터 ⑤ 산출물 사슬 검사가 `--only` 실행에 요구하는 것이 바뀐다(`--only annotate-symbols` 는 디스크의 성공 기록을 요구). 이것이 F3 의 의도다; 옛 허용을 못박은 `test_mode1.py` 시험이 있으면 **그 시험의 기대**를 고친다 — 구멍을 못박은 시험이었다.
@@ -173,3 +173,13 @@
 - 4단계 `Edge.sites` 와 6단계 `languages` 는 `codegraph_types.py` 를 바꾼다; 둘 다 Task 시작 전에 diff 를 보인다(👍 2026-11-04 규칙).
 - 이 기계의 로컬 `out/` 은 2026-09-19 것이다(🔵 11-13 교차 점검); Task 25 의 첫 `prep` 은 재수집한다 — 기대된 일이다. 교차 점검의 "로컬 `resume.json` 으로 `--resume` 하지 말라" 는 Task 25 에도 적용된다: `--cold` · `--only` 만.
 - 이 번역본은 **요약**이다(👍 2026-11-13 한 건 예외). Q6' 이 전역 규칙을 유지하면 그때 확장한다.
+
+## ➕ 승인 뒤에 더한 것 (2026-11-14 ~ 2026-11-21)
+
+| 커밋 | 무엇 | 왜 |
+|---|---|---|
+| `19eac4b` | 1차 모듈 아래의 점 이름을 외부 노드로 접지 않고 `이름 해소 실패` 로 센다 | 사용자 결정 — 1차 모듈이 외부 노드로 나타나서는 안 된다 |
+| `ae3bbc2` | 전수조사가 계획 도장(`_shards/.plan`, `batches.json` 의 sha256)을 대조하고 다른 계획의 샤드를 `_shards/_stale/` 로 옮긴다 | 사용자 결정, 설계 A — 샤드와 읽기 레코드가 성공 기록 ↔ 배치 사슬 밖에 있었다 |
+| `2026-11-14-codegraph-pre-final-test-subplan.md` 의 Task A · B · B2 · C | 수집기 범위 · 파생 산출물 실패 · 파일 집계 · 문서 | 그 계획 참조 |
+
+Task 25 는 그 하위 계획 Task D 의 기대값으로 돈다. 3단계 글이 몰랐던 사실 둘: 커밋 `49bcb7b` … `6f7fdde` 는 단독으로는 초록이 아니고(사유 문자열 하나가 `14ddbbe` 까지 `DROP_CLASS` 밖이었다), 이 저장소는 `public.handoff/` 아래 C++ 파일 하나를 추적하므로 수집하지 않은 언어가 cpp · cs · ts 다.

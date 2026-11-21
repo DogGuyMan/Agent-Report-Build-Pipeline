@@ -210,6 +210,18 @@ LLM 칸은 전수조사(`annotate-symbols`)와 산문(`outline-wiki` · `write-w
 도장이 없거나 읽히지 않거나 다르면 `.plan` 과 `_stale/` 말고 모든 항목(`.json.bad` · `_pass2/` 포함)을 `_stale/<옛 도장 앞 12자 | unstamped>/` 로 옮긴 뒤 새 도장을 찍는다.
 옮기기만 하고 지우지 않으며, `merge_shards` 는 `.plan` 도 `_stale/` 도 읽지 않는다. 배치 id 는 계획마다 `L0-B00` 부터 다시 매겨지므로 이름만 보고 샤드를 재사용하지 않는다.
 
+## 용어 — 이 문서의 말과 업계의 말
+
+| 이 저장소의 말 | 코드 이름 | 업계에서 같은 것을 부르는 말 |
+|---|---|---|
+| 수집기 | `COLLECTOR` · `collectorFor` · `collect-graph` | extractor(CodeQL) · indexer(SCIP) |
+| 수집 실패 기록 | `collect-failure.json` | 도구 실행 한 번의 기록 — SARIF 의 invocation |
+| 파생 산출물 | `derive-facts` · `derive.py` | derived file · generated file(Bazel) |
+| 외부로 오분류된 1차 모듈 | 1차 모듈 이름을 단 외부 노드(`kind: "external"`) | first-party 를 third-party 로 잘못 가른 것(Ruff · isort 의 import 분류) |
+| 작업 트리 | — | working tree(Git) |
+
+새로 쓸 때는 "외부 섬" 대신 "외부로 오분류된 1차 모듈", "파생물" 대신 "파생 산출물", "실패 기록" 대신 "수집 실패 기록" 을 쓴다. 이미 있는 식별자는 그대로 둔다.
+
 ## 경로 변수 — 문서와 테스트가 쓰는 이름
 
 **이 저장소는 공개된다. 기계마다 다른 경로를 문서·코드·커밋에 그대로 적지 않는다.**

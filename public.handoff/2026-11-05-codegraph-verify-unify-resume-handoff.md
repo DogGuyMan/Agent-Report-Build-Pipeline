@@ -43,7 +43,7 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [x] **B3 정책 버림과 미해결 버림이 안 갈린다.** 해법: 사유마다 `policy` · `unresolved` 를 표로 고정한다(§5.4). 미해결만 경고나 결함이 된다. — `49bcb7b`
 - [ ] **B4 C++ 끝점 해소 실패 48건의 정체를 모른다.** 실측: 관계 671개 중 48개. 끝점은 전부 원본 요소에 있다 — 없는 id 가 아니라 노드가 못 된 타입을 가리킨다. 해법: 장부 표본으로 정책인지 손실인지 판정한다. — **Mac 세션 (Task 23 절차)** `74bfc35`
   - **Mac 절차.** `GRAPHICS_REPO=… .venv/bin/python src/codewiki/python/machine/normalize.py --clang-uml "$GRAPHICS_REPO/out/codegraph-raw/full_class_all.json" --repo "$GRAPHICS_REPO" -o <임시>/g.json --report <임시>/r.json` 를 돌리고 `r.json` 의 `끝점 해소 실패` 표본을 읽는다. 표본마다 대상 타입이 정책으로 버린 것이면 그 사유를 `normalize.py` 의 `DROP_CLASS` 에서 `policy` 로 옮기고, 잃은 정보면 정제를 고친다. 그때까지 골든 지도는 `verify-graph` 의 `unresolved-drop` 으로 막힌다 — 의도한 동작이지 회귀가 아니다.
-- [ ] **B5 1차 점 경로가 외부 섬으로 접힘 — S5.** 실측: 1차 클래스의 점 경로 이름 25개(간선 45개)가 외부 섬 `mode1` · `warmup` · `survey_plan` · `verify_graph` · `manifest` 로 접혀 있었다(`2026-11-08-codegraph-stage3-design.md`). 해법: 점 경로 꼬리와 형 별칭을 따라 이름을 푼다. 다섯 섬 가운데 넷은 `14ddbbe` 로 사라졌다. 섬 `warmup` 이 남는 것은 `src/codewiki/python/machine/warmup.py` 의 형 별칭 둘(`Manifest` · `Verdicts`)을 어느 수집기도 싣지 않아서다 — griffe 는 `__init__.py` 가 없는 두 폴더를 싣지 않고 호출 수집기는 `def` 와 `class` 만 적는다. 사용자 결정 대기.
+- [x] **B5 1차 점 경로가 외부 섬으로 접힘 — S5.** 실측: 1차 클래스의 점 경로 이름 25개(간선 45개)가 외부 섬 `mode1` · `warmup` · `survey_plan` · `verify_graph` · `manifest` 로 접혀 있었다(`2026-11-08-codegraph-stage3-design.md`). 해법: 점 경로 꼬리와 형 별칭을 따라 이름을 푼다. 다섯 섬 가운데 넷은 `14ddbbe` 로 사라졌다. 남았던 `warmup` 은 `src/codewiki/python/machine/warmup.py` 의 형 별칭 둘(`Manifest` · `Verdicts`)을 어느 수집기도 싣지 않아서였다 — griffe 는 `__init__.py` 가 없는 두 폴더를 싣지 않고 호출 수집기는 `def` 와 `class` 만 적는다. 외부로 오분류된 1차 모듈 다섯이 전부 사라졌다 — 넷은 이름 해소로, 마지막 warmup 은 두 폴더를 패키지로 만들어서. — `14ddbbe` · `19eac4b` · `1861862`
 
 ### C. `collect-graph` 안에서 죽는 경우 (1 · 2 · 3단계)
 
@@ -113,6 +113,15 @@ HEAD      a21dd4d (2026-11-13) — 코드 커밋은 bef937a 뒤로 0
 - [ ] **I-F6(sites) 접힌 호출의 위치.** `Edge.sites` 는 4단계.
 - [x] **I-F7 C++ 빌드 설정을 하나로 뭉갠다 — 경로 규칙과 첫 설정.** 해법: `compile_commands.json` 의 상대 `file` 을 `directory` 기준으로 풀고 번역 단위마다 첫 항목만 남기며 버린 중복은 inventory 에 `excluded` 로 적는다. — `787a218`. 선언된 단일 설정의 표시는 5단계로 남는다.
 - [ ] **I-F5 안정 ID 만 바꾸면 오버로드가 후단에서 사라진다.** 4단계.
+
+### J. 구현 중에 더한 것 (2026-11-14 ~ 2026-11-21)
+
+- [x] **J1 1차 모듈 이름을 단 점 경로를 외부로 접지 않고 미해결로 센다.** `19eac4b`
+- [x] **J2 샤드 폴더의 계획 도장 — 다른 계획의 샤드는 `_stale/` 로 옮기고 건너뛰지 않는다.** `ae3bbc2`
+- [x] **J3 `machine/` · `runner/wiki/` 를 패키지로 — griffe 가 건너뛰지 않는다.** `1861862`
+- [x] **J4 파생 산출물 단계의 실패는 수집 실패 기록에 적지 않는다.** `26284ea`
+- [x] **J5 `lang_select.count_sources` 가 `git ls-files -z` 로 세어 비 ASCII 경로를 빠뜨리지 않는다.** `35ef600`
+- [ ] **J6 재수출 · `NewType` 이름이 다른 Python 대상에서 미해결로 잡힌다.** 측정: `_pytest` 3 → 30 · networkx 1 → 14 · packaging 0 → 4 · pygments 0 → 1. 해소 규칙은 따로 설계한다
 
 ## 3. 문서 색인
 
