@@ -76,8 +76,8 @@ tests      never run (only the two allowed single-file checks)  six gates · rea
 | Task B | ✅ `26284ea` |
 | Task B2 | ✅ `35ef600` |
 | Task C | ✅ the `[docs]` commit that adds this document to the branch |
-| Task D final test | ❌ |
-| Tests and gates | ❌ not run. Only the two single-file checks the parent plan allows were run |
+| Task D final test | ✅ at `5e66a4b` — four fix commits `45fdedf` · `412a770` · `56dbd31` · `5e66a4b` |
+| Tests and gates | ✅ measured 2026-11-21 at `5e66a4b` — see 🧪 Final test result |
 
 ## ❓ Open — none (D1~D4 were decided on 2026-11-21)
 
@@ -108,7 +108,7 @@ Also measured: `facts.py` given a map path that does not exist exits with code 1
 | 🐞 A failed <span style="color:cyan">derived-artifact</span> step writes `collect-failure.json`; it stays after a successful resume and `--only verify-graph` reports `collect-failed` | 🗘 `derive_steps` passes no record path · ★ one test | the <span style="color:cyan">collection failure record</span> means exactly "collection failed" | the new test passes `[unverified — Task D]` | ✅ `26284ea` |
 | 🐞 Documents say "외부 섬" · "파생물" · "실패 기록". The parent plan expects `["cs", "ts"]` · `py 125` | 🗘 a terms table in `src/codewiki/CLAUDE.md` · four values and one closing section in the parent plan | the documents connect to the field's terms and the final test runs on measured expectations | the document gate passes `[unverified — Task C]` | ✅ |
 | 🐞 `count_sources` uses `git ls-files` without `-z` and does not count tracked files with non-ASCII paths | 🗘 splits the output of `git ls-files -z` on NUL · ★ one test | the file counts of the language hint use the same basis as the <span style="color:cyan">source inventory</span> | the new test passes `[unverified — Task D]` | ✅ `35ef600` |
-| ⚠️ Tests and gates were never run. Every expected value is a prediction from read code | Task D — Before values · six gates · records compared by identity · real runs · bisect | predictions become measurements | 0 new `실패` lines · adversarial file `10 passed, 2 xfailed` `[unverified]` | ❌ |
+| ⚠️ Tests and gates were never run. Every expected value is a prediction from read code | Task D — Before values · six gates · records compared by identity · real runs · bisect | predictions become measurements | 0 new `실패` lines · adversarial file `10 passed, 2 xfailed` `[unverified]` | ✅ `5e66a4b` |
 | A dotted name under a first-party module folded into an <span style="color:cyan">external node</span> | counted as unresolved (`이름 해소 실패`) | no <span style="color:cyan">external node</span> is named after a first-party module | the <span style="color:cyan">external nodes</span> are `(표준) stdlib` · `jinja2` only `[measured]` | ✅ `19eac4b` |
 | A batch was skipped whenever a same-named shard was present | the <span style="color:cyan">plan stamp</span> on the shard folder is compared; another plan's shards move to `_stale/` | shards of another plan are not reused | eight new tests `[unverified — Task D]` | ✅ `ae3bbc2` |
 
@@ -659,6 +659,41 @@ Expected: 0 new `실패` lines. Report new · kept · resolved counts, and `근�
 - [ ] **Step 6: Finish** — set this plan's Status rows and the parent plan's Status table to ✅ with the commit range, write the measured pass and skip counts into the handoff, report anything left failing with its symptom and bisect result, and ask the user whether to merge the branch into `main` (the untracked copies of this plan in the main checkout must be removed before that merge).
 
 ---
+
+## 🧪 Final test result (2026-11-21, at `5e66a4b`)
+
+`[measured]` — run by the Task D agent and re-run by the orchestrator for pytest, the adversarial file, pyright and the README check.
+
+| Check | Before `a21dd4d` | After `5e66a4b` |
+|---|---|---|
+| `pytest -q` | 903 passed · 20 skipped | 987 passed · 22 skipped · 2 xfailed |
+| adversarial file alone | — | 10 passed, 2 xfailed |
+| `npm test` · `tsc` · pyright strict · README check · doctor | 8 pass · — · 0 errors · — · — | 8 pass · clean · 0 errors · 9 match · every required tool present |
+| map | nodes 700 · edges 664 · seven external nodes, five of them first-party names | nodes 763 · edges 946 · external nodes `(표준) stdlib` · `jinja2` |
+| drop ledger | `해소 실패(빌트인·타입변수)` 32, on screen only | 16 rows, 0 `unresolved` · 0 `fault` |
+| tracked sources | — | cpp 1 · cs 1 · py 143 · ts 13, the same from the inventory and from `count_sources` |
+| records — `실패` by identity | 591 | 586 — 0 new · 5 resolved (four of the five moved to `근거 없음`) |
+
+Real runs all matched: the second `prep` only derives; a cited-source change re-collects; the flow has 15 stages and `--cold` 14; the receipt of `--only prep --cold` is `passed` · `fit.survey ready` · `languages_not_collected == ["cpp", "cs", "ts"]` with one `generation_id` shared by the receipt, the manifest and `ranking.json`; `batches.json` carries `codegraph_sha256` and `generation_id`; a map with one `{` removed gives 1 `unreadable` and exit 1; an empty repository fails with `graph-faults.json` and `graph-handoff.md`. No stage that calls the LLM was started.
+
+Fixed during the test, each as its own commit:
+
+| Commit | What was wrong | First bad commit |
+|---|---|---|
+| `45fdedf` | pyright strict error in `verify_graph.py` — the shape check was called after the document type was narrowed. One line moved, behaviour unchanged | `bf21a0e` |
+| `412a770` | 14 pyright strict errors in the adversarial test file. Typed with the contract types; no assertion changed | `8e77474` |
+| `56dbd31` | 1 pyright strict error in a `test_mode1.py` ledger dict | `c9031ca` |
+| `5e66a4b` | the resume test started at `schedule-batches` without the `ranking.json` that `derive-facts` now leaves | `f5ae5de` |
+
+Where this plan's text was wrong:
+
+- A `.venv` that is a symbolic link makes `pytest` and `run_mode1.py` re-execute themselves without end: `_bootstrap_venv` compares `sys.prefix` with `<repo>/.venv`. Not a defect of this branch — it is the same at `a21dd4d`. The Task D agent replaced the link with a real venv that points at the main checkout's packages.
+- Step 1 needs `npm test` before `pytest` in a fresh worktree, or two `test/spec/test_components.py` tests fail.
+- Step 3's `comm` gives 15 "new" `실패` lines, because each line embeds the cited file's length. With that suffix stripped it is 0.
+- Step 4's `--only schedule-batches` needs `--cold`; without it the warm flow stops on a missing `changes.json`.
+- Changing `pycalls.py` does not isolate "a source change re-collects", because `pycalls.py` is collector code. The same edit in `src/common/template.py` was used as well.
+
+Seen, not changed: `fit.blocked_by` says `V3 를 돌리지 않았다 (--repo 없음)` whenever V3 did not run, also when `--repo` was given and the map was unreadable.
 
 ## 🚫 Not in this plan
 

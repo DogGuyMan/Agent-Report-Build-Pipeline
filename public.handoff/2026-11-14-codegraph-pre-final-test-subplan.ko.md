@@ -77,8 +77,8 @@ Before (ae3bbc2)                                          After · 제안
 | Task B | ✅ `26284ea` |
 | Task B2 | ✅ `35ef600` |
 | Task C | ✅ 이 문서를 브랜치에 넣은 `[docs]` 커밋 |
-| Task D 최종 시험 | ❌ |
-| 시험 · 게이트 | ❌ 돌리지 않았다. 부모 계획이 허용한 한 파일 검사 둘만 돌렸다 |
+| Task D 최종 시험 | ✅ `5e66a4b` — 고친 커밋 넷 `45fdedf` · `412a770` · `56dbd31` · `5e66a4b` |
+| 시험 · 게이트 | ✅ 2026-11-21 `5e66a4b` 에서 실측 — 🧪 최종 시험 결과 참조 |
 
 ## ❓ 미결 — 없음 (D1~D4 는 2026-11-21 에 결정됐다)
 
@@ -109,7 +109,7 @@ Before (ae3bbc2)                                          After · 제안
 | 🐞 <span style="color:cyan">파생 산출물</span> 단계가 죽으면 `collect-failure.json` 이 쓰이고, 재개가 성공해도 남아 `--only verify-graph` 가 `collect-failed` 를 낸다 | 🗘 `derive_steps` 가 기록 자리를 넘기지 않는다 · ★ 시험 하나 | <span style="color:cyan">수집 실패 기록</span>이 정확히 "수집이 실패했다" 를 뜻한다 | 새 시험 통과 `[미검증 — Task D]` | ✅ `26284ea` |
 | 🐞 문서가 "외부 섬" · "파생물" · "실패 기록" 을 쓴다. 부모 계획의 기대값이 `["cs", "ts"]` · `py 125` 다 | 🗘 `src/codewiki/CLAUDE.md` 의 용어 표 · 부모 계획의 값 넷과 끝 절 하나 | 문서가 업계 용어와 이어지고 최종 시험이 실측 기대값으로 돈다 | 문서 게이트 통과 `[미검증 — Task C]` | ✅ |
 | 🐞 `count_sources` 가 `-z` 없는 `git ls-files` 를 써서 비 ASCII 경로의 추적 파일을 세지 못한다 | 🗘 `git ls-files -z` 의 출력을 NUL 로 끊어 센다 · ★ 시험 하나 | 언어 힌트의 파일 수가 <span style="color:cyan">소스 inventory</span> 와 같은 기준으로 나온다 | 새 시험 통과 `[미검증 — Task D]` | ✅ `35ef600` |
-| ⚠️ 시험과 게이트를 돌린 적이 없다. 기대값은 전부 읽은 코드에서 낸 예측이다 | Task D — Before 값 · 게이트 여섯 · 레코드 식별 대조 · 실제 실행 · bisect | 예측이 실측으로 바뀐다 | 새 `실패` 줄 0 · 적대적 시험 `10 passed, 2 xfailed` `[미검증]` | ❌ |
+| ⚠️ 시험과 게이트를 돌린 적이 없다. 기대값은 전부 읽은 코드에서 낸 예측이다 | Task D — Before 값 · 게이트 여섯 · 레코드 식별 대조 · 실제 실행 · bisect | 예측이 실측으로 바뀐다 | 새 `실패` 줄 0 · 적대적 시험 `10 passed, 2 xfailed` `[미검증]` | ✅ `5e66a4b` |
 | 1차 모듈 아래의 점 이름이 <span style="color:cyan">외부 노드</span>로 접혔다 | 미해결(`이름 해소 실패`)로 센다 | 1차 모듈 이름을 단 <span style="color:cyan">외부 노드</span>가 생기지 않는다 | <span style="color:cyan">외부 노드</span>는 `(표준) stdlib` · `jinja2` 뿐 `[실측]` | ✅ `19eac4b` |
 | 같은 이름의 샤드가 남아 있으면 배치를 건너뛰었다 | 샤드 폴더의 <span style="color:cyan">계획 도장</span>을 대조하고 다른 계획의 것은 `_stale/` 로 옮긴다 | 다른 계획의 샤드를 재사용하지 않는다 | 새 시험 여덟 `[미검증 — Task D]` | ✅ `ae3bbc2` |
 
@@ -660,6 +660,41 @@ LC_ALL=C comm -23 "$SCRATCH/records.base" "$SCRATCH/records.now" | grep -c '^  �
 - [ ] **Step 6: 마무리** — 이 계획의 상태 행과 부모 계획의 상태 표를 커밋 범위와 함께 ✅ 로 하고, 잰 통과 수와 건너뜀 수를 핸드오프에 적고, 남은 실패는 증상과 bisect 결과와 함께 보고하고, 브랜치를 `main` 에 합칠지 사용자에게 묻는다(그 병합 전에 main 체크아웃에 있는 이 계획의 미추적 사본을 치워야 한다).
 
 ---
+
+## 🧪 최종 시험 결과 (2026-11-21, `5e66a4b`)
+
+`[실측]` — Task D 서브에이전트가 돌렸고, pytest · 적대적 시험 파일 · pyright · README 검사는 오케스트레이터가 다시 돌렸다.
+
+| 검사 | Before `a21dd4d` | After `5e66a4b` |
+|---|---|---|
+| `pytest -q` | 903 통과 · 20 건너뜀 | 987 통과 · 22 건너뜀 · 2 xfail |
+| 적대적 시험 파일만 | — | 10 passed, 2 xfailed |
+| `npm test` · `tsc` · pyright strict · README 검사 · doctor | 8 통과 · — · 0 errors · — · — | 8 통과 · 깨끗 · 0 errors · 9개 일치 · 필수 도구 전부 있음 |
+| 지도 | 노드 700 · 간선 664 · 외부 노드 일곱(그중 다섯이 1차 모듈 이름) | 노드 763 · 간선 946 · 외부 노드 `(표준) stdlib` · `jinja2` |
+| 버림 장부 | `해소 실패(빌트인·타입변수)` 32, 화면에만 | 16행, `unresolved` 0 · `fault` 0 |
+| 추적 소스 | — | cpp 1 · cs 1 · py 143 · ts 13, inventory 와 `count_sources` 가 같다 |
+| 레코드 — 식별 단위의 `실패` | 591 | 586 — 새로 생김 0 · 해결됨 5(다섯 중 넷은 `근거 없음` 으로 옮겨 갔다) |
+
+실제 실행은 전부 맞았다. 두 번째 `prep` 은 파생만 한다. 인용된 소스를 바꾸면 다시 수집한다. 흐름은 15단계, `--cold` 는 14단계다. `--only prep --cold` 의 성공 기록은 `passed` · `fit.survey ready` · `languages_not_collected == ["cpp", "cs", "ts"]` 이고 `generation_id` 하나를 성공 기록 · manifest · `ranking.json` 이 함께 쓴다. `batches.json` 은 `codegraph_sha256` 과 `generation_id` 를 갖는다. `{` 하나를 뺀 지도는 `unreadable` 1건과 종료 코드 1 을 낸다. 빈 저장소는 `graph-faults.json` 과 `graph-handoff.md` 를 남기고 실패한다. LLM 을 부르는 단계는 시작하지 않았다.
+
+시험 중에 고친 것, 각각 커밋 하나:
+
+| 커밋 | 무엇이 틀렸나 | 첫 실패 커밋 |
+|---|---|---|
+| `45fdedf` | `verify_graph.py` 의 pyright strict 오류 — 문서 형을 좁힌 뒤에 꼴 검사를 불렀다. 한 줄을 옮겼고 동작은 같다 | `bf21a0e` |
+| `412a770` | 적대적 시험 파일의 pyright strict 오류 14개. 계약 형으로 적었고 단언은 바꾸지 않았다 | `8e77474` |
+| `56dbd31` | `test_mode1.py` 장부 dict 의 pyright strict 오류 1개 | `c9031ca` |
+| `5e66a4b` | 재개 시험이 `derive-facts` 가 남기는 `ranking.json` 없이 `schedule-batches` 부터 시작했다 | `f5ae5de` |
+
+이 계획의 글이 틀렸던 곳:
+
+- `.venv` 가 심볼릭 링크면 `pytest` 와 `run_mode1.py` 가 자기를 끝없이 다시 실행한다. `_bootstrap_venv` 가 `sys.prefix` 를 `<저장소>/.venv` 와 비교하기 때문이다. 이 브랜치의 결함이 아니다 — `a21dd4d` 에서도 같다. Task D 서브에이전트가 링크를 main 체크아웃의 패키지를 가리키는 실제 venv 로 바꿨다.
+- Step 1 은 새 작업 트리에서 `pytest` 전에 `npm test` 가 필요하다. 없으면 `test/spec/test_components.py` 의 시험 둘이 실패한다.
+- Step 3 의 `comm` 은 "새 `실패`" 를 15줄로 낸다. 줄마다 인용된 파일의 길이가 들어 있어서다. 그 꼬리를 떼면 0 이다.
+- Step 4 의 `--only schedule-batches` 는 `--cold` 가 필요하다. 없으면 증분 흐름이 `changes.json` 이 없다며 멈춘다.
+- `pycalls.py` 를 고치는 것으로는 "소스가 바뀌면 다시 수집한다" 를 가려내지 못한다. `pycalls.py` 는 수집기 코드다. 같은 수정을 `src/common/template.py` 에도 해 봤다.
+
+보기만 하고 바꾸지 않은 것: `fit.blocked_by` 는 V3 가 돌지 않으면 언제나 `V3 를 돌리지 않았다 (--repo 없음)` 이라고 적는다. `--repo` 를 줬고 지도를 못 읽은 경우에도 그렇다.
 
 ## 🚫 이 계획에 없는 것
 

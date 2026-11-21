@@ -79,7 +79,7 @@ C++/C#: classes only · (from,to,kind) folded           ★ methods · stable id
 | Adversarial review · 12 counterexamples reproduced | ✅ 2026-11-09 · re-run 2026-11-10 (byte-identical) |
 | Stage-3 spec decisions S1~S6 | ✅ 👍 absorbed here |
 | This plan | ✅ approved for implementation 2026-11-14 (see ✋ Approval) |
-| Stages 0~3 (Tasks 0~25) | ❌ |
+| Stages 0~3 (Tasks 0~25) | ✅ `46f0775` · `8e77474` … `5e66a4b` — final test 2026-11-21: pytest 987 passed · 22 skipped · 2 xfailed, six gates green (sub-plan `2026-11-14-codegraph-pre-final-test-subplan.md`) |
 | Stages 4~6 | ❌ (each gets its own Task-level plan when its remaining entry question is answered) |
 
 ## 🔎 What a pass guarantees — before and after (the "보장 정의" of review step 0)
