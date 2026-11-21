@@ -90,3 +90,9 @@ def test_read_docs_picks_root_documents(tmp_path: Path) -> None:
     r = _repo(tmp_path, {"README.md": "읽기\n", "CLAUDE.md": "규약\n"})
     text = L.read_docs(r)
     assert "README.md" in text and "CLAUDE.md" in text and "읽기" in text
+
+
+def test_counts_tracked_files_with_non_ascii_paths(tmp_path: Path) -> None:
+    """`-z` 없는 `git ls-files` 는 비 ASCII 경로를 따옴표로 감싸서, 확장자 대조에서 빠진다."""
+    r = _repo(tmp_path, {"a.py": "", "한글/b.py": ""})
+    assert L.count_sources(r)["py"] == 2

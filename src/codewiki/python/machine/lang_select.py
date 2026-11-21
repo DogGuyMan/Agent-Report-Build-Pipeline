@@ -53,8 +53,8 @@ class LangSelect(TypedDict):
 # 쓰는 것: 없음 · 쓰이는 곳: select
 def count_sources(repo: str) -> dict[str, int]:
     """언어별 소스 파일 수. git 이 추적하는 것만 센다 — 빌드 산출물과 vendored 를 피한다."""
-    r = subprocess.run(["git", "ls-files"], cwd=repo, capture_output=True, text=True)
-    files = r.stdout.split("\n") if r.returncode == 0 else []
+    r = subprocess.run(["git", "ls-files", "-z"], cwd=repo, capture_output=True)
+    files = [p.decode("utf-8", "surrogateescape") for p in r.stdout.split(b"\0")] if r.returncode == 0 else []
     if not files:
         for dirpath, dirnames, filenames in os.walk(repo):
             dirnames[:] = [d for d in dirnames

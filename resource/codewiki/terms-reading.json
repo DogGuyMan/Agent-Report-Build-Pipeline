@@ -969,7 +969,7 @@
  },
  "codewiki.python.machine.lang_select.count_sources": {
   "confidence": "HIGH",
-  "does": "git ls-files 로 git 이 추적하는 파일 목록을 얻고(실패하면 os.walk 로 직접 훑되 .git, node_modules, __pycache__, .venv 는 건너뛴다), LANG_EXTS 에 정의된 확장자별로 파일 수를 세어 {\"cpp\": n, \"cs\": n, \"py\": n, \"ts\": n} 꼴 딕셔너리를 반환한다.",
+  "does": "git ls-files -z 로 git 이 추적하는 파일 목록을 얻고(실패하면 os.walk 로 직접 훑되 .git, node_modules, __pycache__, .venv 는 건너뛴다), LANG_EXTS 에 정의된 확장자별로 파일 수를 세어 {\"cpp\": n, \"cs\": n, \"py\": n, \"ts\": n} 꼴 딕셔너리를 반환한다.",
   "kind": "function",
   "means": "이 저장소에 언어별로 소스 파일이 몇 개 있는지 세는 함수다.",
   "module": "codewiki.python.machine.lang_select",
