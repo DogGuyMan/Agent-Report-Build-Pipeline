@@ -18,13 +18,13 @@ from common.python import pythonPath  # noqa: E402
 
 
 def derive_steps(repo: str, paths: dict[str, str], py: str, generation_id: str) -> None:
-    """facts → render-modules. ranking.json 에 generation_id 를 찍는다."""
+    """facts → render-modules. ranking.json 에 generation_id 를 찍는다. 이 단계의 실패는 수집 실패 기록에 적지 않는다."""
     detail = os.path.join(paths["raw"], "roslyn-dump.json")
     extra = ["--detail", detail] if os.path.exists(detail) else []
     run("facts", py, [os.path.join(ROOT, "src", "codewiki", "python", "machine", "facts.py"), paths["codegraph"], "--repo", repo,
-                      "--generation", generation_id] + extra + ["-o", paths["raw"]], failure_path=paths["failure"])
+                      "--generation", generation_id] + extra + ["-o", paths["raw"]])
     run("render-modules", py, [os.path.join(ROOT, "src", "codewiki", "python", "viz", "render_modules.py"), paths["codegraph"],
-                               "-o", os.path.join(paths["raw"], "modules")], failure_path=paths["failure"])
+                               "-o", os.path.join(paths["raw"], "modules")])
 
 
 def main() -> int:

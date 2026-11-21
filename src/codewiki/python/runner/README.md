@@ -33,7 +33,7 @@
 | [`wiki/derive.py`](wiki/derive.py) | 검사를 지난 지도에서 파생물을 만든다: facts/*.md · ranking.json · 모듈 그림. derive-facts 단계와 report-wiki prep 의 꼬리가 부른다. |
 | [`wiki/paths.py`](wiki/paths.py) | — |
 | [`wiki/prep.py`](wiki/prep.py) | — |
-| [`wiki/proc.py`](wiki/proc.py) | 자식 프로세스 하나를 돌리고, 죽으면 실패 기록을 남긴다. prep 과 derive 가 함께 쓴다. |
+| [`wiki/proc.py`](wiki/proc.py) | 자식 프로세스 하나를 돌린다. 죽으면 그 종료 코드로 끝내고, 실패 기록 자리를 받았으면 그 전에 기록을 남긴다. prep 과 derive 가 함께 쓴다. |
 
 ---
 
@@ -442,7 +442,7 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `derive_steps` | `(repo: str, paths: dict[str, str], py: str, generation_id: str) -> None` | facts → render-modules. ranking.json 에 generation_id 를 찍는다. |
+| `derive_steps` | `(repo: str, paths: dict[str, str], py: str, generation_id: str) -> None` | facts → render-modules. ranking.json 에 generation_id 를 찍는다. 이 단계의 실패는 수집 실패 기록에 적지 않는다. |
 | `main` | `() -> int` |  |
 
 ---
@@ -477,9 +477,9 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 
 ## `proc.py`
 
-자식 프로세스 하나를 돌리고, 죽으면 실패 기록을 남긴다. prep 과 derive 가 함께 쓴다.
+자식 프로세스 하나를 돌린다. 죽으면 그 종료 코드로 끝내고, 실패 기록 자리를 받았으면 그 전에 기록을 남긴다. prep 과 derive 가 함께 쓴다.
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `run` | `(step: str, cmd: str, args: list[str], cwd: Optional[str] = None, failure_path: Optional[str] = None) -> None` | stderr 를 화면에 흘리면서 끝 40줄을 쥔다. 종료 코드가 0 이 아니면 `collect-failure.json` 을 쓰고 그 코드로 끝낸다. |
+| `run` | `(step: str, cmd: str, args: list[str], cwd: Optional[str] = None, failure_path: Optional[str] = None) -> None` | stderr 를 화면에 흘리면서 끝 40줄을 쥔다. 종료 코드가 0 이 아니면 그 코드로 끝내고, `failure_path` 가 있으면 그 전에 수집 실패 기록을 쓴다. |
 

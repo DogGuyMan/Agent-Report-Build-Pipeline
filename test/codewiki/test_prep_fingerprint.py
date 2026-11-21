@@ -8,9 +8,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-from codewiki.python.runner.wiki import compdb, prep  # noqa: E402
+from codewiki.python.runner.wiki import compdb, derive, prep  # noqa: E402
 
 PREP = os.path.join(ROOT, "src", "codewiki", "python", "runner", "wiki", "prep.py")
 MACHINE = Path(ROOT, "src", "codewiki", "python", "machine")
@@ -232,3 +234,12 @@ def test_소스_내용이_바뀌면_diff_없이도_다시_수집한다(tmp_path:
     doc = json.loads((repo / "out/codegraph-raw/collect-fingerprint.json").read_text(encoding="utf-8"))
     assert doc["sources"]["pkg/a.py"] == hashlib.sha256((repo / "pkg" / "a.py").read_bytes()).hexdigest()
     assert doc["raw_provenance"] == "prep" and len(doc["generation_id"]) == 64
+
+
+def test_파생_산출물_단계가_죽어도_수집_실패_기록을_쓰지_않는다(tmp_path: Path) -> None:
+    paths = prep.wikiPaths(str(tmp_path))
+    os.makedirs(paths["raw"])
+    with pytest.raises(SystemExit) as stop:
+        derive.derive_steps(str(tmp_path), paths, sys.executable, "g1")
+    assert stop.value.code == 1
+    assert not os.path.exists(paths["failure"])

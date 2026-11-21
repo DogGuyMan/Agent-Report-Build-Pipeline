@@ -25619,7 +25619,7 @@
  },
  "codewiki.python.runner.wiki.derive.derive_steps": {
   "confidence": "HIGH",
-  "does": "facts.py 로 facts/*.md 와 ranking.json 을 만들면서 --generation 으로 generation_id 를 찍고, 이어서 render_modules.py 로 모듈 그림을 굽는다. roslyn-dump.json 이 있으면 facts 에 --detail 로 준다. 어느 쪽이든 죽으면 proc.run 이 실패 기록을 남긴다.",
+  "does": "facts.py 로 facts/*.md 와 ranking.json 을 만들면서 --generation 으로 generation_id 를 찍고, 이어서 render_modules.py 로 모듈 그림을 굽는다. roslyn-dump.json 이 있으면 facts 에 --detail 로 준다. 두 단계 모두 실패 기록 자리를 넘기지 않아, 죽어도 수집 실패 기록을 쓰지 않는다.",
   "kind": "function",
   "means": "검사를 지난 지도에서 파생물을 만드는 두 단계를 차례로 돌리는 함수.",
   "module": "codewiki.python.runner.wiki.derive",
