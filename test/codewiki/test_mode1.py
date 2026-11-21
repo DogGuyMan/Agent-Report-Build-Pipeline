@@ -1012,7 +1012,7 @@ def test_재개는_그_앞을_잘라_낸다(tmp_path: Path):
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
     (raw / "lang-select.json").write_text('{"language": "py", "collector": "x"}')
-    _verified(c)
+    _verified(c); _fake_ranking(c)
     g = E.build_mode1_graph(c, None, None, start_at="schedule-batches")
     assert g.order[0] == "schedule-batches"
 
