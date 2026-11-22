@@ -48,6 +48,7 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
         self.claim_shard_dir(ctx)
         os.makedirs(os.path.join(d, "_pass2"), exist_ok=True)
         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
+        print("통독 캐시 — 파일 %d개의 개요를 미리 썼다" % self.prefill_cache(ctx.repo, plan), flush=True)
         ctx.baseline = self.load_records(X.READING.locate(ctx))
         ctx.merged = self.merge_shards(d, ctx.baseline)
         has_nonnode = any(L.get("kind") == "non-node" for L in plan["layers"])

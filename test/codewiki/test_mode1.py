@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "runner"))
 sys.path.insert(0, os.path.join(ROOT, "src", "codewiki", "python", "machine"))
 import collect_manifest as CM  # noqa: E402
+import file_cache  # noqa: E402
 import jsonio  # noqa: E402
 import manifest as MF  # noqa: E402
 from core import measure as M  # noqa: E402
@@ -2558,3 +2559,86 @@ def test_파일_스케줄러도_세션이_끝날_때마다_reading_을_임시_�
     reading = X.READING.locate(c)
     assert (reading, 1, True) in seen
     assert set(json.loads(Path(reading).read_text(encoding="utf-8"))) >= {"a.f", "b.g", "c.k"}
+
+
+# ── 통독 캐시 — 기계가 조사 전에 파일마다 개요를 미리 쓴다 ──────────────────
+
+def _two_file_plan() -> survey_plan.SurveyPlan:
+    """a.py 에 심볼 둘(층이 다르다) · b.py 에 하나. 개요는 층을 가리지 않고 그 파일의 심볼 전부를 싣는다."""
+    def sym(name: str, file: str, line: int, kind: str = "function") -> survey_plan.PlanSymbol:
+        return {"id": name, "name": name, "kind": kind, "file": file, "line": line, "in_cycle": False, "depends_on": []}
+    return {"target": 8, "totals": {"symbols": 3, "edges": 0, "levels": 2, "cyclic_symbols": 0}, "layers": [
+        {"level": 0, "symbol_count": 2, "file_count": 2, "batches": [
+            {"id": "L0-B00", "files": ["a.py", "b.py"], "symbols": [sym("a.g", "a.py", 9), sym("b.K", "b.py", 1, "class")]}]},
+        {"level": 1, "symbol_count": 1, "file_count": 1, "batches": [
+            {"id": "L1-B00", "files": ["a.py"], "symbols": [sym("a.f", "a.py", 3)]}]},
+        {"level": 2, "kind": "non-node", "symbol_count": None, "batches": []}]}
+
+
+def _two_files(tmp_path: Path) -> None:
+    (tmp_path / "a.py").write_text("\n\ndef f(): ...\n\n\n\n\n\ndef g(): ...\n", encoding="utf-8")
+    (tmp_path / "b.py").write_text("class K: ...", encoding="utf-8")       # 끝 줄바꿈이 없어도 한 줄이다
+
+
+def test_파일_개요는_계획의_심볼을_파일마다_줄_순서로_싣는다():
+    got = SV.AnnotateSymbolsStage.file_outlines(_two_file_plan())
+    assert got == {"a.py": [{"name": "a.f", "kind": "function", "line": 3}, {"name": "a.g", "kind": "function", "line": 9}],
+                   "b.py": [{"name": "b.K", "kind": "class", "line": 1}]}
+
+
+def test_조사_전에_계획의_파일마다_개요를_캐시에_쓴다(tmp_path: Path):
+    _two_files(tmp_path)
+    assert SV.AnnotateSymbolsStage.prefill_cache(str(tmp_path), _two_file_plan()) == 2
+    a, b = file_cache.get(str(tmp_path), "a.py"), file_cache.get(str(tmp_path), "b.py")
+    assert a is not None and b is not None
+    assert a["outline"] == {"lines": 9, "symbols": [{"name": "a.f", "kind": "function", "line": 3},
+                                                     {"name": "a.g", "kind": "function", "line": 9}]}
+    assert b["outline"] == {"lines": 1, "symbols": [{"name": "b.K", "kind": "class", "line": 1}]}
+
+
+def test_개요_쓰기는_없는_파일을_건너뛰고_옛_개요를_덮는다(tmp_path: Path):
+    (tmp_path / "a.py").write_text("def f(): ...\n", encoding="utf-8")       # b.py 는 없다
+    file_cache.put(str(tmp_path), "a.py", {"symbols": [{"name": "f", "one_line": "세션이 쓰던 꼴"}]})
+    assert SV.AnnotateSymbolsStage.prefill_cache(str(tmp_path), _two_file_plan()) == 1
+    got = file_cache.get(str(tmp_path), "a.py")
+    assert got is not None and got["outline"] == {"lines": 1, "symbols": [
+        {"name": "a.f", "kind": "function", "line": 3}, {"name": "a.g", "kind": "function", "line": 9}]}
+    assert file_cache.get(str(tmp_path), "b.py") is None
+
+
+def test_annotate_symbols_는_세션을_띄우기_전에_개요를_쓴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    (tmp_path / "m.py").write_text("def f(): ...\n", encoding="utf-8")
+    _gated(c)
+    seen: list[bool] = []
+
+    def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        seen.append(file_cache.get(repo, "m.py") is not None)
+        return _fake_layer(set())(model, repo, root, jobs, concurrency, timeout)
+    monkeypatch.setattr(P, "run_layer", layer)
+    SV.AnnotateSymbolsStage().perform(c)
+    assert seen == [True]
+
+
+def test_파일_전략도_세션을_띄우기_전에_개요를_쓴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    (raw / "batches.json").write_text(json.dumps(survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))))
+    for name in ("a.py", "b.py", "c.py"):
+        (tmp_path / name).write_text("def x(): ...\n", encoding="utf-8")
+    _gated(c)
+    seen: list[bool] = []
+
+    def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
+            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+        seen.append(all(file_cache.get(repo, f) is not None for f in ("a.py", "b.py", "c.py")))
+        return 0.01, 1, None
+    monkeypatch.setattr(SF.P, "run_agent_with", run)
+    SF.AnnotateFilesStage().perform(c)
+    assert seen and all(seen)

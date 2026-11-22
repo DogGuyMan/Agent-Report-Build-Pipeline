@@ -12,12 +12,14 @@ from typing import ClassVar, Literal, cast
 import msgspec
 
 from core import pipeline as P
+import file_cache
 import jsonio
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
-from mode1.context import (ROOT, DepRow, FaultKind, Mode1Context, Pass2DepRow, PendingRow, Record, Records,
-                           RetryInputs, ShardFault, ShardRecords, SymbolRow, UnresolvedRow)
+from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, Mode1Context, OutlineSymbol, Pass2DepRow,
+                           PendingRow, Record, Records, RetryInputs, ShardFault, ShardRecords, SymbolRow,
+                           UnresolvedRow)
 from mode1.graph import VerifiedGraph
 from mode1.measured import Measured
 
@@ -201,6 +203,36 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(doc, f, ensure_ascii=False, indent=1)
         os.chmod(path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+
+    @staticmethod
+    def file_outlines(plan: survey_plan.SurveyPlan) -> dict[str, list[OutlineSymbol]]:
+        """계획의 심볼을 파일마다 줄 순으로 모은다 — 층을 가리지 않고 그 파일의 심볼 전부다. 파일이 없는 심볼은 싣지 않는다."""
+        out: dict[str, list[OutlineSymbol]] = {}
+        for layer in plan["layers"]:
+            for b in layer["batches"]:
+                for s in b["symbols"]:
+                    if s["file"]:
+                        out.setdefault(s["file"], []).append(
+                            {"name": s["name"] or "", "kind": s["kind"] or "", "line": s["line"] or 0})
+        return {f: sorted(rows, key=lambda r: (r["line"], r["name"])) for f, rows in sorted(out.items())}
+
+    @staticmethod
+    def prefill_cache(repo: str, plan: survey_plan.SurveyPlan) -> int:
+        """계획의 파일마다 개요(줄 수 · 심볼 줄)를 통독 캐시에 쓰고, 쓴 파일 수를 돌려준다.
+
+        이미 있는 개요는 덮는다. 읽히지 않는 파일은 건너뛴다 — 그 파일은 개요 없이 세션이 직접 읽는다.
+        """
+        n = 0
+        for rel, rows in AnnotateSymbolsStage.file_outlines(plan).items():
+            try:
+                with open(os.path.join(repo, rel), "rb") as f:
+                    lines = len(f.read().splitlines())
+            except OSError:
+                continue
+            outline: FileOutline = {"lines": lines, "symbols": rows}
+            file_cache.put(repo, rel, outline)
+            n += 1
+        return n
 
     @staticmethod
     def fault(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault:
@@ -579,6 +611,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         print("조사 세션 예상 %d개 (층 %d)" % (n_sessions, len(ctx.plan["layers"])), flush=True)
         self.claim_shard_dir(ctx)
         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
+        print("통독 캐시 — 파일 %d개의 개요를 미리 썼다" % self.prefill_cache(ctx.repo, ctx.plan), flush=True)
         ctx.baseline = self.load_records(X.READING.locate(ctx))
         ctx.merged = dict(ctx.baseline)
         out = super().perform(ctx)

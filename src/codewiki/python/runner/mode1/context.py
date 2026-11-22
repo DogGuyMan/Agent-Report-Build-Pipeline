@@ -135,6 +135,19 @@ class PendingRow(TypedDict):
     line: str
 
 
+class OutlineSymbol(TypedDict):
+    """통독 캐시 개요의 심볼 한 줄 — 계획이 아는 이름 · 종류 · 시작 줄."""
+    name: str
+    kind: str
+    line: int
+
+
+class FileOutline(TypedDict):
+    """통독 캐시에 기계가 쓰는 개요 — 파일의 줄 수와, 계획에 든 그 파일의 심볼 전부(줄 순)."""
+    lines: int
+    symbols: list[OutlineSymbol]
+
+
 class Pass2DepRow(TypedDict):
     """2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다."""
     name: str
