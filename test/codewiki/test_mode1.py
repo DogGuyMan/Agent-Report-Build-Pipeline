@@ -2526,3 +2526,35 @@ def test_refresh_merged_가_쓰다_죽어도_옛_reading_이_남는다(tmp_path:
         SV.AnnotateSymbolsStage().refresh_merged(c)
     assert reading.read_text(encoding="utf-8") == '{"옛": {}}'
     assert [p.name for p in reading.parent.iterdir()] == [reading.name]
+
+
+def test_파일_스케줄러도_세션이_끝날_때마다_reading_을_임시_파일을_거쳐_바꿔_끼운다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """마지막 훑기를 빼면 `reading` 을 쓰는 곳은 세션이 끝날 때마다 도는 병합뿐이다."""
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    _gated(c)
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")}, ids["c.py"]: {"c.k": _rec("c.py:1")},
+        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}}}
+    monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, []))
+
+    def no_sweep(self: SF.AnnotateFilesStage, ctx: X.Mode1Context, out: P.Outcome) -> P.Outcome:
+        return out
+    monkeypatch.setattr(SF.AnnotateFilesStage, "sweep", no_sweep)
+    real = jsonio.write_json_atomic
+    seen: list[tuple[str, int, bool]] = []
+
+    def spy(path: str, obj: object, indent: int = 2, trailing_newline: bool = False, sort_keys: bool = False) -> None:
+        seen.append((path, indent, sort_keys))
+        real(path, obj, indent=indent, trailing_newline=trailing_newline, sort_keys=sort_keys)
+    monkeypatch.setattr(jsonio, "write_json_atomic", spy)
+    SF.AnnotateFilesStage().perform(c)
+    reading = X.READING.locate(c)
+    assert (reading, 1, True) in seen
+    assert set(json.loads(Path(reading).read_text(encoding="utf-8"))) >= {"a.f", "b.g", "c.k"}
