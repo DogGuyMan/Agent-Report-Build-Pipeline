@@ -1604,7 +1604,7 @@ def test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼
     at = [p.index(h) for h in heads]
     assert at == sorted(at) and all(p.count(h) == 1 for h in heads)
     assert p[:at[0]].endswith("무엇이 없어 막혔는지 적고 끝낸다.\n\n")
-    assert p.endswith("\n\n보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.\n")
+    assert p.endswith("\n\n보고: 레코드 수 · confidence 분포 · 통독한 파일과 개요로 범위만 읽은 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.\n")
 
 
 def test_비노드_프롬프트도_재조사_절을_역할_소개_아래에_싣는다(tmp_path: Path):
@@ -2508,8 +2508,6 @@ def test_전수조사_프롬프트는_실행기의_해석기를_적는다():
     for p in (batch, nonnode, pass2):
         assert sys.executable + " /root/src/codewiki/python/runner/check_shard.py" in p
         assert "/root/.venv/bin/python" not in p
-    assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py get /repo" in batch
-    assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py put /repo" in batch
 
 
 def test_refresh_merged_가_쓰다_죽어도_옛_reading_이_남는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -2642,3 +2640,84 @@ def test_파일_전략도_세션을_띄우기_전에_개요를_쓴다(tmp_path: 
     monkeypatch.setattr(SF.P, "run_agent_with", run)
     SF.AnnotateFilesStage().perform(c)
     assert seen and all(seen)
+
+
+# ── 개요는 프롬프트에 실려 간다 — 세션은 캐시 스크립트를 부르지 않는다 ──────────
+
+def test_개요_줄은_배치의_파일마다_캐시의_개요를_내고_맡은_심볼을_표시한다(tmp_path: Path):
+    _two_files(tmp_path)
+    plan = _two_file_plan()
+    SV.AnnotateSymbolsStage.prefill_cache(str(tmp_path), plan)
+    b = plan["layers"][1]["batches"][0]                                     # L1-B00 — a.py 의 a.f 만 맡는다
+    assert SV.AnnotateSymbolsStage.outline_rows(str(tmp_path), b) == [
+        {"path": "a.py", "found": True, "lines": "9", "symbols": [
+            {"line": "3", "kind": "function", "name": "a.f", "own": True},
+            {"line": "9", "kind": "function", "name": "a.g", "own": False}]}]
+
+
+def test_개요_줄은_캐시에_없거나_파일이_바뀌었거나_꼴이_다르면_없다고_낸다(tmp_path: Path):
+    _two_files(tmp_path)
+    plan = _two_file_plan()
+    b = plan["layers"][0]["batches"][0]                                     # L0-B00 — a.py · b.py
+    none: list[X.OutlineRow] = [{"path": "a.py", "found": False, "lines": "", "symbols": []},
+                                 {"path": "b.py", "found": False, "lines": "", "symbols": []}]
+    assert SV.AnnotateSymbolsStage.outline_rows(str(tmp_path), b) == none   # 캐시가 없다
+    SV.AnnotateSymbolsStage.prefill_cache(str(tmp_path), plan)
+    (tmp_path / "a.py").write_text("def f(): ...\n", encoding="utf-8")      # 개요를 쓴 뒤 a.py 가 바뀌었다
+    file_cache.put(str(tmp_path), "b.py", {"symbols": [{"name": "b.K", "one_line": "세션이 쓰던 꼴"}]})
+    assert SV.AnnotateSymbolsStage.outline_rows(str(tmp_path), b) == none
+
+
+def test_배치_프롬프트는_개요를_싣고_캐시_명령을_적지_않는다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    rows: list[X.OutlineRow] = [
+        {"path": "m.py", "found": True, "lines": "40", "symbols": [
+            {"line": "1", "kind": "function", "name": "f", "own": True},
+            {"line": "12", "kind": "class", "name": "K", "own": False}]},
+        {"path": "n.py", "found": False, "lines": "", "symbols": []}]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [], outlines=rows)
+    assert "     m.py (40줄)\n       1  function  f   <- 네 심볼\n       12  class  K\n" in p
+    assert "     n.py (개요 없음 — 이 파일은 통독한다)\n" in p
+    assert p.index("## 읽는 법") < p.index("m.py (40줄)") < p.index("네 심볼은 개요로 때우지 않는다") < p.index("## 레코드 계약")
+    assert "file_cache.py" not in p and "one_line" not in p
+    bare = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    assert "     (개요 없음 — 담당 파일을 통독한다)\n" in bare and "file_cache.py" not in bare
+
+
+def test_층_전략의_배치_프롬프트는_캐시의_개요를_싣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    (tmp_path / "m.py").write_text("def f(): ...\n", encoding="utf-8")
+    _gated(c)
+    prompts: list[str] = []
+
+    def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+        prompts.extend(prompt for _, prompt in jobs)
+        return [(label, 0.0, 1, None) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", layer)
+    SV.AnnotateSymbolsStage().perform(c)
+    assert len(prompts) == 1 and "     m.py (1줄)\n       1  function  f   <- 네 심볼\n" in prompts[0]
+
+
+def test_파일_전략의_배치_프롬프트도_캐시의_개요를_싣는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    (raw / "batches.json").write_text(json.dumps(survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))))
+    for name in ("a.py", "b.py", "c.py"):
+        (tmp_path / name).write_text("def x(): ...\n", encoding="utf-8")
+    _gated(c)
+    prompts: list[str] = []
+
+    def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
+            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+        prompts.append(prompt)
+        return 0.01, 1, None
+    monkeypatch.setattr(SF.P, "run_agent_with", run)
+    SF.AnnotateFilesStage().perform(c)
+    assert len(prompts) == 3
+    assert any("     a.py (1줄)\n       1  function  a.f   <- 네 심볼\n" in p for p in prompts)

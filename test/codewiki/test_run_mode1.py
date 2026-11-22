@@ -183,7 +183,7 @@ def test_배치_프롬프트는_자기_심볼과_자기_샤드만_말한다():
     assert "encode — 바이트로 바꾼다" in p           # 아래층 레코드를 발췌해 준다
     assert "_shards/L1-B00.json" in p               # 쓰는 곳은 자기 샤드뿐
     assert "terms-reading.json" in p                # 열지도 고치지도 말라고 적혀 있다
-    assert "file_cache.py" in p                     # 통독 캐시를 먼저 본다
+    assert "담당 파일의 개요를 먼저 본다" in p       # 개요는 프롬프트에 실려 온다
     assert "이름으로 보아" in p                       # 금지표
     assert "confidence" in p
 

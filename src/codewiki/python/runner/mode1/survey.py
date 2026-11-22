@@ -17,9 +17,9 @@ import jsonio
 import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
-from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, Mode1Context, OutlineSymbol, Pass2DepRow,
-                           PendingRow, Record, Records, RetryInputs, ShardFault, ShardRecords, SymbolRow,
-                           UnresolvedRow)
+from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, Mode1Context, OutlineRow, OutlineSymbol,
+                           Pass2DepRow, PendingRow, Record, Records, RetryInputs, ShardFault, ShardRecords,
+                           SymbolRow, UnresolvedRow)
 from mode1.graph import VerifiedGraph
 from mode1.measured import Measured
 
@@ -119,9 +119,10 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
                             deps: Sequence[DepRow], targets: Sequence[str] | None = None,
                             total: int = 0, pending: Sequence[PendingRow] = (),
                             name_of: Mapping[str, str] | None = None,
-                            faults: Sequence[str] = (), bad: str = "") -> str:
+                            faults: Sequence[str] = (), bad: str = "",
+                            outlines: Sequence[OutlineRow] = ()) -> str:
         """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
-        검문 · 통독 캐시 명령의 해석기는 지금 실행기가 도는 해석기다 — 기계 단계를 띄울 때와 같다.
+        검문 명령의 해석기는 지금 실행기가 도는 해석기다 — 기계 단계를 띄울 때와 같다.
 
         `deps` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
         **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 실린다.
@@ -130,6 +131,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
 
         `targets` 는 warmup 이 판정한 다시 읽을 파일 목록이다. 비지 않으면 **증분 조사**라 범위 절이 실린다.
         `None` 이면 전량 조사다. `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
+        `outlines` 는 `outline_rows` 가 낸 담당 파일의 개요다 — 세션은 통독 캐시를 부르지 않고 이 줄들을 본다.
         """
         names = name_of or {}
         syms: list[SymbolRow] = [
@@ -142,7 +144,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
             n=len(syms), syms=syms,
             deps=list(deps), targets=scope, target_count=len(scope), total=total,
             reading=X.reading_path(repo, ROOT), pending=list(pending),
-            faults=list(faults), fault_count=len(faults), bad=bad)
+            faults=list(faults), fault_count=len(faults), bad=bad, outlines=list(outlines))
 
     @staticmethod
     def pending_excerpt(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch,
@@ -233,6 +235,25 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
             file_cache.put(repo, rel, outline)
             n += 1
         return n
+
+    @staticmethod
+    def outline_rows(repo: str, batch: survey_plan.PlanBatch) -> list[OutlineRow]:
+        """배치의 파일마다 통독 캐시의 개요를 프롬프트 줄로 낸다. 배치가 맡은 심볼은 `own` 이 참이다.
+
+        캐시에 없거나, 개요를 쓴 뒤 파일이 바뀌었거나, 개요의 꼴이 `FileOutline` 이 아니면 `found` 가 거짓이다.
+        """
+        own = {(s["file"], s["name"]) for s in batch["symbols"]}
+        rows: list[OutlineRow] = []
+        for rel in batch["files"]:
+            try:
+                o = msgspec.convert((file_cache.get(repo, rel) or {}).get("outline"), FileOutline)
+            except msgspec.ValidationError:
+                rows.append({"path": rel, "found": False, "lines": "", "symbols": []})
+                continue
+            rows.append({"path": rel, "found": True, "lines": str(o["lines"]), "symbols": [
+                {"line": str(s["line"]), "kind": s["kind"], "name": s["name"], "own": (rel, s["name"]) in own}
+                for s in o["symbols"]]})
+        return rows
 
     @staticmethod
     def fault(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault:
@@ -657,6 +678,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
             jobs = [(b["id"], self.survey_batch_prompt(ctx.repo, ctx.root, b,
                                                        self.dep_excerpt(ctx.merged, b, names),
                                                        ctx.targets, ctx.tracked_n, name_of=names,
+                                                       outlines=self.outline_rows(ctx.repo, b),
                                                        **self.retry_inputs(d, b["id"])))
                     for b in layer["batches"]]
         # 샤드가 이미 있는 배치는 건너뛴다 — 다시 돌리면 실패한 배치만 돌고, 격리된 사유를 받는다.

@@ -148,6 +148,22 @@ class FileOutline(TypedDict):
     symbols: list[OutlineSymbol]
 
 
+class OutlineSymbolRow(TypedDict):
+    """배치 프롬프트의 개요 심볼 줄 하나. `own` 은 이 배치가 맡은 심볼인가."""
+    line: str
+    kind: str
+    name: str
+    own: bool
+
+
+class OutlineRow(TypedDict):
+    """배치 프롬프트의 개요 한 파일. `found` 가 거짓이면 캐시에 쓸 개요가 없어 `lines` 가 빈 글이고 심볼 줄이 없다."""
+    path: str
+    found: bool
+    lines: str
+    symbols: list[OutlineSymbolRow]
+
+
 class Pass2DepRow(TypedDict):
     """2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다."""
     name: str

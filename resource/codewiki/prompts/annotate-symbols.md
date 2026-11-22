@@ -60,16 +60,24 @@
 {% endif %}
 ## 읽는 법 — 순서를 지킨다
 
-1. 담당 파일마다 통독 캐시를 먼저 본다:
-     {{python}} {{root}}/src/codewiki/python/machine/file_cache.py get {{repo}} <파일경로>
-   - 있으면: 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다.
-   - 없으면: 파일을 통독하고, 끝나면 개요를 **JSON 파일로 먼저 쓴 뒤** 그 경로를 넘긴다:
-     {{python}} {{root}}/src/codewiki/python/machine/file_cache.py put {{repo}} <파일경로> <개요json의_파일경로>
-     넷째 인자는 JSON 문자열이 아니라 **파일 경로**다. 문자열을 넣으면 죽는다.
-     개요 꼴 — 심볼마다 {name, kind, line, end_line, signature, one_line} 에
-     파일의 imports 와 head_comment 를 더한 객체.
-2. **네 심볼은 캐시로 때우지 않는다.** 반드시 그 줄 범위를 실제로 읽는다.
-   캐시는 남의 심볼을 uses[].to 로 가리킬 때만 쓴다.
+1. 담당 파일의 개요를 먼저 본다. 기계가 조사 전에 적어 둔 것이고, 줄 번호는 심볼이 **시작하는** 줄이다:
+{% for o in outlines %}
+{% if o.found %}
+     {{ o.path }} ({{ o.lines }}줄)
+{% for s in o.symbols %}
+       {{ s.line }}  {{ s.kind }}  {{ s.name }}{{ "   <- 네 심볼" if s.own else "" }}
+{% endfor %}
+{% else %}
+     {{ o.path }} (개요 없음 — 이 파일은 통독한다)
+{% endif %}
+{% else %}
+     (개요 없음 — 담당 파일을 통독한다)
+{% endfor %}
+   - 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다. 끝 줄은 적혀 있지 않다 — 클래스는 뒤따르는
+     메서드를 품으므로 다음 줄 번호가 곧 그 심볼의 끝은 아니다.
+   - import · 파일 머리 주석 · 시그니처는 개요에 없다. 필요하면 파일에서 본다.
+2. **네 심볼은 개요로 때우지 않는다.** 반드시 그 줄 범위를 실제로 읽는다.
+   개요는 남의 심볼을 uses[].to 로 가리킬 때만 쓴다.
 
 ## 레코드 계약
 
@@ -113,7 +121,7 @@
     {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/{{bid}}.json
   (JSON 문법 · 필수 칸 · 어휘 · where 를 본다. 이것이 층 끝 검문과 같은 검사기다)
 
-보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
+보고: 레코드 수 · confidence 분포 · 통독한 파일과 개요로 범위만 읽은 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
 
 <!-- section: nonnode -->
 너는 코드베이스 전수조사의 **마지막 층** 담당이다. 대상 저장소 {{repo}}. 도구 저장소 {{root}}.
