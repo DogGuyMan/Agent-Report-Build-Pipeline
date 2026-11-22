@@ -2495,3 +2495,17 @@ def test_검사를_건너뛰면_새_저장소에서_흐름이_서지_않는다(t
     E.build_mode1_graph(_ctx(tmp_path), only=None, skip=None, start_at=None)
     with pytest.raises(P.GraphError):
         E.build_mode1_graph(_ctx(tmp_path), only=None, skip=["verify-graph"], start_at=None)
+
+
+def test_전수조사_프롬프트는_실행기의_해석기를_적는다():
+    """도구 저장소에 `.venv` 가 없어도 검문 명령이 돈다 — 프롬프트가 지금 도는 해석기를 그대로 적는다."""
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    S = SV.AnnotateSymbolsStage
+    batch = S.survey_batch_prompt("/repo", "/root", b, [])
+    nonnode = S.nonnode_prompt("/repo", "/root")
+    pass2 = S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})
+    for p in (batch, nonnode, pass2):
+        assert sys.executable + " /root/src/codewiki/python/runner/check_shard.py" in p
+        assert "/root/.venv/bin/python" not in p
+    assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py get /repo" in batch
+    assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py put /repo" in batch

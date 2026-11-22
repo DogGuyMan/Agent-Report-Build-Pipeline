@@ -119,6 +119,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
                             name_of: Mapping[str, str] | None = None,
                             faults: Sequence[str] = (), bad: str = "") -> str:
         """배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다.
+        검문 · 통독 캐시 명령의 해석기는 지금 실행기가 도는 해석기다 — 기계 단계를 띄울 때와 같다.
 
         `deps` 는 `dep_excerpt` 가 낸 아래층 발췌다. `pending` 은 `pending_excerpt` 가 낸
         **아직 조사되지 않은** 의존 대상이다 — 비지 않으면 열지 말고 얕게 쓰라는 절이 실린다.
@@ -135,7 +136,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
             for s in batch["symbols"]]
         scope = list(targets or ())
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#batch", repo=repo, root=root, bid=batch["id"], n=len(syms), syms=syms,
+            "annotate-symbols#batch", repo=repo, root=root, python=sys.executable, bid=batch["id"],
+            n=len(syms), syms=syms,
             deps=list(deps), targets=scope, target_count=len(scope), total=total,
             reading=X.reading_path(repo, ROOT), pending=list(pending),
             faults=list(faults), fault_count=len(faults), bad=bad)
@@ -167,7 +169,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.** `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
         """
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#nonnode", repo=repo, root=root, reading=X.reading_path(repo, ROOT),
+            "annotate-symbols#nonnode", repo=repo, root=root, python=sys.executable,
+            reading=X.reading_path(repo, ROOT),
             faults=list(faults), fault_count=len(faults), bad=bad)
 
     # ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────
@@ -370,7 +373,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         theirs: list[Pass2DepRow] = [{"name": k, "means": str(r.get("means") or ""), "does": str(r.get("does") or "")}
                                      for k, r in sorted(deps.items())]
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#pass2", repo=repo, root=root, bid=bid, file=file, mine=mine, theirs=theirs)
+            "annotate-symbols#pass2", repo=repo, root=root, python=sys.executable, bid=bid, file=file,
+            mine=mine, theirs=theirs)
 
     @staticmethod
     def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:

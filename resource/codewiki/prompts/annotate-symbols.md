@@ -61,10 +61,10 @@
 ## 읽는 법 — 순서를 지킨다
 
 1. 담당 파일마다 통독 캐시를 먼저 본다:
-     {{root}}/.venv/bin/python {{root}}/src/codewiki/python/machine/file_cache.py get {{repo}} <파일경로>
+     {{python}} {{root}}/src/codewiki/python/machine/file_cache.py get {{repo}} <파일경로>
    - 있으면: 개요를 읽고 **네 심볼의 줄 범위만** 실제로 연다.
    - 없으면: 파일을 통독하고, 끝나면 개요를 **JSON 파일로 먼저 쓴 뒤** 그 경로를 넘긴다:
-     {{root}}/.venv/bin/python {{root}}/src/codewiki/python/machine/file_cache.py put {{repo}} <파일경로> <개요json의_파일경로>
+     {{python}} {{root}}/src/codewiki/python/machine/file_cache.py put {{repo}} <파일경로> <개요json의_파일경로>
      넷째 인자는 JSON 문자열이 아니라 **파일 경로**다. 문자열을 넣으면 죽는다.
      개요 꼴 — 심볼마다 {name, kind, line, end_line, signature, one_line} 에
      파일의 imports 와 head_comment 를 더한 객체.
@@ -110,7 +110,7 @@
 - confidence 가 전부 HIGH 는 아닌가
 - 샤드 파일 하나만 만들었는가
 - **기계 검문을 통과했는가** — 다음을 돌려 `통과` 가 나올 때까지 고친다. 통과 전에는 끝내지 않는다:
-    {{root}}/.venv/bin/python {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/{{bid}}.json
+    {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/{{bid}}.json
   (JSON 문법 · 필수 칸 · 어휘 · where 를 본다. 이것이 층 끝 검문과 같은 검사기다)
 
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 캐시로 때운 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
@@ -173,7 +173,7 @@
 **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
 끝내기 전에 기계 검문을 돌려 `통과` 가 나올 때까지 고친다:
-  {{root}}/.venv/bin/python {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/NONNODE.json
+  {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/NONNODE.json
 
 보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
 
@@ -208,4 +208,4 @@
   {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json      꼴은 {"키": 레코드}
 
 정확한 꼴은 {{repo}}/out/codegraph-raw/record-schema.json 이다. 끝내기 전에 검문한다:
-  {{root}}/.venv/bin/python {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json
+  {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json
