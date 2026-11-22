@@ -104,15 +104,26 @@ def sum_usage(usages: Sequence[Usage]) -> Usage:
 # ── 실패 판정 ────────────────────────────────────────────────────────────
 
 
+def result_text(result: ClaudeResult) -> str:
+    """CLI 가 `result` 칸에 적은 글을 한 줄 · 200자까지로. 없으면 빈 글."""
+    return " ".join(str(result.get("result") or "").split())[:200]
+
+
 def agent_verdict(returncode: int, result: ClaudeResult | None) -> tuple[bool, str]:
     """에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다.
 
     종료 코드만 믿으면 안 된다. `claude` 는 최대 턴 수에 걸리거나 권한에 막혀도 0 을
     내면서 `is_error: true` 만 올릴 수 있다.
+
+    실패면 CLI 가 `result` 칸에 적은 글을 사유 끝에 붙인다. `subtype` 만으로는 왜 실패했는지
+    알 수 없는 실패가 있다 — `test_종료_코드가_0이_아니면_CLI_가_적은_글을_사유에_싣는다`.
     """
     if result is None:
         return False, "결과 JSON 을 읽지 못했다 (종료 코드 %d)" % returncode
     why = result.get("subtype") or "사유 없음"
+    text = result_text(result)
+    if text:
+        why = "%s · %s" % (why, text)
     if returncode != 0:
         return False, "종료 코드 %d — %s" % (returncode, why)
     if result.get("is_error"):

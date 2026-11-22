@@ -123,3 +123,24 @@ def test_없는_칸은_0으로_센다():
     u = M.normalize_usage(M.parse_result("{}"))
     assert u["input"] == 0 and u["cost_usd"] == 0.0 and u["total"] == 0
     assert M.normalize_usage(None)["turns"] == 0
+
+
+def test_종료_코드가_0이_아니면_CLI_가_적은_글을_사유에_싣는다():
+    ok, why = M.agent_verdict(1, {"subtype": "success", "is_error": True,
+                                  "result": "You've hit your session limit · resets 9:50pm"})
+    assert ok is False
+    assert "종료 코드 1" in why and "session limit" in why
+
+
+def test_사유에_싣는_글은_한_줄_200자까지다():
+    _, why = M.agent_verdict(1, {"subtype": "success", "result": "첫 줄\n" + "가" * 500})
+    assert "\n" not in why
+    assert M.result_text({"result": "첫 줄\n" + "가" * 500}) == ("첫 줄 " + "가" * 500)[:200]
+
+
+def test_CLI_가_글을_주지_않으면_사유는_subtype_뿐이다():
+    assert M.agent_verdict(1, {"subtype": "error_max_turns"}) == (False, "종료 코드 1 — error_max_turns")
+
+
+def test_성공한_세션의_글은_사유가_되지_않는다():
+    assert M.agent_verdict(0, {"result": "샤드를 썼다", "subtype": "success"}) == (True, "")
