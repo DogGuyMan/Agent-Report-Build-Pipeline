@@ -621,7 +621,8 @@ def _fake_layer(fail: set[str]) -> Callable[..., list[P.JobResult]]:
     written = [0]
 
     def run(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+            concurrency: int = 8, timeout: float | None = None,
+            session_args: Sequence[str] = ()) -> list[P.JobResult]:
         got: list[P.JobResult] = []
         for label, _ in jobs:
             if label in fail:
@@ -737,7 +738,8 @@ def _bake(c: X.Mode1Context, monkeypatch: pytest.MonkeyPatch, names: list[str], 
 
 
 def _noop_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-                concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+                concurrency: int = 8, timeout: float | None = None,
+                session_args: Sequence[str] = ()) -> list[P.JobResult]:
     """세션은 모두 성공했다고 하고 장은 하나도 건드리지 않는다."""
     return [(label, 0.0, 0, {}) for label, _ in jobs]
 
@@ -795,7 +797,8 @@ def test_write_wiki_는_옮긴_자리를_세션을_띄우기_전에_알린다(
     _snapshot(c, {"pkg/a.py": "2판"})
 
     def interrupted(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-                    concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+                    concurrency: int = 8, timeout: float | None = None,
+                    session_args: Sequence[str] = ()) -> list[P.JobResult]:
         raise KeyboardInterrupt
     monkeypatch.setattr(P, "run_layer", interrupted)
     capsys.readouterr()
@@ -840,7 +843,8 @@ def test_write_wiki_는_실패한_세션이_반쯤_쓴_장을_bak_로_옮겨_다
     ok = _fake_layer(set())
 
     def half(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-             concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+             concurrency: int = 8, timeout: float | None = None,
+             session_args: Sequence[str] = ()) -> list[P.JobResult]:
         got = ok(model, repo, root, [j for j in jobs if j[0] == "a.md"])
         (Path(repo) / "docs" / "wiki" / "c.md").write_text("반쯤 쓴 장", encoding="utf-8")
         return got + [("c.md", 0.0, 1, None)]
@@ -852,7 +856,8 @@ def test_write_wiki_는_실패한_세션이_반쯤_쓴_장을_bak_로_옮겨_다
     calls: list[str] = []
 
     def spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+            concurrency: int = 8, timeout: float | None = None,
+            session_args: Sequence[str] = ()) -> list[P.JobResult]:
         calls.extend(label for label, _ in jobs)
         return ok(model, repo, root, jobs)
     monkeypatch.setattr(P, "run_layer", spy)
@@ -884,7 +889,8 @@ def test_write_wiki_는_같은_바이트로_다시_써도_따라잡았다고_적
     _snapshot(c, {"pkg/a.py": "2판"})                                                 # 주석만 바뀌어 고칠 것이 없는 경우
 
     def rewrite_same(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-                     concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+                     concurrency: int = 8, timeout: float | None = None,
+                     session_args: Sequence[str] = ()) -> list[P.JobResult]:
         for label, _ in jobs:
             (Path(repo) / "docs" / "wiki" / label).write_bytes(same)
         return [(label, 0.0, 0, {}) for label, _ in jobs]
@@ -903,7 +909,8 @@ def test_write_wiki_는_낡은_장을_세션_전에_지우고_사람이_고친_�
     ok = _fake_layer(set())
 
     def spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-            concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+            concurrency: int = 8, timeout: float | None = None,
+            session_args: Sequence[str] = ()) -> list[P.JobResult]:
         seen.append(sorted(os.listdir(Path(repo) / "docs" / "wiki")))
         return ok(model, repo, root, jobs)
     monkeypatch.setattr(P, "run_layer", spy)
@@ -1313,7 +1320,8 @@ def test_annotate_symbols_는_도장이_없는_옛_샤드를_옮기고_그_배�
     asked: list[str] = []
 
     def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+              concurrency: int = 8, timeout: float | None = None,
+              session_args: Sequence[str] = ()) -> list[P.JobResult]:
         for label, _ in jobs:
             asked.append(label)
             (shards / (label + ".json")).write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
@@ -1785,7 +1793,7 @@ def _fake_agent(shards: dict[str, dict[str, object]], calls: list[str]):
     import re
 
     def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
-            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+            label: str = "", session_args: Sequence[str] = ()) -> tuple[float, int, M.ClaudeResult | None]:
         calls.append(label)
         m = re.search(r"(\S+/_shards/\S+\.json)", prompt)
         assert m, label

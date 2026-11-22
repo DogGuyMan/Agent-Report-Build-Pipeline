@@ -433,15 +433,18 @@ JobResult = tuple[str, float, int, AgentResult | None]
 
 def run_agent_with(model: str, repo: str, root: str, prompt: str,
                    timeout: float | None = None,
-                   label: str | None = None) -> tuple[float, int, AgentResult | None]:
+                   label: str | None = None,
+                   session_args: Sequence[str] = M.OPEN_SESSION) -> tuple[float, int, AgentResult | None]:
     """`claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`.
+
+    `session_args` 는 그 세션의 권한 · 격리 인자다. 명령줄 짓는 함수(`measure.claude_argv`)에 그대로 넘긴다.
 
     **배치별 시간을 여기서 잰다** — 부르는 쪽은 병렬이라 층 전체만 잴 수 있다.
 
     **하트비트를 여기 두지 않는다.** 동시에 도는 배치가 저마다 찍으면 화면을 못 읽는다 —
     층 하나를 감싸는 하트비트 하나를 `run_layer` 를 부르는 쪽이 건다.
     """
-    argv = M.claude_argv(model=model, repo=repo, extra_dirs=[root])
+    argv = M.claude_argv(model=model, repo=repo, extra_dirs=[root], session_args=session_args)
     t0 = time.monotonic()
     p = subprocess.run(argv, input=prompt, cwd=repo,
                        capture_output=True, text=True, timeout=timeout)
@@ -458,8 +461,11 @@ def run_agent_with(model: str, repo: str, root: str, prompt: str,
 
 def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
               concurrency: int = 8,
-              timeout: float | None = None) -> list[JobResult]:
+              timeout: float | None = None,
+              session_args: Sequence[str] = M.OPEN_SESSION) -> list[JobResult]:
     """한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다.
+
+    `timeout` 과 `session_args` 는 그 층의 세션 전부에 같은 값으로 간다.
 
     `jobs` 는 `[(라벨, 프롬프트), …]`. 낸 것은 `[(라벨, 초, 종료코드, 결과 또는 None), …]`
     이고 **라벨 순서로 정렬**해서 낸다 — 끝나는 순서는 실행마다 흔들린다.
@@ -471,7 +477,7 @@ def run_layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
         return []
     rows: list[JobResult] = []
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as ex:
-        futs = {ex.submit(run_agent_with, model, repo, root, prompt, timeout, label): label
+        futs = {ex.submit(run_agent_with, model, repo, root, prompt, timeout, label, session_args): label
                 for label, prompt in jobs}
         for f in futs:
             label = futs[f]
@@ -600,7 +606,7 @@ class PromptResource:
 
 
 class LlmStage(PromptResource, Stage[C]):
-    """LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다.
+    """LLM Model을 부르는 단계. 훅 일곱 중 `prompt` 와 `repo` 만 필수다.
 
     팬아웃은 단일 호출의 일반화다 — 세션 하나짜리 단계는 `jobs` 의 기본값이
     자기 이름 하나를 담은 목록을 내므로 훅을 하나도 더 구현하지 않는다.
@@ -625,6 +631,10 @@ class LlmStage(PromptResource, Stage[C]):
     def rounds(self, ctx: C) -> int:
         return 1
 
+    def session_args(self, ctx: C, rnd: int) -> Sequence[str]:
+        """이 라운드의 세션들이 받는 권한 · 격리 인자. 재정의하지 않으면 `measure.OPEN_SESSION` 이다."""
+        return M.OPEN_SESSION
+
     def jobs(self, ctx: C, rnd: int) -> list[tuple[str, str]]:
         return [(self.name, self.prompt(ctx))]
 
@@ -646,7 +656,8 @@ class LlmStage(PromptResource, Stage[C]):
             jobs = self.jobs(ctx, rnd)
             with M.Heartbeat(self.name):
                 got = run_layer(self.model(ctx), self.repo(ctx), ctx.root, jobs,
-                                concurrency=ctx.concurrency, timeout=ctx.timeout)
+                                concurrency=ctx.concurrency, timeout=ctx.timeout,
+                                session_args=self.session_args(ctx, rnd))
             out = self.harvest(ctx, got, rnd)
             rows.extend(out.rows)
             if out.kind != OK:

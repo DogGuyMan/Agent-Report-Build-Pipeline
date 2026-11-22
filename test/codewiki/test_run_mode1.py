@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
@@ -291,7 +292,8 @@ def test_run_layer_는_동시_한도를_넘지_않는다(monkeypatch: pytest.Mon
 
     def fake(model: str, repo: str, root: str, prompt: str,
              timeout: float | None = None,
-             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+             label: str | None = None,
+             session_args: Sequence[str] = ()) -> tuple[float, int, R.AgentResult | None]:
         with lock:
             live[0] += 1
             peak[0] = max(peak[0], live[0])
@@ -311,7 +313,8 @@ def test_run_layer_는_라벨_순서로_돌려준다(monkeypatch: pytest.MonkeyP
     """배치가 끝나는 순서는 흔들린다. 보고 표가 실행마다 달라지면 대조를 못 한다."""
     def fake(model: str, repo: str, root: str, prompt: str,
              timeout: float | None = None,
-             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+             label: str | None = None,
+             session_args: Sequence[str] = ()) -> tuple[float, int, R.AgentResult | None]:
         return 0.01, 0, {"usage": {}, "num_turns": 0}
 
     monkeypatch.setattr(R, "run_agent_with", fake)
@@ -324,7 +327,8 @@ def test_run_layer_는_한_배치가_죽어도_나머지를_돌린다(monkeypatc
     """배치 하나가 터졌다고 층 전체를 버리면 20분이 날아간다. 실패는 행으로 남기고 계속 간다."""
     def fake(model: str, repo: str, root: str, prompt: str,
              timeout: float | None = None,
-             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+             label: str | None = None,
+             session_args: Sequence[str] = ()) -> tuple[float, int, R.AgentResult | None]:
         if label == "L0-B01":
             raise RuntimeError("자식이 죽었다")
         return 0.01, 0, {"usage": {}, "num_turns": 0}
@@ -341,7 +345,8 @@ def test_빈_층은_LLM_Model을_부르지_않는다(monkeypatch: pytest.MonkeyP
     """샤드가 이미 다 있으면 할 일이 없다. 그런데도 부르면 돈만 나간다(J4)."""
     def fake(model: str, repo: str, root: str, prompt: str,
              timeout: float | None = None,
-             label: str | None = None) -> tuple[float, int, R.AgentResult | None]:
+             label: str | None = None,
+             session_args: Sequence[str] = ()) -> tuple[float, int, R.AgentResult | None]:
         pytest.fail("빈 층에서 LLM Model을 불렀다")
 
     monkeypatch.setattr(R, "run_agent_with", fake)

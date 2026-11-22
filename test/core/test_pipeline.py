@@ -1,7 +1,7 @@
 """단계 기계의 시험. 갈래 · 전이표 · 그래프 · 시뮬레이터 · 드라이버."""
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import TypedDict
 
@@ -399,7 +399,8 @@ class 두층부르는단계(한번부르는단계):
 
 def 가짜층(결과: P.AgentResult | None, rc: int = 0):
     def _fake(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+              concurrency: int = 8, timeout: float | None = None,
+              session_args: Sequence[str] = ()) -> list[P.JobResult]:
         return [(label, 1.0, rc, 결과) for label, _ in jobs]
     return _fake
 
@@ -416,7 +417,8 @@ def test_LLM_단계는_기본_LLM_Model이_ctx_의_것이다(tmp_path: Path, mon
     본것: list[str] = []
 
     def _spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-             concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+             concurrency: int = 8, timeout: float | None = None,
+             session_args: Sequence[str] = ()) -> list[P.JobResult]:
         본것.append(model)
         return [(label, 1.0, 0, {}) for label, _ in jobs]
 
@@ -673,3 +675,61 @@ def test_멈춘_뒤의_단계는_벽시계가_없다(tmp_path: Path):
     p = P.Pipeline[P.RunContext]()
     p.run(g, ctx)
     assert list(p.stage_seconds) == ["a"]
+
+
+# ── 세션 인자 — 단계의 훅이 정하고 층과 세션 호출을 거쳐 명령줄에 닿는다 ──────
+
+def _넘겨받은_세션_인자(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, ...]]:
+    """`run_layer` 를 바꿔 끼우고, 층마다 넘겨받은 `session_args` 가 쌓일 목록을 낸다."""
+    seen: list[tuple[str, ...]] = []
+
+    def _spy(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+             concurrency: int = 8, timeout: float | None = None,
+             session_args: Sequence[str] = ("넘어오지 않았다",)) -> list[P.JobResult]:
+        seen.append(tuple(session_args))
+        return [(label, 1.0, 0, {}) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", _spy)
+    return seen
+
+
+def test_LLM_단계의_세션_인자는_기본으로_묻지_않고_전부_허용이다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    seen = _넘겨받은_세션_인자(monkeypatch)
+    한번부르는단계().perform(P.RunContext(root=str(tmp_path), model="m"))
+    assert seen == [M.OPEN_SESSION]
+
+
+def test_LLM_단계는_라운드마다_session_args_훅이_낸_값을_층에_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    class 층마다다른단계(두층부르는단계):
+        def session_args(self, ctx: P.RunContext, rnd: int) -> Sequence[str]:
+            return [M.OPEN_SESSION + M.ISOLATED, ("--permission-mode", "dontAsk")][rnd]
+
+    seen = _넘겨받은_세션_인자(monkeypatch)
+    층마다다른단계().perform(P.RunContext(root=str(tmp_path), model="m"))
+    assert seen == [M.OPEN_SESSION + M.ISOLATED, ("--permission-mode", "dontAsk")]
+
+
+def test_run_layer_는_세션_인자를_세션마다_그대로_넘긴다(monkeypatch: pytest.MonkeyPatch):
+    seen: dict[str, tuple[str, ...]] = {}
+
+    def _agent(model: str, repo: str, root: str, prompt: str, timeout: float | None = None,
+               label: str | None = None,
+               session_args: Sequence[str] = ("넘어오지 않았다",)) -> tuple[float, int, P.AgentResult | None]:
+        seen[label or ""] = tuple(session_args)
+        return 1.0, 0, {}
+    monkeypatch.setattr(P, "run_agent_with", _agent)
+    P.run_layer("m", "/r", "/root", [("a", "p"), ("b", "p")], session_args=M.OPEN_SESSION + M.ISOLATED)
+    P.run_layer("m", "/r", "/root", [("c", "p")])
+    assert seen == {"a": M.OPEN_SESSION + M.ISOLATED, "b": M.OPEN_SESSION + M.ISOLATED, "c": M.OPEN_SESSION}
+
+
+def test_run_agent_with_는_세션_인자를_명령줄_짓는_함수에_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    seen: list[tuple[str, ...]] = []
+
+    def argv(model: str, repo: str, extra_dirs: Iterable[str],
+             session_args: Sequence[str] = ("넘어오지 않았다",)) -> list[str]:
+        seen.append(tuple(session_args))
+        return [sys.executable, "-c", "import sys; sys.stdin.read(); print('{}')"]
+    monkeypatch.setattr(M, "claude_argv", argv)
+    P.run_agent_with("m", str(tmp_path), str(tmp_path), "프롬프트", label="x")
+    P.run_agent_with("m", str(tmp_path), str(tmp_path), "프롬프트", label="x", session_args=("--tools", ""))
+    assert seen == [M.OPEN_SESSION, ("--tools", "")]
