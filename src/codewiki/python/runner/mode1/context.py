@@ -127,6 +127,12 @@ class DepRow(TypedDict):
     means: str
 
 
+class SessionCall(TypedDict):
+    """조사 세션이 Bash 로 부를 수 있는 명령 하나. 허용 규칙과 프롬프트의 알림이 둘 다 이 행에서 나온다."""
+    command: str    # 규칙이 고정하는 앞부분 — 해석기 · 스크립트
+    last: str       # 알림에 적는 나머지 인자
+
+
 class PendingRow(TypedDict):
     """배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들."""
     name: str

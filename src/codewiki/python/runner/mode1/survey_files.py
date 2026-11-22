@@ -15,7 +15,7 @@ import jsonio
 import survey_plan
 from mode1 import context as X
 from mode1.context import Mode1Context
-from mode1.survey import AnnotateSymbolsStage
+from mode1.survey import AnnotateSymbolsStage, SessionKind
 
 AgentRun = tuple[float, int, M.ClaudeResult | None]
 
@@ -62,9 +62,10 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
         running: dict[Future[AgentRun], str] = {}
 
         def submit(label: str, prompt: str) -> None:
-            # 이 전략에는 라운드가 없다. 전수조사 세션의 인자는 라운드와 상관없이 같다.
+            # 이 전략에는 라운드가 없다. 라벨의 꼴이 세션의 종류를 가른다 — `<배치 id>/p2` · 배치 id · 그 밖(비노드).
+            kind: SessionKind = "pass2" if label.endswith("/p2") else "batch" if label in batches else "nonnode"
             fut = pool.submit(P.run_agent_with, self.model(ctx), ctx.repo, ctx.root, prompt, ctx.timeout, label,
-                              self.session_args(ctx, 0))
+                              self.kind_args(ctx, kind))
             running[fut] = label
 
         def write_merged() -> None:

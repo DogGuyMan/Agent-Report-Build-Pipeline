@@ -182,6 +182,16 @@ ISOLATED: tuple[str, ...] = ("--tools", "Bash,Read,Write", "--strict-mcp-config"
                              "--setting-sources", "")
 
 
+def allow_only(rules: Iterable[str]) -> tuple[str, ...]:
+    """묻는 호출을 전부 거절하고 `rules` 에 맞는 호출만 돌리는 권한 인자. `OPEN_SESSION` 자리에 쓴다.
+
+    규칙 하나가 인자 하나다. 규칙이 없으면 허용 인자를 싣지 않는다 — 작업 폴더 안 읽기처럼 어느 권한 방식에서도
+    묻지 않는 호출만 돈다.
+    """
+    listed = tuple(rules)
+    return ("--permission-mode", "dontAsk") + (("--allowedTools",) + listed if listed else ())
+
+
 def claude_argv(model: str, repo: str, extra_dirs: Iterable[str],
                 session_args: Sequence[str] = OPEN_SESSION) -> list[str]:
     """헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다.

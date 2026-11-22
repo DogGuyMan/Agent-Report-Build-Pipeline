@@ -19,10 +19,14 @@ import survey_plan
 from mode1 import context as X
 from mode1 import diff as D
 from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, Mode1Context, OutlineRow, OutlineSymbol,
-                           Pass2DepRow, PendingRow, Record, Records, RetryInputs, ShardFault, ShardRecords,
-                           SymbolRow, UnresolvedRow)
+                           Pass2DepRow, PendingRow, Record, Records, RetryInputs, SessionCall, ShardFault,
+                           ShardRecords, SymbolRow, UnresolvedRow)
 from mode1.graph import VerifiedGraph
 from mode1.measured import Measured
+
+
+# 조사 세션의 종류. 세션 인자와 허용된 호출이 이것으로 갈린다.
+SessionKind = Literal["batch", "nonnode", "pass2"]
 
 
 class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
@@ -30,7 +34,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     name = "annotate-symbols"
     emits = P.OK | P.FAIL | P.SKIP
     prompt_dir = X.PROMPT_DIR
-    prompt_names = ("annotate-symbols#batch", "annotate-symbols#nonnode", "annotate-symbols#pass2")
+    prompt_names = ("annotate-symbols#batch", "annotate-symbols#nonnode", "annotate-symbols#pass2",
+                    "annotate-symbols#allowed")
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
@@ -145,7 +150,9 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
             n=len(syms), syms=syms,
             deps=list(deps), targets=scope, target_count=len(scope), total=total,
             reading=X.reading_path(repo, ROOT), pending=list(pending),
-            faults=list(faults), fault_count=len(faults), bad=bad, outlines=list(outlines))
+            faults=list(faults), fault_count=len(faults), bad=bad, outlines=list(outlines),
+            allowed=AnnotateSymbolsStage.allowed_notice(
+                AnnotateSymbolsStage.session_calls("batch", repo, root, batch["id"])))
 
     @staticmethod
     def pending_excerpt(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch,
@@ -428,7 +435,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
                                      for k, r in sorted(deps.items())]
         return AnnotateSymbolsStage.load_prompt(
             "annotate-symbols#pass2", repo=repo, root=root, python=sys.executable, bid=bid, file=file,
-            mine=mine, theirs=theirs)
+            mine=mine, theirs=theirs,
+            allowed=AnnotateSymbolsStage.allowed_notice(AnnotateSymbolsStage.session_calls("pass2", repo, root, bid)))
 
     @staticmethod
     def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:
@@ -668,9 +676,44 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     def rounds(self, ctx: Mode1Context) -> int:
         return len(ctx.plan["layers"]) if ctx.plan else 0
 
+    # ── 허용된 호출 — 허용 규칙과 프롬프트의 알림이 한 목록에서 나온다 ─────────
+
+    @staticmethod
+    def session_calls(kind: SessionKind, repo: str, root: str, name: str = "") -> list[SessionCall]:
+        """세션 종류마다 Bash 로 부를 수 있는 명령. 프롬프트의 절차가 시키는 명령과 같아야 한다.
+
+        어느 종류든 제 샤드의 검문 하나다. `name` 은 그 세션이 쓰는 샤드의 이름(배치 id 또는 `NONNODE`)이고
+        알림에만 쓴다 — 규칙은 `command` 만 본다.
+        """
+        shard = "_pass2/%s.json" % name if kind == "pass2" else name + ".json"
+        check: SessionCall = {
+            "command": "%s %s" % (sys.executable,
+                                  os.path.join(root, "src", "codewiki", "python", "runner", "check_shard.py")),
+            "last": os.path.join(repo, "out", "codegraph-raw", "_shards", shard)}
+        return [check]
+
+    @staticmethod
+    def allowed_notice(calls: Sequence[SessionCall]) -> str:
+        """프롬프트에 싣는 허용된 호출 알림. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다."""
+        return AnnotateSymbolsStage.load_prompt("annotate-symbols#allowed", calls=list(calls)).removesuffix("\n")
+
+    def kind_args(self, ctx: Mode1Context, kind: SessionKind) -> Sequence[str]:
+        """그 종류의 세션이 받는 인자. 어느 종류든 격리해서 띄운다.
+
+        배치와 2패스 세션에는 샤드 폴더 쓰기와 `session_calls` 의 명령만 허용한다 — 이 둘의 프롬프트에 알림이 실린다.
+        쓰기 규칙의 `/` 는 세션의 작업 폴더(대상 저장소)에서 시작한다. 비노드 세션은 허용 규칙 아래에 있지 않다.
+        """
+        if kind == "nonnode":
+            return M.OPEN_SESSION + M.ISOLATED
+        folder = os.path.relpath(self.shard_dir(ctx), ctx.repo).replace(os.sep, "/")
+        rules = ["Edit(/%s/**)" % folder] + ["Bash(%s *)" % c["command"]
+                                              for c in self.session_calls(kind, ctx.repo, ctx.root)]
+        return M.allow_only(rules) + M.ISOLATED
+
     def session_args(self, ctx: Mode1Context, rnd: int) -> Sequence[str]:
-        """전수조사 세션은 층의 종류와 상관없이 격리 인자를 받는다 — 일에 필요한 것은 프롬프트가 전부 싣는다."""
-        return M.OPEN_SESSION + M.ISOLATED
+        """층의 종류가 가른다 — 비노드 층의 세션은 비노드 종류의 인자를, 나머지는 배치 종류의 인자를 받는다."""
+        assert ctx.plan is not None
+        return self.kind_args(ctx, "nonnode" if ctx.plan["layers"][rnd].get("kind") == "non-node" else "batch")
 
     def jobs(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]:
         assert ctx.plan is not None

@@ -271,3 +271,22 @@ def test_거절된_호출이_있는_행은_보고_끝에_한_줄씩_남는다():
 def test_permission_denials_가_목록이_아니면_거부한다():
     with pytest.raises(msgspec.ValidationError):
         M.parse_result('{"permission_denials": "없음"}')
+
+
+# ── 허용 규칙 — 묻는 호출을 거절하고 규칙에 맞는 호출만 돌리는 권한 인자 ─────────
+
+def test_allow_only_는_묻지_않고_거절하는_권한_방식에_규칙을_하나씩_싣는다():
+    rules = ["Edit(/out/x/**)", "Bash(/py /tool/check.py *)"]
+    assert M.allow_only(rules) == ("--permission-mode", "dontAsk", "--allowedTools", *rules)
+
+
+def test_allow_only_는_규칙이_없으면_허용_인자를_싣지_않는다():
+    assert M.allow_only(()) == ("--permission-mode", "dontAsk")
+
+
+def test_허용_규칙은_규칙_하나가_인자_하나로_실리고_다음_인자_앞에서_끝난다():
+    rule = "Bash(/py /tool/check.py *)"
+    argv = M.claude_argv("m", "/repo", ["/tool"], M.allow_only([rule]) + M.ISOLATED)
+    at = argv.index("--allowedTools")
+    assert argv[at + 1:at + 3] == [rule, "--tools"]
+    assert argv.count("--permission-mode") == 1 and "bypassPermissions" not in argv

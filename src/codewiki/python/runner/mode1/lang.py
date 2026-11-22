@@ -32,8 +32,8 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
         return ctx.repo
 
     def session_args(self, ctx: Mode1Context, rnd: int) -> Sequence[str]:
-        """루트 문서는 프롬프트에 실려 간다 — 세션은 설정 · 스킬 · 연결 서버 없이 뜬다."""
-        return M.OPEN_SESSION + M.ISOLATED
+        """루트 문서는 프롬프트에 실려 간다 — 세션은 격리해서 뜨고, 묻는 호출은 전부 거절된다."""
+        return M.allow_only(()) + M.ISOLATED
 
     @staticmethod
     def hint_prompt(docs: str) -> str:

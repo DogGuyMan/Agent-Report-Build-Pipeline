@@ -1607,11 +1607,12 @@ def _all_blocks_prompt(b: survey_plan.PlanBatch) -> str:
 
 def test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼_목록_아래이고_보고_뒤에는_아무것도_없다():
     p = _all_blocks_prompt(_one_batch_plan("F00")["layers"][0]["batches"][0])
-    heads = ["## 지난 시도가 되돌려졌다", "## 너보다 아래층은 이미 끝났다", "## 네가 맡은 심볼 1개",
-             "## 범위 — 증분 조사다", "## 아직 조사되지 않은 의존 대상", "## 읽는 법"]
+    heads = ["## 이 세션은 허용된 호출만 돈다", "## 지난 시도가 되돌려졌다", "## 너보다 아래층은 이미 끝났다",
+             "## 네가 맡은 심볼 1개", "## 범위 — 증분 조사다", "## 아직 조사되지 않은 의존 대상", "## 읽는 법"]
     at = [p.index(h) for h in heads]
     assert at == sorted(at) and all(p.count(h) == 1 for h in heads)
     assert p[:at[0]].endswith("무엇이 없어 막혔는지 적고 끝낸다.\n\n")
+    assert p[:at[1]].endswith("check_shard.py /repo/out/codegraph-raw/_shards/F00.json\n\n")
     assert p.endswith("\n\n보고: 레코드 수 · confidence 분포 · 통독한 파일과 개요로 범위만 읽은 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.\n")
 
 
@@ -1668,7 +1669,8 @@ def test_빠진_절은_빈_줄을_남기지_않는다():
     S = SV.AnnotateSymbolsStage
     b = _one_batch_plan("F00")["layers"][0]["batches"][0]
     bare = S.survey_batch_prompt("/repo", "/root", b, [])
-    assert "끝낸다.\n\n## 너보다 아래층" in bare and "의존 -> 없음\n\n## 읽는 법" in bare
+    assert "끝낸다.\n\n## 이 세션은 허용된 호출만 돈다" in bare and "_shards/F00.json\n\n## 너보다 아래층" in bare
+    assert "의존 -> 없음\n\n## 읽는 법" in bare
     fault = "[where] f — d\n    → 고친다"
     variants = [bare, _all_blocks_prompt(b),
                 S.survey_batch_prompt("/repo", "/root", b, [], targets=["a.py"], total=2),
@@ -2754,38 +2756,160 @@ def test_배치_프롬프트는_자기_점검을_쓰기_전에_두고_쓴_뒤에
     assert at == sorted(at) and all(p.count(h) == 1 for h in order)
 
 
-# ── 세션 인자 — 전수조사와 언어 판별 세션만 격리해서 띄운다 ─────────────────────
+# ── 세션 인자 — 전수조사와 언어 판별 세션은 격리하고, 배치와 2패스 세션은 허용된 호출만 돌린다 ──
 
-def test_전수조사와_언어_판별_세션은_격리_인자를_받고_위키_세션은_받지_않는다(tmp_path: Path):
+def _규칙(args: Sequence[str]) -> list[str]:
+    """명령줄 조각에서 `--allowedTools` 에 딸린 규칙들 — 다음 `--` 인자 앞까지."""
+    a = list(args)
+    out: list[str] = []
+    for word in a[a.index("--allowedTools") + 1:]:
+        if word.startswith("--"):
+            break
+        out.append(word)
+    return out
+
+
+def _규칙이_덮는_줄인가(line: str, rules: Sequence[str]) -> bool:
+    """`Bash(<앞부분> *)` 규칙 가운데 하나가 이 명령 줄을 덮는가 — 앞부분에서 끝나거나 앞부분 뒤에 빈칸이 온다."""
+    heads = [r[len("Bash("):-len(" *)")] for r in rules if r.startswith("Bash(")]
+    return any(line == h or line.startswith(h + " ") for h in heads)
+
+
+def _종류별_프롬프트(repo: str, root: str) -> dict[SV.SessionKind, tuple[str, str]]:
+    """세션 종류마다 `(샤드 이름, 프롬프트)`."""
+    S = SV.AnnotateSymbolsStage
+    batch = _one_batch_plan("F00")["layers"][0]["batches"][0]
+    return {"batch": ("F00", S.survey_batch_prompt(repo, root, batch, [], faults=["[where] f — where 없음"],
+                                                   bad=repo + "/out/codegraph-raw/_shards/F00.json.bad")),
+            "nonnode": ("NONNODE", S.nonnode_prompt(repo, root)),
+            "pass2": ("F00", S.pass2_prompt(repo, root, "F00", "a.py", {}, {}))}
+
+
+def _검문_명령(root: str) -> str:
+    return "%s %s" % (sys.executable, os.path.join(root, "src", "codewiki", "python", "runner", "check_shard.py"))
+
+
+def test_배치와_2패스_세션은_묻는_호출을_거절하고_샤드_폴더_쓰기와_검문_명령만_허용받는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.plan = _one_batch_plan()
+    survey = SV.AnnotateSymbolsStage()
+    want = ("--permission-mode", "dontAsk", "--allowedTools",
+            "Edit(/out/codegraph-raw/_shards/**)", "Bash(%s *)" % _검문_명령(c.root)) + M.ISOLATED
+    assert tuple(survey.session_args(c, 0)) == want
+    assert tuple(survey.kind_args(c, "batch")) == want
+    assert tuple(survey.kind_args(c, "pass2")) == want
+
+
+def test_비노드_세션은_허용_규칙_없이_격리_인자만_받고_프롬프트에_알림이_없다(tmp_path: Path):
     c = _ctx(tmp_path); c.plan = _one_batch_plan()
     c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
-    isolated = M.OPEN_SESSION + M.ISOLATED
     survey = SV.AnnotateSymbolsStage()
-    assert (tuple(survey.session_args(c, 0)), tuple(survey.session_args(c, 1))) == (isolated, isolated)
-    assert tuple(LG.LangHintStage().session_args(c, 0)) == isolated
+    assert tuple(survey.session_args(c, 1)) == M.OPEN_SESSION + M.ISOLATED
+    assert tuple(survey.kind_args(c, "nonnode")) == M.OPEN_SESSION + M.ISOLATED
+    prompt = SV.AnnotateSymbolsStage.nonnode_prompt(c.repo, c.root)
+    assert "허용된 호출" not in prompt and "거절" not in prompt
+    assert prompt.split("\n\n")[1].startswith("## 심볼은 이미 전부 끝났다")
+
+
+def test_언어_판별_세션은_규칙_없이_묻는_호출을_전부_거절하고_위키_세션은_그대로다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    assert tuple(LG.LangHintStage().session_args(c, 0)) == ("--permission-mode", "dontAsk") + M.ISOLATED
     assert tuple(W.OutlineWikiStage().session_args(c, 0)) == M.OPEN_SESSION
     assert tuple(W.WriteWikiStage().session_args(c, 0)) == M.OPEN_SESSION
 
 
-def test_전수조사_단계는_층을_띄울_때_격리_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이고_프롬프트가_시키는_명령과_같다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    S = SV.AnnotateSymbolsStage
+    shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
+    last = {"batch": os.path.join(shards, "F00.json"), "nonnode": os.path.join(shards, "NONNODE.json"),
+            "pass2": os.path.join(shards, "_pass2", "F00.json")}
+    for kind, (name, prompt) in _종류별_프롬프트(c.repo, c.root).items():
+        calls = S.session_calls(kind, c.repo, c.root, name)
+        assert calls == [{"command": _검문_명령(c.root), "last": last[kind]}], kind
+        told = {ln.strip() for ln in prompt.splitlines() if ln.strip().startswith(sys.executable + " ")}
+        assert told == {"%s %s" % (x["command"], x["last"]) for x in calls}, kind
+        assert "file_cache.py" not in prompt, kind
+
+
+def test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    survey = SV.AnnotateSymbolsStage()
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    for kind in ("batch", "pass2"):
+        rules = _규칙(survey.kind_args(c, kind))
+        told = [ln.strip() for ln in prompts[kind][1].splitlines() if ln.strip().startswith(sys.executable + " ")]
+        assert told, kind
+        assert [ln for ln in told if not _규칙이_덮는_줄인가(ln, rules)] == [], kind
+
+
+def test_허용_규칙의_명령은_전부_프롬프트의_절차에도_적혀_있다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    S = SV.AnnotateSymbolsStage
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    for kind in ("batch", "pass2"):
+        name, prompt = prompts[kind]
+        calls = S.session_calls(kind, c.repo, c.root, name)
+        notice = S.allowed_notice(calls)
+        assert prompt.count(notice) == 1, kind
+        procedure = prompt.replace(notice, "")
+        assert [x for x in calls if "%s %s\n" % (x["command"], x["last"]) not in procedure] == [], kind
+
+
+def test_알림은_역할_소개_바로_아래에_허용된_명령을_적힌_글자_그대로_싣는다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    S = SV.AnnotateSymbolsStage
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
+    text = ("## 이 세션은 허용된 호출만 돈다\n\n"
+            "허용되지 않은 호출은 거절된다. 거절 하나는 그 호출이 막혔다는 뜻이지 Bash 전체가 막혔다는 뜻이 아니다.\n"
+            "- 파일은 Read 로 읽고, 샤드는 Write 로 쓴다.\n"
+            "- Bash 는 아래 명령만 돈다. **적힌 글자 그대로, 한 번에 하나씩** 부른다 — "
+            "변수(`P=...`) · `for` · `;` · `&&` · `|` 로 잇지 않는다:\n"
+            "    %s %s")
+    batch = S.allowed_notice(S.session_calls("batch", c.repo, c.root, "F00"))
+    assert batch == text % (_검문_명령(c.root), os.path.join(shards, "F00.json"))
+    assert prompts["batch"][1].split("\n\n")[1].startswith("## 이 세션은 허용된 호출만 돈다")
+    assert prompts["batch"][1].index(batch + "\n\n") < prompts["batch"][1].index("## 지난 시도가 되돌려졌다")
+    pass2 = S.allowed_notice(S.session_calls("pass2", c.repo, c.root, "F00"))
+    assert pass2 == text % (_검문_명령(c.root), os.path.join(shards, "_pass2", "F00.json"))
+    assert prompts["pass2"][1].split("\n\n")[1].startswith("## 이 세션은 허용된 호출만 돈다")
+    assert pass2 + "\n\n## 소스를 열지 않는다" in prompts["pass2"][1]
+
+
+def test_허용_규칙과_알림은_같은_종류에_함께_실린다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    survey = SV.AnnotateSymbolsStage()
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    ruled = {kind: "--allowedTools" in survey.kind_args(c, kind) for kind in prompts}
+    noticed = {kind: "## 이 세션은 허용된 호출만 돈다" in prompt for kind, (_, prompt) in prompts.items()}
+    assert ruled == noticed
+
+
+def test_전수조사_단계는_층을_띄울_때_그_층의_세션_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     c = _ctx(tmp_path); c.cold = True
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
-    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    plan = _one_batch_plan("L0-B00")
+    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    (raw / "batches.json").write_text(json.dumps(plan))
     _gated(c)
+    shards: dict[str, dict[str, object]] = {"L0-B00": {"f": _good_record()},
+                                            "NONNODE": {"m.py": {**_rec("m.py:1"), "kind": "file"}}}
     seen: list[tuple[str, ...]] = []
 
     def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
               concurrency: int = 8, timeout: float | None = None, session_args: Sequence[str] = ()) -> list[P.JobResult]:
         seen.append(tuple(session_args))
         for label, _ in jobs:
-            (raw / "_shards" / (label + ".json")).write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+            (raw / "_shards" / (label + ".json")).write_text(json.dumps(shards[label]), encoding="utf-8")
         return [(label, 1.0, 0, {}) for label, _ in jobs]
     monkeypatch.setattr(P, "run_layer", layer)
-    assert SV.AnnotateSymbolsStage().perform(c).kind == P.OK
-    assert seen == [M.OPEN_SESSION + M.ISOLATED]
+    stage = SV.AnnotateSymbolsStage()
+    out = stage.perform(c)
+    assert out.kind == P.OK, out.why
+    assert seen == [tuple(stage.kind_args(c, "batch")), tuple(stage.kind_args(c, "nonnode"))]
 
 
-def test_파일_전략도_세션마다_격리_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_파일_전략은_세션마다_그_종류의_세션_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     import mode1.survey_files as SF
     c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
@@ -2810,7 +2934,9 @@ def test_파일_전략도_세션마다_격리_인자를_넘긴다(tmp_path: Path
         seen[label] = tuple(session_args)
         return inner(model, repo, root, prompt, timeout, label)
     monkeypatch.setattr(SF.P, "run_agent_with", spy)
-    out = SF.AnnotateFilesStage().perform(c)
+    stage = SF.AnnotateFilesStage()
+    out = stage.perform(c)
     assert out.kind == P.OK, out.why
-    assert set(seen) == {ids["a.py"], ids["b.py"], ids["c.py"], ids["a.py"] + "/p2", "NONNODE"}
-    assert set(seen.values()) == {M.OPEN_SESSION + M.ISOLATED}
+    kinds: dict[str, SV.SessionKind] = {ids["a.py"]: "batch", ids["b.py"]: "batch", ids["c.py"]: "batch",
+                                        ids["a.py"] + "/p2": "pass2", "NONNODE": "nonnode"}
+    assert seen == {label: tuple(stage.kind_args(c, kind)) for label, kind in kinds.items()}
