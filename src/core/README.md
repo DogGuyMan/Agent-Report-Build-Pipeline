@@ -41,7 +41,7 @@
 | `usage_gap` | `(usage: Usage) -> int` | `usage` 합계가 Model 별 누계보다 덜 적힌 토큰 수. 선을 넘지 않거나 누계가 없으면 0. |
 | `result_text` | `(result: ClaudeResult) -> str` | CLI 가 `result` 칸에 적은 글을 한 줄 · 200자까지로. 없으면 빈 글. |
 | `agent_verdict` | `(returncode: int, result: ClaudeResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
-| `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
+| `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str], session_args: Sequence[str] = OPEN_SESSION) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
 | `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
 | `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 실행기의 산출물 본체다. |
 | `stage_totals` | `(rows: Sequence[StageRow]) -> collections.OrderedDict[str, Usage]` | `survey/L0-B00` 같은 행을 `/` 앞까지로 접는다. `{단계: 합친 usage}`. |
@@ -89,8 +89,8 @@
 | `MachineStage.argv` | `(self, ctx: C) -> list[str]` |  |
 | `MachineStage.cwd` | `(self, ctx: C) -> str` |  |
 | `MachineStage.perform` | `(self, ctx: C) -> Outcome` |  |
-| `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
-| `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
+| `run_agent_with` | `(model: str, repo: str, root: str, prompt: str, timeout: float \| None = None, label: str \| None = None, session_args: Sequence[str] = M.OPEN_SESSION) -> tuple[float, int, AgentResult \| None]` | `claude -p` 를 한 번 부른다. `(걸린 초, 종료 코드, 결과 또는 None)`. |
+| `run_layer` | `(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]], concurrency: int = 8, timeout: float \| None = None, session_args: Sequence[str] = M.OPEN_SESSION) -> list[JobResult]` | 한 층 = 동시에 최대 `concurrency` 개. 층 사이는 부르는 쪽이 순차로 돈다. |
 | **`PromptEnvironment`** | *class* | 프롬프트 글의 Jinja2 환경. 사전 값의 `.이름` 은 열쇠를 먼저 찾는다 — `items` · `values` 열쇠가 dict 메서드에 가리지 않는다. |
 | `PromptEnvironment.getattr` | `(self, obj: object, attribute: str) -> object` |  |
 | `_printable` | `(value: object) -> object` | `{{ }}` 로 찍히는 값. `None` 과 호출 가능한 것(메서드 · 함수)은 글이 될 수 없어 `TemplateError` 다. |
@@ -99,11 +99,12 @@
 | `PromptResource.free_names` | `(text: str) -> set[str]` | Jinja2 글 `text` 가 값으로 받아야 하는 이름들 — 타지 않는 `{% if %}` 갈래 안의 것도 센다. |
 | `PromptResource.render_text` | `(text: str, **values) -> str` | Jinja2 글 `text` 를 `values` 로 렌더한다(`PROMPT_ENV`). |
 | `PromptResource.load_prompt` | `(cls, name: str, **values) -> str` | `"<파일>"` 또는 `"<파일>#<절>"` 을 읽어 그 글을 `render_text` 로 렌더한다. |
-| **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 여섯 중 `prompt` 와 `repo` 만 필수다. |
+| **`LlmStage`** | *class* | LLM Model을 부르는 단계. 훅 일곱 중 `prompt` 와 `repo` 만 필수다. |
 | `LlmStage.prompt` | `(self, ctx: C) -> str` |  |
 | `LlmStage.repo` | `(self, ctx: C) -> str` | `claude -p` 가 열 저장소이자 자식 프로세스의 작업 폴더. |
 | `LlmStage.model` | `(self, ctx: C) -> str` |  |
 | `LlmStage.rounds` | `(self, ctx: C) -> int` |  |
+| `LlmStage.session_args` | `(self, ctx: C, rnd: int) -> Sequence[str]` | 이 라운드의 세션들이 받는 권한 · 격리 인자. 재정의하지 않으면 `measure.OPEN_SESSION` 이다. |
 | `LlmStage.jobs` | `(self, ctx: C, rnd: int) -> list[tuple[str, str]]` |  |
 | `LlmStage.harvest` | `(self, ctx: C, got: Sequence[JobResult], rnd: int) -> Outcome` | 세션마다 행 하나. 하나라도 실패하면 층이 실패다. |
 | `LlmStage.perform` | `(self, ctx: C) -> Outcome` |  |

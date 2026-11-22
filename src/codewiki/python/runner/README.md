@@ -166,6 +166,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`LangHintStage`** | *class* | 루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다 — 관문이 아니다. |
 | `LangHintStage.model` | `(self, ctx: Mode1Context) -> str` |  |
 | `LangHintStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
+| `LangHintStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 루트 문서는 프롬프트에 실려 간다 — 세션은 설정 · 스킬 · 연결 서버 없이 뜬다. |
 | `LangHintStage.hint_prompt` | `(docs: str) -> str` |  |
 | `LangHintStage.docs` | `(self, ctx: Mode1Context) -> str` | 루트 문서 묶음. `lang_select.py --print-docs` 가 고른다. |
 | `LangHintStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
@@ -303,6 +304,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `AnnotateSymbolsStage.sweep` | `(self, ctx: Mode1Context, out: P.Outcome) -> P.Outcome` | 세션이 전부 끝난 뒤 샤드 전량을 검문한다. 틀린 샤드는 격리하고 단계를 실패로 세운다. |
 | `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
+| `AnnotateSymbolsStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 전수조사 세션은 층의 종류와 상관없이 격리 인자를 받는다 — 일에 필요한 것은 프롬프트가 전부 싣는다. |
 | `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
 | `AnnotateSymbolsStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
 
