@@ -383,6 +383,7 @@ Mode 1(코드베이스 위키) 파이프라인을 단계 기계 위에서 돌리
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
 | `_bootstrap_venv` | `() -> None` | `.venv` 밖 해석기로 불렸으면 이 파일 안에서만 `.venv` 로 재실행한다. 재실행은 한 번뿐이다. |
+| `measurement_doc` | `(repo: str, model: str, graph_name: str, rows: Sequence[StageRow], concurrency: int, target: int, wall: float, stage_wall: Mapping[str, float]) -> dict[str, object]` | `--json` 으로 쓰는 측정 문서. |
 | `main` | `(argv: Sequence[str] \| None = None) -> int` |  |
 
 ---
