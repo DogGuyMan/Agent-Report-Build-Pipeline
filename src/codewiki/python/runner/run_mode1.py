@@ -66,6 +66,12 @@
 `measure.claude_argv` 로 간다. 전수조사와 언어 판별은 격리 인자(`measure.ISOLATED`)를 붙여 내장 도구 셋만 싣고 설정 · 스킬 ·
 연결 서버 없이 뜬다. 위키 단계는 훅을 재정의하지 않아 기본값(`measure.OPEN_SESSION`) 그대로다.
 
+전수조사의 배치 · 2패스 세션과 언어 판별 세션은 묻는 호출을 전부 거절하는 권한 방식(`measure.allow_only`)으로 뜬다. 배치 · 2패스 세션에
+허용되는 것은 샤드 폴더에 쓰기와 `AnnotateSymbolsStage.session_calls` 가 내는 명령뿐이고, 같은 목록이 프롬프트의 알림 절
+(`annotate-symbols#allowed`)로도 실린다. 언어 판별 세션은 허용 규칙이 없다. 비노드 세션은 허용 규칙 아래에 있지 않다 — 격리 인자만 받고
+프롬프트에 알림이 없다. 종류마다의 인자는 `AnnotateSymbolsStage.kind_args` 가 정한다. CLI 가 거절한 호출의 수는 그 세션 행의 `denied` 에
+남고 보고 끝에 `거절된 호출` 줄로 나온다.
+
 ## 재는 자리 넷
 
   1. **벽시계 시간** — 단계마다 `time.monotonic()` 으로 감싼다. 파이썬이 재므로

@@ -33,6 +33,7 @@
 |---|---|---|
 | **`ClaudeUsage`** | *class* | `claude -p --output-format json` 의 `usage`. 칸은 빠질 수 있고, 있으면 정수여야 한다. |
 | **`ClaudeModelUsage`** | *class* | `modelUsage` 의 Model 하나 — 세션이 그 Model 로 쓴 토큰의 누계. 칸은 빠질 수 있고, 있으면 정수여야 한다. |
+| **`ClaudeDenial`** | *class* | 허용 규칙 밖이라 CLI 가 막은 도구 호출 하나. 측정에는 개수만 쓴다. |
 | **`ClaudeResult`** | *class* | `claude -p --output-format json` 이 stdout 으로 내는 객체 하나. |
 | `parse_result` | `(text: str \| bytes) -> ClaudeResult` | `claude` 의 stdout 을 형으로 읽는다. 깨졌으면 `DecodeError`, 꼴이 틀리면 `ValidationError`. |
 | **`StageRow`** | *class* | 측정 표의 한 줄. 세 실행기가 모두 이 꼴로 쌓고 `format_report` 가 읽는다. |
@@ -41,6 +42,7 @@
 | `usage_gap` | `(usage: Usage) -> int` | `usage` 합계가 Model 별 누계보다 덜 적힌 토큰 수. 선을 넘지 않거나 누계가 없으면 0. |
 | `result_text` | `(result: ClaudeResult) -> str` | CLI 가 `result` 칸에 적은 글을 한 줄 · 200자까지로. 없으면 빈 글. |
 | `agent_verdict` | `(returncode: int, result: ClaudeResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
+| `allow_only` | `(rules: Iterable[str]) -> tuple[str, ...]` | 묻는 호출을 전부 거절하고 `rules` 에 맞는 호출만 돌리는 권한 인자. `OPEN_SESSION` 자리에 쓴다. |
 | `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str], session_args: Sequence[str] = OPEN_SESSION) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
 | `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
 | `format_report` | `(rows: Sequence[StageRow], wall_seconds: float \| None = None) -> str` | 단계별 표 + 합계 줄. 실행기의 산출물 본체다. |

@@ -16,4 +16,6 @@
 
 **프롬프트 글이 저장소 안 경로를 실행시키면** — 예: `annotate-symbols.md` 의 `{{root}}/src/codewiki/python/runner/check_shard.py` — 그 파일을 옮길 때 여기도 함께 고친다. 코드 쪽 경로 치환 도구는 이 폴더를 보지 않는다.
 
+**전수조사의 배치 · 2패스 세션은 허용된 명령만 돈다.** 그 목록은 `src/codewiki/python/runner/mode1/survey.py` 의 `AnnotateSymbolsStage.session_calls` 하나이고, 허용 규칙과 프롬프트의 알림 절(`annotate-symbols.md` 의 `allowed`)이 둘 다 거기서 나온다. `annotate-symbols.md` 가 세션에 시키는 명령을 더하거나 바꾸면 같은 변경에서 그 목록도 고친다 — `test/codewiki/test_mode1.py` 의 `test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이고_프롬프트가_시키는_명령과_같다` 와 `test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다` 가 어긋남을 잡는다. 비노드 세션은 허용 규칙 아래에 있지 않아 `nonnode` 절에는 알림 자리가 없다. 어느 종류가 규칙을 받는지는 같은 파일의 `AnnotateSymbolsStage.kind_args` 가 정하고, 규칙을 받는 종류의 절에만 알림을 싣는다(`test_허용_규칙과_알림은_같은_종류에_함께_실린다`).
+
 두 mode 가 같은 리소스를 읽게 되면 `resource/common/` 을 더한다(0014 의 되살릴 조건).

@@ -64,6 +64,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | `load_fault_table` | `(path: str = FAULTS_PATH) -> FaultTable` | 결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외. |
 | **`SymbolRow`** | *class* | 배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다. |
 | **`DepRow`** | *class* | 배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다. |
+| **`SessionCall`** | *class* | 조사 세션이 Bash 로 부를 수 있는 명령 하나. 허용 규칙과 프롬프트의 알림이 둘 다 이 행에서 나온다. |
 | **`PendingRow`** | *class* | 배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들. |
 | **`OutlineSymbol`** | *class* | 통독 캐시 개요의 심볼 한 줄 — 계획이 아는 이름 · 종류 · 시작 줄. |
 | **`FileOutline`** | *class* | 통독 캐시에 기계가 쓰는 개요 — 파일의 줄 수와, 계획에 든 그 파일의 심볼 전부(줄 순). |
@@ -166,7 +167,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | **`LangHintStage`** | *class* | 루트 문서를 읽혀 언어 하나를 제안받는다. 못 받아도 막지 않는다 — 관문이 아니다. |
 | `LangHintStage.model` | `(self, ctx: Mode1Context) -> str` |  |
 | `LangHintStage.repo` | `(self, ctx: Mode1Context) -> str` |  |
-| `LangHintStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 루트 문서는 프롬프트에 실려 간다 — 세션은 설정 · 스킬 · 연결 서버 없이 뜬다. |
+| `LangHintStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 루트 문서는 프롬프트에 실려 간다 — 세션은 격리해서 뜨고, 묻는 호출은 전부 거절된다. |
 | `LangHintStage.hint_prompt` | `(docs: str) -> str` |  |
 | `LangHintStage.docs` | `(self, ctx: Mode1Context) -> str` | 루트 문서 묶음. `lang_select.py --print-docs` 가 고른다. |
 | `LangHintStage.prompt` | `(self, ctx: Mode1Context) -> str` |  |
@@ -304,7 +305,10 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
 | `AnnotateSymbolsStage.sweep` | `(self, ctx: Mode1Context, out: P.Outcome) -> P.Outcome` | 세션이 전부 끝난 뒤 샤드 전량을 검문한다. 틀린 샤드는 격리하고 단계를 실패로 세운다. |
 | `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
-| `AnnotateSymbolsStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 전수조사 세션은 층의 종류와 상관없이 격리 인자를 받는다 — 일에 필요한 것은 프롬프트가 전부 싣는다. |
+| `AnnotateSymbolsStage.session_calls` | `(kind: SessionKind, repo: str, root: str, name: str = '') -> list[SessionCall]` | 세션 종류마다 Bash 로 부를 수 있는 명령. 프롬프트의 절차가 시키는 명령과 같아야 한다. |
+| `AnnotateSymbolsStage.allowed_notice` | `(calls: Sequence[SessionCall]) -> str` | 프롬프트에 싣는 허용된 호출 알림. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다. |
+| `AnnotateSymbolsStage.kind_args` | `(self, ctx: Mode1Context, kind: SessionKind) -> Sequence[str]` | 그 종류의 세션이 받는 인자. 어느 종류든 격리해서 띄운다. |
+| `AnnotateSymbolsStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 층의 종류가 가른다 — 비노드 층의 세션은 비노드 종류의 인자를, 나머지는 배치 종류의 인자를 받는다. |
 | `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
 | `AnnotateSymbolsStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
 
