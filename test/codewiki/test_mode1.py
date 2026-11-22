@@ -2730,3 +2730,14 @@ def test_프롬프트_셋은_샤드를_Write_도구로_쓰라고_한다():
                S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
     for p in prompts:
         assert p.count('꼴은 {"키": 레코드}\n\n이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.\n') == 1
+
+
+def test_배치_프롬프트는_자기_점검을_쓰기_전에_두고_쓴_뒤에는_검문만_남긴다():
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+    order = ["## 쓰기 전에 — 레코드를 다 정한 뒤에 쓴다", "- 심볼 1개에 레코드가 1개 있는가",
+             "- where 의 줄 번호를 실제로 열어 확인했는가", "- confidence 가 전부 HIGH 는 아닌가",
+             "## 쓰는 곳 — 여기 말고 아무 데도 쓰지 않는다", "## 끝내기 전에",
+             "- 샤드 파일 하나만 만들었는가", "- **기계 검문을 통과했는가**"]
+    at = [p.index(h) for h in order]
+    assert at == sorted(at) and all(p.count(h) == 1 for h in order)

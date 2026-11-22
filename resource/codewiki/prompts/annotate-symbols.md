@@ -103,6 +103,12 @@
   "…에 연결될 것 같다"    -> import 나 호출을 실제로 따라간다
   "읽지 않았지만 …"       -> confidence LOW 로 적거나 아예 쓰지 않는다
 
+## 쓰기 전에 — 레코드를 다 정한 뒤에 쓴다
+
+- 심볼 {{n}}개에 레코드가 {{n}}개 있는가
+- where 의 줄 번호를 실제로 열어 확인했는가
+- confidence 가 전부 HIGH 는 아닌가
+
 ## 쓰는 곳 — 여기 말고 아무 데도 쓰지 않는다
 
   {{repo}}/out/codegraph-raw/_shards/{{bid}}.json      꼴은 {"키": 레코드}
@@ -114,9 +120,6 @@
 
 ## 끝내기 전에
 
-- 심볼 {{n}}개에 레코드가 {{n}}개 있는가
-- where 의 줄 번호를 실제로 열어 확인했는가
-- confidence 가 전부 HIGH 는 아닌가
 - 샤드 파일 하나만 만들었는가
 - **기계 검문을 통과했는가** — 다음을 돌려 `통과` 가 나올 때까지 고친다. 통과 전에는 끝내지 않는다:
     {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/{{bid}}.json
