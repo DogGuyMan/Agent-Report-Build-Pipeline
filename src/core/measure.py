@@ -24,6 +24,14 @@ class ClaudeUsage(TypedDict, total=False):
     cache_creation_input_tokens: int
 
 
+class ClaudeModelUsage(TypedDict, total=False):
+    """`modelUsage` 의 Model 하나 — 세션이 그 Model 로 쓴 토큰의 누계. 칸은 빠질 수 있고, 있으면 정수여야 한다."""
+    inputTokens: int
+    outputTokens: int
+    cacheReadInputTokens: int
+    cacheCreationInputTokens: int
+
+
 class ClaudeResult(TypedDict, total=False):
     """`claude -p --output-format json` 이 stdout 으로 내는 객체 하나.
 
@@ -32,6 +40,7 @@ class ClaudeResult(TypedDict, total=False):
     """
     result: str
     usage: ClaudeUsage
+    modelUsage: dict[str, ClaudeModelUsage]
     total_cost_usd: float
     num_turns: int
     duration_api_ms: int
@@ -75,6 +84,9 @@ def normalize_usage(result: ClaudeResult | None) -> Usage:
     `total` 은 입력·출력·캐시읽기·캐시생성 넷을 더한 값이다. 캐시 둘을 빼고 "토큰 합" 이라
     부르면 일부만 센 것이다.
 
+    `model_total` 은 `modelUsage` 의 Model 별 누계를 전부 더한 값이다. `usage` 는 호출 하나의 몫이라
+    세션의 일부만 담아 올 수 있고, 이 값은 세션 전체다 — `usage_gap` 이 둘을 견준다.
+
     기계 단계는 `None` 을 받아 전부 0 을 낸다 — `None` 을 그대로 두면 표를 더할 수 없다.
     """
     top: ClaudeResult = result or {}
@@ -89,13 +101,16 @@ def normalize_usage(result: ClaudeResult | None) -> Usage:
         "api_ms": top.get("duration_api_ms", 0),
     }
     got["total"] = got["input"] + got["output"] + got["cache_read"] + got["cache_write"]
+    got["model_total"] = sum(m.get("inputTokens", 0) + m.get("outputTokens", 0)
+                             + m.get("cacheReadInputTokens", 0) + m.get("cacheCreationInputTokens", 0)
+                             for m in top.get("modelUsage", {}).values())
     return got
 
 
 def sum_usage(usages: Sequence[Usage]) -> Usage:
     """`normalize_usage` 가 낸 사전들을 열쇠별로 접는다. 표 맨 아래 '합계' 줄이 이것이다."""
-    keys = ["input", "output", "cache_read", "cache_write", "total", "turns", "api_ms"]
-    # 정수 여섯은 정수로 접고 `cost_usd` 만 실수로 따로 접는다.
+    keys = ["input", "output", "cache_read", "cache_write", "total", "model_total", "turns", "api_ms"]
+    # 정수 열쇠는 정수로 접고 `cost_usd` 만 실수로 따로 접는다.
     out: Usage = {k: sum(int(u.get(k) or 0) for u in usages) for k in keys}
     out["cost_usd"] = sum(float(u.get("cost_usd") or 0.0) for u in usages)
     return out

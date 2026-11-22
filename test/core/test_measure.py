@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -144,3 +145,33 @@ def test_CLI_가_글을_주지_않으면_사유는_subtype_뿐이다():
 
 def test_성공한_세션의_글은_사유가_되지_않는다():
     assert M.agent_verdict(0, {"result": "샤드를 썼다", "subtype": "success"}) == (True, "")
+
+
+def test_Model_별_누계를_model_total_로_적는다():
+    """`usage` 는 호출 하나의 몫이고 `modelUsage` 는 세션의 누계다. 둘을 따로 적는다."""
+    got = M.normalize_usage(M.parse_result(json.dumps({
+        "usage": {"input_tokens": 4, "output_tokens": 207,
+                  "cache_read_input_tokens": 109285, "cache_creation_input_tokens": 4709},
+        "modelUsage": {
+            "claude-sonnet-5-5": {"inputTokens": 30, "outputTokens": 11278, "cacheReadInputTokens": 1272778,
+                                  "cacheCreationInputTokens": 89344, "costUSD": 0.598, "costBasis": "list"},
+            "claude-haiku-5-5": {"inputTokens": 6787, "outputTokens": 25}},
+        "total_cost_usd": 0.5981, "num_turns": 1})))
+    assert got["total"] == 4 + 207 + 109285 + 4709
+    assert got["model_total"] == 30 + 11278 + 1272778 + 89344 + 6787 + 25
+
+
+def test_modelUsage_가_없으면_model_total_은_0이다():
+    assert M.normalize_usage(M.parse_result('{"usage": {"input_tokens": 7}}'))["model_total"] == 0
+    assert M.normalize_usage(None)["model_total"] == 0
+
+
+def test_model_total_도_열쇠별로_접는다():
+    a = M.normalize_usage({"modelUsage": {"m": {"inputTokens": 3}}})
+    b = M.normalize_usage({"modelUsage": {"m": {"outputTokens": 4}}})
+    assert M.sum_usage([a, b])["model_total"] == 7
+
+
+def test_modelUsage_의_토큰_칸에_문자열이_오면_거부한다():
+    with pytest.raises(msgspec.ValidationError):
+        M.parse_result('{"modelUsage": {"m": {"inputTokens": "많이"}}}')
