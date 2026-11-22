@@ -116,8 +116,9 @@ description: Use when a repository needs a machine-checkable term dictionary (te
    - 층이 끝나면 오케스트레이터(`src/codewiki/python/runner/mode1/survey.py` 의 `merge_shards`)가 샤드를 병합한다.
      **키 충돌 해소는 거기서만 한다** — 배치는 자기 것만 보므로 `main` 이 9파일에 있다는 것을 모른다.
    - 층 k 배치에는 **자기 심볼이 의존하는 아래층 레코드만** 발췌해 준다. 전량 주입은 낭비다.
-   - 같은 파일을 층마다 다시 열지 않도록 `file_cache.py` 를 쓴다. 다만 **자기 심볼은 캐시로
-     때우지 않는다** — 캐시만 보고 쓰면 `confidence` 가 HIGH 일 근거가 없다.
+   - 같은 파일을 층마다 다시 통독하지 않도록 **기계가 조사 전에 파일마다 개요를 써 두고**(`file_cache.py`)
+     배치 프롬프트에 싣는다. 세션은 캐시를 부르지도 쓰지도 않는다. 다만 **자기 심볼은 개요로
+     때우지 않는다** — 개요만 보고 쓰면 `confidence` 가 HIGH 일 근거가 없다.
    - 레코드마다 `confidence` 를 반드시 적는다. 위 계약과 규율대로.
 7. **비노드 용어는 맨 마지막 층** — file · module · artifact · key · concept.
    심볼이 전부 읽힌 뒤라야 파일 레코드가 그 안 심볼들의 완성 레코드를 재료로 쓸 수 있다.
@@ -155,7 +156,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 - **`confidence` 를 전부 HIGH 로** — 그러면 칸이 장식이다. 이름만 보고 쓴 것은 LOW 다
 - **out_deg 로 정렬** — 그건 위상 깊이가 아니다. 🔵 실측에서 out_deg 1 무리 안에 깊이 1·2·3·4 가
   섞여 있었다. out_deg 로 나누면 아직 안 읽은 것을 가리키게 된다
-- **층 경계에서 같은 파일을 다시 통독** — 🔵 유일 파일 41개인데 층별 합계 84개다. `file_cache.py` 를 쓴다
+- **층 경계에서 같은 파일을 다시 통독** — 🔵 유일 파일 41개인데 층별 합계 84개다. 기계가 써 둔 개요가 배치 프롬프트에 실려 온다
 - **배치가 terms-reading.json 을 직접 고침** — 동시 쓰기로 서로를 지운다. 샤드에만 쓴다
 
 ## 개발 규율 — 코드를 만들 때 레코드도 함께 (사용자 의도, 2026-08-29)
@@ -189,7 +190,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
 | `<repo>/out/codegraph-raw/codegraph.json` | `terms_db.py` (투영) | `verify_citations.py` · 다이어그램 · Mode 2. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/survey-plan.json` | `survey_plan.py` | 층·배치 계획. gitignore, 재생성 |
 | `<repo>/out/codegraph-raw/_shards/*.json` | 배치 세션 | 배치별 레코드 조각. gitignore, 재생성 |
-| `<repo>/out/codegraph-raw/_filecache/*.json` | 배치 세션 | 통독 캐시. gitignore, 재생성 |
+| `<repo>/out/codegraph-raw/_filecache/*.json` | 조사 단계 (`prefill_cache`) | 통독 캐시 — 파일의 줄 수와 심볼 줄. gitignore, 재생성 |
 
 ## 아직 재어 보지 않은 것
 

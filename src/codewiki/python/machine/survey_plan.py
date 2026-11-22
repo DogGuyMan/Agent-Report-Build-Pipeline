@@ -186,7 +186,7 @@ def plan(cg: CodeGraph, target: int = 8,
             "batches": [
                 {"id": "L%d-B%02d" % (k, i),
                  # 빈 이름을 거른다 — file 이 없는 노드가 "" 로 묶여 들어온다.
-                 # 그대로 두면 배치 프롬프트가 빈 경로로 통독 캐시를 부르라고 시킨다.
+                 # 그대로 두면 배치 프롬프트의 개요에 빈 경로가 한 줄 실린다.
                  "files": [f for f in b["files"] if f],
                  "symbols": [{"id": s, "name": first[s].get("name"), "file": file_of.get(s),
                               "line": first[s].get("line"), "kind": first[s].get("kind"),

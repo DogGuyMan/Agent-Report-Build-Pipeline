@@ -41,7 +41,7 @@
 | `verify_graph.py` | 코드 지도를 V0 읽기 · V1 꼴 · V2 정합 · V3 근거로 검사하고 수집 manifest · 버림 장부 · 소스 inventory · 수집 실패 기록과 대조해 결함을 전부 모은다 |
 | `collect_manifest.py` · `source_inventory.py` | 수집 manifest(`collect-fingerprint.json`)의 꼴과 계산 · git 이 추적하는 소스를 언어별로 세고 파일마다 수집 상태를 적는 장부(`source-inventory.json`). `prep` 이 쓰고 `verify_graph.py` 가 읽는다 |
 | `survey_plan.py` | 코드 지도를 의존 위상 층과 배치로 나눈다. **판정하지 않는다** |
-| `file_cache.py` | 층 경계에서 같은 파일을 다시 통독하지 않도록 개요를 디스크에 남긴다 |
+| `file_cache.py` | 파일마다 개요 한 건(줄 수 · 심볼의 이름 · 종류 · 시작 줄)을 디스크에 둔다. 조사 단계가 세션을 띄우기 전에 계획의 파일마다 쓰고(`prefill_cache`) 배치 프롬프트를 만들 때 읽어 싣는다(`outline_rows`). 세션은 캐시를 부르지도 쓰지도 않는다 |
 | `manifest.py` | 봉인 매니페스트 — `seal` 이 산출물과 소스 지문을 대상 저장소의 `<저장소>/docs/codegraph/manifest.json` 에 적는다. 계약은 `../../contracts/` — 설명 문서 `contract-mode1-artifacts.md` 는 git 밖 `docs/` |
 
 ## Python 수집기 — 왜 둘인가 (2026-08-30 신설)

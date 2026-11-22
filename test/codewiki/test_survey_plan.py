@@ -75,8 +75,7 @@ def test_층_안에서_한_파일은_한_배치에만_있다():
 
 
 def test_배치의_파일_목록에_빈_이름이_없다():
-    """file 이 없는 노드는 빈 문자열로 묶인다. 그대로 두면 프롬프트가
-    `file_cache.py get <repo> ` 를 빈 인자로 부르라고 시킨다."""
+    """file 이 없는 노드는 빈 문자열로 묶인다. 그대로 두면 배치 프롬프트의 개요에 빈 경로가 한 줄 실린다."""
     cg = _cg([("a", "f1")], [])
     cg["nodes"].append({"id": "b", "name": "b", "kind": "function", "line": 1})  # file 없음
     for L in plan(cg)["layers"]:
