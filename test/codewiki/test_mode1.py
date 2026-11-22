@@ -2621,7 +2621,8 @@ def test_annotate_symbols_는_세션을_띄우기_전에_개요를_쓴다(tmp_pa
     seen: list[bool] = []
 
     def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+              concurrency: int = 8, timeout: float | None = None,
+              session_args: Sequence[str] = ()) -> list[P.JobResult]:
         seen.append(file_cache.get(repo, "m.py") is not None)
         return _fake_layer(set())(model, repo, root, jobs, concurrency, timeout)
     monkeypatch.setattr(P, "run_layer", layer)
@@ -2642,7 +2643,7 @@ def test_파일_전략도_세션을_띄우기_전에_개요를_쓴다(tmp_path: 
     seen: list[bool] = []
 
     def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
-            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+            label: str = "", session_args: Sequence[str] = ()) -> tuple[float, int, M.ClaudeResult | None]:
         seen.append(all(file_cache.get(repo, f) is not None for f in ("a.py", "b.py", "c.py")))
         return 0.01, 1, None
     monkeypatch.setattr(SF.P, "run_agent_with", run)
@@ -2701,7 +2702,8 @@ def test_층_전략의_배치_프롬프트는_캐시의_개요를_싣는다(tmp_
     prompts: list[str] = []
 
     def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
-              concurrency: int = 8, timeout: float | None = None) -> list[P.JobResult]:
+              concurrency: int = 8, timeout: float | None = None,
+              session_args: Sequence[str] = ()) -> list[P.JobResult]:
         prompts.extend(prompt for _, prompt in jobs)
         return [(label, 0.0, 1, None) for label, _ in jobs]
     monkeypatch.setattr(P, "run_layer", layer)
@@ -2722,7 +2724,7 @@ def test_파일_전략의_배치_프롬프트도_캐시의_개요를_싣는다(t
     prompts: list[str] = []
 
     def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
-            label: str = "") -> tuple[float, int, M.ClaudeResult | None]:
+            label: str = "", session_args: Sequence[str] = ()) -> tuple[float, int, M.ClaudeResult | None]:
         prompts.append(prompt)
         return 0.01, 1, None
     monkeypatch.setattr(SF.P, "run_agent_with", run)
