@@ -175,3 +175,33 @@ def test_model_total_도_열쇠별로_접는다():
 def test_modelUsage_의_토큰_칸에_문자열이_오면_거부한다():
     with pytest.raises(msgspec.ValidationError):
         M.parse_result('{"modelUsage": {"m": {"inputTokens": "많이"}}}')
+
+
+def _사용량(total: int, model_total: int) -> M.Usage:
+    u = M.normalize_usage(None)
+    u["total"], u["model_total"] = total, model_total
+    return u
+
+
+def test_보조_요청_몫만큼의_차이는_덜_적힌_것이_아니다():
+    assert M.usage_gap(_사용량(94_873, 94_873 + 6_812)) == 0
+
+
+def test_작은_세션의_보조_요청_몫도_걸리지_않는다():
+    assert M.usage_gap(_사용량(10_000, 16_812)) == 0
+
+
+def test_앞선_요청이_통째로_빠지면_덜_적힌_토큰_수를_낸다():
+    assert M.usage_gap(_사용량(114_205, 1_373_430)) == 1_373_430 - 114_205
+
+
+def test_누계가_없으면_견주지_않는다():
+    assert M.usage_gap(_사용량(500_000, 0)) == 0
+
+
+def test_덜_적힌_행은_표_아래에_알린다():
+    row = _행("annotate-symbols/L1-B14")
+    row["usage"] = _사용량(114_205, 1_373_430)
+    out = M.format_report([row, _행("verify-terms")])
+    assert "사용량 덜 적힘 — annotate-symbols/L1-B14" in out and "1,259,225" in out
+    assert "사용량 덜 적힘 — verify-terms" not in out

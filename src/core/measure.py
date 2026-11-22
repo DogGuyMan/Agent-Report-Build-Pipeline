@@ -116,6 +116,19 @@ def sum_usage(usages: Sequence[Usage]) -> Usage:
     return out
 
 
+# `usage` 합계가 Model 별 누계보다 이 선을 넘게 작으면 덜 적힌 것으로 본다. 둘은 평소에도 보조 요청
+# 몫만큼 다르므로 같은지로 견주면 모든 행이 걸린다 — `test_보조_요청_몫만큼의_차이는_덜_적힌_것이_아니다`.
+USAGE_GAP_FLOOR = 20_000
+USAGE_GAP_SHARE = 0.2
+
+
+def usage_gap(usage: Usage) -> int:
+    """`usage` 합계가 Model 별 누계보다 덜 적힌 토큰 수. 선을 넘지 않거나 누계가 없으면 0."""
+    model_total = int(usage.get("model_total") or 0)
+    gap = model_total - int(usage.get("total") or 0)
+    return gap if gap > max(USAGE_GAP_FLOOR, USAGE_GAP_SHARE * model_total) else 0
+
+
 # ── 실패 판정 ────────────────────────────────────────────────────────────
 
 
@@ -218,6 +231,11 @@ def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -
             out.append("건너뜀 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
         elif not r.get("ok"):
             out.append("실패 — %s: %s" % (r["stage"], r.get("why") or "사유 없음"))
+    for r in rows:
+        gap = usage_gap(r["usage"])
+        if gap:
+            out.append("사용량 덜 적힘 — %s: 합계가 Model 별 누계보다 %s 토큰 작다"
+                       % (r["stage"], "{:,}".format(gap)))
     return "\n".join(out)
 
 
