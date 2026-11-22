@@ -2849,6 +2849,16 @@ def test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙�
         assert [ln for ln in told if not _규칙이_덮는_줄인가(ln, rules)] == [], kind
 
 
+def test_허용_규칙_아래의_프롬프트에는_해석기로_시작하지_않는_셸_명령_줄이_없다(tmp_path: Path):
+    c = _ctx(tmp_path)
+    shell_words = {"ls", "cat", "grep", "rg", "find", "git", "wc", "head", "tail", "sed", "awk", "jq", "cd", "echo",
+                   "python", "python3", "mkdir", "cp", "mv", "rm", "touch", "bash", "sh"}
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    for kind in ("batch", "pass2"):
+        stray = [ln.strip() for ln in prompts[kind][1].splitlines() if ln.split()[:1] and ln.split()[0] in shell_words]
+        assert stray == [], kind
+
+
 def test_경로에_빈칸이_있어도_절차_줄과_알림_줄과_규칙이_같은_글자이고_셸이_세_조각으로_읽는다(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     interpreter = str(tmp_path / "py env" / "bin" / "python")
