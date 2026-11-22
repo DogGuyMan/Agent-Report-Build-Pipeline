@@ -228,3 +228,46 @@ def test_세션_인자는_Model_뒤_폴더_앞에_그대로_실린다():
 def test_세션_인자를_바꾸면_권한_인자도_그_값으로_바뀐다():
     argv = M.claude_argv("m", "/repo", [], ("--permission-mode", "dontAsk"))
     assert argv.count("--permission-mode") == 1 and "bypassPermissions" not in argv
+
+
+# ── 거절된 호출 — 허용 규칙 밖이라 CLI 가 막은 도구 호출 ─────────────────────
+
+_거절_둘 = ('{"result": "ok", "permission_denials": ['
+          '{"tool_name": "Bash", "tool_use_id": "t1", "tool_input": {"command": "for f in a b; do cat $f; done"}},'
+          '{"tool_name": "Write", "tool_use_id": "t2", "tool_input": {"file_path": "/elsewhere/x.json", "content": "{}"}}]}')
+
+
+def test_거절된_호출_수를_denied_로_적는다():
+    assert M.normalize_usage(M.parse_result(_거절_둘))["denied"] == 2
+
+
+def test_거절이_없거나_결과가_없으면_denied_는_0이다():
+    assert M.normalize_usage(M.parse_result('{"result": "ok", "permission_denials": []}'))["denied"] == 0
+    assert M.normalize_usage(M.parse_result('{"result": "ok"}'))["denied"] == 0
+    assert M.normalize_usage(None)["denied"] == 0
+
+
+def test_denied_도_열쇠별로_접는다():
+    a, b = M.normalize_usage(M.parse_result(_거절_둘)), M.normalize_usage(M.parse_result(_거절_둘))
+    assert M.sum_usage([a, b])["denied"] == 4
+
+
+def test_측정값에는_거절된_호출의_수만_남고_명령_글은_남지_않는다():
+    got = M.normalize_usage(M.parse_result(_거절_둘))
+    assert all(isinstance(v, (int, float)) for v in got.values())
+
+
+def test_거절된_호출이_있는_행은_보고_끝에_한_줄씩_남는다():
+    rows: list[M.StageRow] = [
+        {"stage": "annotate-symbols/L2-B00", "seconds": 51.7, "ok": True, "why": "",
+         "usage": M.normalize_usage(M.parse_result(_거절_둘))},
+        {"stage": "annotate-symbols/L2-B01", "seconds": 45.1, "ok": True, "why": "",
+         "usage": M.normalize_usage(M.parse_result('{"result": "ok"}'))}]
+    out = M.format_report(rows)
+    assert "거절된 호출 — annotate-symbols/L2-B00: 2건" in out
+    assert "거절된 호출 — annotate-symbols/L2-B01" not in out
+
+
+def test_permission_denials_가_목록이_아니면_거부한다():
+    with pytest.raises(msgspec.ValidationError):
+        M.parse_result('{"permission_denials": "없음"}')

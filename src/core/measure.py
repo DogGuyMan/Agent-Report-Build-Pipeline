@@ -32,6 +32,13 @@ class ClaudeModelUsage(TypedDict, total=False):
     cacheCreationInputTokens: int
 
 
+class ClaudeDenial(TypedDict, total=False):
+    """허용 규칙 밖이라 CLI 가 막은 도구 호출 하나. 측정에는 개수만 쓴다."""
+    tool_name: str
+    tool_use_id: str
+    tool_input: dict[str, object]
+
+
 class ClaudeResult(TypedDict, total=False):
     """`claude -p --output-format json` 이 stdout 으로 내는 객체 하나.
 
@@ -46,6 +53,7 @@ class ClaudeResult(TypedDict, total=False):
     duration_api_ms: int
     is_error: bool
     subtype: str
+    permission_denials: list[ClaudeDenial]
 
 
 # 옛 이름. 세 실행기와 시험이 이 이름으로 부른다.
@@ -87,6 +95,8 @@ def normalize_usage(result: ClaudeResult | None) -> Usage:
     `model_total` 은 `modelUsage` 의 Model 별 누계를 전부 더한 값이다. `usage` 는 호출 하나의 몫이라
     세션의 일부만 담아 올 수 있고, 이 값은 세션 전체다 — `usage_gap` 이 둘을 견준다.
 
+    `denied` 는 CLI 가 막은 도구 호출의 수다(`permission_denials` 의 길이). 막힌 명령의 글은 싣지 않는다.
+
     기계 단계는 `None` 을 받아 전부 0 을 낸다 — `None` 을 그대로 두면 표를 더할 수 없다.
     """
     top: ClaudeResult = result or {}
@@ -99,6 +109,7 @@ def normalize_usage(result: ClaudeResult | None) -> Usage:
         "cost_usd": top.get("total_cost_usd", 0.0),
         "turns": top.get("num_turns", 0),
         "api_ms": top.get("duration_api_ms", 0),
+        "denied": len(top.get("permission_denials", [])),
     }
     got["total"] = got["input"] + got["output"] + got["cache_read"] + got["cache_write"]
     got["model_total"] = sum(m.get("inputTokens", 0) + m.get("outputTokens", 0)
@@ -109,7 +120,7 @@ def normalize_usage(result: ClaudeResult | None) -> Usage:
 
 def sum_usage(usages: Sequence[Usage]) -> Usage:
     """`normalize_usage` 가 낸 사전들을 열쇠별로 접는다. 표 맨 아래 '합계' 줄이 이것이다."""
-    keys = ["input", "output", "cache_read", "cache_write", "total", "model_total", "turns", "api_ms"]
+    keys = ["input", "output", "cache_read", "cache_write", "total", "model_total", "turns", "api_ms", "denied"]
     # 정수 열쇠는 정수로 접고 `cost_usd` 만 실수로 따로 접는다.
     out: Usage = {k: sum(int(u.get(k) or 0) for u in usages) for k in keys}
     out["cost_usd"] = sum(float(u.get("cost_usd") or 0.0) for u in usages)
@@ -247,6 +258,10 @@ def format_report(rows: Sequence[StageRow], wall_seconds: float | None = None) -
         if gap:
             out.append("사용량 덜 적힘 — %s: 합계가 Model 별 누계보다 %s 토큰 작다"
                        % (r["stage"], "{:,}".format(gap)))
+    for r in rows:
+        denied = int(r["usage"].get("denied") or 0)
+        if denied:
+            out.append("거절된 호출 — %s: %d건" % (r["stage"], denied))
     return "\n".join(out)
 
 
