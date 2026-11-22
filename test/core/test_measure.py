@@ -205,3 +205,26 @@ def test_덜_적힌_행은_표_아래에_알린다():
     out = M.format_report([row, _행("verify-terms")])
     assert "사용량 덜 적힘 — annotate-symbols/L1-B14" in out and "1,259,225" in out
     assert "사용량 덜 적힘 — verify-terms" not in out
+
+
+# ── 세션 인자 — 권한과 세션이 싣는 것을 정하는 명령줄 조각 ────────────────────
+
+def test_세션_인자를_주지_않으면_명령줄은_묻지_않고_전부_허용한다():
+    assert M.OPEN_SESSION == ("--permission-mode", "bypassPermissions")
+    assert M.claude_argv("m", "/repo", ["/tool"]) == [
+        "claude", "-p", "--output-format", "json", "--model", "m",
+        "--permission-mode", "bypassPermissions", "--add-dir", "/repo", "--add-dir", "/tool"]
+
+
+def test_세션_인자는_Model_뒤_폴더_앞에_그대로_실린다():
+    argv = M.claude_argv("m", "/repo", ["/tool"], M.OPEN_SESSION + M.ISOLATED)
+    assert argv == ["claude", "-p", "--output-format", "json", "--model", "m",
+                    "--permission-mode", "bypassPermissions",
+                    "--tools", "Bash,Read,Write", "--strict-mcp-config", "--disable-slash-commands",
+                    "--setting-sources", "",
+                    "--add-dir", "/repo", "--add-dir", "/tool"]
+
+
+def test_세션_인자를_바꾸면_권한_인자도_그_값으로_바뀐다():
+    argv = M.claude_argv("m", "/repo", [], ("--permission-mode", "dontAsk"))
+    assert argv.count("--permission-mode") == 1 and "bypassPermissions" not in argv

@@ -162,14 +162,25 @@ def agent_verdict(returncode: int, result: ClaudeResult | None) -> tuple[bool, s
 # ── 에이전트 호출 ────────────────────────────────────────────────────────
 
 
-def claude_argv(model: str, repo: str, extra_dirs: Iterable[str]) -> list[str]:
+# 세션 인자의 기본값. 권한을 묻지 않고 모든 호출을 허용한다 — 단계가 `LlmStage.session_args` 를 재정의하지 않으면 이것이 실린다.
+OPEN_SESSION: tuple[str, ...] = ("--permission-mode", "bypassPermissions")
+
+# 세션이 시작할 때 싣는 것을 줄이는 인자 넷 — 내장 도구는 셋만 · 연결 서버 없음 · 스킬과 명령 없음 · 설정 파일 없음.
+# 권한 인자 뒤에 이어 붙인다.
+ISOLATED: tuple[str, ...] = ("--tools", "Bash,Read,Write", "--strict-mcp-config", "--disable-slash-commands",
+                             "--setting-sources", "")
+
+
+def claude_argv(model: str, repo: str, extra_dirs: Iterable[str],
+                session_args: Sequence[str] = OPEN_SESSION) -> list[str]:
     """헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다.
+
+    `session_args` 는 권한과 세션이 싣는 것을 정하는 인자다. 주지 않으면 `OPEN_SESSION` 이다.
 
     `--add-dir` 로 대상 저장소와 도구 저장소를 둘 다 열어 준다. 한쪽만 주면 에이전트가
     재료나 규약 중 하나를 못 본다.
     """
-    argv = ["claude", "-p", "--output-format", "json", "--model", model,
-            "--permission-mode", "bypassPermissions"]
+    argv = ["claude", "-p", "--output-format", "json", "--model", model, *session_args]
     for d in [repo] + list(extra_dirs):
         argv += ["--add-dir", d]
     return argv
