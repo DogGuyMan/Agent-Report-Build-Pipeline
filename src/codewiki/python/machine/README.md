@@ -173,7 +173,7 @@ JSON 파일을 같은 폴더의 임시 파일에 쓰고 `os.replace` 로 바꿔 
 
 | 심볼 | 시그니처 | 하는 일 |
 |---|---|---|
-| `write_json_atomic` | `(path: str, obj: object, indent: int = 2, trailing_newline: bool = False) -> None` | `path` 를 `obj` 의 JSON 으로 바꿔 끼운다. 같은 입력이면 같은 바이트다. |
+| `write_json_atomic` | `(path: str, obj: object, indent: int = 2, trailing_newline: bool = False, sort_keys: bool = False) -> None` | `path` 를 `obj` 의 JSON 으로 바꿔 끼운다. 같은 입력이면 같은 바이트다. `sort_keys` 면 사전의 열쇠를 정렬해 쓴다. |
 
 ---
 
