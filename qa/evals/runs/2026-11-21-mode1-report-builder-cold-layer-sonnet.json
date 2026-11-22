@@ -1,0 +1,2068 @@
+{
+ "repo": "target-self",
+ "model": "claude-sonnet-5-5",
+ "graph": "mode1-cold",
+ "stages": [
+  {
+   "stage": "lang-hint",
+   "seconds": 16.838396041988744,
+   "usage": {
+    "input": 10,
+    "output": 1146,
+    "cache_read": 27617,
+    "cache_write": 47959,
+    "cost_usd": 0.1057496,
+    "turns": 1,
+    "api_ms": 17471,
+    "total": 76732
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "lang-decide",
+   "seconds": 0.08795658299641218,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "collect-graph",
+   "seconds": 1.0862567080039298,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "verify-graph",
+   "seconds": 0.11792924998735543,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "derive-facts",
+   "seconds": 1.14874466600304,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "schedule-batches",
+   "seconds": 0.022706540999934077,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B00",
+   "seconds": 49.5863877080119,
+   "usage": {
+    "input": 11,
+    "output": 6001,
+    "cache_read": 490202,
+    "cache_write": 89331,
+    "cost_usd": 0.4668298,
+    "turns": 8,
+    "api_ms": 45694,
+    "total": 585545
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B01",
+   "seconds": 81.0349306249991,
+   "usage": {
+    "input": 13,
+    "output": 11282,
+    "cache_read": 627096,
+    "cache_write": 118092,
+    "cost_usd": 0.6484483000000001,
+    "turns": 9,
+    "api_ms": 77081,
+    "total": 756483
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B02",
+   "seconds": 35.22349541699805,
+   "usage": {
+    "input": 8,
+    "output": 3921,
+    "cache_read": 256635,
+    "cache_write": 93773,
+    "cost_usd": 0.44045169999999995,
+    "turns": 5,
+    "api_ms": 31237,
+    "total": 354337
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B03",
+   "seconds": 46.611819583995384,
+   "usage": {
+    "input": 9,
+    "output": 5458,
+    "cache_read": 395375,
+    "cache_write": 111956,
+    "cost_usd": 0.5424095,
+    "turns": 7,
+    "api_ms": 42681,
+    "total": 512798
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B04",
+   "seconds": 79.0289429169934,
+   "usage": {
+    "input": 15,
+    "output": 9972,
+    "cache_read": 786956,
+    "cache_write": 98112,
+    "cost_usd": 0.5713676999999999,
+    "turns": 9,
+    "api_ms": 75035,
+    "total": 895055
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B05",
+   "seconds": 65.77965566699277,
+   "usage": {
+    "input": 15,
+    "output": 7834,
+    "cache_read": 738914,
+    "cache_write": 119593,
+    "cost_usd": 0.6310911,
+    "turns": 12,
+    "api_ms": 60711,
+    "total": 866356
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B06",
+   "seconds": 43.85917379199236,
+   "usage": {
+    "input": 12,
+    "output": 4661,
+    "cache_read": 442566,
+    "cache_write": 95601,
+    "cost_usd": 0.4737616,
+    "turns": 7,
+    "api_ms": 39835,
+    "total": 542840
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B07",
+   "seconds": 95.60986345799756,
+   "usage": {
+    "input": 17,
+    "output": 12109,
+    "cache_read": 905332,
+    "cache_write": 154595,
+    "cost_usd": 0.8306359,
+    "turns": 9,
+    "api_ms": 89730,
+    "total": 1072053
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B08",
+   "seconds": 59.371347042004345,
+   "usage": {
+    "input": 13,
+    "output": 7745,
+    "cache_read": 673621,
+    "cache_write": 93523,
+    "cost_usd": 0.5193941,
+    "turns": 11,
+    "api_ms": 56051,
+    "total": 774902
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B09",
+   "seconds": 46.19551741699979,
+   "usage": {
+    "input": 16,
+    "output": 5746,
+    "cache_read": 647925,
+    "cache_write": 69614,
+    "cost_usd": 0.40119420000000006,
+    "turns": 9,
+    "api_ms": 42569,
+    "total": 723301
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B10",
+   "seconds": 58.09518962500442,
+   "usage": {
+    "input": 14,
+    "output": 7226,
+    "cache_read": 560980,
+    "cache_write": 72231,
+    "cost_usd": 0.417768,
+    "turns": 8,
+    "api_ms": 55049,
+    "total": 640451
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B11",
+   "seconds": 74.99653254100122,
+   "usage": {
+    "input": 17,
+    "output": 9657,
+    "cache_read": 828934,
+    "cache_write": 99781,
+    "cost_usd": 0.5791026000000001,
+    "turns": 10,
+    "api_ms": 71435,
+    "total": 938389
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B12",
+   "seconds": 55.09441087501182,
+   "usage": {
+    "input": 15,
+    "output": 7107,
+    "cache_read": 751261,
+    "cache_write": 95481,
+    "cost_usd": 0.5286075,
+    "turns": 13,
+    "api_ms": 52007,
+    "total": 853864
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B13",
+   "seconds": 50.43948208299116,
+   "usage": {
+    "input": 18,
+    "output": 6022,
+    "cache_read": 749143,
+    "cache_write": 73121,
+    "cost_usd": 0.4281057,
+    "turns": 9,
+    "api_ms": 46391,
+    "total": 828304
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B14",
+   "seconds": 66.39190079200489,
+   "usage": {
+    "input": 15,
+    "output": 7945,
+    "cache_read": 767415,
+    "cache_write": 100916,
+    "cost_usd": 0.560387,
+    "turns": 9,
+    "api_ms": 62347,
+    "total": 876291
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B15",
+   "seconds": 47.47183383299853,
+   "usage": {
+    "input": 13,
+    "output": 5900,
+    "cache_read": 655347,
+    "cache_write": 88879,
+    "cost_usd": 0.4805327000000001,
+    "turns": 8,
+    "api_ms": 45606,
+    "total": 750139
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B16",
+   "seconds": 68.67815595900174,
+   "usage": {
+    "input": 9,
+    "output": 10258,
+    "cache_read": 445747,
+    "cache_write": 96710,
+    "cost_usd": 0.5345986,
+    "turns": 6,
+    "api_ms": 65971,
+    "total": 552724
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B17",
+   "seconds": 54.604245208000066,
+   "usage": {
+    "input": 13,
+    "output": 7047,
+    "cache_read": 648486,
+    "cache_write": 88499,
+    "cost_usd": 0.4897992,
+    "turns": 9,
+    "api_ms": 52236,
+    "total": 744045
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B18",
+   "seconds": 64.10817470899201,
+   "usage": {
+    "input": 17,
+    "output": 8701,
+    "cache_read": 901363,
+    "cache_write": 97136,
+    "cost_usd": 0.5662482,
+    "turns": 10,
+    "api_ms": 61128,
+    "total": 1007217
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B19",
+   "seconds": 55.5291204170062,
+   "usage": {
+    "input": 16,
+    "output": 7459,
+    "cache_read": 657784,
+    "cache_write": 73987,
+    "cost_usd": 0.43701029999999996,
+    "turns": 9,
+    "api_ms": 54661,
+    "total": 739246
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B20",
+   "seconds": 202.656303708005,
+   "usage": {
+    "input": 23,
+    "output": 11137,
+    "cache_read": 1258356,
+    "cache_write": 100680,
+    "cost_usd": 0.6404482,
+    "turns": 15,
+    "api_ms": 79116,
+    "total": 1370196
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B21",
+   "seconds": 32.616915125006926,
+   "usage": {
+    "input": 12,
+    "output": 3594,
+    "cache_read": 461806,
+    "cache_write": 66350,
+    "cost_usd": 0.34799750000000007,
+    "turns": 6,
+    "api_ms": 29478,
+    "total": 531762
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B22",
+   "seconds": 84.84971220800071,
+   "usage": {
+    "input": 15,
+    "output": 11360,
+    "cache_read": 787783,
+    "cache_write": 109994,
+    "cost_usd": 0.6330551999999999,
+    "turns": 9,
+    "api_ms": 81070,
+    "total": 909152
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B23",
+   "seconds": 40.432161709002685,
+   "usage": {
+    "input": 13,
+    "output": 4937,
+    "cache_read": 603525,
+    "cache_write": 87952,
+    "cost_usd": 0.4620207,
+    "turns": 9,
+    "api_ms": 37468,
+    "total": 696427
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B24",
+   "seconds": 78.10105104099785,
+   "usage": {
+    "input": 19,
+    "output": 10028,
+    "cache_read": 959158,
+    "cache_write": 100081,
+    "cost_usd": 0.5971926,
+    "turns": 10,
+    "api_ms": 74651,
+    "total": 1069286
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B25",
+   "seconds": 65.13731133300462,
+   "usage": {
+    "input": 19,
+    "output": 7948,
+    "cache_read": 953346,
+    "cache_write": 97639,
+    "cost_usd": 0.5658739999999999,
+    "turns": 13,
+    "api_ms": 61703,
+    "total": 1058952
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B26",
+   "seconds": 55.911447167003644,
+   "usage": {
+    "input": 13,
+    "output": 7276,
+    "cache_read": 635679,
+    "cache_write": 89194,
+    "cost_usd": 0.4938122000000001,
+    "turns": 10,
+    "api_ms": 56021,
+    "total": 732162
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B27",
+   "seconds": 66.54726833400491,
+   "usage": {
+    "input": 15,
+    "output": 8687,
+    "cache_read": 718830,
+    "cache_write": 98424,
+    "cost_usd": 0.5529321,
+    "turns": 11,
+    "api_ms": 63196,
+    "total": 825956
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B28",
+   "seconds": 61.29110837500775,
+   "usage": {
+    "input": 15,
+    "output": 8023,
+    "cache_read": 749185,
+    "cache_write": 95831,
+    "cost_usd": 0.5389864,
+    "turns": 10,
+    "api_ms": 58047,
+    "total": 853054
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B29",
+   "seconds": 61.31390495800588,
+   "usage": {
+    "input": 17,
+    "output": 7565,
+    "cache_read": 851350,
+    "cache_write": 93773,
+    "cost_usd": 0.536373,
+    "turns": 10,
+    "api_ms": 57296,
+    "total": 952705
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B30",
+   "seconds": 32.041132667000056,
+   "usage": {
+    "input": 10,
+    "output": 3832,
+    "cache_read": 370423,
+    "cache_write": 66098,
+    "cost_usd": 0.3402096,
+    "turns": 6,
+    "api_ms": 29281,
+    "total": 440363
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B31",
+   "seconds": 58.34760354200262,
+   "usage": {
+    "input": 18,
+    "output": 7057,
+    "cache_read": 775763,
+    "cache_write": 80286,
+    "cost_usd": 0.4697788,
+    "turns": 12,
+    "api_ms": 54405,
+    "total": 863124
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B32",
+   "seconds": 34.8846617500094,
+   "usage": {
+    "input": 9,
+    "output": 3942,
+    "cache_read": 384651,
+    "cache_write": 71277,
+    "cost_usd": 0.3634406,
+    "turns": 8,
+    "api_ms": 31802,
+    "total": 459879
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B33",
+   "seconds": 56.56151220900938,
+   "usage": {
+    "input": 13,
+    "output": 7193,
+    "cache_read": 598200,
+    "cache_write": 81324,
+    "cost_usd": 0.4575409,
+    "turns": 9,
+    "api_ms": 53728,
+    "total": 686730
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B34",
+   "seconds": 91.87627858298947,
+   "usage": {
+    "input": 13,
+    "output": 13681,
+    "cache_read": 594235,
+    "cache_write": 94539,
+    "cost_usd": 0.5749592000000001,
+    "turns": 8,
+    "api_ms": 89104,
+    "total": 702468
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B35",
+   "seconds": 73.2644452079985,
+   "usage": {
+    "input": 21,
+    "output": 9331,
+    "cache_read": 1021147,
+    "cache_write": 93592,
+    "cost_usd": 0.5703628,
+    "turns": 12,
+    "api_ms": 69826,
+    "total": 1124091
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B36",
+   "seconds": 21.953940249994048,
+   "usage": {
+    "input": 8,
+    "output": 2077,
+    "cache_read": 281302,
+    "cache_write": 63325,
+    "cost_usd": 0.3026449,
+    "turns": 4,
+    "api_ms": 19046,
+    "total": 346712
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B37",
+   "seconds": 45.895256792005966,
+   "usage": {
+    "input": 14,
+    "output": 5553,
+    "cache_read": 558176,
+    "cache_write": 71077,
+    "cost_usd": 0.39614459999999996,
+    "turns": 7,
+    "api_ms": 42321,
+    "total": 634820
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B38",
+   "seconds": 44.08303754199005,
+   "usage": {
+    "input": 11,
+    "output": 5825,
+    "cache_read": 488091,
+    "cache_write": 77915,
+    "cost_usd": 0.41919740000000005,
+    "turns": 8,
+    "api_ms": 41342,
+    "total": 571842
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B39",
+   "seconds": 51.3833944999933,
+   "usage": {
+    "input": 17,
+    "output": 5782,
+    "cache_read": 779558,
+    "cache_write": 82305,
+    "cost_usd": 0.46549,
+    "turns": 11,
+    "api_ms": 47723,
+    "total": 867662
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B40",
+   "seconds": 94.34120562499447,
+   "usage": {
+    "input": 27,
+    "output": 11941,
+    "cache_read": 1378879,
+    "cache_write": 96456,
+    "cost_usd": 0.6437449,
+    "turns": 14,
+    "api_ms": 89700,
+    "total": 1487303
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B41",
+   "seconds": 56.40184550000413,
+   "usage": {
+    "input": 15,
+    "output": 6784,
+    "cache_read": 663558,
+    "cache_write": 76794,
+    "cost_usd": 0.44204910000000003,
+    "turns": 11,
+    "api_ms": 56625,
+    "total": 747151
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B42",
+   "seconds": 44.779008000012254,
+   "usage": {
+    "input": 15,
+    "output": 5093,
+    "cache_read": 650687,
+    "cache_write": 74968,
+    "cost_usd": 0.4163509,
+    "turns": 11,
+    "api_ms": 41290,
+    "total": 730763
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L0-B43",
+   "seconds": 37.41364695801167,
+   "usage": {
+    "input": 14,
+    "output": 4210,
+    "cache_read": 549509,
+    "cache_write": 73083,
+    "cost_usd": 0.38985480000000006,
+    "turns": 8,
+    "api_ms": 34034,
+    "total": 626816
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B00",
+   "seconds": 58.94076500000665,
+   "usage": {
+    "input": 15,
+    "output": 6346,
+    "cache_read": 701067,
+    "cache_write": 96287,
+    "cost_usd": 0.5192808,
+    "turns": 11,
+    "api_ms": 54601,
+    "total": 803715
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B01",
+   "seconds": 68.96591933300078,
+   "usage": {
+    "input": 13,
+    "output": 7711,
+    "cache_read": 597191,
+    "cache_write": 97354,
+    "cost_usd": 0.5268168999999999,
+    "turns": 11,
+    "api_ms": 65120,
+    "total": 702269
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B02",
+   "seconds": 63.52112849999685,
+   "usage": {
+    "input": 16,
+    "output": 6801,
+    "cache_read": 642612,
+    "cache_write": 74669,
+    "cost_usd": 0.4314686,
+    "turns": 8,
+    "api_ms": 58998,
+    "total": 724098
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B03",
+   "seconds": 102.25347387499642,
+   "usage": {
+    "input": 26,
+    "output": 11786,
+    "cache_read": 1221727,
+    "cache_write": 102021,
+    "cost_usd": 0.6487577,
+    "turns": 15,
+    "api_ms": 97475,
+    "total": 1335560
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B04",
+   "seconds": 59.86626300000353,
+   "usage": {
+    "input": 13,
+    "output": 5814,
+    "cache_read": 586829,
+    "cache_write": 94883,
+    "cost_usd": 0.4969388,
+    "turns": 9,
+    "api_ms": 56103,
+    "total": 687539
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B05",
+   "seconds": 53.358540749992244,
+   "usage": {
+    "input": 14,
+    "output": 5555,
+    "cache_read": 551320,
+    "cache_write": 75576,
+    "cost_usd": 0.4137278,
+    "turns": 7,
+    "api_ms": 50731,
+    "total": 632465
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B06",
+   "seconds": 54.89863812499971,
+   "usage": {
+    "input": 11,
+    "output": 5866,
+    "cache_read": 475641,
+    "cache_write": 93685,
+    "cost_usd": 0.48147969999999995,
+    "turns": 8,
+    "api_ms": 51711,
+    "total": 575203
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B07",
+   "seconds": 46.43076529199607,
+   "usage": {
+    "input": 11,
+    "output": 4612,
+    "cache_read": 526405,
+    "cache_write": 87435,
+    "cost_usd": 0.4490064,
+    "turns": 7,
+    "api_ms": 42651,
+    "total": 618463
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B08",
+   "seconds": 204.59241958300117,
+   "usage": {
+    "input": 19,
+    "output": 11906,
+    "cache_read": 1077180,
+    "cache_write": 117168,
+    "cost_usd": 0.6960931,
+    "turns": 12,
+    "api_ms": 81365,
+    "total": 1206273
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B09",
+   "seconds": 72.55297095800051,
+   "usage": {
+    "input": 17,
+    "output": 9318,
+    "cache_read": 870740,
+    "cache_write": 104622,
+    "cost_usd": 0.5993644,
+    "turns": 14,
+    "api_ms": 68865,
+    "total": 984697
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B10",
+   "seconds": 42.881559040994034,
+   "usage": {
+    "input": 14,
+    "output": 5223,
+    "cache_read": 548408,
+    "cache_write": 72017,
+    "cost_usd": 0.3956645999999999,
+    "turns": 7,
+    "api_ms": 39236,
+    "total": 625662
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B11",
+   "seconds": 45.27933391700208,
+   "usage": {
+    "input": 13,
+    "output": 5218,
+    "cache_read": 580451,
+    "cache_write": 86398,
+    "cost_usd": 0.4563028,
+    "turns": 9,
+    "api_ms": 41582,
+    "total": 672080
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B12",
+   "seconds": 54.32259545799752,
+   "usage": {
+    "input": 17,
+    "output": 6224,
+    "cache_read": 809173,
+    "cache_write": 93917,
+    "cost_usd": 0.5193816,
+    "turns": 12,
+    "api_ms": 51559,
+    "total": 909331
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B13",
+   "seconds": 57.99454895799863,
+   "usage": {
+    "input": 13,
+    "output": 7714,
+    "cache_read": 611398,
+    "cache_write": 105160,
+    "cost_usd": 0.5595100999999999,
+    "turns": 11,
+    "api_ms": 54307,
+    "total": 724285
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B14",
+   "seconds": 774.0556604589947,
+   "usage": {
+    "input": 4,
+    "output": 207,
+    "cache_read": 109285,
+    "cache_write": 4709,
+    "cost_usd": 0.5981058000000001,
+    "turns": 1,
+    "api_ms": 79583,
+    "total": 114205
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B15",
+   "seconds": 51.467884333003894,
+   "usage": {
+    "input": 16,
+    "output": 6373,
+    "cache_read": 661806,
+    "cache_write": 75843,
+    "cost_usd": 0.43395160000000005,
+    "turns": 11,
+    "api_ms": 50468,
+    "total": 744038
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B16",
+   "seconds": 49.31006062499364,
+   "usage": {
+    "input": 15,
+    "output": 6011,
+    "cache_read": 691220,
+    "cache_write": 78372,
+    "cost_usd": 0.443208,
+    "turns": 10,
+    "api_ms": 45348,
+    "total": 775618
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B17",
+   "seconds": 39.77726387500297,
+   "usage": {
+    "input": 11,
+    "output": 4776,
+    "cache_read": 462590,
+    "cache_write": 81239,
+    "cost_usd": 0.41947860000000003,
+    "turns": 8,
+    "api_ms": 36775,
+    "total": 548616
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B18",
+   "seconds": 64.42747920900001,
+   "usage": {
+    "input": 17,
+    "output": 8377,
+    "cache_read": 827646,
+    "cache_write": 95347,
+    "cost_usd": 0.5485196999999999,
+    "turns": 10,
+    "api_ms": 60587,
+    "total": 931387
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B19",
+   "seconds": 58.13410708299489,
+   "usage": {
+    "input": 13,
+    "output": 7586,
+    "cache_read": 577717,
+    "cache_write": 82604,
+    "cost_usd": 0.4645815,
+    "turns": 10,
+    "api_ms": 54916,
+    "total": 667920
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B20",
+   "seconds": 59.14292033300444,
+   "usage": {
+    "input": 18,
+    "output": 7153,
+    "cache_read": 774269,
+    "cache_write": 80618,
+    "cost_usd": 0.4720037000000001,
+    "turns": 10,
+    "api_ms": 55258,
+    "total": 862058
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B21",
+   "seconds": 65.59498187500867,
+   "usage": {
+    "input": 18,
+    "output": 8486,
+    "cache_read": 772044,
+    "cache_write": 83695,
+    "cost_usd": 0.49740370000000006,
+    "turns": 10,
+    "api_ms": 61939,
+    "total": 864243
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L1-B22",
+   "seconds": 32.42009074999078,
+   "usage": {
+    "input": 13,
+    "output": 3717,
+    "cache_read": 562115,
+    "cache_write": 70093,
+    "cost_usd": 0.37423829999999997,
+    "turns": 8,
+    "api_ms": 30582,
+    "total": 635938
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B00",
+   "seconds": 63.892445416990086,
+   "usage": {
+    "input": 16,
+    "output": 7713,
+    "cache_read": 707588,
+    "cache_write": 89330,
+    "cost_usd": 0.505934,
+    "turns": 11,
+    "api_ms": 59324,
+    "total": 804647
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B01",
+   "seconds": 61.754214707994834,
+   "usage": {
+    "input": 18,
+    "output": 8054,
+    "cache_read": 834673,
+    "cache_write": 92966,
+    "cost_usd": 0.5365735999999999,
+    "turns": 11,
+    "api_ms": 56437,
+    "total": 935711
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B02",
+   "seconds": 63.400237791996915,
+   "usage": {
+    "input": 22,
+    "output": 7404,
+    "cache_read": 989434,
+    "cache_write": 84506,
+    "cost_usd": 0.5116317,
+    "turns": 11,
+    "api_ms": 58475,
+    "total": 1081366
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B03",
+   "seconds": 78.56709320899972,
+   "usage": {
+    "input": 23,
+    "output": 9921,
+    "cache_read": 1277959,
+    "cache_write": 116902,
+    "cost_usd": 0.6953423000000001,
+    "turns": 15,
+    "api_ms": 72876,
+    "total": 1404805
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B04",
+   "seconds": 62.34091716600233,
+   "usage": {
+    "input": 13,
+    "output": 7673,
+    "cache_read": 615179,
+    "cache_write": 98542,
+    "cost_usd": 0.5330262,
+    "turns": 11,
+    "api_ms": 57715,
+    "total": 721407
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B05",
+   "seconds": 78.5971301660029,
+   "usage": {
+    "input": 25,
+    "output": 9304,
+    "cache_read": 1483925,
+    "cache_write": 121213,
+    "cost_usd": 0.7269139,
+    "turns": 18,
+    "api_ms": 72320,
+    "total": 1614467
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B06",
+   "seconds": 58.293982499992126,
+   "usage": {
+    "input": 15,
+    "output": 7020,
+    "cache_read": 682258,
+    "cache_write": 86281,
+    "cost_usd": 0.4841104,
+    "turns": 10,
+    "api_ms": 53660,
+    "total": 775574
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B07",
+   "seconds": 33.85737133400107,
+   "usage": {
+    "input": 11,
+    "output": 3355,
+    "cache_read": 491711,
+    "cache_write": 84940,
+    "cost_usd": 0.4229559,
+    "turns": 7,
+    "api_ms": 28875,
+    "total": 580017
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B08",
+   "seconds": 53.79815483400307,
+   "usage": {
+    "input": 18,
+    "output": 6357,
+    "cache_read": 770775,
+    "cache_write": 80393,
+    "cost_usd": 0.46282909999999994,
+    "turns": 9,
+    "api_ms": 50513,
+    "total": 857543
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L2-B09",
+   "seconds": 40.388149916994735,
+   "usage": {
+    "input": 11,
+    "output": 4602,
+    "cache_read": 485696,
+    "cache_write": 75746,
+    "cost_usd": 0.3980773,
+    "turns": 9,
+    "api_ms": 38423,
+    "total": 566055
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L3-B00",
+   "seconds": 75.71241220799857,
+   "usage": {
+    "input": 19,
+    "output": 9722,
+    "cache_read": 969129,
+    "cache_write": 114129,
+    "cost_usd": 0.6515396999999999,
+    "turns": 12,
+    "api_ms": 71701,
+    "total": 1092999
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L3-B01",
+   "seconds": 77.6889306249941,
+   "usage": {
+    "input": 19,
+    "output": 10502,
+    "cache_read": 1066896,
+    "cache_write": 114349,
+    "cost_usd": 0.6697998999999999,
+    "turns": 16,
+    "api_ms": 74007,
+    "total": 1191766
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L3-B02",
+   "seconds": 73.28963262500474,
+   "usage": {
+    "input": 19,
+    "output": 9450,
+    "cache_read": 966752,
+    "cache_write": 101756,
+    "cost_usd": 0.5988513000000001,
+    "turns": 14,
+    "api_ms": 69658,
+    "total": 1077977
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L3-B03",
+   "seconds": 61.43661820900161,
+   "usage": {
+    "input": 17,
+    "output": 8035,
+    "cache_read": 807493,
+    "cache_write": 88293,
+    "cost_usd": 0.5149309,
+    "turns": 12,
+    "api_ms": 58611,
+    "total": 903838
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L4-B00",
+   "seconds": 78.87287491599272,
+   "usage": {
+    "input": 17,
+    "output": 10765,
+    "cache_read": 925365,
+    "cache_write": 118166,
+    "cost_usd": 0.6735902,
+    "turns": 14,
+    "api_ms": 74632,
+    "total": 1054313
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L4-B01",
+   "seconds": 71.09565362500143,
+   "usage": {
+    "input": 20,
+    "output": 9631,
+    "cache_read": 905610,
+    "cache_write": 92414,
+    "cost_usd": 0.5571859,
+    "turns": 12,
+    "api_ms": 67498,
+    "total": 1007675
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L5-B00",
+   "seconds": 59.465372208011104,
+   "usage": {
+    "input": 17,
+    "output": 7250,
+    "cache_read": 828069,
+    "cache_write": 96937,
+    "cost_usd": 0.5436207,
+    "turns": 12,
+    "api_ms": 55217,
+    "total": 932273
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L5-B01",
+   "seconds": 52.04299149999861,
+   "usage": {
+    "input": 9,
+    "output": 6704,
+    "cache_read": 422189,
+    "cache_write": 87113,
+    "cost_usd": 0.45831879999999997,
+    "turns": 7,
+    "api_ms": 49126,
+    "total": 516015
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L6-B00",
+   "seconds": 99.21470212499844,
+   "usage": {
+    "input": 19,
+    "output": 14158,
+    "cache_read": 1020034,
+    "cache_write": 112747,
+    "cost_usd": 0.6952567,
+    "turns": 14,
+    "api_ms": 95768,
+    "total": 1146958
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L6-B01",
+   "seconds": 104.76701320799475,
+   "usage": {
+    "input": 21,
+    "output": 15457,
+    "cache_read": 1330760,
+    "cache_write": 146719,
+    "cost_usd": 0.8754394000000001,
+    "turns": 14,
+    "api_ms": 101310,
+    "total": 1492957
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L7-B00",
+   "seconds": 40.137782290999894,
+   "usage": {
+    "input": 13,
+    "output": 4647,
+    "cache_read": 592978,
+    "cache_write": 85695,
+    "cost_usd": 0.4490537,
+    "turns": 9,
+    "api_ms": 36953,
+    "total": 683333
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L8-B00",
+   "seconds": 28.258554333006032,
+   "usage": {
+    "input": 12,
+    "output": 2751,
+    "cache_read": 462837,
+    "cache_write": 66210,
+    "cost_usd": 0.3390981,
+    "turns": 7,
+    "api_ms": 25064,
+    "total": 531810
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L9-B00",
+   "seconds": 33.80734008400759,
+   "usage": {
+    "input": 13,
+    "output": 3633,
+    "cache_read": 645818,
+    "cache_write": 87367,
+    "cost_usd": 0.45088059999999996,
+    "turns": 9,
+    "api_ms": 30722,
+    "total": 736831
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/L10-B00",
+   "seconds": 44.62996825001028,
+   "usage": {
+    "input": 13,
+    "output": 5476,
+    "cache_read": 627658,
+    "cache_write": 95826,
+    "cost_usd": 0.5014893,
+    "turns": 8,
+    "api_ms": 41251,
+    "total": 728973
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/NONNODE",
+   "seconds": 638.2690774579969,
+   "usage": {
+    "input": 92,
+    "output": 91053,
+    "cache_read": 9070451,
+    "cache_write": 296664,
+    "cost_usd": 3.0047205,
+    "turns": 48,
+    "api_ms": 625379,
+    "total": 9458260
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "annotate-symbols/check-shards",
+   "seconds": 0.034234374994412065,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "snapshot-sources",
+   "seconds": 0.06496554199839011,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "verify-terms",
+   "seconds": 0.10813154200150166,
+   "usage": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_write": 0,
+    "cost_usd": 0.0,
+    "turns": 0,
+    "api_ms": 0,
+    "total": 0
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "outline-wiki",
+   "seconds": 59.81615429199883,
+   "usage": {
+    "input": 16,
+    "output": 7773,
+    "cache_read": 659466,
+    "cache_write": 75752,
+    "cost_usd": 0.44698360000000004,
+    "turns": 10,
+    "api_ms": 56102,
+    "total": 743007
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/architecture.md",
+   "seconds": 151.4084460830054,
+   "usage": {
+    "input": 31,
+    "output": 19901,
+    "cache_read": 1788202,
+    "cache_write": 126078,
+    "cost_usd": 0.8824816,
+    "turns": 19,
+    "api_ms": 145332,
+    "total": 1934212
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/common-utilities.md",
+   "seconds": 170.0166123329982,
+   "usage": {
+    "input": 30,
+    "output": 23014,
+    "cache_read": 1686243,
+    "cache_write": 113951,
+    "cost_usd": 0.8549243000000001,
+    "turns": 22,
+    "api_ms": 163743,
+    "total": 1823238
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/core-measure.md",
+   "seconds": 179.06477508301032,
+   "usage": {
+    "input": 28,
+    "output": 24430,
+    "cache_read": 1763299,
+    "cache_write": 136533,
+    "cost_usd": 0.9670993999999999,
+    "turns": 19,
+    "api_ms": 173083,
+    "total": 1924290
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/core-pipeline.md",
+   "seconds": 166.91149633401074,
+   "usage": {
+    "input": 21,
+    "output": 24071,
+    "cache_read": 1069958,
+    "cache_write": 119508,
+    "cost_usd": 0.8261132000000001,
+    "turns": 15,
+    "api_ms": 161373,
+    "total": 1213558
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/getting-started.md",
+   "seconds": 170.66368670800875,
+   "usage": {
+    "input": 30,
+    "output": 23103,
+    "cache_read": 1587695,
+    "cache_write": 114403,
+    "cost_usd": 0.8477347000000001,
+    "turns": 19,
+    "api_ms": 164270,
+    "total": 1725231
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/index.md",
+   "seconds": 137.83895466700778,
+   "usage": {
+    "input": 30,
+    "output": 18082,
+    "cache_read": 1551371,
+    "cache_write": 111804,
+    "cost_usd": 0.7834968000000001,
+    "turns": 18,
+    "api_ms": 131432,
+    "total": 1681287
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-collect-normalize.md",
+   "seconds": 296.88262362500245,
+   "usage": {
+    "input": 41,
+    "output": 42607,
+    "cache_read": 3126017,
+    "cache_write": 183613,
+    "cost_usd": 1.4736352000000004,
+    "turns": 24,
+    "api_ms": 291625,
+    "total": 3352278
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-collectors.md",
+   "seconds": 280.5236638750066,
+   "usage": {
+    "input": 39,
+    "output": 39593,
+    "cache_read": 2823598,
+    "cache_write": 166195,
+    "cost_usd": 1.3435401000000005,
+    "turns": 35,
+    "api_ms": 275984,
+    "total": 3029425
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-facts-ranking.md",
+   "seconds": 134.18075270799454,
+   "usage": {
+    "input": 24,
+    "output": 18922,
+    "cache_read": 1132341,
+    "cache_write": 107384,
+    "cost_usd": 0.7323399,
+    "turns": 16,
+    "api_ms": 130404,
+    "total": 1258671
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-inputs.md",
+   "seconds": 190.7043102089956,
+   "usage": {
+    "input": 34,
+    "output": 26548,
+    "cache_read": 1966358,
+    "cache_write": 135163,
+    "cost_usd": 1.0032157000000002,
+    "turns": 19,
+    "api_ms": 184067,
+    "total": 2128103
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-runner.md",
+   "seconds": 221.85663399999612,
+   "usage": {
+    "input": 28,
+    "output": 31620,
+    "cache_read": 2178793,
+    "cache_write": 167517,
+    "cost_usd": 1.2046667000000002,
+    "turns": 29,
+    "api_ms": 215769,
+    "total": 2377958
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-seal.md",
+   "seconds": 173.71986637498776,
+   "usage": {
+    "input": 35,
+    "output": 23896,
+    "cache_read": 2265838,
+    "cache_write": 135592,
+    "cost_usd": 1.0083315999999998,
+    "turns": 22,
+    "api_ms": 169156,
+    "total": 2425361
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-survey.md",
+   "seconds": 301.7172804589936,
+   "usage": {
+    "input": 34,
+    "output": 43982,
+    "cache_read": 2898067,
+    "cache_write": 201073,
+    "cost_usd": 1.5344816000000001,
+    "turns": 27,
+    "api_ms": 296430,
+    "total": 3143156
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-verify.md",
+   "seconds": 283.6160818329954,
+   "usage": {
+    "input": 49,
+    "output": 39982,
+    "cache_read": 3646623,
+    "cache_write": 173827,
+    "cost_usd": 1.4602825,
+    "turns": 28,
+    "api_ms": 277840,
+    "total": 3860481
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-viz.md",
+   "seconds": 201.3018192090094,
+   "usage": {
+    "input": 30,
+    "output": 27503,
+    "cache_read": 1941951,
+    "cache_write": 143986,
+    "cost_usd": 1.0455624,
+    "turns": 21,
+    "api_ms": 197343,
+    "total": 2113470
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/mode1-wiki.md",
+   "seconds": 286.2972149170091,
+   "usage": {
+    "input": 35,
+    "output": 42015,
+    "cache_read": 2343856,
+    "cache_write": 162282,
+    "cost_usd": 1.3042015999999998,
+    "turns": 24,
+    "api_ms": 282135,
+    "total": 2548188
+   },
+   "ok": true,
+   "why": ""
+  },
+  {
+   "stage": "write-wiki/spec-mode2.md",
+   "seconds": 184.95651129100588,
+   "usage": {
+    "input": 24,
+    "output": 27980,
+    "cache_read": 1189662,
+    "cache_write": 112953,
+    "cost_usd": 0.8510295,
+    "turns": 17,
+    "api_ms": 180906,
+    "total": 1330619
+   },
+   "ok": false,
+   "why": "종료 코드 1 — success"
+  },
+  {
+   "stage": "write-wiki/term-mode15.md",
+   "seconds": 164.9415570830024,
+   "usage": {
+    "input": 12,
+    "output": 24824,
+    "cache_read": 564557,
+    "cache_write": 105861,
+    "cost_usd": 0.7285779000000001,
+    "turns": 14,
+    "api_ms": 161975,
+    "total": 695254
+   },
+   "ok": false,
+   "why": "종료 코드 1 — success"
+  },
+  {
+   "stage": "write-wiki/tools-maintenance.md",
+   "seconds": 150.75027191700065,
+   "usage": {
+    "input": 16,
+    "output": 21434,
+    "cache_read": 740061,
+    "cache_write": 92457,
+    "cost_usd": 0.6585042999999999,
+    "turns": 14,
+    "api_ms": 146556,
+    "total": 853968
+   },
+   "ok": false,
+   "why": "종료 코드 1 — success"
+  }
+ ],
+ "stage_totals": {
+  "lang-hint": {
+   "input": 10,
+   "output": 1146,
+   "cache_read": 27617,
+   "cache_write": 47959,
+   "total": 76732,
+   "turns": 1,
+   "api_ms": 17471,
+   "cost_usd": 0.1057496
+  },
+  "lang-decide": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "collect-graph": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "verify-graph": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "derive-facts": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "schedule-batches": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "annotate-symbols": {
+   "input": 1471,
+   "output": 758324,
+   "cache_read": 74224350,
+   "cache_write": 8562804,
+   "total": 83546949,
+   "turns": 948,
+   "api_ms": 5741003,
+   "cost_usd": 49.8746584
+  },
+  "snapshot-sources": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "verify-terms": {
+   "input": 0,
+   "output": 0,
+   "cache_read": 0,
+   "cache_write": 0,
+   "total": 0,
+   "turns": 0,
+   "api_ms": 0,
+   "cost_usd": 0.0
+  },
+  "outline-wiki": {
+   "input": 16,
+   "output": 7773,
+   "cache_read": 659466,
+   "cache_write": 75752,
+   "total": 743007,
+   "turns": 10,
+   "api_ms": 56102,
+   "cost_usd": 0.44698360000000004
+  },
+  "write-wiki": {
+   "input": 571,
+   "output": 543507,
+   "cache_read": 36264490,
+   "cache_write": 2610180,
+   "total": 39418748,
+   "turns": 402,
+   "api_ms": 3749423,
+   "cost_usd": 19.510219
+  }
+ },
+ "concurrency": 8,
+ "target": 8,
+ "total": {
+  "input": 2068,
+  "output": 1310750,
+  "cache_read": 111175923,
+  "cache_write": 11296695,
+  "total": 123785436,
+  "turns": 1361,
+  "api_ms": 9563999,
+  "cost_usd": 69.9376106
+ },
+ "wall_seconds": 3077.1481595840014
+}
