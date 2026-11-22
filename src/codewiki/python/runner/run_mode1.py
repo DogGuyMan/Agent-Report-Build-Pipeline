@@ -122,7 +122,7 @@ _bootstrap_venv()
 import argparse
 import json
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Literal, cast
 
 # 러너는 `src/codewiki/python/runner/`, 결정론 기계는 `src/codewiki/python/machine/`, 단계 기계는 `src/core/` 다. CLI 로 돌 때 sys.path[0] 은
@@ -186,6 +186,18 @@ from mode1.context import Mode1Context  # noqa: E402
 from mode1.edges import ORDER as STAGES, build_mode1_graph, graph_name, restart_from  # noqa: E402
 from mode1.edges import expand as expand, plan_stages as plan_stages  # noqa: E402
 from mode1.seal import SealArtifactsStage  # noqa: E402
+
+
+def measurement_doc(repo: str, model: str, graph_name: str, rows: Sequence[StageRow], concurrency: int,
+                    target: int, wall: float, stage_wall: Mapping[str, float]) -> dict[str, object]:
+    """`--json` 으로 쓰는 측정 문서.
+
+    `stage_wall_seconds` 는 단계마다의 벽시계다. 세션이 나란히 도는 단계는 행의 초를 더해도 벽시계가 아니다.
+    """
+    return {"repo": os.path.basename(repo), "model": model, "graph": graph_name, "stages": list(rows),
+            "stage_totals": stage_totals(rows), "concurrency": concurrency, "target": target,
+            "total": sum_usage([r["usage"] for r in rows]), "wall_seconds": wall,
+            "stage_wall_seconds": dict(stage_wall)}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -259,7 +271,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not a.resume and os.path.exists(X.RESUME.locate(ctx)):
         os.remove(X.RESUME.locate(ctx))
     t_all = time.monotonic()
-    rows = P.Pipeline[Mode1Context]().run(graph, ctx)
+    pipeline = P.Pipeline[Mode1Context]()
+    rows = pipeline.run(graph, ctx)
     wall = time.monotonic() - t_all
     doc = resume.write_resume(X.RESUME.locate(ctx), graph.name, rows, graph.order, ctx.verified)
     if doc:
@@ -272,16 +285,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("Mode 1 측정 — 전체 %s" % hms(wall))
     print("=" * 72)
     print(format_report(rows, wall_seconds=wall))
-    print("\n단계 소계 — 병렬이라 행의 초 합계는 벽시계가 아니다")
+    print("\n단계 소계 — 벽시계는 단계가 걸린 시간이고, 행의 초 합계와 다르다")
     for name, u in stage_totals(rows).items():
-        print("  %-16s 토큰 %12s · 턴 %3d · 비용 $%.4f"
-              % (name, "{:,}".format(u["total"]), u["turns"], u["cost_usd"]))
+        print("  %-16s 벽시계 %10s · 토큰 %12s · 턴 %3d · 비용 $%.4f"
+              % (name, hms(pipeline.stage_seconds.get(name, 0.0)), "{:,}".format(u["total"]),
+                 u["turns"], u["cost_usd"]))
     if json_out:
         with open(json_out, "w", encoding="utf-8") as f:
-            json.dump({"repo": os.path.basename(repo), "model": model, "graph": graph.name, "stages": rows,
-                       "stage_totals": stage_totals(rows), "concurrency": ctx.concurrency,
-                       "target": ctx.target, "total": sum_usage([r["usage"] for r in rows]),
-                       "wall_seconds": wall}, f, ensure_ascii=False, indent=1)
+            json.dump(measurement_doc(repo, model, graph.name, rows, ctx.concurrency, ctx.target, wall,
+                                      pipeline.stage_seconds), f, ensure_ascii=False, indent=1)
         print("\n측정값 %s" % json_out)
     # 실패한 실행은 새로 봉인하지 않고 이전 봉인에 표식만 남긴다. 실패한 단계는 재개 문서의 것과 같다.
     if doc and SealArtifactsStage.mark_superseded(ctx.repo, doc["failed_at"],

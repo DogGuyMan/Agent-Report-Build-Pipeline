@@ -627,3 +627,14 @@ def test_재실행_뒤에도_venv_가_아니면_다시_재실행하지_않는다
     (repo / ".venv" / "bin" / "python3").symlink_to(Path(sys.prefix, "bin", "python3"))
     done = _help(repo, Path(sys.executable))
     assert "다시 실행하지 않고 계속한다" in done.stderr
+
+
+def test_측정_문서는_단계별_벽시계를_싣는다():
+    row: R.StageRow = {"stage": "annotate-symbols/L0-B00", "seconds": 60.0,
+                       "usage": R.normalize_usage(None), "ok": True, "why": ""}
+    doc = R.measurement_doc("/어느/저장소", "claude-sonnet-5-5", "mode1-cold", [row], 8, 8, 100.0,
+                            {"annotate-symbols": 61.5})
+    assert doc["repo"] == "저장소" and doc["wall_seconds"] == 100.0
+    assert doc["stage_wall_seconds"] == {"annotate-symbols": 61.5}
+    assert list(doc)[:9] == ["repo", "model", "graph", "stages", "stage_totals", "concurrency",
+                             "target", "total", "wall_seconds"]

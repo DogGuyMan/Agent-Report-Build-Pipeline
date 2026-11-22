@@ -654,3 +654,22 @@ def test_render_text_는_타지_않는_갈래의_없는_필터와_검사도_막�
 def test_render_text_는_렌더_중_형_오류를_TemplateError_로_낸다():
     with pytest.raises(TemplateError, match="TypeError"):
         P.PromptResource.render_text("{{ n + 1 }}\n", n="1")
+
+
+def test_단계마다_걸린_벽시계를_남긴다(tmp_path: Path):
+    ctx = P.RunContext(root=str(tmp_path), model="m")
+    g = P.build_graph("g", ["a", "b"], {"a": 가짜단계("a"), "b": 가짜단계("b")},
+                      P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT}), [], ctx)
+    p = P.Pipeline[P.RunContext]()
+    p.run(g, ctx)
+    assert list(p.stage_seconds) == ["a", "b"]
+    assert all(s >= 0.0 for s in p.stage_seconds.values())
+
+
+def test_멈춘_뒤의_단계는_벽시계가_없다(tmp_path: Path):
+    ctx = P.RunContext(root=str(tmp_path), model="m")
+    g = P.build_graph("g", ["a", "b"], {"a": 가짜단계("a", kind=P.FAIL), "b": 가짜단계("b")},
+                      P.Edges({("*", P.OK): P.NEXT, ("*", P.FAIL): P.HALT}), [], ctx)
+    p = P.Pipeline[P.RunContext]()
+    p.run(g, ctx)
+    assert list(p.stage_seconds) == ["a"]

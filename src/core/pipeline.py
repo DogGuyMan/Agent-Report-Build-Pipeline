@@ -343,10 +343,17 @@ class Pipeline(Generic[C]):
 
     `run` 은 **재정의할 수 있다.** 다만 재정의가 루프를 다시 쓰는 자리는 아니다 —
     `super().run()` 을 부르고 앞뒤에 자기 일을 붙이는 자리다.
+
+    `stage_seconds` 는 `run` 이 채운다 — 단계 이름마다 그 단계가 걸린 벽시계 초다. 세션이 나란히 도는
+    단계는 행의 초를 더한 값이 벽시계가 아니므로 이 값을 본다.
     """
+
+    def __init__(self) -> None:
+        self.stage_seconds: dict[str, float] = {}
 
     def run(self, graph: StageDagGraph[C], ctx: C) -> list[StageRow]:
         rows: list[StageRow] = []
+        self.stage_seconds = {}
         cur = graph.first
         while cur:
             stage = graph.stages[cur]
@@ -377,6 +384,7 @@ class Pipeline(Generic[C]):
                         row["ok"], row["why"] = False, why
                     out = Outcome(FAIL, why, out.rows)
             rows.extend(out.rows)
+            self.stage_seconds[cur] = time.monotonic() - t0
             nxt = graph.next_of(cur, out.kind)
             if out.kind == FAIL and nxt is None:
                 print("막힘 — 뒤 단계는 이 산출물에 기대므로 여기서 멈춘다.", file=sys.stderr)
