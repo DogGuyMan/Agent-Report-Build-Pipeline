@@ -65,6 +65,10 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 �
 | **`SymbolRow`** | *class* | 배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다. |
 | **`DepRow`** | *class* | 배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다. |
 | **`PendingRow`** | *class* | 배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들. |
+| **`OutlineSymbol`** | *class* | 통독 캐시 개요의 심볼 한 줄 — 계획이 아는 이름 · 종류 · 시작 줄. |
+| **`FileOutline`** | *class* | 통독 캐시에 기계가 쓰는 개요 — 파일의 줄 수와, 계획에 든 그 파일의 심볼 전부(줄 순). |
+| **`OutlineSymbolRow`** | *class* | 배치 프롬프트의 개요 심볼 줄 하나. `own` 은 이 배치가 맡은 심볼인가. |
+| **`OutlineRow`** | *class* | 배치 프롬프트의 개요 한 파일. `found` 가 거짓이면 캐시에 쓸 개요가 없어 `lines` 가 빈 글이고 심볼 줄이 없다. |
 | **`Pass2DepRow`** | *class* | 2패스 프롬프트의 의존 대상 한 줄. `means` · `does` 는 빈 글일 수 있다. |
 | **`RetryInputs`** | *class* | 재조사 절의 값 — 지난 시도의 결함 줄들(`fault_line`)과 격리된 샤드 자리. `faults` 가 비면 절이 실리지 않는다. |
 | **`LowerPageRow`** | *class* | 위키 장 프롬프트의 이미 선 장 한 줄 — 파일명과 제목. |
@@ -263,10 +267,13 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는 
 | `AnnotateSymbolsStage.claim_shard_dir` | `(ctx: Mode1Context) -> int` | 샤드 폴더를 지금 계획의 것으로 만들고, 옮긴 항목 수를 돌려준다. |
 | `AnnotateSymbolsStage.name_of` | `(plan: survey_plan.SurveyPlan) -> dict[str, str]` | 계획 전체의 `id -> name`. `depends_on` 은 노드 id 이고 레코드 키는 이름이라 이 표로 건넌다. |
 | `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> list[DepRow]` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만, 이름 순의 줄로 낸다. |
-| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, deps: Sequence[DepRow], targets: Sequence[str] \| None = None, total: int = 0, pending: Sequence[PendingRow] = (), name_of: Mapping[str, str] \| None = None, faults: Sequence[str] = (), bad: str = '') -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
+| `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, deps: Sequence[DepRow], targets: Sequence[str] \| None = None, total: int = 0, pending: Sequence[PendingRow] = (), name_of: Mapping[str, str] \| None = None, faults: Sequence[str] = (), bad: str = '', outlines: Sequence[OutlineRow] = ()) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
 | `AnnotateSymbolsStage.pending_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, nodes: Mapping[str, Mapping[str, object]]) -> list[PendingRow]` | `depends_on` 중 **아직 레코드가 없는** 것을 id 순의 줄로 — 이름 · 종류 · 파일 · 줄. 세션이 열지 않고 볼 최소 정보다. |
 | `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str, faults: Sequence[str] = (), bad: str = '') -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
 | `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
+| `AnnotateSymbolsStage.file_outlines` | `(plan: survey_plan.SurveyPlan) -> dict[str, list[OutlineSymbol]]` | 계획의 심볼을 파일마다 줄 순으로 모은다 — 층을 가리지 않고 그 파일의 심볼 전부다. 파일이 없는 심볼은 싣지 않는다. |
+| `AnnotateSymbolsStage.prefill_cache` | `(repo: str, plan: survey_plan.SurveyPlan) -> int` | 계획의 파일마다 개요(줄 수 · 심볼 줄)를 통독 캐시에 쓰고, 쓴 파일 수를 돌려준다. |
+| `AnnotateSymbolsStage.outline_rows` | `(repo: str, batch: survey_plan.PlanBatch) -> list[OutlineRow]` | 배치의 파일마다 통독 캐시의 개요를 프롬프트 줄로 낸다. 배치가 맡은 심볼은 `own` 이 참이다. |
 | `AnnotateSymbolsStage.fault` | `(kind: FaultKind, batch: str, path: str, at: str, detail: str) -> ShardFault` |  |
 | `AnnotateSymbolsStage.fault_detail` | `(kind: FaultKind, name: str = 'detail', **values) -> str` | 결함 표의 결함 설명 `kind.<갈래>.<name>` 을 `values` 로 렌더한다. 인자가 위치 전용이라 값 이름이 `kind` 여도 된다. |
 | `AnnotateSymbolsStage.check_shard` | `(raw: bytes, batch: str = '', path: str = '') -> list[ShardFault]` | 샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다. |
