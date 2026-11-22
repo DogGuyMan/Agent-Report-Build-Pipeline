@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """file_cache.py — 파일 통독 캐시.
 
-배치 세션끼리는 컨텍스트를 공유하지 못하므로, 먼저 읽은 쪽이 개요를 디스크에 남기고
-나중 쪽이 그것을 읽는다.
+파일마다 개요 한 건을 디스크에 둔다. 쓰는 쪽은 조사 단계다 — 세션을 띄우기 전에 계획의 파일마다
+개요를 `put` 으로 쓰고, 배치 프롬프트를 만들 때 `get` 으로 읽어 싣는다. 세션은 캐시를 쓰지 않는다.
 
 lock 을 쓰지 않는다. 임시 파일에 쓰고 `os.replace` 로 갈아 끼우면 POSIX 에서 원자적이라
 반쯤 쓰인 파일을 남이 읽는 일이 없다.
 
-⚠ 캐시는 개요일 뿐 근거가 아니다. 자기가 맡은 심볼은 실제 줄 범위를 열어 읽어야 하고,
-캐시만 보고 쓴 레코드는 `confidence` 가 HIGH 일 수 없다.
+⚠ 캐시는 개요일 뿐 근거가 아니다. 세션은 자기가 맡은 심볼의 실제 줄 범위를 열어 읽어야 한다.
 
-  file_cache.py get <repo> <파일경로>            → 캐시 출력. 없거나 낡았으면 종료 코드 1
-  file_cache.py put <repo> <파일경로> <개요json> → 캐시 기록
+  file_cache.py get <repo> <파일경로>   → 캐시 출력. 없거나 낡았으면 종료 코드 1
 """
 import hashlib
 import json
@@ -60,8 +58,5 @@ if __name__ == "__main__":
         if d is None:
             sys.exit(1)
         json.dump(d, sys.stdout, ensure_ascii=False, indent=1)
-    elif cmd == "put":
-        with open(sys.argv[4], encoding="utf-8") as f:
-            print(put(repo, rel, json.load(f)))
     else:
         sys.exit("모르는 명령 %s" % cmd)

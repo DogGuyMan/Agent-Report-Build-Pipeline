@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """test_file_cache.py — 파일 캐시의 회귀 시험."""
+import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import cast
@@ -81,3 +83,17 @@ def test_망가진_캐시는_None(tmp_path: Path):
     path = FC.put(repo, "src/a.py", {})
     open(path, "w", encoding="utf-8").write("{ 이건 json 이 아니다")
     assert FC.get(repo, "src/a.py") is None
+
+
+def test_명령줄은_get_만_받는다(tmp_path: Path):
+    """캐시는 기계가 함수 `put` 으로 쓴다. 명령줄로는 읽기만 되고, `put` 은 모르는 명령이라 캐시를 건드리지 못한다."""
+    repo = _repo(tmp_path)
+    FC.put(repo, "src/a.py", {"lines": 1, "symbols": []})
+    script = os.path.abspath(FC.__file__)
+    got = subprocess.run([sys.executable, script, "get", repo, "src/a.py"], capture_output=True, text=True)
+    assert got.returncode == 0 and json.loads(got.stdout)["outline"] == {"lines": 1, "symbols": []}
+    other = tmp_path / "other.json"
+    other.write_text('{"symbols": [{"name": "세션이 쓴 것"}]}', encoding="utf-8")
+    bad = subprocess.run([sys.executable, script, "put", repo, "src/a.py", str(other)], capture_output=True, text=True)
+    assert bad.returncode != 0 and "모르는 명령 put" in bad.stderr
+    assert _outline(FC.get(repo, "src/a.py")) == {"lines": 1, "symbols": []}
