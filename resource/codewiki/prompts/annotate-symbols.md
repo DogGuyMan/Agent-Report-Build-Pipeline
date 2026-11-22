@@ -182,7 +182,6 @@
 
   {{repo}}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {"키": 레코드}
 
-이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
 **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
 끝내기 전에 기계 검문을 돌려 `통과` 가 나올 때까지 고친다:
