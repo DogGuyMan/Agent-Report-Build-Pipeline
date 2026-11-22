@@ -2509,3 +2509,20 @@ def test_전수조사_프롬프트는_실행기의_해석기를_적는다():
         assert "/root/.venv/bin/python" not in p
     assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py get /repo" in batch
     assert sys.executable + " /root/src/codewiki/python/machine/file_cache.py put /repo" in batch
+
+
+def test_refresh_merged_가_쓰다_죽어도_옛_reading_이_남는다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """다음 실행은 이 파일을 조사 이전의 원본으로 읽는다. 반쪽 파일이 남으면 그 실행이 시작에서 죽는다."""
+    c = _ctx(tmp_path); c.plan = _one_batch_plan("L0-B00")
+    d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+    (d / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+    reading = Path(X.READING.locate(c)); reading.parent.mkdir(parents=True, exist_ok=True)
+    reading.write_text('{"옛": {}}', encoding="utf-8")
+
+    def boom(*a: object, **k: object) -> None:
+        raise OSError("디스크가 찼다")
+    monkeypatch.setattr(jsonio.json, "dump", boom)
+    with pytest.raises(OSError):
+        SV.AnnotateSymbolsStage().refresh_merged(c)
+    assert reading.read_text(encoding="utf-8") == '{"옛": {}}'
+    assert [p.name for p in reading.parent.iterdir()] == [reading.name]

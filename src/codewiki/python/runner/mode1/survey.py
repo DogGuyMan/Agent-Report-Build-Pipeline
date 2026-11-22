@@ -511,10 +511,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         assert ctx.plan is not None
         raw = self.merge_shards(self.shard_dir(ctx), ctx.baseline)
         ctx.merged, dropped = self.normalize_records(raw, self.name_of(ctx.plan))
-        path = X.READING.locate(ctx)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(ctx.merged, f, ensure_ascii=False, indent=1, sort_keys=True)
+        jsonio.write_json_atomic(X.READING.locate(ctx), ctx.merged, indent=1, sort_keys=True)
         with open(X.DROPPED.locate(ctx), "w", encoding="utf-8") as f:
             f.write(self.dropped_csv(dropped))
         return dropped

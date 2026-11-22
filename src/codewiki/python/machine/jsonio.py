@@ -4,14 +4,15 @@ import os
 import tempfile
 
 
-def write_json_atomic(path: str, obj: object, indent: int = 2, trailing_newline: bool = False) -> None:
-    """`path` 를 `obj` 의 JSON 으로 바꿔 끼운다. 같은 입력이면 같은 바이트다."""
+def write_json_atomic(path: str, obj: object, indent: int = 2, trailing_newline: bool = False,
+                      sort_keys: bool = False) -> None:
+    """`path` 를 `obj` 의 JSON 으로 바꿔 끼운다. 같은 입력이면 같은 바이트다. `sort_keys` 면 사전의 열쇠를 정렬해 쓴다."""
     folder = os.path.dirname(os.path.abspath(path))
     os.makedirs(folder, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=folder, prefix="." + os.path.basename(path) + ".", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(obj, f, ensure_ascii=False, indent=indent)
+            json.dump(obj, f, ensure_ascii=False, indent=indent, sort_keys=sort_keys)
             if trailing_newline:
                 f.write("\n")
         os.replace(tmp, path)

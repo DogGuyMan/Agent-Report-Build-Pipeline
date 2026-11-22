@@ -1,4 +1,5 @@
 """jsonio — 원자적 JSON 쓰기."""
+import json
 import os
 import sys
 from pathlib import Path
@@ -29,3 +30,10 @@ def test_바꿔_끼우기가_실패하면_옛_파일이_그대로_남는다(tmp_
     with pytest.raises(OSError):
         jsonio.write_json_atomic(str(p), {"new": True})
     assert p.read_text(encoding="utf-8") == "old" and os.listdir(tmp_path) == ["a.json"]
+
+
+def test_sort_keys_면_안쪽_사전까지_열쇠를_정렬해_쓴다(tmp_path: Path) -> None:
+    p = tmp_path / "a.json"
+    doc = {"나": 1, "가": {"z": 1, "a": 2}}
+    jsonio.write_json_atomic(str(p), doc, indent=1, sort_keys=True)
+    assert p.read_text(encoding="utf-8") == json.dumps(doc, ensure_ascii=False, indent=1, sort_keys=True)

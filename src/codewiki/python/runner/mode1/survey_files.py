@@ -4,7 +4,6 @@
 이 단계만 `perform` 을 갖는다. 세션 호출·측정(`P.run_agent_with`)·프롬프트·검문·병합은
 전부 `AnnotateSymbolsStage` 것을 그대로 부른다.
 """
-import json
 import os
 import sys
 import time
@@ -12,6 +11,7 @@ from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 
 from core import measure as M
 from core import pipeline as P
+import jsonio
 import survey_plan
 from mode1 import context as X
 from mode1.context import Mode1Context
@@ -66,9 +66,7 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
 
         def write_merged() -> None:
             ctx.merged = self.merge_shards(d, ctx.baseline)
-            os.makedirs(os.path.dirname(X.READING.locate(ctx)), exist_ok=True)
-            with open(X.READING.locate(ctx), "w", encoding="utf-8") as f:
-                json.dump(ctx.merged, f, ensure_ascii=False, indent=1, sort_keys=True)
+            jsonio.write_json_atomic(X.READING.locate(ctx), ctx.merged, indent=1, sort_keys=True)
             table = self.unresolved_rows(ctx.merged, weight, into, known=set(ctx.merged), queued=queued)
             with open(X.UNRESOLVED.locate(ctx), "w", encoding="utf-8") as f:
                 f.write(self.unresolved_csv(table))
