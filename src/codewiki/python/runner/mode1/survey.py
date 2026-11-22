@@ -413,7 +413,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
 
         배치 세션은 자기 배치만 보므로 전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을
-        `<파일줄기>.<이름>` 으로 고친다. 한쪽만 한정하면 나중에 또 겹친다.
+        `<파일줄기>.<이름>` 으로 고친다. 한쪽만 한정하면 나중에 또 겹친다. 한 번 갈라진 맨 키는 이 호출이 끝날 때까지 기억한다 — 셋째가 와도 맨 키로 남지 않는다.
 
         **망가진 샤드는 건너뛴다.** 배치 하나가 반쯤 쓰고 죽어도 나머지 결과를 버리지 않는다.
         무엇을 건너뛰었는지는 stderr 에 적는다.
@@ -426,6 +426,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         남으로 본다.
         """
         got = dict(existing or {})
+        split: set[str] = set()      # 겹쳐서 개명한 맨 키. 같은 키가 또 오면 그것도 개명한다
         if not os.path.isdir(shard_dir):
             return got
         for fname in sorted(os.listdir(shard_dir)):
@@ -438,13 +439,16 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
                 print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
                 continue
             for key, rec in shard.items():
+                if key in split:
+                    got[AnnotateSymbolsStage.qualified(key, rec)] = rec
                 # 자리 주인이 남(다른 파일)일 때만 충돌이다. 같은 파일이면 다시 읽은 새 판이라 갈아 끼운다.
-                if key in got and got[key] != rec \
+                elif key in got and got[key] != rec \
                         and AnnotateSymbolsStage.file_of(got[key]) != AnnotateSymbolsStage.file_of(rec):
                     # 겹친 전원을 개명한다. 이미 들어와 있던 쪽도 함께 고친다.
                     old = got.pop(key)
                     got[AnnotateSymbolsStage.qualified(key, old)] = old
                     got[AnnotateSymbolsStage.qualified(key, rec)] = rec
+                    split.add(key)
                 else:
                     got[key] = rec
         return got

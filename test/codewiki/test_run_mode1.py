@@ -387,6 +387,24 @@ def test_이미_있는_키와_겹쳐도_양쪽_다_개명한다(tmp_path: Path):
     assert sorted(got) == ["gui.main", "net.main"]
 
 
+def test_세_파일이_같은_키를_쓰면_셋_다_개명한다(tmp_path: Path):
+    """둘을 개명하고 나면 맨 키가 비어서, 셋째가 맨 키로 남으면 안 된다."""
+    d = _shard(tmp_path, "L0-B00", {"main": {"where": "app/gui.py:10"}})
+    _shard(tmp_path, "L0-B01", {"main": {"where": "core/net.py:20"}})
+    _shard(tmp_path, "L0-B02", {"main": {"where": "cli/run.py:30"}})
+    assert sorted(R.merge_shards(d, {})) == ["gui.main", "net.main", "run.main"]
+
+
+def test_개명한_파일을_다시_조사한_샤드는_그_파일_것만_갈아_끼운다(tmp_path: Path):
+    """같은 파일을 다시 조사한 샤드가 뒤에 오면 그 파일의 개명된 레코드가 새 판이 된다."""
+    d = _shard(tmp_path, "L0-B00", {"main": {"where": "app/gui.py:10", "means": "옛"}})
+    _shard(tmp_path, "L0-B01", {"main": {"where": "core/net.py:20"}})
+    _shard(tmp_path, "L1-B00", {"main": {"where": "app/gui.py:10", "means": "새"}})
+    got = R.merge_shards(d, {})
+    assert sorted(got) == ["gui.main", "net.main"]
+    assert got["gui.main"]["means"] == "새"
+
+
 def test_망가진_샤드는_건너뛰고_나머지를_살린다(tmp_path: Path):
     """배치 하나가 반쯤 쓰고 죽어도 나머지 배치의 20분을 버리지 않는다."""
     d = _shard(tmp_path, "L0-B00", {"가": {"where": "a.py:1"}})
