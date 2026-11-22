@@ -124,7 +124,9 @@
 
 - 샤드 파일 하나만 만들었는가
 - **기계 검문을 통과했는가** — 다음을 돌려 `통과` 가 나올 때까지 고친다. 통과 전에는 끝내지 않는다:
-    {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/{{bid}}.json
+{% for c in calls %}
+    {{ c.command }} {{ c.last }}
+{% endfor %}
   (JSON 문법 · 필수 칸 · 어휘 · where 를 본다. 이것이 층 끝 검문과 같은 검사기다)
 
 보고: 레코드 수 · confidence 분포 · 통독한 파일과 개요로 범위만 읽은 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
@@ -225,7 +227,9 @@
 
 이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
 정확한 꼴은 {{repo}}/out/codegraph-raw/record-schema.json 이다. 끝내기 전에 검문한다:
-  {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json
+{% for c in calls %}
+  {{ c.command }} {{ c.last }}
+{% endfor %}
 
 <!-- section: allowed -->
 ## 이 세션은 허용된 호출만 돈다

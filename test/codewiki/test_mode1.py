@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shlex
 import sys
 import time
 import tomllib
@@ -1791,13 +1792,13 @@ def test_refresh_merged_는_보정본을_reading_과_dropped_csv_로_쓴다(tmp_
 
 
 def _fake_agent(shards: dict[str, dict[str, object]], calls: list[str]):
-    """라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 '쓰는 곳' 줄에서 경로를 뽑는다."""
+    """라벨을 보고 샤드를 써 주는 가짜 세션. 프롬프트의 첫 샤드 경로를 뽑는다 — 셸 따옴표는 경로에 넣지 않는다."""
     import re
 
     def run(model: str, repo: str, root: str, prompt: str, timeout: float | None,
             label: str = "", session_args: Sequence[str] = ()) -> tuple[float, int, M.ClaudeResult | None]:
         calls.append(label)
-        m = re.search(r"(\S+/_shards/\S+\.json)", prompt)
+        m = re.search(r"([^\s']+/_shards/[^\s']+\.json)", prompt)
         assert m, label
         path = m.group(1)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -2786,7 +2787,8 @@ def _종류별_프롬프트(repo: str, root: str) -> dict[SV.SessionKind, tuple[
 
 
 def _검문_명령(root: str) -> str:
-    return "%s %s" % (sys.executable, os.path.join(root, "src", "codewiki", "python", "runner", "check_shard.py"))
+    return "%s %s" % (shlex.quote(sys.executable),
+                      shlex.quote(os.path.join(root, "src", "codewiki", "python", "runner", "check_shard.py")))
 
 
 def test_배치와_2패스_세션은_묻는_호출을_거절하고_샤드_폴더_쓰기와_검문_명령만_허용받는다(tmp_path: Path):
@@ -2821,14 +2823,19 @@ def test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이�
     c = _ctx(tmp_path)
     S = SV.AnnotateSymbolsStage
     shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
-    last = {"batch": os.path.join(shards, "F00.json"), "nonnode": os.path.join(shards, "NONNODE.json"),
-            "pass2": os.path.join(shards, "_pass2", "F00.json")}
+    last = {"batch": shlex.quote(os.path.join(shards, "F00.json")),
+            "nonnode": shlex.quote(os.path.join(shards, "NONNODE.json")),
+            "pass2": shlex.quote(os.path.join(shards, "_pass2", "F00.json"))}
     for kind, (name, prompt) in _종류별_프롬프트(c.repo, c.root).items():
         calls = S.session_calls(kind, c.repo, c.root, name)
         assert calls == [{"command": _검문_명령(c.root), "last": last[kind]}], kind
         told = {ln.strip() for ln in prompt.splitlines() if ln.strip().startswith(sys.executable + " ")}
-        assert told == {"%s %s" % (x["command"], x["last"]) for x in calls}, kind
         assert "file_cache.py" not in prompt, kind
+        if kind == "nonnode":    # 비노드 절은 규칙 아래에 있지 않아 경로를 그대로 적는다
+            script = os.path.join(c.root, "src", "codewiki", "python", "runner", "check_shard.py")
+            assert told == {"%s %s %s" % (sys.executable, script, os.path.join(shards, "NONNODE.json"))}
+        else:
+            assert told == {"%s %s" % (x["command"], x["last"]) for x in calls}, kind
 
 
 def test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다(tmp_path: Path):
@@ -2840,6 +2847,27 @@ def test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙�
         told = [ln.strip() for ln in prompts[kind][1].splitlines() if ln.strip().startswith(sys.executable + " ")]
         assert told, kind
         assert [ln for ln in told if not _규칙이_덮는_줄인가(ln, rules)] == [], kind
+
+
+def test_경로에_빈칸이_있어도_절차_줄과_알림_줄과_규칙이_같은_글자이고_셸이_세_조각으로_읽는다(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    interpreter = str(tmp_path / "py env" / "bin" / "python")
+    monkeypatch.setattr(sys, "executable", interpreter)
+    c = X.Mode1Context(root=str(tmp_path / "tool root"), model="m", repo=str(tmp_path / "target repo"))
+    S = SV.AnnotateSymbolsStage
+    survey = S()
+    prompts = _종류별_프롬프트(c.repo, c.root)
+    script = os.path.join(c.root, "src", "codewiki", "python", "runner", "check_shard.py")
+    shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
+    shard = {"batch": os.path.join(shards, "F00.json"), "pass2": os.path.join(shards, "_pass2", "F00.json")}
+    for kind in ("batch", "pass2"):
+        name, prompt = prompts[kind]
+        notice = S.allowed_notice(S.session_calls(kind, c.repo, c.root, name))
+        line = notice.splitlines()[-1].strip()
+        procedure = [ln.strip() for ln in prompt.replace(notice, "").splitlines() if "check_shard.py" in ln]
+        assert procedure == [line], kind
+        assert shlex.split(line) == [interpreter, script, shard[kind]], kind
+        assert _규칙이_덮는_줄인가(line, _규칙(survey.kind_args(c, kind))), kind
 
 
 def test_허용_규칙의_명령은_전부_프롬프트의_절차에도_적혀_있다(tmp_path: Path):
@@ -2867,11 +2895,11 @@ def test_알림은_역할_소개_바로_아래에_허용된_명령을_적힌_글
             "변수(`P=...`) · `for` · `;` · `&&` · `|` 로 잇지 않는다:\n"
             "    %s %s")
     batch = S.allowed_notice(S.session_calls("batch", c.repo, c.root, "F00"))
-    assert batch == text % (_검문_명령(c.root), os.path.join(shards, "F00.json"))
+    assert batch == text % (_검문_명령(c.root), shlex.quote(os.path.join(shards, "F00.json")))
     assert prompts["batch"][1].split("\n\n")[1].startswith("## 이 세션은 허용된 호출만 돈다")
     assert prompts["batch"][1].index(batch + "\n\n") < prompts["batch"][1].index("## 지난 시도가 되돌려졌다")
     pass2 = S.allowed_notice(S.session_calls("pass2", c.repo, c.root, "F00"))
-    assert pass2 == text % (_검문_명령(c.root), os.path.join(shards, "_pass2", "F00.json"))
+    assert pass2 == text % (_검문_명령(c.root), shlex.quote(os.path.join(shards, "_pass2", "F00.json")))
     assert prompts["pass2"][1].split("\n\n")[1].startswith("## 이 세션은 허용된 호출만 돈다")
     assert pass2 + "\n\n## 소스를 열지 않는다" in prompts["pass2"][1]
 

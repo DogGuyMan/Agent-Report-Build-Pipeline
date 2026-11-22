@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import stat
 import sys
 import time
@@ -145,14 +146,14 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
              "deps": [names.get(d, d) for d in (s.get("depends_on") or [])]}
             for s in batch["symbols"]]
         scope = list(targets or ())
+        calls = AnnotateSymbolsStage.session_calls("batch", repo, root, batch["id"])
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#batch", repo=repo, root=root, python=sys.executable, bid=batch["id"],
+            "annotate-symbols#batch", repo=repo, root=root, bid=batch["id"],
             n=len(syms), syms=syms,
             deps=list(deps), targets=scope, target_count=len(scope), total=total,
             reading=X.reading_path(repo, ROOT), pending=list(pending),
             faults=list(faults), fault_count=len(faults), bad=bad, outlines=list(outlines),
-            allowed=AnnotateSymbolsStage.allowed_notice(
-                AnnotateSymbolsStage.session_calls("batch", repo, root, batch["id"])))
+            calls=calls, allowed=AnnotateSymbolsStage.allowed_notice(calls))
 
     @staticmethod
     def pending_excerpt(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch,
@@ -433,10 +434,10 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
         mine = json.dumps({k: dict(v) for k, v in shallow.items()}, ensure_ascii=False, indent=1)
         theirs: list[Pass2DepRow] = [{"name": k, "means": str(r.get("means") or ""), "does": str(r.get("does") or "")}
                                      for k, r in sorted(deps.items())]
+        calls = AnnotateSymbolsStage.session_calls("pass2", repo, root, bid)
         return AnnotateSymbolsStage.load_prompt(
-            "annotate-symbols#pass2", repo=repo, root=root, python=sys.executable, bid=bid, file=file,
-            mine=mine, theirs=theirs,
-            allowed=AnnotateSymbolsStage.allowed_notice(AnnotateSymbolsStage.session_calls("pass2", repo, root, bid)))
+            "annotate-symbols#pass2", repo=repo, root=root, bid=bid, file=file,
+            mine=mine, theirs=theirs, calls=calls, allowed=AnnotateSymbolsStage.allowed_notice(calls))
 
     @staticmethod
     def apply_pass2(shard_dir: str, bid: str) -> list[ShardFault]:
@@ -682,14 +683,15 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
     def session_calls(kind: SessionKind, repo: str, root: str, name: str = "") -> list[SessionCall]:
         """세션 종류마다 Bash 로 부를 수 있는 명령. 프롬프트의 절차가 시키는 명령과 같아야 한다.
 
-        어느 종류든 제 샤드의 검문 하나다. `name` 은 그 세션이 쓰는 샤드의 이름(배치 id 또는 `NONNODE`)이고
+        어느 종류든 제 샤드의 검문 하나다. 경로는 셸 따옴표로 감싼다 — 빈칸이 있어도 한 줄이 세 조각으로 읽힌다. `name` 은 그 세션이 쓰는 샤드의 이름(배치 id 또는 `NONNODE`)이고
         알림에만 쓴다 — 규칙은 `command` 만 본다.
         """
         shard = "_pass2/%s.json" % name if kind == "pass2" else name + ".json"
         check: SessionCall = {
-            "command": "%s %s" % (sys.executable,
-                                  os.path.join(root, "src", "codewiki", "python", "runner", "check_shard.py")),
-            "last": os.path.join(repo, "out", "codegraph-raw", "_shards", shard)}
+            "command": "%s %s" % (shlex.quote(sys.executable),
+                                  shlex.quote(os.path.join(root, "src", "codewiki", "python", "runner",
+                                                           "check_shard.py"))),
+            "last": shlex.quote(os.path.join(repo, "out", "codegraph-raw", "_shards", shard))}
         return [check]
 
     @staticmethod
