@@ -107,6 +107,7 @@
 
   {{repo}}/out/codegraph-raw/_shards/{{bid}}.json      꼴은 {"키": 레코드}
 
+이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
 **terms-reading.json 을 열지도 고치지도 않는다.** 지금 다른 배치들이 동시에 돌고 있다.
 키가 다른 파일과 겹칠 것 같아도 **네가 고치지 않는다** — 층이 끝날 때 일괄 해소된다. 보고에 적기만 한다.
 **커밋하지 않는다.**
@@ -178,6 +179,7 @@
 
   {{repo}}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {"키": 레코드}
 
+이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
 **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
 
 끝내기 전에 기계 검문을 돌려 `통과` 가 나올 때까지 고친다:
@@ -215,5 +217,6 @@
 
   {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json      꼴은 {"키": 레코드}
 
+이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
 정확한 꼴은 {{repo}}/out/codegraph-raw/record-schema.json 이다. 끝내기 전에 검문한다:
   {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/_pass2/{{bid}}.json

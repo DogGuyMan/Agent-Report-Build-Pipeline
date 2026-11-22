@@ -2721,3 +2721,12 @@ def test_파일_전략의_배치_프롬프트도_캐시의_개요를_싣는다(t
     SF.AnnotateFilesStage().perform(c)
     assert len(prompts) == 3
     assert any("     a.py (1줄)\n       1  function  a.f   <- 네 심볼\n" in p for p in prompts)
+
+
+def test_프롬프트_셋은_샤드를_Write_도구로_쓰라고_한다():
+    S = SV.AnnotateSymbolsStage
+    b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+    prompts = [S.survey_batch_prompt("/repo", "/root", b, []), S.nonnode_prompt("/repo", "/root"),
+               S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
+    for p in prompts:
+        assert p.count('꼴은 {"키": 레코드}\n\n이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.\n') == 1
