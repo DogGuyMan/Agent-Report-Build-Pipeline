@@ -62,7 +62,9 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
         running: dict[Future[AgentRun], str] = {}
 
         def submit(label: str, prompt: str) -> None:
-            fut = pool.submit(P.run_agent_with, self.model(ctx), ctx.repo, ctx.root, prompt, ctx.timeout, label)
+            # 이 전략에는 라운드가 없다. 전수조사 세션의 인자는 라운드와 상관없이 같다.
+            fut = pool.submit(P.run_agent_with, self.model(ctx), ctx.repo, ctx.root, prompt, ctx.timeout, label,
+                              self.session_args(ctx, 0))
             running[fut] = label
 
         def write_merged() -> None:

@@ -546,3 +546,23 @@ def test_dry_run_은_자식_프로세스를_하나도_띄우지_않는다(tmp_pa
     out = capsys.readouterr().out
     assert "Mode 1 자료 확인 안 함 — --dry-run" in out
     assert "Mode 1 봉인 —" not in out
+
+
+# ── 세션 인자 — Mode 2 의 세션은 묻지 않고 전부 허용하는 인자 그대로 뜬다 ──────
+
+def test_AgentStage_의_세션_인자는_기본값_그대로다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    ctx = _ctx(tmp_path)
+    assert tuple(R.AgentStage().session_args(ctx, 0)) == M.OPEN_SESSION
+    seen: list[tuple[str, ...]] = []
+
+    def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8, timeout: float | None = None,
+              session_args: Sequence[str] = ("넘어오지 않았다",)) -> list[P.JobResult]:
+        seen.append(tuple(session_args))
+        return [(label, 1.0, 0, {}) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", layer)
+    R.AgentStage().perform(ctx)
+    assert seen == [M.OPEN_SESSION]
+    assert M.claude_argv("opus", str(tmp_path), [str(tmp_path)], seen[0]) == [
+        "claude", "-p", "--output-format", "json", "--model", "opus",
+        "--permission-mode", "bypassPermissions", "--add-dir", str(tmp_path), "--add-dir", str(tmp_path)]

@@ -11,6 +11,7 @@ from typing import ClassVar, Literal, cast
 
 import msgspec
 
+from core import measure as M
 from core import pipeline as P
 import file_cache
 import jsonio
@@ -666,6 +667,10 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
 
     def rounds(self, ctx: Mode1Context) -> int:
         return len(ctx.plan["layers"]) if ctx.plan else 0
+
+    def session_args(self, ctx: Mode1Context, rnd: int) -> Sequence[str]:
+        """전수조사 세션은 층의 종류와 상관없이 격리 인자를 받는다 — 일에 필요한 것은 프롬프트가 전부 싣는다."""
+        return M.OPEN_SESSION + M.ISOLATED
 
     def jobs(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]:
         assert ctx.plan is not None

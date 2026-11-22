@@ -5,6 +5,7 @@ import sys
 import time
 from collections.abc import Sequence
 
+from core import measure as M
 from core import pipeline as P
 from mode1 import context as X
 from mode1.context import Mode1Context
@@ -29,6 +30,10 @@ class LangHintStage(Measured, P.LlmStage[Mode1Context]):
 
     def repo(self, ctx: Mode1Context) -> str:
         return ctx.repo
+
+    def session_args(self, ctx: Mode1Context, rnd: int) -> Sequence[str]:
+        """루트 문서는 프롬프트에 실려 간다 — 세션은 설정 · 스킬 · 연결 서버 없이 뜬다."""
+        return M.OPEN_SESSION + M.ISOLATED
 
     @staticmethod
     def hint_prompt(docs: str) -> str:

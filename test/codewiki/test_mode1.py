@@ -2749,3 +2749,65 @@ def test_배치_프롬프트는_자기_점검을_쓰기_전에_두고_쓴_뒤에
              "- 샤드 파일 하나만 만들었는가", "- **기계 검문을 통과했는가**"]
     at = [p.index(h) for h in order]
     assert at == sorted(at) and all(p.count(h) == 1 for h in order)
+
+
+# ── 세션 인자 — 전수조사와 언어 판별 세션만 격리해서 띄운다 ─────────────────────
+
+def test_전수조사와_언어_판별_세션은_격리_인자를_받고_위키_세션은_받지_않는다(tmp_path: Path):
+    c = _ctx(tmp_path); c.plan = _one_batch_plan()
+    c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
+    isolated = M.OPEN_SESSION + M.ISOLATED
+    survey = SV.AnnotateSymbolsStage()
+    assert (tuple(survey.session_args(c, 0)), tuple(survey.session_args(c, 1))) == (isolated, isolated)
+    assert tuple(LG.LangHintStage().session_args(c, 0)) == isolated
+    assert tuple(W.OutlineWikiStage().session_args(c, 0)) == M.OPEN_SESSION
+    assert tuple(W.WriteWikiStage().session_args(c, 0)) == M.OPEN_SESSION
+
+
+def test_전수조사_단계는_층을_띄울_때_격리_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = _ctx(tmp_path); c.cold = True
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    (raw / "batches.json").write_text(json.dumps(_one_batch_plan("L0-B00")))
+    _gated(c)
+    seen: list[tuple[str, ...]] = []
+
+    def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+              concurrency: int = 8, timeout: float | None = None, session_args: Sequence[str] = ()) -> list[P.JobResult]:
+        seen.append(tuple(session_args))
+        for label, _ in jobs:
+            (raw / "_shards" / (label + ".json")).write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+        return [(label, 1.0, 0, {}) for label, _ in jobs]
+    monkeypatch.setattr(P, "run_layer", layer)
+    assert SV.AnnotateSymbolsStage().perform(c).kind == P.OK
+    assert seen == [M.OPEN_SESSION + M.ISOLATED]
+
+
+def test_파일_전략도_세션마다_격리_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import mode1.survey_files as SF
+    c = _ctx(tmp_path); c.cold = True; c.strategy = "file"; c.concurrency = 1
+    raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+    cg = _three_file_graph()
+    (raw / "codegraph.json").write_text(json.dumps(cg))
+    plan = survey_plan.plan_by_file(cast(survey_plan.CodeGraph, cg))
+    (raw / "batches.json").write_text(json.dumps(plan))
+    _gated(c)
+    ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+    shards: dict[str, dict[str, object]] = {
+        ids["b.py"]: {"b.g": _rec("b.py:1")},
+        ids["a.py"]: {"a.f": _rec("a.py:1", shallow=["b.g"])},
+        ids["c.py"]: {"c.k": _rec("c.py:1")},
+        ids["a.py"] + "/p2": {"a.f": _rec("a.py:1", does="다듬음")},
+        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}},
+    }
+    seen: dict[str, tuple[str, ...]] = {}
+    inner = _fake_agent(shards, [])
+
+    def spy(model: str, repo: str, root: str, prompt: str, timeout: float | None,
+            label: str = "", session_args: Sequence[str] = ()) -> tuple[float, int, M.ClaudeResult | None]:
+        seen[label] = tuple(session_args)
+        return inner(model, repo, root, prompt, timeout, label)
+    monkeypatch.setattr(SF.P, "run_agent_with", spy)
+    out = SF.AnnotateFilesStage().perform(c)
+    assert out.kind == P.OK, out.why
+    assert set(seen) == {ids["a.py"], ids["b.py"], ids["c.py"], ids["a.py"] + "/p2", "NONNODE"}
+    assert set(seen.values()) == {M.OPEN_SESSION + M.ISOLATED}
