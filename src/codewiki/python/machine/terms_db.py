@@ -32,8 +32,9 @@ from reading_types import Terms
 # 지도의 노드가 되지 않는 용어 종류. 사람이 부르는 이름(파일·산출물·JSON 키·개념)은 terms-db 에만 산다.
 NON_NODE_KINDS = frozenset({"file", "module", "artifact", "key", "concept"})
 # reading 레코드가 쓸 수 있는 kind 전부. codegraph 에서 온 kind 는 검사하지 않는다(정적 도구의 어휘).
+# 샤드 검문의 어휘(`mode1.context.RecordKind`)와 같다 — `test_샤드_검문의_종류_어휘와_용어_검사의_종류_어휘가_같다`.
 KINDS = frozenset({"class", "struct", "enum", "interface", "delegate", "record", "external",
-                   "function"}) | NON_NODE_KINDS
+                   "function", "method"}) | NON_NODE_KINDS
 # LLM 이 쓸 수 있는 간선 종류.
 # ⚠ normalize.py 의 어휘는 이보다 넓다 — instantiation · friendship 도 낸다.
 #   정적 도구가 낸 간선은 check_terms 가 어휘를 판정하지 않으므로 여기 넣지 않는다.

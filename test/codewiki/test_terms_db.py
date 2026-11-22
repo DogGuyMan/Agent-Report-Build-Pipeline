@@ -305,3 +305,19 @@ def test_check_does_not_judge_edge_kinds_that_came_from_codegraph(tmp_path: Path
                                "label": None, "where": ""}]}}))
     assert any(lvl == "실패" and "instantiation" in why
                for lvl, _term, why in T.check_terms(merged, repo)), "LLM 이 쓴 간선은 여전히 판정한다"
+
+
+def test_reading_출처의_method_레코드는_종류_검사를_통과한다(tmp_path: Path):
+    """샤드 검문이 받는 종류를 용어 검사가 실패로 세면, 통과한 샤드가 뒤 단계에서 흐름을 멈춘다."""
+    repo = _repo(tmp_path)
+    db = cast(T.TermsDb, {"x.build_terms": {"source": "reading", "kind": "method", "module": "codegraph",
+                                           "where": "codegraph/x.py:3", "means": "용어를 짓는다",
+                                           "neighbors": [], "uses": []}})
+    assert T.check_terms(db, repo) == []
+
+
+def test_샤드_검문의_종류_어휘와_용어_검사의_종류_어휘가_같다():
+    from typing import get_args
+
+    from mode1 import context as X
+    assert T.KINDS == frozenset(get_args(X.RecordKind))
