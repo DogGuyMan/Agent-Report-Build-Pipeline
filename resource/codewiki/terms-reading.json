@@ -9183,7 +9183,7 @@
  },
  "codewiki.python.runner.mode1.lang.LangHintStage.model": {
   "confidence": "HIGH",
-  "does": "모듈 상수 LANG_SELECT_MODEL(\"claude-haiku-4-5-20251001\")을 그대로 반환한다.",
+  "does": "모듈 상수 LANG_SELECT_MODEL(\"claude-haiku-5-5\")을 그대로 반환한다.",
   "kind": "method",
   "means": "이 단계가 LLM 을 부를 때 어떤 모델을 쓸지 알려주는 함수다.",
   "module": "codewiki.python.runner.mode1.lang",
@@ -22699,7 +22699,7 @@
  },
  "src/codewiki/python/runner/mode1/lang.py": {
   "confidence": "HIGH",
-  "does": "이 파일 안 심볼 11개(class 2개 · method 9개)의 조사 레코드가 이미 있다. `LangHintStage`(Measured 와 P.LlmStage 를 상속하며 model·repo·hint_prompt·docs·prompt·jobs·harvest 를 정의해 LLM 에게 언어를 물어보고, 제안을 받으면 ctx.proposed 에 담는다. name 은 \"lang-hint\" 이고 emits 는 OK 또는 SKIP 뿐이라 실패해도 파이프라인을 막지 않는다.) `model`(모듈 상수 LANG_SELECT_MODEL(\"claude-haiku-4-5-20251001\")을 그대로 반환한다.) `repo`(전달받은 문맥 객체 ctx 의 repo 속성 값을 그대로 반환한다.)",
+  "does": "이 파일 안 심볼 11개(class 2개 · method 9개)의 조사 레코드가 이미 있다. `LangHintStage`(Measured 와 P.LlmStage 를 상속하며 model·repo·hint_prompt·docs·prompt·jobs·harvest 를 정의해 LLM 에게 언어를 물어보고, 제안을 받으면 ctx.proposed 에 담는다. name 은 \"lang-hint\" 이고 emits 는 OK 또는 SKIP 뿐이라 실패해도 파이프라인을 막지 않는다.) `model`(모듈 상수 LANG_SELECT_MODEL(\"claude-haiku-5-5\")을 그대로 반환한다.) `repo`(전달받은 문맥 객체 ctx 의 repo 속성 값을 그대로 반환한다.)",
   "kind": "file",
   "means": "`lang-hint` · `lang-decide`. 언어 하나를 제안받고 결정론으로 채택한다.",
   "module": "src/codewiki/python/runner/mode1",
