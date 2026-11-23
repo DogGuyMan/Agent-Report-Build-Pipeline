@@ -1,0 +1,2118 @@
+diff --git a/.agents/skills/codebase-terms-survey/SKILL.md b/.agents/skills/codebase-terms-survey/SKILL.md
+index 5e942da..89b0760 100644
+--- a/.agents/skills/codebase-terms-survey/SKILL.md
++++ b/.agents/skills/codebase-terms-survey/SKILL.md
+@@ -47,7 +47,7 @@ description: Use when a repository needs a machine-checkable term dictionary (te
+ | 키 | 파일은 파일명(`normalize.py`), 함수·클래스는 맨 이름, **다른 파일과 겹치면 겹친 전원** `<파일줄기>.<이름>`, 파일명이 겹치면 경로 전체 | Mode 1.5 가 이 키를 Plan 본문에서 낱말 경계로 찾는다 — Plan 의 표기와 글자까지 같아야 한다 |
+ | `kind` | `file module function class struct enum interface delegate record external artifact key concept` | `file module artifact key concept` 는 지도의 노드가 되지 않는다 |
+ | `module` | **디렉토리** (`machine`, `src/term/python/runner/term`) | |
+-| `where` | `경로:줄`. 파일은 `:1`, 함수·클래스는 선언 줄, 산출물은 그 파일을 **쓰는** 줄, 키는 그 키를 **채우는** 줄, 개념은 그 낱말이 있는 줄 | `module` `external` 빼고 **필수.** 기계가 L1(파일) L2(줄) L3(근처에 이름) 로 검사 |
++| `where` | `경로:줄`. 파일은 `:1`, 함수·클래스는 선언 줄, 산출물은 그 파일을 **쓰는** 줄, 키는 그 키를 **채우는** 줄, 개념은 그 낱말이 있는 줄 | `module` `external` 빼고 **필수.** 기계가 L1(파일) L2(줄) L3(근처에 이름) 로 검사. `file` 의 L3 은 줄의 글자가 아니라 `where` 의 경로가 키로 끝나는가다 |
+ | `means` | 무엇인가 — 한 문장 | **객체지향을 갓 배운 대학 1학년 눈높이.** 다른 어려운 용어로 설명하지 않는다 |
+ | `does` | 무엇을 하는가 — 한두 문장. 선택 | 누가 언제 불러 무엇이 되는지까지 쓰면 좋다(아래 렌즈) |
+ | `uses[]` | 부르거나 · import 하거나 · 쓰는 대상. `kind` ∈ `dependency inheritance aggregation composition association realization`, `label` 에 이유(`calls` `imports` `writes`), `where` 는 그 자리 | `to` 는 사전에 있는 키여야 한다 |
+@@ -120,8 +120,9 @@ description: Use when a repository needs a machine-checkable term dictionary (te
+      배치 프롬프트에 싣는다. 세션은 캐시를 부르지도 쓰지도 않는다. 다만 **자기 심볼은 개요로
+      때우지 않는다** — 개요만 보고 쓰면 `confidence` 가 HIGH 일 근거가 없다.
+    - 레코드마다 `confidence` 를 반드시 적는다. 위 계약과 규율대로.
+-7. **비노드 용어는 맨 마지막 층** — file · module · artifact · key · concept.
+-   심볼이 전부 읽힌 뒤라야 파일 레코드가 그 안 심볼들의 완성 레코드를 재료로 쓸 수 있다.
++7. **비노드 용어는 맨 마지막의 두 층** — 먼저 file, 그 뒤 module · artifact · key · concept(종류마다 한 세션).
++   심볼이 전부 읽힌 뒤라야 파일 레코드가 그 안 심볼들의 완성 레코드를 재료로 쓸 수 있고, 파일 레코드가 끝난 뒤라야
++   모듈 레코드가 그것을 재료로 쓴다. `file` · `module` 의 키 · 소속 · 위치는 기계가 정한다 — 세션은 뜻과 동작만 쓴다.
+ 8. **(선택) 모듈당 구조 렌즈 1회** — `uses` 를 보강한다. 모듈 하나를 골라 **진입점에서 호출 사슬을 끝까지** 따라가며(A→B→C) 빠진 `uses` 를 채운다. 5렌즈 전부는 하지 않는다(산문이 필요한 게 아니다). 사슬을 따라가다 **읽지 않은 파일**이 나오면 아래 10 의 목록에 적는다.
+ 9. **검사** — 실패 0 이 될 때까지 `where` 를 고친다. 근거 없음은 사유와 함께 남긴다.
+    ```bash
+diff --git a/resource/CLAUDE.md b/resource/CLAUDE.md
+index 825f4d0..1c4916a 100644
+--- a/resource/CLAUDE.md
++++ b/resource/CLAUDE.md
+@@ -6,7 +6,7 @@
+ |---|---|---|
+ | `codewiki/prompts/<단계>.md` · `codewiki/faults.toml` | Mode 1 LLM 단계의 프롬프트(파일 이름 = 단계 이름, `<!-- section: 이름 -->` 절) · 결함 표. `verify-graph.md` · `collect-graph.md` 는 LLM 을 부르지 않는 `verify-graph` · `collect-graph` 가 결함을 이어받을 사람 · 에이전트에게 남기는 핸드오프 템플릿이다 — 앞의 것은 검사 결함을, 뒤의 것은 죽은 수집 단계와 stderr 끝줄을 싣는다 | `src/codewiki/python/runner/mode1/context.py` 의 `PROMPT_DIR` · `FAULTS_PATH` |
+ | `codewiki/templates/` | VitePress 설정 · 모듈 · 클래스 DOT 의 머리와 범례 | `src/codewiki/python/runner/wiki/build.py` · `src/codewiki/python/viz/render_*.py` 의 `TEMPLATES` |
+-| `codewiki/config.toml` | Mode 1 의 Model id 와 비용 어림 | `context.py` 의 `CONFIG_PATH` |
++| `codewiki/config.toml` | Mode 1 의 Model id · 비노드 `file` 세션의 심볼 수 상한(`[survey]`) · 비용 어림 | `context.py` 의 `CONFIG_PATH` |
+ | `codewiki/samples/` | 수집기 출력의 골든 꼴(C++ · C# Unity)과 `OBSERVATION-template.md` | `codebase-terms-survey` 스킬 · 골든 시험 |
+ | `codewiki/terms-reading.json` | 이 저장소 자신의 전수조사 레코드(자기호스팅) | `context.py` 의 `reading_path()` · `terms_db.py --reading` |
+ | `term/prompts/ask.md` | Mode 1.5 가 사람에게 묻는 세션의 글 | `src/term/python/runner/run_mode1_5.py` |
+@@ -16,6 +16,6 @@
+ 
+ **프롬프트 글이 저장소 안 경로를 실행시키면** — 예: `annotate-symbols.md` 의 `{{root}}/src/codewiki/python/runner/check_shard.py` — 그 파일을 옮길 때 여기도 함께 고친다. 코드 쪽 경로 치환 도구는 이 폴더를 보지 않는다.
+ 
+-**전수조사의 배치 · 2패스 세션은 허용된 명령만 돈다.** 그 목록은 `src/codewiki/python/runner/mode1/survey.py` 의 `AnnotateSymbolsStage.session_calls` 하나이고, 허용 규칙과 프롬프트의 알림 절(`annotate-symbols.md` 의 `allowed`)이 둘 다 거기서 나온다. `annotate-symbols.md` 가 세션에 시키는 명령을 더하거나 바꾸면 같은 변경에서 그 목록도 고친다 — `test/codewiki/test_mode1.py` 의 `test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이고_프롬프트가_시키는_명령과_같다` 와 `test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다` 가 어긋남을 잡고, `test_허용_규칙_아래의_프롬프트에는_해석기로_시작하지_않는_셸_명령_줄이_없다` 가 해석기로 시작하지 않는 `ls` · `git` 같은 셸 명령 줄이 절차에 끼어드는 것을 잡는다. 비노드 세션은 허용 규칙 아래에 있지 않아 `nonnode` 절에는 알림 자리가 없다. 어느 종류가 규칙을 받는지는 같은 파일의 `AnnotateSymbolsStage.kind_args` 가 정하고, 규칙을 받는 종류의 절에만 알림을 싣는다(`test_허용_규칙과_알림은_같은_종류에_함께_실린다`).
++**전수조사 세션은 어느 종류든(배치 · 비노드 · 2패스) 허용된 명령만 돈다.** 그 목록은 `src/codewiki/python/runner/mode1/survey.py` 의 `AnnotateSymbolsStage.session_calls` 하나이고, 허용 규칙과 프롬프트의 알림 절(`annotate-symbols.md` 의 `allowed`)이 둘 다 거기서 나온다. `annotate-symbols.md` 가 세션에 시키는 명령을 더하거나 바꾸면 같은 변경에서 그 목록도 고친다 — `test/codewiki/test_mode1.py` 의 `test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이고_프롬프트가_시키는_명령과_같다` 와 `test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다` 가 어긋남을 잡고, `test_허용_규칙_아래의_프롬프트에는_해석기로_시작하지_않는_셸_명령_줄이_없다` 가 해석기로 시작하지 않는 `ls` · `git` 같은 셸 명령 줄이 절차에 끼어드는 것을 잡는다. 둘째 비노드 층의 세션은 내장 도구 `Grep` 을 더 받고, 알림이 찾는 일을 그 도구로 하라고 적는다(`allowed` 절의 `search`). 종류마다의 인자는 같은 파일의 `AnnotateSymbolsStage.kind_args` 가 정하고, 규칙을 받는 종류의 절에만 알림을 싣는다(`test_허용_규칙과_알림은_같은_종류에_함께_실린다`).
+ 
+ 두 mode 가 같은 리소스를 읽게 되면 `resource/common/` 을 더한다(0014 의 되살릴 조건).
+diff --git a/resource/codewiki/config.toml b/resource/codewiki/config.toml
+index b99aaec..391d61a 100644
+--- a/resource/codewiki/config.toml
++++ b/resource/codewiki/config.toml
+@@ -3,6 +3,10 @@
+ sessions = "claude-sonnet-5-5"           # annotate-symbols · outline-wiki · write-wiki 의 세션. --model 의 기본값
+ lang_hint = "claude-haiku-5-5"  # lang-hint. 낱말 하나를 내는 것이 전부라 가장 싼 것
+ 
++# 전수조사의 비노드 층. file 세션 하나가 맡는 파일들의 심볼 수 상한이다 — 파일은 쪼개지 않으므로 큰 파일 하나는 넘을 수 있다.
++[survey]
++file_session_symbols = 250
++
+ # 진입 알림의 어림 — 배치 수 × 배치당 비용(USD). qa/evals/runs 의 실측 범위. 찍기만 하고 묻지 않는다.
+ [estimate]
+ usd_per_batch_min = 0.4
+diff --git a/resource/codewiki/faults.toml b/resource/codewiki/faults.toml
+index b686254..02b267f 100644
+--- a/resource/codewiki/faults.toml
++++ b/resource/codewiki/faults.toml
+@@ -25,4 +25,5 @@ fix = 'where = `경로:줄` 을 넣는다. module 과 external 만 생략할 수
+ [kind.coverage]
+ detail-not-in-shard = '계획에 있는데 샤드에 없다'
+ detail-not-in-plan = '샤드에 있는데 계획에 없다'
+-fix = '네 배치의 심볼 목록과 샤드의 키를 하나씩 대조한다. 빠진 것은 읽어 넣고, 목록 밖의 것은 뺀다.'
++detail-taken = '기계 목록의 키다 — file · module 세션이 쓴다'
++fix = '네가 맡은 목록과 샤드의 키를 하나씩 대조한다 — 배치는 심볼 목록, file · module 세션은 키 목록이다. 빠진 것은 채워 넣고, 목록에 없는 것과 다른 세션이 맡은 키는 뺀다.'
+diff --git a/resource/codewiki/prompts/annotate-symbols.md b/resource/codewiki/prompts/annotate-symbols.md
+index 57ce0e9..59cbefc 100644
+--- a/resource/codewiki/prompts/annotate-symbols.md
++++ b/resource/codewiki/prompts/annotate-symbols.md
+@@ -132,9 +132,11 @@
+ 보고: 레코드 수 · confidence 분포 · 통독한 파일과 개요로 범위만 읽은 파일 · 키 충돌 후보 · 읽지 못한 것과 이유.
+ 
+ <!-- section: nonnode -->
+-너는 코드베이스 전수조사의 **마지막 층** 담당이다. 대상 저장소 {{repo}}. 도구 저장소 {{root}}.
++너는 코드베이스 전수조사의 **마지막 층** 담당이다. 세션 {{sid}}. 대상 저장소 {{repo}}. 도구 저장소 {{root}}.
+ 사람에게 묻지 않는다 — 헤드리스 세션이다. 막히면 무엇이 없어 막혔는지 적고 끝낸다.
+ 
++{{allowed}}
++
+ {% if faults %}
+ ## 지난 시도가 되돌려졌다 — 같은 실수를 하지 마라
+ 
+@@ -148,27 +150,86 @@
+ - 읽은 내용을 다시 쓰되, **끝내기 전에 검문 명령을 반드시 돌려 `통과` 를 본다.**
+ 
+ {% endif %}
++{% if kind == "file" %}
+ ## 심볼은 이미 전부 끝났다
+ 
+-  {{reading}}   앞선 층들이 합쳐 놓은 심볼 레코드
++아래 재료는 앞선 층들이 합쳐 놓은 심볼 레코드에서 기계가 뽑은 것이다.
++**소스도 {{reading}} 도 열지 않는다** — 쓸 것은 여기 다 있다.
++
++## 네가 맡은 것 — `file` 레코드 {{n}}개
++
++소스 파일 하나가 레코드 하나다. **키 · kind · module · where 는 기계가 정했다** — 아래 적힌 그대로 옮긴다.
++병합할 때 기계가 kind · module · where 를 자기 값으로 다시 덮는다. 네가 쓰는 것은 means · does · confidence 다.
++목록에 없는 키를 더하지 않고, 있는 키를 빼지 않는다.
++
++means · does 는 **그 파일 안 심볼들의 완성된 뜻을 재료로** 쓴다.
++
++{% for f in rows %}
++- 키 `{{ f.key }}` · kind `file` · module `{{ f.module }}` · where `{{ f.where }}`
++{% for s in f.symbols %}
++    - {{ s.name }} — {{ s.means or "(뜻 없음)" }}
++{% endfor %}
++{% else %}
++  (없음)
++{% endfor %}
++{% else %}
++## 심볼과 파일은 이미 전부 끝났다
++
++  {{reading}}   앞선 층들이 합쳐 놓은 심볼 레코드와 파일 레코드
++
++이 파일을 **읽기만** 한다. 고치지 않는다. 통째로 열지 않는다 — 필요한 이름을 Grep 으로 찾아 그 레코드만 본다.
++파일마다의 요약은 아래와 같다(앞 층이 쓴 `file` 레코드의 means). 맨 앞은 그 레코드의 키다:
++
++{% for f in summaries %}
++  - `{{ f.key }}` {{ f.path }} — {{ f.means or "(뜻 없음)" }}
++{% else %}
++  (없음)
++{% endfor %}
++
++{% if kind == "module" %}
++## 네가 맡은 것 — `module` 레코드 {{n}}개
+ 
+-이 파일을 **읽기만** 한다. 고치지 않는다.
++폴더 하나 또는 코드 지도의 모듈 하나가 레코드 하나다. **키 · kind · module 은 기계가 정했다** — 아래 적힌 그대로 옮긴다.
++`module` 은 위치가 없다. where 는 빈 글 `""` 로 둔다. 네가 쓰는 것은 means · does · confidence 다.
++목록에 없는 키를 더하지 않고, 있는 키를 빼지 않는다.
+ 
+-## 네가 맡은 것 — 코드 지도의 노드가 아닌 용어 다섯 종류
++means · does 는 **그 모듈에 바로 든 파일의 요약과 아래 모듈을 재료로** 쓴다.
++
++{% for m in modules %}
++- 키 `{{ m.key }}` · kind `module` · module `{{ m.key }}`
++    바로 든 파일: {{ m.files|join(", ") or "없음" }}
++    아래 모듈: {{ m.children|join(", ") or "없음" }}
++{% else %}
++  (없음)
++{% endfor %}
++{% else %}
++## 네가 맡은 것 — 코드 지도의 노드가 아닌 용어 가운데 `{{kind}}` 한 종류
+ 
+ | kind | 무엇 | where 는 어디 |
+ |---|---|---|
+-| `file` | 소스 파일 하나 | `경로:1` |
+-| `module` | 디렉토리 하나 | 없어도 된다 |
+-| `artifact` | 이 저장소가 **만들어 내는** 파일 | 그 파일을 **쓰는** 줄 |
++{% if kind == "artifact" %}
++| `artifact` | 이 저장소가 **만들어 내는** 파일 | 그 이름이 글자로 적힌 줄 — 파일을 **쓰는** 줄에 이름이 있으면 그 줄, 없으면 그 경로를 **정하는** 줄 |
++{% elif kind == "key" %}
+ | `key` | 설정·JSON 의 이름난 칸 | 그 키를 **채우는** 줄 |
++{% else %}
+ | `concept` | 코드에 글자로 있는 낱말 | 그 낱말이 있는 줄 |
++{% endif %}
+ 
+-**`file` `module` `artifact` `key` `concept` 는 이름이 그 줄에 글자 그대로 있어야 한다** —
+-기계가 L3(근처에 그 이름) 으로 검사한다.
+-
+-`file` 레코드는 **그 파일 안 심볼들의 완성된 means/does 를 재료로** 쓴다. 다시 통독하지 않는다.
++**`{{kind}}` 는 이름이 그 줄에 글자 그대로 있어야 한다** — 기계가 L3(근처에 그 이름) 으로 검사한다.
++줄 번호는 Grep 이 낸 번호를 그대로 옮긴다. 어림하지 않는다.
++{% if kind == "concept" %}
+ `concept` 은 **코드에 글자로 없는 것을 만들지 않는다** — 계획서에만 있는 개념은 여기 싣지 않는다.
++{% endif %}
++다른 종류는 다른 세션이 맡는다. 여기 쓰지 않는다.
++위 파일 요약의 키와 아래 이름은 `file` · `module` 레코드의 키다. **이 이름으로는 레코드를 쓰지 않는다**:
++
++{% for m in modules %}
++  - {{ m.key }}
++{% else %}
++  (없음)
++{% endfor %}
++{% endif %}
++{% endif %}
+ 
+ ## 금지 — 이 말이 떠오르면 멈추고 읽는다
+ 
+@@ -184,14 +245,17 @@
+ 칸을 빼거나 어휘 밖의 값을 쓰면 기계가 이 샤드를 통째로 되돌린다.
+ 쓰는 곳은 **여기 하나뿐**이다:
+ 
+-  {{repo}}/out/codegraph-raw/_shards/NONNODE.json      꼴은 {"키": 레코드}
++  {{repo}}/out/codegraph-raw/_shards/{{sid}}.json      꼴은 {"키": 레코드}
+ 
++이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.
+ **terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**
+ 
+ 끝내기 전에 기계 검문을 돌려 `통과` 가 나올 때까지 고친다:
+-  {{python}} {{root}}/src/codewiki/python/runner/check_shard.py {{repo}}/out/codegraph-raw/_shards/NONNODE.json
++{% for c in calls %}
++    {{ c.command }} {{ c.last }}
++{% endfor %}
+ 
+-보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
++보고: 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.
+ 
+ <!-- section: pass2 -->
+ 너는 코드베이스 전수조사의 **2패스** 담당이다. 대상 저장소 {{repo}}. 도구 저장소 {{root}}. 파일 {{file}}.
+@@ -234,9 +298,14 @@
+ <!-- section: allowed -->
+ ## 이 세션은 허용된 호출만 돈다
+ 
+-허용되지 않은 호출은 거절된다. 거절 하나는 그 호출이 막혔다는 뜻이지 Bash 전체가 막혔다는 뜻이 아니다.
++허용되지 않은 호출은 거절된다. 거절 하나는 그 호출이 막혔다는 뜻이지 {{ "그 도구" if search else "Bash" }} 전체가 막혔다는 뜻이 아니다.
++{% if search %}
++- 파일은 Read 로 읽고, 글자를 찾을 때는 Grep 도구를 쓰고, 샤드는 Write 로 쓴다.
++- Bash 는 아래 명령만 돈다. **적힌 글자 그대로, 한 번에 하나씩** 부른다 — 변수(`P=...`) · `for` · `;` · `&&` · `|` 로 잇지 않는다. 찾는 일도 Bash 로 하지 않는다:
++{% else %}
+ - 파일은 Read 로 읽고, 샤드는 Write 로 쓴다.
+ - Bash 는 아래 명령만 돈다. **적힌 글자 그대로, 한 번에 하나씩** 부른다 — 변수(`P=...`) · `for` · `;` · `&&` · `|` 로 잇지 않는다:
++{% endif %}
+ {% for c in calls %}
+     {{ c.command }} {{ c.last }}
+ {% endfor %}
+diff --git a/src/codewiki/CLAUDE.md b/src/codewiki/CLAUDE.md
+index 849de69..782ad9f 100644
+--- a/src/codewiki/CLAUDE.md
++++ b/src/codewiki/CLAUDE.md
+@@ -130,8 +130,10 @@ Mode 1 냉시동은 27분 08초 중 에이전트가 26분 53초(99.1%) · 17,925
+ - 원본은 대상 저장소의 `<저장소>/docs/codegraph/terms-reading.json`, 이 저장소 자신만 `../../resource/codewiki/terms-reading.json`. 꼴은 `{키: 레코드}`
+ - 레코드 계약 `{kind, module, where, means, does, uses[], confidence, source}`
+ - **`where` 는 실제 `파일:줄`** — `terms_db.py` 가 L1(파일) L2(줄) L3(근처에 그 이름) 로 검사한다
+-- `kind` 가 `file` `artifact` `key` `concept` `module` 이면 **이름이 그 줄에 글자 그대로** 있어야 한다
++- `kind` 가 `artifact` `key` `concept` `module` 이면 **이름이 그 줄에 글자 그대로** 있어야 한다
+   (`terms_db.py` 의 `_stem` — `codegraph.json` 을 `.` 로 쪼개면 안 되기 때문)
++- `kind` 가 `file` 이면 L3 은 줄의 글자가 아니라 **`where` 의 경로가 키로 끝나는가**다 — 키와 같거나 `/` + 키로 끝난다.
++  L1 · L2 는 다른 종류와 같다
+ - 새 함수를 만들면 그 자리에서 레코드를 쓴다. **주석 블록은 박지 않는다**
+ - 코드가 움직여 줄이 밀리면 `where` 는 낡는다. 자동 재계산은 없다 — `terms_db.py` 의 L2 가 잡고, Mode 1 증분(`detect-changes`)이
+   그 파일을 다시 읽거나 손으로 고친다. `uses[].where` 도 같다(L3 경고)
+@@ -178,7 +180,7 @@ LLM 칸은 전수조사(`annotate-symbols`)와 산문(`outline-wiki` · `write-w
+ | — | 층 매기기는 **기계**다(`survey_plan.py`). `schedule-batches` 가 `STAGES` 에서 자기 칸을 갖는 이유 — 한 칸에 묶으면 층 오름차순이 LLM Model의 판단처럼 읽힌다 |
+ | K2 | 층 안은 병렬, 층 사이는 순차 |
+ | K3 · K4 | 배치는 8심볼, 한 층에 동시 8배치 |
+-| K5 | 비노드 용어(file · module · artifact · key · concept)는 맨 마지막 별도 층 |
++| K5 | 비노드 용어는 맨 마지막의 별도 층 둘 — `file` 층(세션은 심볼 수 상한 `[survey] file_session_symbols` 로 나눈다), 그 뒤 `module` · `artifact` · `key` · `concept` 층(종류마다 한 세션). `file` · `module` 의 키 · 소속 · 위치는 기계가 정하고(`survey_plan.nonnode_terms`) 병합이 그 값으로 덮는다 |
+ | K6 | 위키도 같은 층 순서. 페이지의 층 = 인용하는 심볼의 최대 층 |
+ | K7 | 고립 노드는 층0 |
+ | K8 | 성공 판정은 **벽시계만.** 토큰·비용 증가는 허용하되 기록한다 |
+diff --git a/src/codewiki/python/machine/README.md b/src/codewiki/python/machine/README.md
+index 6def383..9f7f5f7 100644
+--- a/src/codewiki/python/machine/README.md
++++ b/src/codewiki/python/machine/README.md
+@@ -351,21 +351,31 @@ git 이 추적하는 소스 파일을 언어별로 세고 파일마다 수집 
+ 
+ | 심볼 | 시그니처 | 하는 일 |
+ |---|---|---|
++| **`GraphModule`** | *class* |  |
+ | **`CodeGraph`** | *class* | `prep` 이 낸 codegraph.json 중 이 파일이 실제로 읽는 부분만. |
+ | **`PackedBatch`** | *class* | `pack` 이 내는 중간 묶음. 아직 배치 id 도 심볼 레코드도 붙지 않았다. |
+ | **`PlanSymbol`** | *class* |  |
+ | **`PlanBatch`** | *class* |  |
+-| **`PlanLayer`** | *class* | 심볼 층과 맨 끝 비노드 층이 한 목록에 섞여 있다. |
++| **`PlanTerm`** | *class* | 기계가 키와 위치를 정한 비노드 용어 한 줄 — `file` 또는 `module`. |
++| **`PlanSession`** | *class* | 비노드 층의 세션 하나. `id` 가 작업 라벨이자 샤드 파일의 이름이다. |
++| **`PlanLayer`** | *class* | 심볼 층과 맨 끝의 비노드 층들이 한 목록에 섞여 있다. |
+ | **`PlanTotals`** | *class* |  |
+ | **`SurveyPlan`** | *class* |  |
+ | `layer_of` | `(first: Collection[str], edges: Iterable[tuple[str, str]]) -> tuple[dict[str, int], dict[str, bool]]` | 의존 대상이 없으면 층0, 아니면 1 + 의존 대상들의 최대 층. |
+ | `pack` | `(members: Iterable[str], file_of: Mapping[str, str \| None], target: int) -> list[PackedBatch]` | 같은 파일의 같은 층 심볼은 **한 배치에** 몰아넣는다 — 층 안 중복 통독을 0으로 만든다. |
+-| `plan` | `(cg: CodeGraph, target: int = 8, only_files: Iterable[str] \| None = None) -> SurveyPlan` | 코드 지도 -> 층 · 배치 계획. |
++| `file_keys` | `(files: Iterable[str]) -> dict[str, str]` | 파일 경로 -> `file` 레코드의 키. 파일 이름이 혼자면 그 이름이고, 겹치면 겹친 전원이 경로다. |
++| `folder_name` | `(file: str, names: Iterable[str]) -> str` | 파일이 든 폴더의 점 이름. 심볼의 점 이름이 경로의 꼬리로 시작할 때만 정해지고, 아니면 빈 글이다. |
++| `nonnode_terms` | `(first: Mapping[str, GraphNode], keep: Collection[str], modules: Iterable[str]) -> list[PlanTerm]` | 기계 목록 — 파일마다 `file` 한 줄, 폴더 이름과 지도의 모듈마다 `module` 한 줄. `file` 줄이 앞이다. |
++| `nonnode_layers` | `(level: int, first: Mapping[str, GraphNode], keep: Collection[str], cg: CodeGraph, file_cap: int \| None = None) -> list[PlanLayer]` | 맨 끝의 비노드 층 둘. 첫 층은 `file` 줄과 `file` 세션들, 둘째 층은 `module` 줄과 나머지 세션들이다. |
++| `session_ids` | `(p: SurveyPlan) -> list[str]` | 계획이 띄우는 세션의 이름 전부 — 층 순서대로 배치 id 들, 비노드 층에서는 `sessions` 의 id 들. |
++| `expected_keys` | `(p: SurveyPlan, sid: str) -> set[str] \| None` | 세션 `sid` 의 샤드가 가져야 할 키. 배치는 심볼 이름, 기계 목록 세션은 `keys`. 키를 세션이 고르거나 계획에 없으면 `None`. |
++| `listed_terms` | `(p: SurveyPlan) -> list[PlanTerm]` | 계획의 기계 목록 전부 — 비노드 층들의 `terms` 를 층 순서대로 이은 것. |
++| `plan` | `(cg: CodeGraph, target: int = 8, only_files: Iterable[str] \| None = None, file_cap: int \| None = None) -> SurveyPlan` | 코드 지도 -> 층 · 배치 계획. 맨 끝은 `nonnode_layers` 의 비노드 층 둘이고 `file_cap` 은 거기로 간다. |
+ | **`FileWeight`** | *class* | 파일 하나의 우선순위 재료와 결과. `out`·`into` 는 다른 파일과 오가는 간선 수. |
+ | `is_public` | `(name: str) -> bool` | 마지막 마디가 `_` 로 시작하지 않으면 공개. 던더(`__init__`)도 비공개로 친다. |
+ | `file_weights` | `(cg: CodeGraph) -> list[FileWeight]` | 파일마다 `(1 − out/out_max) + into/into_max + 추상점수/추상점수_max`. 큰 순, 같으면 이름순. |
+ | `weights_csv` | `(rows: Iterable[FileWeight]) -> str` | `file-priority.csv` 본문. 원값을 함께 적어 수식을 바꿔도 다시 세지 않는다. |
+-| `plan_by_file` | `(cg: CodeGraph) -> SurveyPlan` | 코드 지도 -> 파일 하나가 배치 하나인 계획. 층은 하나(0)이고 배치 순서가 곧 우선순위다. |
++| `plan_by_file` | `(cg: CodeGraph, file_cap: int \| None = None) -> SurveyPlan` | 코드 지도 -> 파일 하나가 배치 하나인 계획. 심볼 층은 하나(0)이고 배치 순서가 곧 우선순위다. 그 뒤는 `nonnode_layers` 다. |
+ | `main` | `(argv: list[str] \| None = None) -> int` |  |
+ 
+ ---
+diff --git a/src/codewiki/python/machine/survey_plan.py b/src/codewiki/python/machine/survey_plan.py
+index ee969f4..f85349d 100644
+--- a/src/codewiki/python/machine/survey_plan.py
++++ b/src/codewiki/python/machine/survey_plan.py
+@@ -39,15 +39,21 @@ GraphNode = TypedDict("GraphNode", {
+     "kind": NotRequired[str],
+     "file": NotRequired[str | None],
+     "line": NotRequired[int | None],
++    "module": NotRequired[str | None],
+     "abstraction": NotRequired[str],     # 클래스 노드만 — "interface" | "abstract"
+ })
+ GraphEdge = TypedDict("GraphEdge", {"from": str, "to": str})
+ 
+ 
++class GraphModule(TypedDict):
++    id: str
++
++
+ class CodeGraph(TypedDict):
+     """`prep` 이 낸 codegraph.json 중 이 파일이 실제로 읽는 부분만."""
+     nodes: list[GraphNode]
+     edges: NotRequired[list[GraphEdge]]
++    modules: NotRequired[list[GraphModule]]
+ 
+ 
+ class PackedBatch(TypedDict):
+@@ -73,10 +79,32 @@ class PlanBatch(TypedDict):
+     weight: NotRequired[float]     # 파일 단위 계획만 — 그 파일의 가중치
+ 
+ 
++class PlanTerm(TypedDict):
++    """기계가 키와 위치를 정한 비노드 용어 한 줄 — `file` 또는 `module`.
++
++    `files` 는 그 용어가 덮는 파일이다. `file` 줄은 자기 하나, `module` 줄은 그 이름에 바로 든 파일들.
++    """
++    key: str
++    kind: str
++    module: str
++    where: str
++    files: list[str]
++
++
++class PlanSession(TypedDict):
++    """비노드 층의 세션 하나. `id` 가 작업 라벨이자 샤드 파일의 이름이다.
++
++    `keys` 는 기계 목록에서 이 세션이 써야 할 키다. 키를 세션이 고르는 종류(`NAMED_KINDS`)는 빈 목록이다.
++    """
++    id: str
++    kind: str
++    keys: list[str]
++
++
+ class PlanLayer(TypedDict):
+-    """심볼 층과 맨 끝 비노드 층이 한 목록에 섞여 있다.
++    """심볼 층과 맨 끝의 비노드 층들이 한 목록에 섞여 있다.
+ 
+-    비노드 층만 `kind` 와 `note` 를 갖고 `file_count` 는 갖지 않는다 — 그래서 셋이 선택 항목이다.
++    비노드 층만 `kind` · `note` · `terms` · `sessions` 를 갖고 `file_count` 는 갖지 않는다 — 그래서 다섯이 선택 항목이다.
+     """
+     level: int
+     symbol_count: int | None
+@@ -84,6 +112,8 @@ class PlanLayer(TypedDict):
+     file_count: NotRequired[int]
+     kind: NotRequired[str]
+     note: NotRequired[str]
++    terms: NotRequired[list[PlanTerm]]
++    sessions: NotRequired[list[PlanSession]]
+ 
+ 
+ class PlanTotals(TypedDict):
+@@ -153,9 +183,135 @@ def pack(members: Iterable[str], file_of: Mapping[str, str | None],
+     return out
+ 
+ 
++# ── 비노드 층 — `file` · `module` 은 지도에서 키와 위치가 나온다. 세션 목록도 계획이 정한다.
++
++# 키와 위치를 기계가 정하는 종류와, 세션이 고르는 종류. 뒤의 것은 종류마다 세션 하나다.
++LISTED_KINDS = ("file", "module")
++NAMED_KINDS = ("artifact", "key", "concept")
++
++
++def file_keys(files: Iterable[str]) -> dict[str, str]:
++    """파일 경로 -> `file` 레코드의 키. 파일 이름이 혼자면 그 이름이고, 겹치면 겹친 전원이 경로다."""
++    paths = sorted(set(files))
++    count = collections.Counter(p.rsplit("/", 1)[-1] for p in paths)
++    return {p: p if count[p.rsplit("/", 1)[-1]] > 1 else p.rsplit("/", 1)[-1] for p in paths}
++
++
++def folder_name(file: str, names: Iterable[str]) -> str:
++    """파일이 든 폴더의 점 이름. 심볼의 점 이름이 경로의 꼬리로 시작할 때만 정해지고, 아니면 빈 글이다.
++
++    `src/core/pipeline.py` 의 심볼이 `core.pipeline.Stage` 면 꼬리 `core.pipeline` 에서 파일 줄기를 뗀 `core` 다.
++    꼬리는 긴 것부터 맞춰 보고, 폴더 마디가 하나도 남지 않는 꼬리는 보지 않는다.
++    """
++    parts = file.split("/")
++    parts[-1] = parts[-1].rsplit(".", 1)[0]
++    have = list(names)
++    for k in range(len(parts) - 1):
++        dotted = ".".join(parts[k:])
++        if any(n == dotted or n.startswith(dotted + ".") for n in have):
++            return ".".join(parts[k:-1])
++    return ""
++
++
++def nonnode_terms(first: Mapping[str, GraphNode], keep: Collection[str],
++                  modules: Iterable[str]) -> list[PlanTerm]:
++    """기계 목록 — 파일마다 `file` 한 줄, 폴더 이름과 지도의 모듈마다 `module` 한 줄. `file` 줄이 앞이다.
++
++    키와 소속은 지도 전체(`first`)에서 정하고 줄은 `keep` 의 파일 것만 낸다. 파일의 소속은 `folder_name` 이고,
++    그것이 비면 그 파일 노드들이 가장 많이 적은 지도 모듈이다. `file` 의 위치는 `<경로>:1`, `module` 은 위치가 없다.
++    `module` 줄은 폴더 이름과, `modules` 에 있으면서 남긴 노드를 가진 지도 모듈이다.
++    키는 하나씩이다 — 심볼 이름과 같은 키의 줄과, 앞선 줄과 같은 키의 줄은 싣지 않는다. 용어 사전이 키로 합치므로
++    그 키의 주인은 심볼(또는 앞선 줄)이다.
++    """
++    names: collections.defaultdict[str, list[str]] = collections.defaultdict(list)
++    mods: collections.defaultdict[str, collections.Counter[str]] = collections.defaultdict(collections.Counter)
++    for n in first.values():
++        f = n.get("file")
++        if not f:
++            continue
++        names[f].append(n.get("name") or "")
++        m = n.get("module")
++        if m:
++            mods[f][m] += 1
++    keys = file_keys(names)
++    folder = {f: folder_name(f, names[f]) for f in names}
++    home = {f: folder[f] or (min(mods[f], key=lambda m: (-mods[f][m], m)) if mods[f] else "") for f in names}
++    kept = sorted({first[i].get("file") or "" for i in keep} - {""})
++    rows: list[PlanTerm] = [{"key": keys[f], "kind": "file", "module": home[f], "where": f + ":1", "files": [f]}
++                            for f in kept]
++    listed = set(modules)
++    wanted = {folder[f] for f in kept if folder[f]} | {m for f in kept for m in mods[f] if m in listed}
++    module_rows: list[PlanTerm] = [
++        {"key": m, "kind": "module", "module": m, "where": "", "files": [f for f in kept if home[f] == m]}
++        for m in sorted(wanted)]
++    taken = {n.get("name") or "" for n in first.values()}
++    out: list[PlanTerm] = []
++    for t in rows + module_rows:
++        if t["key"] not in taken:
++            taken.add(t["key"])
++            out.append(t)
++    return out
++
++
++def nonnode_layers(level: int, first: Mapping[str, GraphNode], keep: Collection[str], cg: CodeGraph,
++                   file_cap: int | None = None) -> list[PlanLayer]:
++    """맨 끝의 비노드 층 둘. 첫 층은 `file` 줄과 `file` 세션들, 둘째 층은 `module` 줄과 나머지 세션들이다.
++
++    `file` 세션은 `pack` 으로 묶는다 — 한 세션이 맡는 파일들의 심볼 수가 `file_cap` 을 넘지 않게 하되 파일은 쪼개지 않는다.
++    `file_cap` 이 없으면 세션 하나다. 둘째 층은 `module` 줄이 있을 때의 `NONNODE-MODULE` 과, `NAMED_KINDS` 마다 하나다.
++    줄이 없는 세션은 싣지 않는다. 둘째 층의 세션은 첫 층이 쓴 `file` 레코드를 재료로 받는다.
++    """
++    terms = nonnode_terms(first, keep, [m["id"] for m in cg.get("modules", [])])
++    files = [t for t in terms if t["kind"] == "file"]
++    modules = [t for t in terms if t["kind"] == "module"]
++    key_of = {t["files"][0]: t["key"] for t in files}
++    file_of = {i: first[i].get("file") for i in keep if first[i].get("file") in key_of}
++    packed = pack(file_of, file_of, file_cap or max(1, len(file_of)))
++    first_sessions: list[PlanSession] = [
++        {"id": "NONNODE-FILE-%02d" % k, "kind": "file", "keys": [key_of[f] for f in b["files"]]}
++        for k, b in enumerate(packed)]
++    second_sessions: list[PlanSession] = []
++    if modules:
++        second_sessions.append({"id": "NONNODE-MODULE", "kind": "module", "keys": [t["key"] for t in modules]})
++    for kind in NAMED_KINDS:
++        second_sessions.append({"id": "NONNODE-" + kind.upper(), "kind": kind, "keys": []})
++    return [
++        {"level": level, "kind": "non-node", "symbol_count": None, "batches": [],
++         "note": "file. 심볼이 전부 끝난 뒤에 돈다. 키와 위치는 terms 에, 세션마다 맡은 키는 sessions 에 있다.",
++         "terms": files, "sessions": first_sessions},
++        {"level": level + 1, "kind": "non-node", "symbol_count": None, "batches": [],
++         "note": "module · artifact · key · concept. file 층이 끝난 뒤에 돈다. module 의 키는 terms 에 있다.",
++         "terms": modules, "sessions": second_sessions}]
++
++
++def session_ids(p: SurveyPlan) -> list[str]:
++    """계획이 띄우는 세션의 이름 전부 — 층 순서대로 배치 id 들, 비노드 층에서는 `sessions` 의 id 들."""
++    out: list[str] = []
++    for L in p["layers"]:
++        out += [s["id"] for s in L.get("sessions", [])] if L.get("kind") == "non-node" else [b["id"] for b in L["batches"]]
++    return out
++
++
++def expected_keys(p: SurveyPlan, sid: str) -> set[str] | None:
++    """세션 `sid` 의 샤드가 가져야 할 키. 배치는 심볼 이름, 기계 목록 세션은 `keys`. 키를 세션이 고르거나 계획에 없으면 `None`."""
++    for L in p["layers"]:
++        for s in L.get("sessions", []):
++            if s["id"] == sid:
++                return set(s["keys"]) if s["kind"] in LISTED_KINDS else None
++        for b in L["batches"]:
++            if b["id"] == sid:
++                return {x["name"] or "" for x in b["symbols"]}
++    return None
++
++
++def listed_terms(p: SurveyPlan) -> list[PlanTerm]:
++    """계획의 기계 목록 전부 — 비노드 층들의 `terms` 를 층 순서대로 이은 것."""
++    return [t for L in p["layers"] for t in L.get("terms", [])]
++
++
+ def plan(cg: CodeGraph, target: int = 8,
+-         only_files: Iterable[str] | None = None) -> SurveyPlan:
+-    """코드 지도 -> 층 · 배치 계획.
++         only_files: Iterable[str] | None = None, file_cap: int | None = None) -> SurveyPlan:
++    """코드 지도 -> 층 · 배치 계획. 맨 끝은 `nonnode_layers` 의 비노드 층 둘이고 `file_cap` 은 거기로 간다.
+ 
+     `only_files` 는 증분 재조사용이다 — `warmup.blast_radius` 가 낸 파일 목록을 주면
+     그 파일의 심볼만 남긴다. 층 번호는 **전체 그래프 기준으로 매긴 뒤** 거른다.
+@@ -197,13 +353,8 @@ def plan(cg: CodeGraph, target: int = 8,
+                 for i, b in enumerate(bs)],
+         })
+ 
+-    # K5 — 그래프 노드가 아닌 용어는 맨 마지막 별도 층. `symbol_count` 가 None 인 층이 이것이다.
+-    last = (max(bylv) + 1) if bylv else 0
+-    layers.append({
+-        "level": last, "kind": "non-node", "symbol_count": None, "batches": [],
+-        "note": "file · module · artifact · key · concept. 심볼 층이 전부 끝난 뒤 한 세션으로 돈다. "
+-                "파일 레코드는 그 파일 안 심볼들의 완성 레코드를 재료로 쓴다.",
+-    })
++    # K5 — 그래프 노드가 아닌 용어는 맨 마지막의 별도 층들. `symbol_count` 가 None 인 층이 이것이다.
++    layers += nonnode_layers((max(bylv) + 1) if bylv else 0, first, keep, cg, file_cap)
+     return {"target": target, "layers": layers,
+             "totals": {"symbols": len(keep), "edges": len(edges), "levels": len(bylv),
+                        "cyclic_symbols": sum(1 for n in keep if in_cycle.get(n))}}
+@@ -273,8 +424,8 @@ def weights_csv(rows: Iterable[FileWeight]) -> str:
+     return "\n".join(lines) + "\n"
+ 
+ 
+-def plan_by_file(cg: CodeGraph) -> SurveyPlan:
+-    """코드 지도 -> 파일 하나가 배치 하나인 계획. 층은 하나(0)이고 배치 순서가 곧 우선순위다.
++def plan_by_file(cg: CodeGraph, file_cap: int | None = None) -> SurveyPlan:
++    """코드 지도 -> 파일 하나가 배치 하나인 계획. 심볼 층은 하나(0)이고 배치 순서가 곧 우선순위다. 그 뒤는 `nonnode_layers` 다.
+ 
+     `depends_on` 은 층 계획과 같은 뜻이다. 층이 없으므로 의존 대상이 아직 안 읽혔을 수 있고,
+     그것은 조사 단계가 미해결 표로 다룬다.
+@@ -300,10 +451,7 @@ def plan_by_file(cg: CodeGraph) -> SurveyPlan:
+                         for s in sorted(byfile[f])]})
+     kept = sum(len(b["symbols"]) for b in batches)
+     layers: list[PlanLayer] = [{"level": 0, "symbol_count": kept, "file_count": len(batches), "batches": batches}]
+-    layers.append({
+-        "level": 1, "kind": "non-node", "symbol_count": None, "batches": [],
+-        "note": "file · module · artifact · key · concept. 파일 세션이 전부 끝난 뒤 한 세션으로 돈다.",
+-    })
++    layers += nonnode_layers(1, first, set(first), cg, file_cap)
+     return {"target": 0, "layers": layers,
+             "totals": {"symbols": kept, "edges": len(edges), "levels": 1,
+                        "cyclic_symbols": sum(1 for n in first if in_cycle.get(n))}}
+@@ -331,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
+              p["totals"]["levels"], p["totals"]["cyclic_symbols"]))
+     for L in p["layers"]:
+         if L.get("kind") == "non-node":
+-            print("  층%d — 비노드 용어 (한 세션)" % L["level"])
++            print("  층%d — 비노드 용어 (세션 %d개)" % (L["level"], len(L.get("sessions", []))))
+         else:
+             # 심볼 층은 위에서 file_count 를 반드시 넣지만 형 검사기가 그것을 볼 방법이 없다.
+             print("  층%d — 심볼 %d · 파일 %d · 배치 %d"
+diff --git a/src/codewiki/python/machine/terms_db.py b/src/codewiki/python/machine/terms_db.py
+index cec3aa4..5a2a6c3 100644
+--- a/src/codewiki/python/machine/terms_db.py
++++ b/src/codewiki/python/machine/terms_db.py
+@@ -294,6 +294,8 @@ def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
+       L1 파일이 있나            -> 실패
+       L2 그 줄이 있나           -> 실패
+       L3 근처에 그 이름이 있나   -> 근거 없음 (앞 1줄 · 뒤 1줄까지 본다)
++    `file` 레코드의 `where` 만은 L3 이 다르다 — 줄의 글자가 아니라 경로가 키로 끝나는가를 본다
++    (키와 같거나 `/` + 키로 끝난다). 파일 이름은 그 파일 안에 적혀 있지 않은 것이 보통이다.
+     """
+     out: list[tuple[str, str, str]] = []
+     cache: dict[str, list[str] | None] = {}
+@@ -307,7 +309,7 @@ def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
+                 cache[rel] = None
+         return cache[rel]
+ 
+-    def cite(term: str, where: str, stem: str, what: str) -> None:
++    def cite(term: str, where: str, stem: str, what: str, path_key: str = "") -> None:
+         f, ln = _split_where(where)
+         if not f:
+             return
+@@ -318,6 +320,10 @@ def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
+         if not ln or ln > len(lines):
+             out.append(("실패", term, f"{what} L2 줄 없음: {where} (파일은 {len(lines)}줄)"))
+             return
++        if path_key:
++            if f != path_key and not f.endswith("/" + path_key):
++                out.append(("근거 없음", term, f"{what} L3 경로가 '{path_key}' 로 끝나지 않는다: {where}"))
++            return
+         window = "\n".join(lines[max(0, ln - 2):ln + 1])
+         if stem and stem not in window:
+             out.append(("근거 없음", term, f"{what} L3 그 줄 근처에 '{stem}' 이 없다: {where}"))
+@@ -346,7 +352,10 @@ def check_terms(db: TermsDb, repo: str) -> list[tuple[str, str, str]]:
+                 out.append(("실패", key, f"kind 값이 이상하다: {rec.get('kind')!r}"))
+             if rec.get("kind") not in ("module", "external") and not rec.get("where"):
+                 out.append(("실패", key, "reading 레코드는 where 가 있어야 한다 — 인용 없는 뜻은 싣지 않는다"))
+-            cite(key, rec.get("where", ""), _stem(key, rec.get("kind")), "where")
++            if rec.get("kind") == "file":
++                cite(key, rec.get("where", ""), "", "where", path_key=key)
++            else:
++                cite(key, rec.get("where", ""), _stem(key, rec.get("kind")), "where")
+         for u in rec.get("uses", []):
+             if _written_by_llm(src, u):
+                 t = u.get("to")
+diff --git a/src/codewiki/python/runner/README.md b/src/codewiki/python/runner/README.md
+index 74ed8c9..0436658 100644
+--- a/src/codewiki/python/runner/README.md
++++ b/src/codewiki/python/runner/README.md
+@@ -55,6 +55,7 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 
+ |---|---|---|
+ | **`ModelsConfig`** | *class* | `[models]` — 배치 · 목차 · 장 세션의 Model 과 `lang-hint` 의 Model. |
+ | **`EstimateConfig`** | *class* | `[estimate]` — 배치당 비용 어림(USD)의 하한과 상한. |
++| **`SurveyConfig`** | *class* | `[survey]` — 비노드 층의 `file` 세션 하나가 맡는 파일들의 심볼 수 상한. |
+ | **`Mode1Config`** | *class* | `resource/codewiki/config.toml`. |
+ | `load_config` | `(path: str = CONFIG_PATH) -> Mode1Config` | 설정 파일을 형으로 읽는다. 꼴이 안 맞으면 msgspec 예외 — 조용히 기본값으로 가지 않는다. |
+ | **`ShardUse`** | *class* |  |
+@@ -64,6 +65,9 @@ Mode 1 의 문맥과 산출물. 단계 사이를 건너다니는 값은 전부 
+ | `load_fault_table` | `(path: str = FAULTS_PATH) -> FaultTable` | 결함 표를 형으로 읽는다. 꼴이 안 맞거나 갈래 이름이 `FaultKind` 밖이면 msgspec 예외. |
+ | **`SymbolRow`** | *class* | 배치 프롬프트의 심볼 줄 하나. `deps` 는 의존 대상의 이름 — 이름표에 없는 id 는 id 그대로다. |
+ | **`DepRow`** | *class* | 배치 프롬프트의 아래층 발췌 한 줄 — 레코드가 이미 있는 의존 대상. `means` 는 빈 글일 수 있다. |
++| **`FileTermRow`** | *class* | `file` 세션 프롬프트의 파일 한 줄 — 계획이 정한 키 · 소속 · 위치와, 그 파일 심볼들의 이름과 뜻. |
++| **`FileSummaryRow`** | *class* | 둘째 비노드 층 프롬프트의 파일 색인 한 줄 — `file` 레코드의 키 · 경로 · 뜻. `means` 는 빈 글일 수 있다. |
++| **`ModuleTermRow`** | *class* | 둘째 비노드 층 프롬프트의 모듈 한 줄 — 계획이 정한 키와, 바로 든 파일의 키 · 이름이 이 키로 시작하는 아래 모듈. |
+ | **`SessionCall`** | *class* | 조사 세션이 Bash 로 부를 수 있는 명령 하나. 허용 규칙과 프롬프트의 알림이 둘 다 이 행에서 나온다. |
+ | **`PendingRow`** | *class* | 배치 프롬프트의 미조사 의존 줄 하나 — 레코드가 아직 없는 의존 대상의 코드 지도 칸들. |
+ | **`OutlineSymbol`** | *class* | 통독 캐시 개요의 심볼 한 줄 — 계획이 아는 이름 · 종류 · 시작 줄. |
+@@ -152,7 +156,7 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는
+ | `ScheduleBatchesStage.reads` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+ | `ScheduleBatchesStage.writes` | `(self, ctx: Mode1Context) -> list[P.Artifact[Mode1Context]]` |  |
+ | `ScheduleBatchesStage.plan_summary` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 층·배치 수를 줄 목록으로. `--dry-run` 과 `schedule-batches` 단계가 같은 글을 쓴다. |
+-| `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다. |
++| `ScheduleBatchesStage.session_count` | `(plan: survey_plan.SurveyPlan) -> int` | 계획이 띄울 전수조사(`annotate-symbols`) 세션 수 — 배치들과 비노드 층의 세션들. 위키 · 목차 세션은 세지 않는다. |
+ | `ScheduleBatchesStage.estimate_line` | `(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str` | `전수조사 세션 N개 · 예상 $lo~hi · 증분\|전량`. 범위는 resource/codewiki/config.toml 의 [estimate]. |
+ | `ScheduleBatchesStage.perform` | `(self, ctx: Mode1Context) -> P.Outcome` |  |
+ 
+@@ -271,7 +275,11 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는
+ | `AnnotateSymbolsStage.dep_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, name_of: Mapping[str, str]) -> list[DepRow]` | 배치의 심볼들이 `depends_on` 으로 가리키는 것 중 **이미 완성된** 레코드만, 이름 순의 줄로 낸다. |
+ | `AnnotateSymbolsStage.survey_batch_prompt` | `(repo: str, root: str, batch: survey_plan.PlanBatch, deps: Sequence[DepRow], targets: Sequence[str] \| None = None, total: int = 0, pending: Sequence[PendingRow] = (), name_of: Mapping[str, str] \| None = None, faults: Sequence[str] = (), bad: str = '', outlines: Sequence[OutlineRow] = ()) -> str` | 배치 하나 = 세션 하나. **자기 심볼만** 읽고 자기 샤드에만 쓴다. |
+ | `AnnotateSymbolsStage.pending_excerpt` | `(merged: Mapping[str, Mapping[str, object]], batch: survey_plan.PlanBatch, nodes: Mapping[str, Mapping[str, object]]) -> list[PendingRow]` | `depends_on` 중 **아직 레코드가 없는** 것을 id 순의 줄로 — 이름 · 종류 · 파일 · 줄. 세션이 열지 않고 볼 최소 정보다. |
+-| `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str, faults: Sequence[str] = (), bad: str = '') -> str` | K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다. |
++| `AnnotateSymbolsStage.file_rows` | `(plan: survey_plan.SurveyPlan, session: survey_plan.PlanSession, merged: Mapping[str, Mapping[str, object]]) -> list[FileTermRow]` | `file` 세션이 맡은 키마다 계획이 정한 키 · 소속 · 위치와, 그 파일 심볼들의 이름과 뜻. |
++| `AnnotateSymbolsStage.summary_rows` | `(merged: Mapping[str, Mapping[str, object]]) -> list[FileSummaryRow]` | 합친 레코드의 `file` 레코드마다 키 · 경로 · 뜻을 경로 순으로 낸다 — 둘째 비노드 층의 세션이 받는 파일 색인이다. |
++| `AnnotateSymbolsStage.module_rows` | `(plan: survey_plan.SurveyPlan) -> list[ModuleTermRow]` | 계획의 `module` 줄마다 키와, 바로 든 파일의 키 · 이름이 이 키로 시작하는 아래 모듈. |
++| `AnnotateSymbolsStage.nonnode_prompt` | `(repo: str, root: str, session: survey_plan.PlanSession, rows: Sequence[FileTermRow] = (), summaries: Sequence[FileSummaryRow] = (), modules: Sequence[ModuleTermRow] = (), faults: Sequence[str] = (), bad: str = '') -> str` | K5 — 비노드 세션 하나의 프롬프트. 세션의 `id` 가 샤드의 이름이고 `kind` 가 절의 갈래를 고른다. |
++| `AnnotateSymbolsStage.nonnode_jobs` | `(self, ctx: Mode1Context, layer: survey_plan.PlanLayer) -> list[tuple[str, str]]` | 비노드 층 하나가 띄우는 세션마다 `(세션 이름, 프롬프트)`. 층 전략과 파일 전략이 같은 것을 부른다. |
+ | `AnnotateSymbolsStage.write_schema` | `(path: str) -> None` | `ShardRecords` 의 JSON Schema 를 읽기 전용으로 쓴다. 배치 세션이 읽는 견본이자 검문의 형이다. |
+ | `AnnotateSymbolsStage.file_outlines` | `(plan: survey_plan.SurveyPlan) -> dict[str, list[OutlineSymbol]]` | 계획의 심볼을 파일마다 줄 순으로 모은다 — 층을 가리지 않고 그 파일의 심볼 전부다. 파일이 없는 심볼은 싣지 않는다. |
+ | `AnnotateSymbolsStage.prefill_cache` | `(repo: str, plan: survey_plan.SurveyPlan) -> int` | 계획의 파일마다 개요(줄 수 · 심볼 줄)를 통독 캐시에 쓰고, 쓴 파일 수를 돌려준다. |
+@@ -280,9 +288,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는
+ | `AnnotateSymbolsStage.fault_detail` | `(kind: FaultKind, name: str = 'detail', **values) -> str` | 결함 표의 결함 설명 `kind.<갈래>.<name>` 을 `values` 로 렌더한다. 인자가 위치 전용이라 값 이름이 `kind` 여도 된다. |
+ | `AnnotateSymbolsStage.check_shard` | `(raw: bytes, batch: str = '', path: str = '') -> list[ShardFault]` | 샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다. |
+ | `AnnotateSymbolsStage.fault_line` | `(f: ShardFault) -> str` | 결함 하나를 사람이 읽을 줄로 — 결함 표의 `line` 꼴. 재조사 절 · stderr · check_shard 명령이 이 줄을 찍는다. |
+-| `AnnotateSymbolsStage.plan_ids` | `(plan: survey_plan.SurveyPlan) -> list[str]` | 계획이 띄우는 세션의 이름 전부 — 배치 id 들과, 비노드 층이 있으면 `NONNODE`. |
+-| `AnnotateSymbolsStage.check_coverage` | `(raw: bytes, batch: survey_plan.PlanBatch, path: str) -> list[ShardFault]` | 계획의 심볼 이름과 샤드의 키를 양방향으로 대조한다. 문법·꼴이 맞은 뒤에만 부른다. |
+-| `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]` | 계획의 배치마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{배치: 결함들}`. |
++| `AnnotateSymbolsStage.check_coverage` | `(raw: bytes, plan: survey_plan.SurveyPlan, sid: str, path: str) -> list[ShardFault]` | 계획이 세션 `sid` 에 맡긴 키와 샤드의 키를 대조한다. 문법·꼴이 맞은 뒤에만 부른다. |
++| `AnnotateSymbolsStage.check_shards` | `(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]` | 계획이 띄우는 세션마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{세션: 결함들}`. |
+ | `AnnotateSymbolsStage.quarantine` | `(shard_dir: str, bid: str, faults: Sequence[ShardFault] = ()) -> str` | 틀린 샤드를 `.json.bad` 로 옮기고 결함들을 `.json.bad.why` 에 JSON 으로 남긴다. |
+ | `AnnotateSymbolsStage.load_faults` | `(shard_dir: str, bid: str) -> list[ShardFault]` | 격리 사유. 없거나 꼴이 틀리면 빈 목록 — 낡은 사유로 재조사를 오도하지 않는다. |
+ | `AnnotateSymbolsStage.clear_quarantine` | `(shard_dir: str, bid: str) -> None` | 검문을 통과한 배치의 옛 격리 흔적을 치운다. 남기면 다음 재조사가 낡은 오류를 받는다. |
+@@ -294,7 +301,8 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는
+ | `AnnotateSymbolsStage.pass2_prompt` | `(repo: str, root: str, bid: str, file: str, shallow: Mapping[str, Mapping[str, object]], deps: Mapping[str, Mapping[str, object]]) -> str` | 2패스 — 파일을 다시 읽지 않는다. 얕게 쓴 레코드와, 이제 조사된 의존 대상의 뜻만 받아 다듬는다. |
+ | `AnnotateSymbolsStage.apply_pass2` | `(shard_dir: str, bid: str) -> list[ShardFault]` | 2패스 샤드를 검문하고 원 샤드의 **같은 키만** 덮는다. 틀리면 원 샤드를 두고 결함을 낸다. |
+ | `AnnotateSymbolsStage.load_records` | `(path: str) -> Records` | 있으면 읽어 사전으로 좁혀 내고, 없거나 사전이 아니면 `{}`. |
+-| `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
++| `AnnotateSymbolsStage.overlay_terms` | `(got: Records, terms: Sequence[survey_plan.PlanTerm]) -> Records` | 기계 목록(`terms`)에 든 키의 `file` · `module` 레코드에 계획의 `kind` · `module` · `where` 를 덮는다. 글은 그대로 둔다. |
++| `AnnotateSymbolsStage.merge_shards` | `(shard_dir: str, existing: Records \| None, terms: Sequence[survey_plan.PlanTerm] = ()) -> Records` | 샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.** |
+ | `AnnotateSymbolsStage.normalize_records` | `(got: Records, ids: Mapping[str, str]) -> tuple[Records, list[X.DroppedUse]]` | `uses[].to` 와 `shallow` 를 레코드 키로 맞춘다. 노드 id 는 이름으로 바꾸고, 어느 키도 아닌 것은 떼어 기록한다. |
+ | `AnnotateSymbolsStage.dropped_csv` | `(rows: Sequence[X.DroppedUse]) -> str` | `dropped-uses.csv` 본문. label 만 따옴표로 감싼다 — 세션이 쉼표를 쓰는 칸이 그것뿐이다. |
+ | `AnnotateSymbolsStage.refresh_merged` | `(self, ctx: Mode1Context) -> list[X.DroppedUse]` | 샤드를 다시 합치고 보정해 `terms-reading.json` 과 `dropped-uses.csv` 를 쓴다. |
+@@ -306,9 +314,10 @@ Mode 1 의 흐름 — 단계 순서 · 전이표 하나 · 팩토리. 단계는
+ | `AnnotateSymbolsStage.sweep` | `(self, ctx: Mode1Context, out: P.Outcome) -> P.Outcome` | 세션이 전부 끝난 뒤 샤드 전량을 검문한다. 틀린 샤드는 격리하고 단계를 실패로 세운다. |
+ | `AnnotateSymbolsStage.rounds` | `(self, ctx: Mode1Context) -> int` |  |
+ | `AnnotateSymbolsStage.session_calls` | `(kind: SessionKind, repo: str, root: str, name: str = '') -> list[SessionCall]` | 세션 종류마다 Bash 로 부를 수 있는 명령. 프롬프트의 절차가 시키는 명령과 같아야 한다. |
+-| `AnnotateSymbolsStage.allowed_notice` | `(calls: Sequence[SessionCall]) -> str` | 프롬프트에 싣는 허용된 호출 알림. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다. |
+-| `AnnotateSymbolsStage.kind_args` | `(self, ctx: Mode1Context, kind: SessionKind) -> Sequence[str]` | 그 종류의 세션이 받는 인자. 어느 종류든 격리해서 띄운다. |
+-| `AnnotateSymbolsStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 층의 종류가 가른다 — 비노드 층의 세션은 비노드 종류의 인자를, 나머지는 배치 종류의 인자를 받는다. |
++| `AnnotateSymbolsStage.allowed_notice` | `(calls: Sequence[SessionCall], search: bool = False) -> str` | 프롬프트에 싣는 허용된 호출 알림. `search` 는 그 세션이 `Grep` 도구를 받는가다. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다. |
++| `AnnotateSymbolsStage.layer_kind` | `(layer: survey_plan.PlanLayer) -> SessionKind` | 그 층의 세션들이 받는 종류. 심볼 층은 `batch`, `file` 세션뿐인 비노드 층은 `file`, 나머지 비노드 층은 `named` 다. |
++| `AnnotateSymbolsStage.kind_args` | `(self, ctx: Mode1Context, kind: SessionKind) -> Sequence[str]` | 그 종류의 세션이 받는 인자. 어느 종류든 격리해서, 샤드 폴더 쓰기와 `session_calls` 의 명령만 허용해 띄운다. |
++| `AnnotateSymbolsStage.session_args` | `(self, ctx: Mode1Context, rnd: int) -> Sequence[str]` | 층이 가른다 — 그 층의 `layer_kind` 가 낸 종류의 인자다. |
+ | `AnnotateSymbolsStage.jobs` | `(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]` |  |
+ | `AnnotateSymbolsStage.harvest` | `(self, ctx: Mode1Context, got: Sequence[P.JobResult], rnd: int) -> P.Outcome` |  |
+ 
+diff --git a/src/codewiki/python/runner/check_shard.py b/src/codewiki/python/runner/check_shard.py
+index 459b3c0..7b8c204 100755
+--- a/src/codewiki/python/runner/check_shard.py
++++ b/src/codewiki/python/runner/check_shard.py
+@@ -34,14 +34,11 @@ def main(argv: Sequence[str] | None = None) -> int:
+         print("✗ 파일을 못 읽었다 — %s" % e)
+         return 1
+     got = AnnotateSymbolsStage.check_shard(raw, path=args[0])
+-    # 샤드 폴더 옆에 계획이 있으면 배치 id 로 찾아 coverage 까지 본다 — 층 끝 검문과 같은 검사다.
++    # 샤드 폴더 옆에 계획이 있으면 샤드의 이름으로 세션을 찾아 coverage 까지 본다 — 층 끝 검문과 같은 검사다.
+     plan_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(args[0]))), "batches.json")
+     bid = os.path.basename(args[0]).removesuffix(".json")
+     if not got and os.path.exists(plan_path):
+-        plan = P.load(plan_path, survey_plan.SurveyPlan)
+-        batch = next((b for L in plan["layers"] for b in L.get("batches", []) if b["id"] == bid), None)
+-        if batch is not None:
+-            got = AnnotateSymbolsStage.check_coverage(raw, batch, args[0])
++        got = AnnotateSymbolsStage.check_coverage(raw, P.load(plan_path, survey_plan.SurveyPlan), bid, args[0])
+     for fault in got:
+         print("✗ " + AnnotateSymbolsStage.fault_line(fault))
+     print("통과 — %s" % args[0] if not got else "불평 %d — 고치고 다시 돌린다" % len(got))
+diff --git a/src/codewiki/python/runner/mode1/context.py b/src/codewiki/python/runner/mode1/context.py
+index 15213af..993d5ac 100644
+--- a/src/codewiki/python/runner/mode1/context.py
++++ b/src/codewiki/python/runner/mode1/context.py
+@@ -31,9 +31,15 @@ class EstimateConfig(TypedDict):
+     usd_per_batch_max: float
+ 
+ 
++class SurveyConfig(TypedDict):
++    """`[survey]` — 비노드 층의 `file` 세션 하나가 맡는 파일들의 심볼 수 상한."""
++    file_session_symbols: int
++
++
+ class Mode1Config(TypedDict):
+     """`resource/codewiki/config.toml`."""
+     models: ModelsConfig
++    survey: SurveyConfig
+     estimate: EstimateConfig
+ 
+ 
+@@ -127,6 +133,28 @@ class DepRow(TypedDict):
+     means: str
+ 
+ 
++class FileTermRow(TypedDict):
++    """`file` 세션 프롬프트의 파일 한 줄 — 계획이 정한 키 · 소속 · 위치와, 그 파일 심볼들의 이름과 뜻."""
++    key: str
++    module: str
++    where: str
++    symbols: list[DepRow]
++
++
++class FileSummaryRow(TypedDict):
++    """둘째 비노드 층 프롬프트의 파일 색인 한 줄 — `file` 레코드의 키 · 경로 · 뜻. `means` 는 빈 글일 수 있다."""
++    key: str
++    path: str
++    means: str
++
++
++class ModuleTermRow(TypedDict):
++    """둘째 비노드 층 프롬프트의 모듈 한 줄 — 계획이 정한 키와, 바로 든 파일의 키 · 이름이 이 키로 시작하는 아래 모듈."""
++    key: str
++    files: list[str]
++    children: list[str]
++
++
+ class SessionCall(TypedDict):
+     """조사 세션이 Bash 로 부를 수 있는 명령 하나. 허용 규칙과 프롬프트의 알림이 둘 다 이 행에서 나온다."""
+     command: str    # 규칙이 고정하는 앞부분 — 해석기 · 스크립트
+diff --git a/src/codewiki/python/runner/mode1/graph.py b/src/codewiki/python/runner/mode1/graph.py
+index df25192..a73d9c5 100644
+--- a/src/codewiki/python/runner/mode1/graph.py
++++ b/src/codewiki/python/runner/mode1/graph.py
+@@ -209,7 +209,9 @@ class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
+         out: list[str] = []
+         for L in plan.get("layers", []):
+             if L.get("kind") == "non-node":
+-                out.append("  층%d — 비노드 용어 (한 세션)" % L["level"])
++                sessions = L.get("sessions", [])
++                kinds = " · ".join(dict.fromkeys(s["kind"] for s in sessions)) or "없음"
++                out.append("  층%d — 비노드 용어 %s (세션 %d개)" % (L["level"], kinds, len(sessions)))
+             elif plan.get("target") == 0:      # 파일 계획 — 층이 하나고 배치가 곧 파일이다
+                 out.append("  파일 %d · 배치 %d · 심볼 %d (가중치 순, 장벽 없음)"
+                            % (len(L["batches"]), len(L["batches"]), L["symbol_count"] or 0))
+@@ -229,8 +231,8 @@ class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
+ 
+     @staticmethod
+     def session_count(plan: survey_plan.SurveyPlan) -> int:
+-        """계획이 띄울 전수조사(`annotate-symbols`) 세션 수. 배치가 없는 층(비노드 층)은 한 세션이다. 위키 · 목차 세션은 세지 않는다."""
+-        return sum(len(L.get("batches", [])) or 1 for L in plan.get("layers", []))
++        """계획이 띄울 전수조사(`annotate-symbols`) 세션 수 — 배치들과 비노드 층의 세션들. 위키 · 목차 세션은 세지 않는다."""
++        return len(survey_plan.session_ids(plan))
+ 
+     @staticmethod
+     def estimate_line(n_sessions: int, cfg: X.EstimateConfig, full: bool) -> str:
+@@ -249,13 +251,14 @@ class ScheduleBatchesStage(VerifiedGraph, Measured, P.Stage[Mode1Context]):
+             return P.Outcome(P.FAIL, why, [self.row(t0, False, why)])
+         cg = msgspec.json.decode(raw, type=survey_plan.CodeGraph)
+         only = None if ctx.cold else ctx.targets
++        cap = X.load_config()["survey"]["file_session_symbols"]
+         if ctx.strategy == "file":
+-            ctx.plan = survey_plan.plan_by_file(cg)
++            ctx.plan = survey_plan.plan_by_file(cg, file_cap=cap)
+             with open(X.FILE_PRIORITY.locate(ctx), "w", encoding="utf-8") as f:
+                 f.write(survey_plan.weights_csv(survey_plan.file_weights(cg)))
+             print(X.FILE_PRIORITY.locate(ctx))
+         else:
+-            ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only)
++            ctx.plan = survey_plan.plan(cg, ctx.target, only_files=only, file_cap=cap)
+         ctx.plan["codegraph_sha256"] = hashlib.sha256(raw).hexdigest()
+         ctx.plan["generation_id"] = P.load(X.GRAPH_VERIFIED.locate(ctx), X.GraphVerifiedDoc)["generation_id"] or ""
+         out_path = X.BATCHES.locate(ctx)
+diff --git a/src/codewiki/python/runner/mode1/survey.py b/src/codewiki/python/runner/mode1/survey.py
+index 21f3f08..b936351 100644
+--- a/src/codewiki/python/runner/mode1/survey.py
++++ b/src/codewiki/python/runner/mode1/survey.py
+@@ -19,15 +19,16 @@ import jsonio
+ import survey_plan
+ from mode1 import context as X
+ from mode1 import diff as D
+-from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, Mode1Context, OutlineRow, OutlineSymbol,
+-                           Pass2DepRow, PendingRow, Record, Records, RetryInputs, SessionCall, ShardFault,
+-                           ShardRecords, SymbolRow, UnresolvedRow)
++from mode1.context import (ROOT, DepRow, FaultKind, FileOutline, FileSummaryRow, FileTermRow, Mode1Context,
++                           ModuleTermRow, OutlineRow, OutlineSymbol, Pass2DepRow, PendingRow, Record, Records,
++                           RetryInputs, SessionCall, ShardFault, ShardRecords, SymbolRow, UnresolvedRow)
+ from mode1.graph import VerifiedGraph
+ from mode1.measured import Measured
+ 
+ 
+ # 조사 세션의 종류. 세션 인자와 허용된 호출이 이것으로 갈린다.
+-SessionKind = Literal["batch", "nonnode", "pass2"]
++# `file` 은 첫 비노드 층의 세션, `named` 는 둘째 비노드 층의 세션(`module` 세션과 이름난 종류의 세션들)이다.
++SessionKind = Literal["batch", "file", "named", "pass2"]
+ 
+ 
+ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+@@ -175,16 +176,79 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         return rows
+ 
+     @staticmethod
+-    def nonnode_prompt(repo: str, root: str, faults: Sequence[str] = (), bad: str = "") -> str:
+-        """K5 — file · module · artifact · key · concept. 심볼이 전부 읽힌 뒤 한 세션으로 돈다.
++    def file_rows(plan: survey_plan.SurveyPlan, session: survey_plan.PlanSession,
++                  merged: Mapping[str, Mapping[str, object]]) -> list[FileTermRow]:
++        """`file` 세션이 맡은 키마다 계획이 정한 키 · 소속 · 위치와, 그 파일 심볼들의 이름과 뜻.
++
++        심볼은 계획에서 그 파일에 든 것을 이름 순으로, 뜻은 `merged` 의 `means` 다. 레코드가 없는 심볼도 이름은 싣고 뜻을 비운다.
++        """
++        by_file: dict[str, list[DepRow]] = {}
++        for L in plan["layers"]:
++            for b in L["batches"]:
++                for s in b["symbols"]:
++                    name = s["name"] or ""
++                    by_file.setdefault(s["file"] or "", []).append(
++                        {"name": name, "means": str((merged.get(name) or {}).get("means") or "")})
++        mine = set(session["keys"])
++        return [{"key": t["key"], "module": t["module"], "where": t["where"],
++                 "symbols": sorted(by_file.get(t["files"][0], []), key=lambda r: r["name"])}
++                for t in survey_plan.listed_terms(plan) if t["kind"] == "file" and t["key"] in mine]
++
++    @staticmethod
++    def summary_rows(merged: Mapping[str, Mapping[str, object]]) -> list[FileSummaryRow]:
++        """합친 레코드의 `file` 레코드마다 키 · 경로 · 뜻을 경로 순으로 낸다 — 둘째 비노드 층의 세션이 받는 파일 색인이다."""
++        rows: list[FileSummaryRow] = [
++            {"key": k, "path": AnnotateSymbolsStage.file_of(dict(r)), "means": str(r.get("means") or "")}
++            for k, r in merged.items() if r.get("kind") == "file"]
++        return sorted(rows, key=lambda r: (r["path"], r["key"]))
++
++    @staticmethod
++    def module_rows(plan: survey_plan.SurveyPlan) -> list[ModuleTermRow]:
++        """계획의 `module` 줄마다 키와, 바로 든 파일의 키 · 이름이 이 키로 시작하는 아래 모듈."""
++        terms = survey_plan.listed_terms(plan)
++        key_of = {t["files"][0]: t["key"] for t in terms if t["kind"] == "file"}
++        names = [t["key"] for t in terms if t["kind"] == "module"]
++        return [{"key": t["key"], "files": [key_of[f] for f in t["files"] if f in key_of],
++                 "children": [n for n in names if n.startswith(t["key"] + ".")]}
++                for t in terms if t["kind"] == "module"]
++
++    @staticmethod
++    def nonnode_prompt(repo: str, root: str, session: survey_plan.PlanSession,
++                       rows: Sequence[FileTermRow] = (), summaries: Sequence[FileSummaryRow] = (),
++                       modules: Sequence[ModuleTermRow] = (), faults: Sequence[str] = (), bad: str = "") -> str:
++        """K5 — 비노드 세션 하나의 프롬프트. 세션의 `id` 가 샤드의 이름이고 `kind` 가 절의 갈래를 고른다.
+ 
+         이것들은 코드 지도의 노드가 아니라 층 축이 없다. 대신 심볼 레코드가 재료다 —
+-        **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.** `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
++        **심볼 층이 하나라도 남아 있으면 이 세션을 띄우면 안 된다.** `file` 세션은 `rows`(`file_rows`)를 받는다.
++        나머지는 `summaries`(`summary_rows`)와 `modules`(`module_rows`)를 받는다 — `module` 세션에는 쓸 줄이고,
++        이름난 종류의 세션에는 쓰면 안 되는 키다. `faults` · `bad` 는 `retry_inputs` 가 낸 재조사 절의 값이다.
+         """
++        kind: SessionKind = "file" if session["kind"] == "file" else "named"
++        calls = AnnotateSymbolsStage.session_calls(kind, repo, root, session["id"])
+         return AnnotateSymbolsStage.load_prompt(
+-            "annotate-symbols#nonnode", repo=repo, root=root, python=sys.executable,
+-            reading=X.reading_path(repo, ROOT),
+-            faults=list(faults), fault_count=len(faults), bad=bad)
++            "annotate-symbols#nonnode", repo=repo, root=root, sid=session["id"], kind=session["kind"],
++            reading=X.reading_path(repo, ROOT), n=len(session["keys"]),
++            rows=list(rows), summaries=list(summaries), modules=list(modules),
++            faults=list(faults), fault_count=len(faults), bad=bad,
++            calls=calls, allowed=AnnotateSymbolsStage.allowed_notice(calls, search=kind == "named"))
++
++    def nonnode_jobs(self, ctx: Mode1Context, layer: survey_plan.PlanLayer) -> list[tuple[str, str]]:
++        """비노드 층 하나가 띄우는 세션마다 `(세션 이름, 프롬프트)`. 층 전략과 파일 전략이 같은 것을 부른다.
++
++        `file` 세션은 맡은 파일의 줄을, 나머지는 `ctx.merged` 의 `file` 레코드 색인과 계획의 `module` 줄을 받는다.
++        """
++        assert ctx.plan is not None
++        d = self.shard_dir(ctx)
++        summaries, modules = self.summary_rows(ctx.merged), self.module_rows(ctx.plan)
++        jobs: list[tuple[str, str]] = []
++        for s in layer.get("sessions", []):
++            retry = self.retry_inputs(d, s["id"])
++            if s["kind"] == "file":
++                prompt = self.nonnode_prompt(ctx.repo, ctx.root, s, rows=self.file_rows(ctx.plan, s, ctx.merged), **retry)
++            else:
++                prompt = self.nonnode_prompt(ctx.repo, ctx.root, s, summaries=summaries, modules=modules, **retry)
++            jobs.append((s["id"], prompt))
++        return jobs
+ 
+     # ── 샤드 검문 — 스키마 파일 · 기계 파서 · 전량 순회 ───────────────────
+ 
+@@ -277,6 +341,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+     @staticmethod
+     def check_shard(raw: bytes, batch: str = "", path: str = "") -> list[ShardFault]:
+         """샤드 하나의 결함 목록. 문법 → 꼴 → `where` 규칙 순으로 보고, 앞이 틀리면 뒤는 보지 않는다.
++        `where` 규칙은 `WHERE_OPTIONAL` 밖의 종류에 그 칸이 없거나 빈 글인 것을 잡는다.
+ 
+         msgspec 은 꼴 오류(`ValidationError`)를 문법 오류(`DecodeError`)의 하위로 낸다 — 좁은 것을 먼저 잡는다.
+         """
+@@ -291,7 +356,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+             return [F("malformed", batch, path, at.rstrip(")"), detail or str(e))]
+         return [F("where", batch, path, k, AnnotateSymbolsStage.fault_detail("where", kind=r["kind"]))
+                 for k, r in recs.items()
+-                if "where" not in r and r["kind"] not in AnnotateSymbolsStage.WHERE_OPTIONAL]
++                if not r.get("where") and r["kind"] not in AnnotateSymbolsStage.WHERE_OPTIONAL]
+ 
+     @staticmethod
+     def fault_line(f: ShardFault) -> str:
+@@ -299,28 +364,27 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         return AnnotateSymbolsStage.render_text(AnnotateSymbolsStage.FAULTS["line"], f=f)
+ 
+     @staticmethod
+-    def plan_ids(plan: survey_plan.SurveyPlan) -> list[str]:
+-        """계획이 띄우는 세션의 이름 전부 — 배치 id 들과, 비노드 층이 있으면 `NONNODE`."""
+-        ids = [b["id"] for L in plan["layers"] for b in L.get("batches", [])]
+-        return ids + (["NONNODE"] if any(L.get("kind") == "non-node" for L in plan["layers"]) else [])
++    def check_coverage(raw: bytes, plan: survey_plan.SurveyPlan, sid: str, path: str) -> list[ShardFault]:
++        """계획이 세션 `sid` 에 맡긴 키와 샤드의 키를 대조한다. 문법·꼴이 맞은 뒤에만 부른다.
+ 
+-    @staticmethod
+-    def check_coverage(raw: bytes, batch: survey_plan.PlanBatch, path: str) -> list[ShardFault]:
+-        """계획의 심볼 이름과 샤드의 키를 양방향으로 대조한다. 문법·꼴이 맞은 뒤에만 부른다."""
++        배치와 기계 목록 세션(`file` · `module`)은 양방향이다. 이름난 종류의 세션은 키를 스스로 고르므로
++        기계 목록의 키를 썼는가만 본다. 계획에 없는 세션은 대조하지 않는다.
++        """
+         keys = set(msgspec.json.decode(raw, type=ShardRecords))
+-        want = {s["name"] or "" for s in batch["symbols"]}
+         F = AnnotateSymbolsStage.fault
+-        not_in_shard = AnnotateSymbolsStage.fault_detail("coverage", "detail-not-in-shard")
+-        not_in_plan = AnnotateSymbolsStage.fault_detail("coverage", "detail-not-in-plan")
+-        return ([F("coverage", batch["id"], path, n, not_in_shard) for n in sorted(want - keys)]
+-                + [F("coverage", batch["id"], path, k, not_in_plan) for k in sorted(keys - want)])
++        detail = AnnotateSymbolsStage.fault_detail
++        want = survey_plan.expected_keys(plan, sid)
++        if want is None:
++            listed = {t["key"] for t in survey_plan.listed_terms(plan)} if sid in survey_plan.session_ids(plan) else set[str]()
++            return [F("coverage", sid, path, k, detail("coverage", "detail-taken")) for k in sorted(keys & listed)]
++        return ([F("coverage", sid, path, n, detail("coverage", "detail-not-in-shard")) for n in sorted(want - keys)]
++                + [F("coverage", sid, path, k, detail("coverage", "detail-not-in-plan")) for k in sorted(keys - want)])
+ 
+     @staticmethod
+     def check_shards(shard_dir: str, plan: survey_plan.SurveyPlan) -> dict[str, list[ShardFault]]:
+-        """계획의 배치마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{배치: 결함들}`."""
++        """계획이 띄우는 세션마다 샤드를 찾아 검문한다 — 문법·꼴·where 가 맞으면 coverage 까지. 틀린 것만 `{세션: 결함들}`."""
+         bad: dict[str, list[ShardFault]] = {}
+-        batches = {b["id"]: b for L in plan["layers"] for b in L.get("batches", [])}
+-        for bid in AnnotateSymbolsStage.plan_ids(plan):
++        for bid in survey_plan.session_ids(plan):
+             path = os.path.join(shard_dir, bid + ".json")
+             if not os.path.exists(path):
+                 bad[bid] = [AnnotateSymbolsStage.fault("missing", bid, path, "-",
+@@ -329,8 +393,8 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+             with open(path, "rb") as f:
+                 raw = f.read()
+             got = AnnotateSymbolsStage.check_shard(raw, bid, path)
+-            if not got and bid in batches:              # NONNODE 는 계획 심볼이 없어 대조하지 않는다
+-                got = AnnotateSymbolsStage.check_coverage(raw, batches[bid], path)
++            if not got:
++                got = AnnotateSymbolsStage.check_coverage(raw, plan, bid, path)
+             if got:
+                 bad[bid] = got
+         return bad
+@@ -472,9 +536,28 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         return P.load(path, Records) if os.path.exists(path) else {}
+ 
+     @staticmethod
+-    def merge_shards(shard_dir: str, existing: Records | None) -> Records:
++    def overlay_terms(got: Records, terms: Sequence[survey_plan.PlanTerm]) -> Records:
++        """기계 목록(`terms`)에 든 키의 `file` · `module` 레코드에 계획의 `kind` · `module` · `where` 를 덮는다. 글은 그대로 둔다.
++
++        종류가 `file` · `module` 인 레코드만 덮는다 — 키가 같은 다른 종류의 레코드는 건드리지 않는다.
++        """
++        listed = {t["key"]: t for t in terms}
++        out: Records = {}
++        for key, rec in got.items():
++            t = listed.get(key)
++            if t is not None and rec.get("kind") in survey_plan.LISTED_KINDS:
++                rec = {**rec, "kind": t["kind"], "module": t["module"], "where": t["where"]}
++            out[key] = rec
++        return out
++
++    @staticmethod
++    def merge_shards(shard_dir: str, existing: Records | None,
++                     terms: Sequence[survey_plan.PlanTerm] = ()) -> Records:
+         """샤드를 합쳐 읽기 레코드 하나로 만든다. **키 충돌 해소는 여기서만 한다.**
+ 
++        `terms` 는 계획의 기계 목록이다. `existing` 과 샤드의 레코드에 `overlay_terms` 로 계획의 칸을 덮은 **뒤에**
++        충돌을 본다 — 세션이 `where` 의 경로를 다르게 적어도 같은 키의 `file` 레코드는 같은 파일의 것이다.
++
+         배치 세션은 자기 배치만 보므로 전역을 보는 것은 이 함수뿐이다 — 겹치면 겹친 **전원**을
+         `<파일줄기>.<이름>` 으로 고친다. 한쪽만 한정하면 나중에 또 겹친다. 한 번 갈라진 맨 키는 이 호출이 끝날 때까지 기억한다 — 셋째가 와도 맨 키로 남지 않는다.
+ 
+@@ -488,7 +571,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         충돌 판정에 `!=` 를 쓰는 것도 같은 이유다. `is not` 은 같은 샤드를 다시 읽은 새 객체를
+         남으로 본다.
+         """
+-        got = dict(existing or {})
++        got = AnnotateSymbolsStage.overlay_terms(dict(existing or {}), terms)
+         split: set[str] = set()      # 겹쳐서 개명한 맨 키. 같은 키가 또 오면 그것도 개명한다
+         if not os.path.isdir(shard_dir):
+             return got
+@@ -501,7 +584,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+             except (ValueError, OSError) as ex:
+                 print("샤드를 건너뛴다 — %s: %s" % (fname, ex), file=sys.stderr)
+                 continue
+-            for key, rec in shard.items():
++            for key, rec in AnnotateSymbolsStage.overlay_terms(shard, terms).items():
+                 if key in split:
+                     got[AnnotateSymbolsStage.qualified(key, rec)] = rec
+                 # 자리 주인이 남(다른 파일)일 때만 충돌이다. 같은 파일이면 다시 읽은 새 판이라 갈아 끼운다.
+@@ -572,7 +655,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         층 끝(`harvest`)과 파일 끝(`AnnotateFilesStage`)이 같은 것을 부른다 — 병합의 정의는 한 곳이다.
+         """
+         assert ctx.plan is not None
+-        raw = self.merge_shards(self.shard_dir(ctx), ctx.baseline)
++        raw = self.merge_shards(self.shard_dir(ctx), ctx.baseline, survey_plan.listed_terms(ctx.plan))
+         ctx.merged, dropped = self.normalize_records(raw, self.name_of(ctx.plan))
+         jsonio.write_json_atomic(X.READING.locate(ctx), ctx.merged, indent=1, sort_keys=True)
+         with open(X.DROPPED.locate(ctx), "w", encoding="utf-8") as f:
+@@ -638,7 +721,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+                 row = self.row(t0, True, "바뀐 파일 0개 — 지난 조사 결과를 그대로 쓴다")
+                 row["skipped"] = True
+                 return P.Outcome(P.SKIP, row["why"], [row])
+-        n_sessions = sum(len(L.get("batches", [])) or 1 for L in ctx.plan["layers"])
++        n_sessions = len(survey_plan.session_ids(ctx.plan))
+         print("조사 세션 예상 %d개 (층 %d)" % (n_sessions, len(ctx.plan["layers"])), flush=True)
+         self.claim_shard_dir(ctx)
+         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
+@@ -661,14 +744,14 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+             for f in faults:
+                 print("[%s] 샤드가 틀렸다 %s" % (bid, self.fault_line(f)), file=sys.stderr)
+             self.quarantine(d, bid, faults)
+-        for bid in self.plan_ids(ctx.plan):
++        for bid in survey_plan.session_ids(ctx.plan):
+             if bid not in bad:
+                 self.clear_quarantine(d, bid)
+         row = self.row(t0, not bad,
+                        "" if not bad else "샤드 %d개가 틀려 격리했다 — --resume 이 그 배치만 다시 띄운다: %s"
+                        % (len(bad), ", ".join(sorted(bad))))
+         row["stage"] = "annotate-symbols/check-shards"
+-        n = sum(len(L.get("batches", [])) or 1 for L in ctx.plan["layers"])
++        n = len(survey_plan.session_ids(ctx.plan))
+         print("  샤드 검문 — 세션 %d개 중 틀린 것 %d개" % (n, len(bad)), flush=True)
+         if bad:
+             return P.Outcome(P.FAIL, row["why"], list(out.rows) + [row])
+@@ -683,7 +766,7 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+     def session_calls(kind: SessionKind, repo: str, root: str, name: str = "") -> list[SessionCall]:
+         """세션 종류마다 Bash 로 부를 수 있는 명령. 프롬프트의 절차가 시키는 명령과 같아야 한다.
+ 
+-        어느 종류든 제 샤드의 검문 하나다. 경로는 셸 따옴표로 감싼다 — 빈칸이 있어도 한 줄이 세 조각으로 읽힌다. `name` 은 그 세션이 쓰는 샤드의 이름(배치 id 또는 `NONNODE`)이고
++        어느 종류든 제 샤드의 검문 하나다. 경로는 셸 따옴표로 감싼다 — 빈칸이 있어도 한 줄이 세 조각으로 읽힌다. `name` 은 그 세션이 쓰는 샤드의 이름(배치 id 또는 비노드 세션의 이름)이고
+         알림에만 쓴다 — 규칙은 `command` 만 본다.
+         """
+         shard = "_pass2/%s.json" % name if kind == "pass2" else name + ".json"
+@@ -695,34 +778,42 @@ class AnnotateSymbolsStage(VerifiedGraph, Measured, P.LlmStage[Mode1Context]):
+         return [check]
+ 
+     @staticmethod
+-    def allowed_notice(calls: Sequence[SessionCall]) -> str:
+-        """프롬프트에 싣는 허용된 호출 알림. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다."""
+-        return AnnotateSymbolsStage.load_prompt("annotate-symbols#allowed", calls=list(calls)).removesuffix("\n")
++    def allowed_notice(calls: Sequence[SessionCall], search: bool = False) -> str:
++        """프롬프트에 싣는 허용된 호출 알림. `search` 는 그 세션이 `Grep` 도구를 받는가다. 절은 줄바꿈 하나로 끝난다 — 그 하나를 뗀다."""
++        return AnnotateSymbolsStage.load_prompt("annotate-symbols#allowed", calls=list(calls),
++                                                search=search).removesuffix("\n")
++
++    @staticmethod
++    def layer_kind(layer: survey_plan.PlanLayer) -> SessionKind:
++        """그 층의 세션들이 받는 종류. 심볼 층은 `batch`, `file` 세션뿐인 비노드 층은 `file`, 나머지 비노드 층은 `named` 다."""
++        if layer.get("kind") != "non-node":
++            return "batch"
++        return "file" if all(s["kind"] == "file" for s in layer.get("sessions", [])) else "named"
+ 
+     def kind_args(self, ctx: Mode1Context, kind: SessionKind) -> Sequence[str]:
+-        """그 종류의 세션이 받는 인자. 어느 종류든 격리해서 띄운다.
++        """그 종류의 세션이 받는 인자. 어느 종류든 격리해서, 샤드 폴더 쓰기와 `session_calls` 의 명령만 허용해 띄운다.
+ 
+-        배치와 2패스 세션에는 샤드 폴더 쓰기와 `session_calls` 의 명령만 허용한다 — 이 둘의 프롬프트에 알림이 실린다.
+-        쓰기 규칙의 `/` 는 세션의 작업 폴더(대상 저장소)에서 시작한다. 비노드 세션은 허용 규칙 아래에 있지 않다.
++        어느 종류의 프롬프트에도 알림이 실린다. 쓰기 규칙의 `/` 는 세션의 작업 폴더(대상 저장소)에서 시작한다.
++        `named` 는 내장 도구 `Grep` 과 그 허용 규칙을 더 받는다 — 한 층의 세션은 인자를 함께 쓰므로 `module` 세션도 받는다.
+         """
+-        if kind == "nonnode":
+-            return M.OPEN_SESSION + M.ISOLATED
+         folder = os.path.relpath(self.shard_dir(ctx), ctx.repo).replace(os.sep, "/")
+         rules = ["Edit(/%s/**)" % folder] + ["Bash(%s *)" % c["command"]
+                                               for c in self.session_calls(kind, ctx.repo, ctx.root)]
++        if kind == "named":
++            return M.allow_only(rules + ["Grep"]) + M.isolated(("Grep",))
+         return M.allow_only(rules) + M.ISOLATED
+ 
+     def session_args(self, ctx: Mode1Context, rnd: int) -> Sequence[str]:
+-        """층의 종류가 가른다 — 비노드 층의 세션은 비노드 종류의 인자를, 나머지는 배치 종류의 인자를 받는다."""
++        """층이 가른다 — 그 층의 `layer_kind` 가 낸 종류의 인자다."""
+         assert ctx.plan is not None
+-        return self.kind_args(ctx, "nonnode" if ctx.plan["layers"][rnd].get("kind") == "non-node" else "batch")
++        return self.kind_args(ctx, self.layer_kind(ctx.plan["layers"][rnd]))
+ 
+     def jobs(self, ctx: Mode1Context, rnd: int) -> list[tuple[str, str]]:
+         assert ctx.plan is not None
+         layer = ctx.plan["layers"][rnd]
+         d = self.shard_dir(ctx)
+         if layer.get("kind") == "non-node":
+-            jobs = [("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root, **self.retry_inputs(d, "NONNODE")))]
++            jobs = self.nonnode_jobs(ctx, layer)
+         else:
+             names = self.name_of(ctx.plan)
+             jobs = [(b["id"], self.survey_batch_prompt(ctx.repo, ctx.root, b,
+diff --git a/src/codewiki/python/runner/mode1/survey_files.py b/src/codewiki/python/runner/mode1/survey_files.py
+index c225b25..7dbc0c2 100644
+--- a/src/codewiki/python/runner/mode1/survey_files.py
++++ b/src/codewiki/python/runner/mode1/survey_files.py
+@@ -50,10 +50,12 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
+         self.write_schema(X.RECORD_SCHEMA.locate(ctx))
+         print("통독 캐시 — 파일 %d개의 개요를 미리 썼다" % self.prefill_cache(ctx.repo, plan), flush=True)
+         ctx.baseline = self.load_records(X.READING.locate(ctx))
+-        ctx.merged = self.merge_shards(d, ctx.baseline)
+-        has_nonnode = any(L.get("kind") == "non-node" for L in plan["layers"])
++        terms = survey_plan.listed_terms(plan)
++        ctx.merged = self.merge_shards(d, ctx.baseline, terms)
++        nonnode = [L for L in plan["layers"] if L.get("kind") == "non-node"]
++        kind_of: dict[str, SessionKind] = {s["id"]: self.layer_kind(L) for L in nonnode for s in L.get("sessions", [])}
+         print("조사 세션 예상 %d개 (파일 %d + 비노드 %d · 2패스는 표가 정한다)"
+-              % (len(batches) + int(has_nonnode), len(batches), int(has_nonnode)), flush=True)
++              % (len(batches) + len(kind_of), len(batches), len(kind_of)), flush=True)
+ 
+         rows: list[M.StageRow] = []
+         queued: set[str] = set()          # 2패스를 넣은 배치 id
+@@ -62,14 +64,14 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
+         running: dict[Future[AgentRun], str] = {}
+ 
+         def submit(label: str, prompt: str) -> None:
+-            # 이 전략에는 라운드가 없다. 라벨의 꼴이 세션의 종류를 가른다 — `<배치 id>/p2` · 배치 id · 그 밖(비노드).
+-            kind: SessionKind = "pass2" if label.endswith("/p2") else "batch" if label in batches else "nonnode"
++            # 이 전략에는 라운드가 없다. 라벨이 세션의 종류를 가른다 — `<배치 id>/p2` · 비노드 세션의 이름 · 그 밖(배치 id).
++            kind: SessionKind = "pass2" if label.endswith("/p2") else kind_of.get(label, "batch")
+             fut = pool.submit(P.run_agent_with, self.model(ctx), ctx.repo, ctx.root, prompt, ctx.timeout, label,
+                               self.kind_args(ctx, kind))
+             running[fut] = label
+ 
+         def write_merged() -> None:
+-            ctx.merged = self.merge_shards(d, ctx.baseline)
++            ctx.merged = self.merge_shards(d, ctx.baseline, terms)
+             jsonio.write_json_atomic(X.READING.locate(ctx), ctx.merged, indent=1, sort_keys=True)
+             table = self.unresolved_rows(ctx.merged, weight, into, known=set(ctx.merged), queued=queued)
+             with open(X.UNRESOLVED.locate(ctx), "w", encoding="utf-8") as f:
+@@ -147,8 +149,12 @@ class AnnotateFilesStage(AnnotateSymbolsStage):
+                     outlines=self.outline_rows(ctx.repo, b), **self.retry_inputs(d, bid))
+                 submit(bid, prompt)
+             drain()
+-            if not failed and has_nonnode and not os.path.exists(os.path.join(d, "NONNODE.json")):
+-                submit("NONNODE", self.nonnode_prompt(ctx.repo, ctx.root))
++            for layer in nonnode:       # 비노드 층은 차례로 돈다 — 둘째 층의 프롬프트가 첫 층이 쓴 file 레코드를 싣는다
++                if failed:
++                    break
++                for sid, prompt in self.nonnode_jobs(ctx, layer):
++                    if not os.path.exists(os.path.join(d, sid + ".json")):
++                        submit(sid, prompt)
+                 drain()
+         pool.shutdown(wait=True)
+ 
+diff --git a/src/codewiki/python/runner/run_mode1.py b/src/codewiki/python/runner/run_mode1.py
+index 2ba3621..56dafc6 100644
+--- a/src/codewiki/python/runner/run_mode1.py
++++ b/src/codewiki/python/runner/run_mode1.py
+@@ -30,7 +30,7 @@
+ 
+ **층 축은 "의존을 몇 개 갖는가"(out_deg)가 아니라 "얼마나 깊은가"(위상 깊이)다(K1).**
+ 의존 하나만 가진 심볼도 그 하나가 3층이면 4층이다. 같은 층은 서로 의존하지 않으므로
+-병렬로 읽는다(K2 · K4). 배치는 8심볼(K3), 비노드 용어는 맨 마지막 층(K5), 위키도 같은
++병렬로 읽는다(K2 · K4). 배치는 8심볼(K3), 비노드 용어는 맨 마지막의 두 층(K5), 위키도 같은
+ 층 순서(K6), 고립 노드는 층0(K7)이다.
+ 
+ **지문 확정(`snapshot-sources`)은 `annotate-symbols` 바로 뒤다.** 관문이 감싸야 하는 것은
+@@ -63,13 +63,13 @@
+ ## 세션 인자는 단계가 정한다
+ 
+ 세션의 권한과 세션이 시작할 때 싣는 것은 LLM 단계의 `session_args` 훅이 정하고, 그 값이 `run_layer` -> `run_agent_with` ->
+-`measure.claude_argv` 로 간다. 전수조사와 언어 판별은 격리 인자(`measure.ISOLATED`)를 붙여 내장 도구 셋만 싣고 설정 · 스킬 ·
++`measure.claude_argv` 로 간다. 전수조사와 언어 판별은 격리 인자(`measure.isolated`)를 붙여 내장 도구 셋(둘째 비노드 층은 `Grep` 까지 넷)만 싣고 설정 · 스킬 ·
+ 연결 서버 없이 뜬다. 위키 단계는 훅을 재정의하지 않아 기본값(`measure.OPEN_SESSION`) 그대로다.
+ 
+-전수조사의 배치 · 2패스 세션과 언어 판별 세션은 묻는 호출을 전부 거절하는 권한 방식(`measure.allow_only`)으로 뜬다. 배치 · 2패스 세션에
++전수조사 세션(배치 · 비노드 · 2패스)과 언어 판별 세션은 묻는 호출을 전부 거절하는 권한 방식(`measure.allow_only`)으로 뜬다. 전수조사 세션에
+ 허용되는 것은 샤드 폴더에 쓰기와 `AnnotateSymbolsStage.session_calls` 가 내는 명령뿐이고, 같은 목록이 프롬프트의 알림 절
+-(`annotate-symbols#allowed`)로도 실린다. 언어 판별 세션은 허용 규칙이 없다. 비노드 세션은 허용 규칙 아래에 있지 않다 — 격리 인자만 받고
+-프롬프트에 알림이 없다. 종류마다의 인자는 `AnnotateSymbolsStage.kind_args` 가 정한다. CLI 가 거절한 호출의 수는 그 세션 행의 `denied` 에
++(`annotate-symbols#allowed`)로도 실린다. 둘째 비노드 층의 세션(`module` · `artifact` · `key` · `concept`)은 내장 도구 `Grep` 과 그 허용 규칙을
++더 받는다. 언어 판별 세션은 허용 규칙이 없다. 종류마다의 인자는 `AnnotateSymbolsStage.kind_args` 가 정한다. CLI 가 거절한 호출의 수는 그 세션 행의 `denied` 에
+ 남고 보고 끝에 `거절된 호출` 줄로 나온다.
+ 
+ ## 재는 자리 넷
+@@ -269,8 +269,9 @@ def main(argv: Sequence[str] | None = None) -> int:
+         if "schedule-batches" in graph.order and os.path.exists(cg):
+             narrowed = None if cold else (d["targets"] if d else None)
+             cg_doc = cast(survey_plan.CodeGraph, P.load(cg, X.CodeGraphDoc))
+-            미리 = (survey_plan.plan_by_file(cg_doc) if ctx.strategy == "file"
+-                  else survey_plan.plan(cg_doc, ctx.target, only_files=narrowed))
++            cap = X.load_config()["survey"]["file_session_symbols"]
++            미리 = (survey_plan.plan_by_file(cg_doc, file_cap=cap) if ctx.strategy == "file"
++                  else survey_plan.plan(cg_doc, ctx.target, only_files=narrowed, file_cap=cap))
+             print("\n층 계획 (기계가 결정론으로 낸다)%s" % (" — diff 로 좁힘" if narrowed else ""))
+             for line in ScheduleBatchesStage.plan_summary(미리):
+                 print(line)
+diff --git a/src/core/README.md b/src/core/README.md
+index e113594..d0636a3 100644
+--- a/src/core/README.md
++++ b/src/core/README.md
+@@ -42,6 +42,7 @@
+ | `usage_gap` | `(usage: Usage) -> int` | `usage` 합계가 Model 별 누계보다 덜 적힌 토큰 수. 선을 넘지 않거나 누계가 없으면 0. |
+ | `result_text` | `(result: ClaudeResult) -> str` | CLI 가 `result` 칸에 적은 글을 한 줄 · 200자까지로. 없으면 빈 글. |
+ | `agent_verdict` | `(returncode: int, result: ClaudeResult \| None) -> tuple[bool, str]` | 에이전트가 정말 해냈는가. `(성공인가, 아니라면 왜)` 를 낸다. |
++| `isolated` | `(more_tools: Sequence[str] = ()) -> tuple[str, ...]` | 세션이 시작할 때 싣는 것을 줄이는 인자 넷 — 내장 도구는 `Bash` · `Read` · `Write` 와 `more_tools` 만 · |
+ | `allow_only` | `(rules: Iterable[str]) -> tuple[str, ...]` | 묻는 호출을 전부 거절하고 `rules` 에 맞는 호출만 돌리는 권한 인자. `OPEN_SESSION` 자리에 쓴다. |
+ | `claude_argv` | `(model: str, repo: str, extra_dirs: Iterable[str], session_args: Sequence[str] = OPEN_SESSION) -> list[str]` | 헤드리스 `claude` 명령줄. 프롬프트는 여기 싣지 않는다 — 표준 입력으로 준다. |
+ | `hms` | `(seconds: float) -> str` | 초를 사람이 읽는 꼴로. 재는 것이 목적이라 소수 첫째 자리까지 남긴다. |
+diff --git a/src/core/measure.py b/src/core/measure.py
+index 1f3a7ce..aba9a6d 100644
+--- a/src/core/measure.py
++++ b/src/core/measure.py
+@@ -176,10 +176,15 @@ def agent_verdict(returncode: int, result: ClaudeResult | None) -> tuple[bool, s
+ # 세션 인자의 기본값. 권한을 묻지 않고 모든 호출을 허용한다 — 단계가 `LlmStage.session_args` 를 재정의하지 않으면 이것이 실린다.
+ OPEN_SESSION: tuple[str, ...] = ("--permission-mode", "bypassPermissions")
+ 
+-# 세션이 시작할 때 싣는 것을 줄이는 인자 넷 — 내장 도구는 셋만 · 연결 서버 없음 · 스킬과 명령 없음 · 설정 파일 없음.
+-# 권한 인자 뒤에 이어 붙인다.
+-ISOLATED: tuple[str, ...] = ("--tools", "Bash,Read,Write", "--strict-mcp-config", "--disable-slash-commands",
+-                             "--setting-sources", "")
++def isolated(more_tools: Sequence[str] = ()) -> tuple[str, ...]:
++    """세션이 시작할 때 싣는 것을 줄이는 인자 넷 — 내장 도구는 `Bash` · `Read` · `Write` 와 `more_tools` 만 ·
++    연결 서버 없음 · 스킬과 명령 없음 · 설정 파일 없음. 권한 인자 뒤에 이어 붙인다."""
++    return ("--tools", ",".join(("Bash", "Read", "Write", *more_tools)), "--strict-mcp-config",
++            "--disable-slash-commands", "--setting-sources", "")
++
++
++# 내장 도구를 더하지 않은 격리 인자.
++ISOLATED: tuple[str, ...] = isolated()
+ 
+ 
+ def allow_only(rules: Iterable[str]) -> tuple[str, ...]:
+diff --git a/test/codewiki/test_mode1.py b/test/codewiki/test_mode1.py
+index f2948e3..459b542 100644
+--- a/test/codewiki/test_mode1.py
++++ b/test/codewiki/test_mode1.py
+@@ -231,6 +231,38 @@ def _plan_with(files: list[str]) -> survey_plan.SurveyPlan:
+             "totals": {"symbols": len(syms), "edges": 0, "levels": 1, "cyclic_symbols": 0}}
+ 
+ 
++def _nonnode_plan() -> survey_plan.SurveyPlan:
++    """심볼 둘(파일 둘 · 폴더 둘)과 지도의 모듈 하나로 `plan` 이 지은 계획 — 배치 하나에 비노드 층 둘이 딸린다."""
++    cg = {"nodes": [
++        {"id": "a", "name": "pkg.a.f", "kind": "function", "file": "src/pkg/a.py", "line": 1, "module": "pkg"},
++        {"id": "b", "name": "pkg.sub.b.g", "kind": "function", "file": "src/pkg/sub/b.py", "line": 1, "module": "pkg.sub"}],
++        "edges": [], "modules": [{"id": "pkg", "files": ["src/pkg/a.py"]}]}
++    return survey_plan.plan(cast(survey_plan.CodeGraph, cg))
++
++
++def _session(plan: survey_plan.SurveyPlan, sid: str) -> survey_plan.PlanSession:
++    return next(x for L in plan["layers"] for x in L.get("sessions", []) if x["id"] == sid)
++
++
++def _nonnode_shards(plan: survey_plan.SurveyPlan) -> dict[str, dict[str, object]]:
++    """비노드 세션마다 검문을 지나는 샤드 — 목록이 있는 세션은 그 키 전부, 이름난 종류의 세션은 빈 샤드."""
++    terms = {t["key"]: t for t in survey_plan.listed_terms(plan)}
++    return {x["id"]: {k: {**_good_record(), "kind": terms[k]["kind"], "module": terms[k]["module"],
++                          "where": terms[k]["where"], "means": k + " 뜻", "uses": []} for k in x["keys"]}
++            for L in plan["layers"] for x in L.get("sessions", [])}
++
++
++def _nonnode_prompt(sid: str = "NONNODE-FILE-00", repo: str = "/repo", root: str = "/root",
++                    faults: Sequence[str] = (), bad: str = "") -> str:
++    """`_nonnode_plan` 의 세션 하나의 프롬프트. 재료는 계획에서만 뽑는다 — 합친 레코드는 비어 있다."""
++    S = SV.AnnotateSymbolsStage
++    plan = _nonnode_plan()
++    x = _session(plan, sid)
++    if x["kind"] == "file":
++        return S.nonnode_prompt(repo, root, x, rows=S.file_rows(plan, x, {}), faults=faults, bad=bad)
++    return S.nonnode_prompt(repo, root, x, summaries=S.summary_rows({}), modules=S.module_rows(plan), faults=faults, bad=bad)
++
++
+ def test_기계_단계_다섯은_저장소를_cwd_로_한다(tmp_path: Path):
+     c = _ctx(tmp_path)
+     for st in (G.CollectGraphStage(), T.VerifyTermsStage(), W.PublishWikiStage(), W.VerifyWikiStage()):
+@@ -256,14 +288,16 @@ def test_schedule_batches_는_diff_의_targets_로_좁힌다(tmp_path: Path, mon
+     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+     seen: dict[str, object] = {}
+ 
+-    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
+-        seen["only"] = only_files
++    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None,
++                  file_cap: int | None = None) -> survey_plan.SurveyPlan:
++        seen["only"], seen["cap"] = only_files, file_cap
+         return _plan_with([])
+     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+     c.targets = ["x.py"]
+     _verified(c)
+     out = G.ScheduleBatchesStage().perform(c)
+     assert out.kind == P.OK and seen["only"] == ["x.py"] and c.plan is not None
++    assert seen["cap"] == X.load_config()["survey"]["file_session_symbols"] == 250     # file 세션의 상한은 설정이 준다
+     assert (raw / "batches.json").exists()
+     assert G.VerifiedGraph.gate(c, need_batches=True)[0] == ""      # 배치에 지도의 지문이 찍혀 있다
+     assert c.plan.get("generation_id") == "g1"                      # 성공 기록의 generation 도 찍혀 있다
+@@ -1139,10 +1173,11 @@ def test_샤드_검문은_계획의_배치마다_파일을_찾는다(tmp_path: P
+     plan = _one_batch_plan("L0-B00")
+     plan["layers"][0]["batches"].append({"id": "L0-B01", "files": ["n.py"], "symbols": []})
+     plan["layers"][0]["batches"].append({"id": "L0-B02", "files": ["o.py"], "symbols": []})
+-    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
++    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": [],
++                           "sessions": [{"id": "NONNODE-KEY", "kind": "key", "keys": []}]})
+     (d / "L0-B00.json").write_text(json.dumps({"f": _good_record()}), encoding="utf-8")
+     (d / "L0-B01.json").write_text('{"g": {"means": "a "b" c"}}', encoding="utf-8")
+-    (d / "NONNODE.json").write_text(json.dumps({"m.py": {**_good_record(), "kind": "file"}}), encoding="utf-8")
++    (d / "NONNODE-KEY.json").write_text(json.dumps({"칸": {**_good_record(), "kind": "key"}}), encoding="utf-8")
+     bad = SV.AnnotateSymbolsStage.check_shards(str(d), plan)
+     assert sorted(bad) == ["L0-B01", "L0-B02"]
+     assert bad["L0-B01"][0]["kind"] == "malformed" and bad["L0-B02"][0]["kind"] == "missing"
+@@ -1171,7 +1206,7 @@ def test_스키마_파일은_읽기_전용이고_다시_쓸_수_있다(tmp_path:
+ def test_프롬프트_둘은_스키마_파일을_가리킨다():
+     b = _one_batch_plan()["layers"][0]["batches"][0]
+     assert "record-schema.json" in SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+-    assert "record-schema.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
++    assert all("record-schema.json" in _nonnode_prompt(sid) for sid in survey_plan.session_ids(_nonnode_plan())[1:])
+ 
+ 
+ def test_annotate_symbols_는_끝에_샤드_전량을_검문하고_틀리면_FAIL(tmp_path: Path):
+@@ -1368,7 +1403,8 @@ def test_프롬프트_둘은_자가검사_명령을_준다():
+     b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+     p = SV.AnnotateSymbolsStage.survey_batch_prompt("/repo", "/root", b, [])
+     assert "/root/src/codewiki/python/runner/check_shard.py /repo/out/codegraph-raw/_shards/L0-B00.json" in p
+-    assert "check_shard.py /repo/out/codegraph-raw/_shards/NONNODE.json" in SV.AnnotateSymbolsStage.nonnode_prompt("/repo", "/root")
++    for sid in survey_plan.session_ids(_nonnode_plan())[1:]:
++        assert "check_shard.py /repo/out/codegraph-raw/_shards/%s.json\n" % sid in _nonnode_prompt(sid)
+ 
+ 
+ def test_검문이_통과한_배치의_옛_격리_흔적은_치운다(tmp_path: Path):
+@@ -1461,6 +1497,53 @@ def test_check_shard_명령은_옆의_batches_json_이_있으면_coverage_도_
+     assert r.returncode == 1 and "[coverage]" in r.stdout and "f" in r.stdout
+ 
+ 
++def test_coverage_검문은_비노드_세션의_샤드도_맡은_키와_대조한다():
++    S = SV.AnnotateSymbolsStage
++    plan = _nonnode_plan()
++    good = _nonnode_shards(plan)
++    taken = "기계 목록의 키다 — file · module 세션이 쓴다"
++
++    def faults(sid: str, shard: dict[str, object]) -> list[tuple[str, str]]:
++        return [(f["at"], f["detail"]) for f in S.check_coverage(json.dumps(shard).encode(), plan, sid, "/s/x.json")]
++
++    assert [sid for sid, shard in good.items() if faults(sid, shard)] == []
++    files = good["NONNODE-FILE-00"]
++    assert faults("NONNODE-FILE-00", {"a.py": files["a.py"], "c.py": files["b.py"]}) == [
++        ("b.py", "계획에 있는데 샤드에 없다"), ("c.py", "샤드에 있는데 계획에 없다")]
++    assert faults("NONNODE-MODULE", {"pkg": good["NONNODE-MODULE"]["pkg"]}) == [("pkg.sub", "계획에 있는데 샤드에 없다")]
++    concept = {**_good_record(), "kind": "concept"}
++    assert faults("NONNODE-CONCEPT", {"층": concept}) == []                  # 이름난 종류의 키는 세션이 고른다
++    assert faults("NONNODE-CONCEPT", {"층": concept, "pkg": concept, "a.py": concept}) == [("a.py", taken), ("pkg", taken)]
++    assert faults("없는-세션", {"pkg": concept}) == []                       # 계획에 없는 세션은 대조하지 않는다
++
++
++def test_층_끝_검문과_check_shard_명령은_비노드_샤드의_coverage_도_본다(tmp_path: Path):
++    import subprocess
++    tool = os.path.join(ROOT, "src", "codewiki", "python", "runner", "check_shard.py")
++    raw = tmp_path / "out" / "codegraph-raw"; (raw / "_shards").mkdir(parents=True)
++    plan = _nonnode_plan()
++    (raw / "batches.json").write_text(json.dumps(plan))
++    shards: dict[str, dict[str, object]] = {
++        "L0-B00": {"pkg.a.f": _rec("src/pkg/a.py:1"), "pkg.sub.b.g": _rec("src/pkg/sub/b.py:1")}, **_nonnode_shards(plan)}
++    del shards["NONNODE-FILE-00"]["b.py"]
++    shards["NONNODE-KEY"]["pkg"] = {**_good_record(), "kind": "key"}
++    for sid, shard in shards.items():
++        (raw / "_shards" / (sid + ".json")).write_text(json.dumps(shard), encoding="utf-8")
++    bad = SV.AnnotateSymbolsStage.check_shards(str(raw / "_shards"), plan)
++    assert {sid: [(f["kind"], f["at"]) for f in faults] for sid, faults in bad.items()} == {
++        "NONNODE-FILE-00": [("coverage", "b.py")], "NONNODE-KEY": [("coverage", "pkg")]}
++    no = subprocess.run([sys.executable, tool, str(raw / "_shards" / "NONNODE-KEY.json")], capture_output=True, text=True)
++    assert no.returncode == 1 and "[coverage] pkg — 기계 목록의 키다 — file · module 세션이 쓴다" in no.stdout
++    ok = subprocess.run([sys.executable, tool, str(raw / "_shards" / "NONNODE-MODULE.json")], capture_output=True, text=True)
++    assert ok.returncode == 0 and "통과" in ok.stdout
++
++
++def test_coverage_의_고치는_법은_배치에도_비노드_세션에도_맞는_말이다():
++    assert SV.AnnotateSymbolsStage.FIX["coverage"] == (
++        "네가 맡은 목록과 샤드의 키를 하나씩 대조한다 — 배치는 심볼 목록, file · module 세션은 키 목록이다. "
++        "빠진 것은 채워 넣고, 목록에 없는 것과 다른 세션이 맡은 키는 뺀다.")
++
++
+ # ── 결함 줄과 결함 설명의 바이트 ─────────────────────────────────────────────
+ 
+ def test_결함_줄은_갈래_자리_설명_한_줄과_들여쓴_고치는_법_한_줄이다():
+@@ -1493,6 +1576,13 @@ def test_결함_설명_넷은_검문_결과와_격리_사유에_글자_그대로
+         assert all(f["detail"].encode("utf-8") in raw for f in faults)
+ 
+ 
++def test_빈_where_는_없는_where_와_같은_결함이고_module_은_비워도_된다():
++    raw = json.dumps({"a.py": {**_good_record(), "kind": "file", "where": ""},
++                      "pkg": {**_good_record(), "kind": "module", "where": ""}}).encode()
++    got = SV.AnnotateSymbolsStage.check_shard(raw, "B", "p")
++    assert [(f["kind"], f["at"], f["detail"]) for f in got] == [("where", "a.py", "where 없음 (kind file)")]
++
++
+ def test_check_shard_명령은_결함_줄과_불평_수를_그대로_찍는다(tmp_path: Path):
+     import subprocess
+     tool = os.path.join(ROOT, "src", "codewiki", "python", "runner", "check_shard.py")
+@@ -1618,16 +1708,18 @@ def test_재조사_절은_역할_소개_아래_범위와_미조사_절은_심볼
+ 
+ 
+ def test_비노드_프롬프트도_재조사_절을_역할_소개_아래에_싣는다(tmp_path: Path):
+-    c = _ctx(tmp_path); c.cold = True; c.plan = _one_batch_plan("L0-B00")
+-    c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
++    c = _ctx(tmp_path); c.cold = True; c.plan = _nonnode_plan()
+     d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+     first = SV.AnnotateSymbolsStage().jobs(c, 1)[0][1]
+     assert "## 지난 시도" not in first
+-    SV.AnnotateSymbolsStage.quarantine(str(d), "NONNODE", [_fault("missing", "-")])
++    SV.AnnotateSymbolsStage.quarantine(str(d), "NONNODE-FILE-00", [_fault("missing", "-")])
+     [(label, again)] = SV.AnnotateSymbolsStage().jobs(c, 1)
+     i, j = again.index("## 지난 시도"), again.index("## 심볼은 이미 전부 끝났다")
+-    assert label == "NONNODE" and again[:i] + again[j:] == first
+-    assert again.endswith("\n\n보고: 종류별 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.\n")
++    assert label == "NONNODE-FILE-00" and again[:i] + again[j:] == first
++    assert again.endswith("\n\n보고: 레코드 수 · confidence 분포 · 근거를 못 찾아 뺀 것과 이유.\n")
++    SV.AnnotateSymbolsStage.quarantine(str(d), "NONNODE-KEY", [_fault("missing", "-")])
++    second = dict(SV.AnnotateSymbolsStage().jobs(c, 2))       # 되돌려진 세션만 재조사 절을 받는다
++    assert [sid for sid, pr in second.items() if "## 지난 시도" in pr] == ["NONNODE-KEY"]
+ 
+ 
+ def test_재조사_절은_결함_줄마다_모든_줄을_두_칸_들여_싣는다():
+@@ -1643,12 +1735,63 @@ def test_배치와_비노드의_재조사_절은_글자까지_같다():
+     b = _one_batch_plan("F00")["layers"][0]["batches"][0]
+     lines = [S.fault_line(_fault("where", "a.f")), S.fault_line(_fault())]
+     batch = S.survey_batch_prompt("/repo", "/root", b, [], faults=lines, bad="/s/F00.json.bad")
+-    nonnode = S.nonnode_prompt("/repo", "/root", lines, "/s/F00.json.bad")
++    listed = _nonnode_prompt("NONNODE-FILE-00", faults=lines, bad="/s/F00.json.bad")
++    named = _nonnode_prompt("NONNODE-CONCEPT", faults=lines, bad="/s/F00.json.bad")
+ 
+     def retry_block(p: str, next_head: str) -> str:
+         return p[p.index("## 지난 시도가 되돌려졌다"):p.index(next_head)]
+ 
+-    assert retry_block(batch, "## 너보다 아래층은 이미 끝났다") == retry_block(nonnode, "## 심볼은 이미 전부 끝났다")
++    assert retry_block(batch, "## 너보다 아래층은 이미 끝났다") == retry_block(listed, "## 심볼은 이미 전부 끝났다") \
++        == retry_block(named, "## 심볼과 파일은 이미 전부 끝났다")
++
++
++def test_file_세션의_프롬프트는_맡은_키마다_기계가_정한_칸과_그_파일_심볼의_뜻을_싣는다():
++    S = SV.AnnotateSymbolsStage
++    plan = _nonnode_plan()
++    x = _session(plan, "NONNODE-FILE-00")
++    rows = S.file_rows(plan, x, {"pkg.a.f": {"means": "에프 뜻"}})
++    assert rows == [
++        {"key": "a.py", "module": "pkg", "where": "src/pkg/a.py:1", "symbols": [{"name": "pkg.a.f", "means": "에프 뜻"}]},
++        {"key": "b.py", "module": "pkg.sub", "where": "src/pkg/sub/b.py:1", "symbols": [{"name": "pkg.sub.b.g", "means": ""}]}]
++    p = S.nonnode_prompt("/repo", "/root", x, rows=rows)
++    assert "## 네가 맡은 것 — `file` 레코드 2개\n" in p
++    assert ("\n- 키 `a.py` · kind `file` · module `pkg` · where `src/pkg/a.py:1`\n    - pkg.a.f — 에프 뜻\n"
++            "- 키 `b.py` · kind `file` · module `pkg.sub` · where `src/pkg/sub/b.py:1`\n    - pkg.sub.b.g — (뜻 없음)\n\n## 금지") in p
++    assert "**소스도 /repo/docs/codegraph/terms-reading.json 도 열지 않는다**" in p
++    assert "/repo/out/codegraph-raw/_shards/NONNODE-FILE-00.json      꼴은" in p
++    half = dict(x, keys=["b.py"])                                    # 세션은 맡은 키의 줄만 받는다
++    assert [r["key"] for r in S.file_rows(plan, cast(survey_plan.PlanSession, half), {})] == ["b.py"]
++
++
++def test_둘째_층의_프롬프트는_파일_색인을_싣고_module_세션은_제_줄을_이름난_종류는_제_표_한_줄을_싣는다():
++    S = SV.AnnotateSymbolsStage
++    plan = _nonnode_plan()
++    merged: dict[str, dict[str, object]] = {
++        "b.py": {"kind": "file", "where": "src/pkg/sub/b.py:1", "means": ""},
++        "a.py": {"kind": "file", "where": "src/pkg/a.py:1", "means": "에이 파일"},
++        "pkg.a.f": {"kind": "function", "where": "src/pkg/a.py:1", "means": "에프 뜻"}}
++    summaries, modules = S.summary_rows(merged), S.module_rows(plan)
++    assert summaries == [{"key": "a.py", "path": "src/pkg/a.py", "means": "에이 파일"},
++                         {"key": "b.py", "path": "src/pkg/sub/b.py", "means": ""}]
++    assert modules == [{"key": "pkg", "files": ["a.py"], "children": ["pkg.sub"]},
++                       {"key": "pkg.sub", "files": ["b.py"], "children": []}]
++    index = "\n  - `a.py` src/pkg/a.py — 에이 파일\n  - `b.py` src/pkg/sub/b.py — (뜻 없음)\n\n## 네가 맡은 것"
++    prompts = {sid: S.nonnode_prompt("/repo", "/root", _session(plan, sid), summaries=summaries, modules=modules)
++               for sid in ("NONNODE-MODULE", "NONNODE-ARTIFACT", "NONNODE-KEY", "NONNODE-CONCEPT")}
++    assert all(index in p and "_shards/%s.json      꼴은" % sid in p for sid, p in prompts.items())
++    module = prompts["NONNODE-MODULE"]
++    assert "## 네가 맡은 것 — `module` 레코드 2개\n" in module and "where 는 빈 글 `\"\"` 로 둔다" in module
++    assert ("\n- 키 `pkg` · kind `module` · module `pkg`\n    바로 든 파일: a.py\n    아래 모듈: pkg.sub\n"
++            "- 키 `pkg.sub` · kind `module` · module `pkg.sub`\n    바로 든 파일: b.py\n    아래 모듈: 없음\n\n## 금지") in module
++    for kind in ("artifact", "key", "concept"):
++        p = prompts["NONNODE-" + kind.upper()]
++        table = [ln for ln in p.splitlines() if ln.startswith("| `")]
++        assert len(table) == 1 and table[0].startswith("| `%s` |" % kind), kind
++        assert "**`%s` 는 이름이 그 줄에 글자 그대로 있어야 한다**" % kind in p
++        assert "**이 이름으로는 레코드를 쓰지 않는다**:\n\n  - pkg\n  - pkg.sub\n\n## 금지" in p    # 기계 목록의 키는 쓰지 않는다
++        assert ("코드에 글자로 없는 것을 만들지 않는다" in p) == (kind == "concept")
++    assert "| `artifact` | 이 저장소가 **만들어 내는** 파일 | 그 이름이 글자로 적힌 줄 — 파일을 **쓰는** 줄에 이름이 있으면 그 줄, " \
++           "없으면 그 경로를 **정하는** 줄 |" in prompts["NONNODE-ARTIFACT"]
+ 
+ 
+ def test_빈_목록과_빈_값은_대체_글을_싣는다():
+@@ -1677,8 +1820,9 @@ def test_빠진_절은_빈_줄을_남기지_않는다():
+                 S.survey_batch_prompt("/repo", "/root", b, [], targets=["a.py"], total=2),
+                 S.survey_batch_prompt("/repo", "/root", b, [], pending=[{"name": "c", "kind": "k", "file": "c.py", "line": "1"}]),
+                 S.survey_batch_prompt("/repo", "/root", b, [], faults=[fault], bad="/s/b"),
+-                S.nonnode_prompt("/repo", "/root"), S.nonnode_prompt("/repo", "/root", [fault], "/s/b"),
+                 S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
++    for sid in survey_plan.session_ids(_nonnode_plan())[1:]:
++        variants += [_nonnode_prompt(sid), _nonnode_prompt(sid, faults=[fault], bad="/s/b")]
+     assert [i for i, v in enumerate(variants) if "\n\n\n" in v or v.endswith("\n\n") or not v.endswith("\n")] == []
+ 
+ 
+@@ -1778,6 +1922,41 @@ def test_dropped_csv_머리줄과_label_의_따옴표():
+                                  "a.py,a.f,subprocess.run,\"runs 'x'\",a.py:3,unknown-target"]
+ 
+ 
++def _listed_terms() -> list[survey_plan.PlanTerm]:
++    return [{"key": "a.py", "kind": "file", "module": "pkg", "where": "src/pkg/a.py:1", "files": ["src/pkg/a.py"]},
++            {"key": "pkg", "kind": "module", "module": "pkg", "where": "", "files": ["src/pkg/a.py"]}]
++
++
++def test_병합은_기계_목록의_칸을_충돌_판정_전에_덮는다(tmp_path: Path):
++    """증분 실행 — 지난 실행의 `a.py` 가 있고 세션이 `where` 의 경로를 다르게 적어도 개명하지 않는다."""
++    d = tmp_path / "_shards"; d.mkdir()
++    (d / "NONNODE-FILE-00.json").write_text(json.dumps(
++        {"a.py": {**_rec("a.py:1"), "kind": "file", "module": "엉뚱", "means": "새 글"}}), encoding="utf-8")
++    (d / "NONNODE-MODULE.json").write_text(json.dumps(
++        {"pkg": {**_rec("src/pkg:1"), "kind": "module", "module": "엉뚱"}}), encoding="utf-8")
++    old: X.Records = {"a.py": {**_rec("src/pkg/a.py:1"), "kind": "file", "module": "pkg", "means": "옛 글"}}
++    got = SV.AnnotateSymbolsStage.merge_shards(str(d), old, _listed_terms())
++    assert sorted(got) == ["a.py", "pkg"]
++    assert [got["a.py"][k] for k in ("kind", "module", "where", "means")] == ["file", "pkg", "src/pkg/a.py:1", "새 글"]
++    assert [got["pkg"][k] for k in ("kind", "module", "where")] == ["module", "pkg", ""]
++    assert sorted(SV.AnnotateSymbolsStage.merge_shards(str(d), old)) == ["a.a.py", "pkg"]     # 목록이 없으면 경로가 달라 개명한다
++
++
++def test_병합은_지난_실행의_레코드에도_기계_목록의_칸을_덮는다(tmp_path: Path):
++    """파일이 옮겨져 지난 레코드의 `where` 가 낡았어도 같은 키의 새 레코드가 그 자리를 갈아 끼운다."""
++    d = tmp_path / "_shards"; d.mkdir()
++    (d / "NONNODE-FILE-00.json").write_text(json.dumps(
++        {"a.py": {**_rec("src/pkg/a.py:1"), "kind": "file", "means": "새 글"}}), encoding="utf-8")
++    old: X.Records = {"a.py": {**_rec("old/a.py:1"), "kind": "file", "means": "옛 글"}}
++    got = SV.AnnotateSymbolsStage.merge_shards(str(d), old, _listed_terms())
++    assert {k: (r["where"], r["means"]) for k, r in got.items()} == {"a.py": ("src/pkg/a.py:1", "새 글")}
++
++
++def test_overlay_terms_는_file_과_module_이_아닌_레코드를_건드리지_않는다():
++    got: X.Records = {"pkg": {**_rec("src/pkg/a.py:7"), "kind": "class"}, "b.py": {**_rec("b.py:1"), "kind": "file"}}
++    assert SV.AnnotateSymbolsStage.overlay_terms(got, _listed_terms()) == got
++
++
+ def test_refresh_merged_는_보정본을_reading_과_dropped_csv_로_쓴다(tmp_path: Path):
+     c = _ctx(tmp_path); c.plan = _one_batch_plan("L0-B00")
+     d = Path(SV.AnnotateSymbolsStage.shard_dir(c)); d.mkdir(parents=True)
+@@ -1839,7 +2018,7 @@ def test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면
+         ids["a.py"]: {"a.f": _rec("a.py:1", shallow=["b.g"])},      # 세션이 b.g 를 얕게 썼다고 치자
+         ids["c.py"]: {"c.k": _rec("c.py:1", shallow=["a.f"])},
+         ids["a.py"] + "/p2": {"a.f": _rec("a.py:1", does="다듬음")},
+-        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}},
++        **_nonnode_shards(plan),
+     }
+     calls: list[str] = []
+     monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, calls))
+@@ -1848,7 +2027,7 @@ def test_파일_스케줄러는_가중치_순으로_돌고_shallow_가_풀리면
+     assert calls[:3] == [ids["b.py"], ids["a.py"], ids["c.py"]]            # 가중치 순
+     assert ids["a.py"] + "/p2" in calls                                   # a.f: into=1(c→a) · b.g 가 있다 → 2패스
+     assert ids["c.py"] + "/p2" not in calls                               # c.k: into=0 → 다듬지 않는다
+-    assert calls[-1] == "NONNODE"
++    assert calls[-4:] == ["NONNODE-FILE-00", "NONNODE-ARTIFACT", "NONNODE-KEY", "NONNODE-CONCEPT"]   # file 층이 먼저 끝난다
+     merged = json.loads(Path(X.READING.locate(c)).read_text(encoding="utf-8"))
+     assert merged["a.f"]["does"] == "다듬음" and "shallow" not in merged["a.f"]
+     assert merged["c.k"].get("shallow") == ["a.f"]                         # 남은 shallow 는 그대로
+@@ -1872,14 +2051,14 @@ def test_파일_스케줄러는_틀린_샤드를_격리하고_FAIL_로_끝낸다
+     ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+     shards: dict[str, dict[str, object]] = {
+         ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
+-        ids["c.py"]: {"wrong.key": _rec("c.py:1")}, "NONNODE": {}}
++        ids["c.py"]: {"wrong.key": _rec("c.py:1")}, **_nonnode_shards(plan)}
+     monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, []))
+     out = SF.AnnotateFilesStage().perform(c)
+     assert out.kind == P.FAIL and c.survey_ok is False
+     assert (raw / "_shards" / (ids["c.py"] + ".json.bad")).exists()
+     faults = SV.AnnotateSymbolsStage.load_faults(str(raw / "_shards"), ids["c.py"])
+     assert faults and faults[0]["kind"] == "coverage"
+-    assert "NONNODE" not in [r["stage"].split("/")[-1] for r in out.rows]      # 실패했으면 비노드 세션을 안 띄운다
++    assert [r["stage"] for r in out.rows if "NONNODE" in r["stage"]] == []      # 실패했으면 비노드 세션을 안 띄운다
+ 
+ 
+ def test_파일_스케줄러는_도장이_없는_옛_샤드를_옮기고_그_배치를_다시_돌린다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+@@ -1898,7 +2077,7 @@ def test_파일_스케줄러는_도장이_없는_옛_샤드를_옮기고_그_배
+     stale.write_text(json.dumps(old), encoding="utf-8")
+     shards: dict[str, dict[str, object]] = {
+         ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")},
+-        ids["c.py"]: {"c.k": _rec("c.py:1")}, "NONNODE": {}}
++        ids["c.py"]: {"c.k": _rec("c.py:1")}, **_nonnode_shards(plan)}
+     calls: list[str] = []
+     monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, calls))
+     out = SF.AnnotateFilesStage().perform(c)
+@@ -2168,18 +2347,17 @@ def test_estimate_line_은_세션_수와_비용_범위를_적는다() -> None:
+     assert G.ScheduleBatchesStage.estimate_line(0, cfg, full=True) == "전수조사 세션 0개 · 예상 $0~0 · 전량"
+ 
+ 
+-def test_session_count_는_배치가_없는_층을_한_세션으로_센다() -> None:
++def test_session_count_는_배치와_비노드_층의_세션을_센다() -> None:
+     plan = _plan_with(["a.py"])
+     assert G.ScheduleBatchesStage.session_count(plan) == 1
+-    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+-    assert G.ScheduleBatchesStage.session_count(plan) == 2
++    assert G.ScheduleBatchesStage.session_count(_nonnode_plan()) == 1 + 1 + 4      # 배치 · file 세션 · module 과 이름난 종류 셋
+     assert G.ScheduleBatchesStage.session_count(_empty_plan()) == 0
+ 
+ 
+ def test_계획_요약_합계는_배치와_전수조사_세션을_따로_적는다() -> None:
+-    plan = _plan_with(["a.py"])
+-    plan["layers"].append({"level": 1, "kind": "non-node", "symbol_count": None, "batches": [], "note": ""})
+-    assert G.ScheduleBatchesStage.plan_summary(plan)[-1] == "  합계 — 심볼 1 · 층 1 · 배치 1 · 전수조사 세션 2"
++    assert G.ScheduleBatchesStage.plan_summary(_nonnode_plan())[1:] == [
++        "  층1 — 비노드 용어 file (세션 1개)", "  층2 — 비노드 용어 module · artifact · key · concept (세션 4개)",
++        "  합계 — 심볼 2 · 층 1 · 배치 1 · 전수조사 세션 6"]
+ 
+ 
+ def test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다(
+@@ -2188,7 +2366,8 @@ def test_schedule_batches_는_끝에_예상_비용_한_줄을_찍는다(
+     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+ 
+-    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
++    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None,
++                  file_cap: int | None = None) -> survey_plan.SurveyPlan:
+         return _plan_with(["x.py"])
+     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+     cfg = X.load_config()["estimate"]
+@@ -2206,7 +2385,8 @@ def test_schedule_batches_는_좁혀지지_않은_계획을_전량이라고_찍
+     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+     (raw / "codegraph.json").write_text('{"nodes": [], "edges": []}')
+ 
+-    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None) -> survey_plan.SurveyPlan:
++    def fake_plan(cg: object, target: int = 8, only_files: list[str] | None = None,
++                  file_cap: int | None = None) -> survey_plan.SurveyPlan:
+         return _plan_with(["x.py"])
+     monkeypatch.setattr(G.survey_plan, "plan", fake_plan)
+     assert c.cold is False and c.targets is None        # 증분 그래프인데 diff 가 좁히지 못했다
+@@ -2228,14 +2408,14 @@ def test_dry_run_은_층_계획_뒤에_예상_비용_한_줄을_찍는다(tmp_pa
+         "edges": [{"from": "a", "to": "b", "kind": "dependency", "label": None, "file": "a.py", "line": 1}]}))
+     cfg = X.load_config()["estimate"]
+     tail_text = "  (Ctrl-C 로 멈춤)"
+-    # 심볼 층 둘(배치 하나씩)과 비노드 층(배치 없음 — 한 세션) = 세션 셋
++    # 심볼 층 둘(배치 하나씩) · file 세션 하나 · 이름난 종류 셋(폴더가 없어 module 세션은 없다) = 세션 여섯
+     assert R1.main([str(repo), "--dry-run"]) == 0       # 증분 그래프지만 changes.json 이 없어 계획이 좁혀지지 않는다
+     out = capsys.readouterr().out.rstrip("\n").splitlines()
+-    assert out[-2] == "  합계 — 심볼 2 · 층 2 · 배치 2 · 전수조사 세션 3"
+-    assert out[-1] == G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
++    assert out[-2] == "  합계 — 심볼 2 · 층 2 · 배치 2 · 전수조사 세션 6"
++    assert out[-1] == G.ScheduleBatchesStage.estimate_line(6, cfg, full=True) + tail_text
+     assert R1.main([str(repo), "--dry-run", "--cold"]) == 0
+     assert capsys.readouterr().out.rstrip("\n").splitlines()[-1] == \
+-        G.ScheduleBatchesStage.estimate_line(3, cfg, full=True) + tail_text
++        G.ScheduleBatchesStage.estimate_line(6, cfg, full=True) + tail_text
+     D.write_diff(str(raw / "changes.json"), _diff(["a.py"])["verdicts"], ["a.py"], 1, 2)
+     assert R1.main([str(repo), "--dry-run"]) == 0       # diff 가 좁히면 증분이다
+     out = capsys.readouterr().out.rstrip("\n").splitlines()
+@@ -2514,9 +2694,8 @@ def test_전수조사_프롬프트는_실행기의_해석기를_적는다():
+     b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+     S = SV.AnnotateSymbolsStage
+     batch = S.survey_batch_prompt("/repo", "/root", b, [])
+-    nonnode = S.nonnode_prompt("/repo", "/root")
+     pass2 = S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})
+-    for p in (batch, nonnode, pass2):
++    for p in (batch, _nonnode_prompt("NONNODE-FILE-00"), _nonnode_prompt("NONNODE-MODULE"), pass2):
+         assert sys.executable + " /root/src/codewiki/python/runner/check_shard.py" in p
+         assert "/root/.venv/bin/python" not in p
+ 
+@@ -2551,7 +2730,7 @@ def test_파일_스케줄러도_세션이_끝날_때마다_reading_을_임시_
+     ids = {b["files"][0]: b["id"] for b in plan["layers"][0]["batches"]}
+     shards: dict[str, dict[str, object]] = {
+         ids["b.py"]: {"b.g": _rec("b.py:1")}, ids["a.py"]: {"a.f": _rec("a.py:1")}, ids["c.py"]: {"c.k": _rec("c.py:1")},
+-        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}}}
++        **_nonnode_shards(plan)}
+     monkeypatch.setattr(SF.P, "run_agent_with", _fake_agent(shards, []))
+ 
+     def no_sweep(self: SF.AnnotateFilesStage, ctx: X.Mode1Context, out: P.Outcome) -> P.Outcome:
+@@ -2736,14 +2915,14 @@ def test_파일_전략의_배치_프롬프트도_캐시의_개요를_싣는다(t
+     assert any("     a.py (1줄)\n       1  function  a.f   <- 네 심볼\n" in p for p in prompts)
+ 
+ 
+-def test_배치와_2패스_프롬프트는_샤드를_Write_도구로_쓰라고_하고_비노드_프롬프트는_그러지_않는다():
++def test_전수조사_프롬프트는_어느_종류든_샤드를_Write_도구로_쓰라고_한다():
+     S = SV.AnnotateSymbolsStage
+     b = _one_batch_plan("L0-B00")["layers"][0]["batches"][0]
+-    for p in (S.survey_batch_prompt("/repo", "/root", b, []), S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})):
++    prompts = [S.survey_batch_prompt("/repo", "/root", b, []), S.pass2_prompt("/repo", "/root", "F00", "a.py", {}, {})]
++    prompts += [_nonnode_prompt(sid) for sid in survey_plan.session_ids(_nonnode_plan())[1:]]
++    assert len(prompts) == 7
++    for p in prompts:
+         assert p.count('꼴은 {"키": 레코드}\n\n이 파일은 **Write 도구로** 쓴다. Bash 로 쓰지 않는다.\n') == 1
+-    nonnode = S.nonnode_prompt("/repo", "/root")
+-    assert "Write 도구로" not in nonnode and "Bash 로 쓰지 않는다" not in nonnode
+-    assert '꼴은 {"키": 레코드}\n\n**terms-reading.json 을 고치지 않는다. 커밋하지 않는다.**\n' in nonnode
+ 
+ 
+ def test_배치_프롬프트는_자기_점검을_쓰기_전에_두고_쓴_뒤에는_검문만_남긴다():
+@@ -2757,7 +2936,7 @@ def test_배치_프롬프트는_자기_점검을_쓰기_전에_두고_쓴_뒤에
+     assert at == sorted(at) and all(p.count(h) == 1 for h in order)
+ 
+ 
+-# ── 세션 인자 — 전수조사와 언어 판별 세션은 격리하고, 배치와 2패스 세션은 허용된 호출만 돌린다 ──
++# ── 세션 인자 — 전수조사와 언어 판별 세션은 격리하고, 전수조사 세션은 어느 종류든 허용된 호출만 돌린다 ──
+ 
+ def _규칙(args: Sequence[str]) -> list[str]:
+     """명령줄 조각에서 `--allowedTools` 에 딸린 규칙들 — 다음 `--` 인자 앞까지."""
+@@ -2782,7 +2961,8 @@ def _종류별_프롬프트(repo: str, root: str) -> dict[SV.SessionKind, tuple[
+     batch = _one_batch_plan("F00")["layers"][0]["batches"][0]
+     return {"batch": ("F00", S.survey_batch_prompt(repo, root, batch, [], faults=["[where] f — where 없음"],
+                                                    bad=repo + "/out/codegraph-raw/_shards/F00.json.bad")),
+-            "nonnode": ("NONNODE", S.nonnode_prompt(repo, root)),
++            "file": ("NONNODE-FILE-00", _nonnode_prompt("NONNODE-FILE-00", repo, root)),
++            "named": ("NONNODE-ARTIFACT", _nonnode_prompt("NONNODE-ARTIFACT", repo, root)),
+             "pass2": ("F00", S.pass2_prompt(repo, root, "F00", "a.py", {}, {}))}
+ 
+ 
+@@ -2801,15 +2981,16 @@ def test_배치와_2패스_세션은_묻는_호출을_거절하고_샤드_폴더
+     assert tuple(survey.kind_args(c, "pass2")) == want
+ 
+ 
+-def test_비노드_세션은_허용_규칙_없이_격리_인자만_받고_프롬프트에_알림이_없다(tmp_path: Path):
+-    c = _ctx(tmp_path); c.plan = _one_batch_plan()
+-    c.plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
++def test_비노드_세션도_허용된_호출만_돌고_둘째_층의_세션은_Grep_을_더_받는다(tmp_path: Path):
++    c = _ctx(tmp_path); c.plan = _nonnode_plan()
+     survey = SV.AnnotateSymbolsStage()
+-    assert tuple(survey.session_args(c, 1)) == M.OPEN_SESSION + M.ISOLATED
+-    assert tuple(survey.kind_args(c, "nonnode")) == M.OPEN_SESSION + M.ISOLATED
+-    prompt = SV.AnnotateSymbolsStage.nonnode_prompt(c.repo, c.root)
+-    assert "허용된 호출" not in prompt and "거절" not in prompt
+-    assert prompt.split("\n\n")[1].startswith("## 심볼은 이미 전부 끝났다")
++    head = ("--permission-mode", "dontAsk", "--allowedTools",
++            "Edit(/out/codegraph-raw/_shards/**)", "Bash(%s *)" % _검문_명령(c.root))
++    assert [survey.layer_kind(L) for L in c.plan["layers"]] == ["batch", "file", "named"]
++    assert tuple(survey.session_args(c, 1)) == tuple(survey.kind_args(c, "file")) == head + M.ISOLATED
++    assert tuple(survey.session_args(c, 2)) == tuple(survey.kind_args(c, "named")) == head + ("Grep",) + M.isolated(("Grep",))
++    tools = [list(survey.session_args(c, rnd))[list(survey.session_args(c, rnd)).index("--tools") + 1] for rnd in (1, 2)]
++    assert tools == ["Bash,Read,Write", "Bash,Read,Write,Grep"]      # module 세션도 둘째 층이라 Grep 을 받는다
+ 
+ 
+ def test_언어_판별_세션은_규칙_없이_묻는_호출을_전부_거절하고_위키_세션은_그대로다(tmp_path: Path):
+@@ -2824,25 +3005,22 @@ def test_세션_종류마다_허용된_명령은_제_샤드의_검문_하나이
+     S = SV.AnnotateSymbolsStage
+     shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
+     last = {"batch": shlex.quote(os.path.join(shards, "F00.json")),
+-            "nonnode": shlex.quote(os.path.join(shards, "NONNODE.json")),
++            "file": shlex.quote(os.path.join(shards, "NONNODE-FILE-00.json")),
++            "named": shlex.quote(os.path.join(shards, "NONNODE-ARTIFACT.json")),
+             "pass2": shlex.quote(os.path.join(shards, "_pass2", "F00.json"))}
+     for kind, (name, prompt) in _종류별_프롬프트(c.repo, c.root).items():
+         calls = S.session_calls(kind, c.repo, c.root, name)
+         assert calls == [{"command": _검문_명령(c.root), "last": last[kind]}], kind
+         told = {ln.strip() for ln in prompt.splitlines() if ln.strip().startswith(sys.executable + " ")}
+         assert "file_cache.py" not in prompt, kind
+-        if kind == "nonnode":    # 비노드 절은 규칙 아래에 있지 않아 경로를 그대로 적는다
+-            script = os.path.join(c.root, "src", "codewiki", "python", "runner", "check_shard.py")
+-            assert told == {"%s %s %s" % (sys.executable, script, os.path.join(shards, "NONNODE.json"))}
+-        else:
+-            assert told == {"%s %s" % (x["command"], x["last"]) for x in calls}, kind
++        assert told == {"%s %s" % (x["command"], x["last"]) for x in calls}, kind
+ 
+ 
+ def test_프롬프트가_시키는_명령은_전부_그_세션의_허용_규칙이_덮는다(tmp_path: Path):
+     c = _ctx(tmp_path)
+     survey = SV.AnnotateSymbolsStage()
+     prompts = _종류별_프롬프트(c.repo, c.root)
+-    for kind in ("batch", "pass2"):
++    for kind in prompts:
+         rules = _규칙(survey.kind_args(c, kind))
+         told = [ln.strip() for ln in prompts[kind][1].splitlines() if ln.strip().startswith(sys.executable + " ")]
+         assert told, kind
+@@ -2854,7 +3032,7 @@ def test_허용_규칙_아래의_프롬프트에는_해석기로_시작하지_
+     shell_words = {"ls", "cat", "grep", "rg", "find", "git", "wc", "head", "tail", "sed", "awk", "jq", "cd", "echo",
+                    "python", "python3", "mkdir", "cp", "mv", "rm", "touch", "bash", "sh"}
+     prompts = _종류별_프롬프트(c.repo, c.root)
+-    for kind in ("batch", "pass2"):
++    for kind in prompts:
+         stray = [ln.strip() for ln in prompts[kind][1].splitlines() if ln.split()[:1] and ln.split()[0] in shell_words]
+         assert stray == [], kind
+ 
+@@ -2869,10 +3047,11 @@ def test_경로에_빈칸이_있어도_절차_줄과_알림_줄과_규칙이_같
+     prompts = _종류별_프롬프트(c.repo, c.root)
+     script = os.path.join(c.root, "src", "codewiki", "python", "runner", "check_shard.py")
+     shards = os.path.join(c.repo, "out", "codegraph-raw", "_shards")
+-    shard = {"batch": os.path.join(shards, "F00.json"), "pass2": os.path.join(shards, "_pass2", "F00.json")}
+-    for kind in ("batch", "pass2"):
++    shard = {"batch": os.path.join(shards, "F00.json"), "pass2": os.path.join(shards, "_pass2", "F00.json"),
++             "file": os.path.join(shards, "NONNODE-FILE-00.json"), "named": os.path.join(shards, "NONNODE-ARTIFACT.json")}
++    for kind in prompts:
+         name, prompt = prompts[kind]
+-        notice = S.allowed_notice(S.session_calls(kind, c.repo, c.root, name))
++        notice = S.allowed_notice(S.session_calls(kind, c.repo, c.root, name), search=kind == "named")
+         line = notice.splitlines()[-1].strip()
+         procedure = [ln.strip() for ln in prompt.replace(notice, "").splitlines() if "check_shard.py" in ln]
+         assert procedure == [line], kind
+@@ -2884,10 +3063,10 @@ def test_허용_규칙의_명령은_전부_프롬프트의_절차에도_적혀_
+     c = _ctx(tmp_path)
+     S = SV.AnnotateSymbolsStage
+     prompts = _종류별_프롬프트(c.repo, c.root)
+-    for kind in ("batch", "pass2"):
++    for kind in prompts:
+         name, prompt = prompts[kind]
+         calls = S.session_calls(kind, c.repo, c.root, name)
+-        notice = S.allowed_notice(calls)
++        notice = S.allowed_notice(calls, search=kind == "named")
+         assert prompt.count(notice) == 1, kind
+         procedure = prompt.replace(notice, "")
+         assert [x for x in calls if "%s %s\n" % (x["command"], x["last"]) not in procedure] == [], kind
+@@ -2912,6 +3091,25 @@ def test_알림은_역할_소개_바로_아래에_허용된_명령을_적힌_글
+     assert pass2 == text % (_검문_명령(c.root), shlex.quote(os.path.join(shards, "_pass2", "F00.json")))
+     assert prompts["pass2"][1].split("\n\n")[1].startswith("## 이 세션은 허용된 호출만 돈다")
+     assert pass2 + "\n\n## 소스를 열지 않는다" in prompts["pass2"][1]
++    listed = S.allowed_notice(S.session_calls("file", c.repo, c.root, "NONNODE-FILE-00"))
++    assert listed == text % (_검문_명령(c.root), shlex.quote(os.path.join(shards, "NONNODE-FILE-00.json")))
++    assert listed + "\n\n## 심볼은 이미 전부 끝났다" in prompts["file"][1]
++
++
++def test_Grep_을_받는_세션의_알림은_찾는_일을_Grep_도구로_하라고_적는다(tmp_path: Path):
++    c = _ctx(tmp_path)
++    S = SV.AnnotateSymbolsStage
++    shard = shlex.quote(os.path.join(c.repo, "out", "codegraph-raw", "_shards", "NONNODE-ARTIFACT.json"))
++    named = S.allowed_notice(S.session_calls("named", c.repo, c.root, "NONNODE-ARTIFACT"), search=True)
++    assert named == (
++        "## 이 세션은 허용된 호출만 돈다\n\n"
++        "허용되지 않은 호출은 거절된다. 거절 하나는 그 호출이 막혔다는 뜻이지 그 도구 전체가 막혔다는 뜻이 아니다.\n"
++        "- 파일은 Read 로 읽고, 글자를 찾을 때는 Grep 도구를 쓰고, 샤드는 Write 로 쓴다.\n"
++        "- Bash 는 아래 명령만 돈다. **적힌 글자 그대로, 한 번에 하나씩** 부른다 — "
++        "변수(`P=...`) · `for` · `;` · `&&` · `|` 로 잇지 않는다. 찾는 일도 Bash 로 하지 않는다:\n"
++        "    %s %s") % (_검문_명령(c.root), shard)
++    assert named + "\n\n## 심볼과 파일은 이미 전부 끝났다" in _종류별_프롬프트(c.repo, c.root)["named"][1]
++    assert "Grep 도구" not in _종류별_프롬프트(c.repo, c.root)["file"][1]       # 첫 층은 찾지 않는다
+ 
+ 
+ def test_허용_규칙과_알림은_같은_종류에_함께_실린다(tmp_path: Path):
+@@ -2926,17 +3124,18 @@ def test_허용_규칙과_알림은_같은_종류에_함께_실린다(tmp_path:
+ def test_전수조사_단계는_층을_띄울_때_그_층의_세션_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+     c = _ctx(tmp_path); c.cold = True
+     raw = tmp_path / "out" / "codegraph-raw"; raw.mkdir(parents=True)
+-    plan = _one_batch_plan("L0-B00")
+-    plan["layers"].append({"level": 1, "symbol_count": None, "kind": "non-node", "note": "", "batches": []})
++    plan = _nonnode_plan()
+     (raw / "batches.json").write_text(json.dumps(plan))
+     _gated(c)
+-    shards: dict[str, dict[str, object]] = {"L0-B00": {"f": _good_record()},
+-                                            "NONNODE": {"m.py": {**_rec("m.py:1"), "kind": "file"}}}
++    shards: dict[str, dict[str, object]] = {
++        "L0-B00": {"pkg.a.f": _rec("src/pkg/a.py:1"), "pkg.sub.b.g": _rec("src/pkg/sub/b.py:1")}, **_nonnode_shards(plan)}
+     seen: list[tuple[str, ...]] = []
++    rounds: list[dict[str, str]] = []
+ 
+     def layer(model: str, repo: str, root: str, jobs: Sequence[tuple[str, str]],
+               concurrency: int = 8, timeout: float | None = None, session_args: Sequence[str] = ()) -> list[P.JobResult]:
+         seen.append(tuple(session_args))
++        rounds.append(dict(jobs))
+         for label, _ in jobs:
+             (raw / "_shards" / (label + ".json")).write_text(json.dumps(shards[label]), encoding="utf-8")
+         return [(label, 1.0, 0, {}) for label, _ in jobs]
+@@ -2944,7 +3143,12 @@ def test_전수조사_단계는_층을_띄울_때_그_층의_세션_인자를_
+     stage = SV.AnnotateSymbolsStage()
+     out = stage.perform(c)
+     assert out.kind == P.OK, out.why
+-    assert seen == [tuple(stage.kind_args(c, "batch")), tuple(stage.kind_args(c, "nonnode"))]
++    assert seen == [tuple(stage.kind_args(c, kind)) for kind in ("batch", "file", "named")]
++    assert [list(r) for r in rounds] == [["L0-B00"], ["NONNODE-FILE-00"],
++                                         ["NONNODE-MODULE", "NONNODE-ARTIFACT", "NONNODE-KEY", "NONNODE-CONCEPT"]]
++    # 첫 비노드 층은 심볼의 뜻을, 둘째 층은 첫 층이 쓴 file 레코드의 뜻을 받는다
++    assert "- 키 `a.py` · kind `file` · module `pkg` · where `src/pkg/a.py:1`\n    - pkg.a.f — 뜻\n" in rounds[1]["NONNODE-FILE-00"]
++    assert all("\n  - `a.py` src/pkg/a.py — a.py 뜻\n  - `b.py` src/pkg/sub/b.py — b.py 뜻\n" in pr for pr in rounds[2].values())
+ 
+ 
+ def test_파일_전략은_세션마다_그_종류의_세션_인자를_넘긴다(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+@@ -2962,7 +3166,7 @@ def test_파일_전략은_세션마다_그_종류의_세션_인자를_넘긴다(
+         ids["a.py"]: {"a.f": _rec("a.py:1", shallow=["b.g"])},
+         ids["c.py"]: {"c.k": _rec("c.py:1")},
+         ids["a.py"] + "/p2": {"a.f": _rec("a.py:1", does="다듬음")},
+-        "NONNODE": {"a.py": {**_rec("a.py:1"), "kind": "file"}},
++        **_nonnode_shards(plan),
+     }
+     seen: dict[str, tuple[str, ...]] = {}
+     inner = _fake_agent(shards, [])
+@@ -2976,5 +3180,6 @@ def test_파일_전략은_세션마다_그_종류의_세션_인자를_넘긴다(
+     out = stage.perform(c)
+     assert out.kind == P.OK, out.why
+     kinds: dict[str, SV.SessionKind] = {ids["a.py"]: "batch", ids["b.py"]: "batch", ids["c.py"]: "batch",
+-                                        ids["a.py"] + "/p2": "pass2", "NONNODE": "nonnode"}
++                                        ids["a.py"] + "/p2": "pass2", "NONNODE-FILE-00": "file",
++                                        "NONNODE-ARTIFACT": "named", "NONNODE-KEY": "named", "NONNODE-CONCEPT": "named"}
+     assert seen == {label: tuple(stage.kind_args(c, kind)) for label, kind in kinds.items()}
+diff --git a/test/codewiki/test_run_mode1.py b/test/codewiki/test_run_mode1.py
+index 4bcb280..1826a2d 100644
+--- a/test/codewiki/test_run_mode1.py
++++ b/test/codewiki/test_run_mode1.py
+@@ -198,14 +198,15 @@ def test_배치_프롬프트는_아래층이_없으면_최하층이라고_말한
+     assert "최하층" in R.survey_batch_prompt("/r", "/root", batch, [])
+ 
+ 
+-def test_비노드_프롬프트는_심볼이_아닌_종류만_말한다():
++def test_비노드_프롬프트는_세션이_맡은_종류_하나를_말한다():
+     """K5 — file · module · artifact · key · concept 는 층 축이 없다.
+-    심볼 레코드가 재료이므로 심볼 층이 전부 끝난 뒤에 돈다."""
+-    p = R.nonnode_prompt(repo="/어느/저장소", root="/도구/뿌리")
++    심볼 레코드가 재료이므로 심볼 층이 전부 끝난 뒤에 돌고, 세션 하나가 종류 하나를 맡는다."""
+     for kind in ["file", "module", "artifact", "key", "concept"]:
+-        assert kind in p
+-    assert "_shards/" in p
+-    assert "이름으로 보아" in p
++        sid = "NONNODE-" + kind.upper()
++        p = R.nonnode_prompt("/어느/저장소", "/도구/뿌리", {"id": sid, "kind": kind, "keys": []})
++        assert "## 네가 맡은 것 — " in p and "`%s`" % kind in p
++        assert "_shards/%s.json" % sid in p
++        assert "이름으로 보아" in p
+ 
+ 
+ def test_의존_발췌는_아래층에_있는_것만_낸다():
+diff --git a/test/codewiki/test_survey_plan.py b/test/codewiki/test_survey_plan.py
+index a7fd25d..55fafe6 100644
+--- a/test/codewiki/test_survey_plan.py
++++ b/test/codewiki/test_survey_plan.py
+@@ -254,3 +254,150 @@ def test_자기_지도_스냅샷은_계획기의_형으로_엄격하게_읽힌
+         raw = json.load(f)
+     got = msgspec.convert(raw, CodeGraph)
+     assert any(n.get("file") is None for n in got["nodes"])
++
++
++# ── 비노드 층 둘 — file · module 의 키와 위치, 세션 목록은 계획이 정한다
++
++def _cg3(nodes: list[tuple[str, str, str, str]], modules: list[str]) -> CodeGraph:
++    """(id, 이름, 파일, 모듈) 노드와 지도의 모듈 목록."""
++    return {"nodes": [{"id": i, "name": n, "kind": "function", "file": f, "line": 3, "module": m}
++                      for i, n, f, m in nodes],
++            "edges": [], "modules": [{"id": m} for m in modules]}
++
++
++def _first(cg: CodeGraph) -> dict[str, SP.GraphNode]:
++    return {n["id"]: n for n in cg["nodes"] if n.get("kind") != "external"}
++
++
++def test_file_키는_파일_이름이고_겹치면_겹친_전원이_경로다():
++    """같은 이름의 파일 둘이 한 키를 다투면 병합이 하나를 덮는다 — 겹친 쪽은 처음부터 경로로 부른다."""
++    got = SP.file_keys(["src/a/build.py", "src/b/build.py", "src/a/plan.py"])
++    assert got == {"src/a/build.py": "src/a/build.py", "src/b/build.py": "src/b/build.py", "src/a/plan.py": "plan.py"}
++
++
++def test_폴더의_module_키는_심볼_이름이_적은_점_경로다():
++    """심볼의 점 이름이 파일 경로의 꼬리로 시작하면 그 꼬리에서 파일 줄기를 뗀 것이 폴더의 이름이다."""
++    assert SP.folder_name("src/core/pipeline.py", ["core.pipeline.Stage", "core.pipeline.load"]) == "core"
++    assert SP.folder_name("tools/doctor.py", ["tools.doctor.main"]) == "tools"
++    assert SP.folder_name("src/a/b/c.py", ["a.b.c.f"]) == "a.b"
++    assert SP.folder_name("src/render/mesh.cpp", ["Mesh", "gfx::Mesh::draw"]) == ""     # 이름이 경로를 따르지 않는다
++    assert SP.folder_name("setup.py", ["setup.main"]) == ""                              # 폴더 마디가 없다
++
++
++def test_기계_목록은_file_과_module_의_키와_위치를_싣는다():
++    cg = _cg3([("C1", "pkg.sub.a.f", "src/pkg/sub/a.py", "pkg"), ("C2", "pkg.sub.a.g", "src/pkg/sub/a.py", "pkg"),
++               ("C3", "pkg.b.h", "src/pkg/b.py", "pkg"), ("C4", "tools.t.main", "tools/t.py", "tools")],
++              ["pkg", "tools"])
++    terms = SP.nonnode_terms(_first(cg), set(_first(cg)), ["pkg", "tools"])
++    assert [(t["key"], t["kind"], t["module"], t["where"]) for t in terms] == [
++        ("b.py", "file", "pkg", "src/pkg/b.py:1"), ("a.py", "file", "pkg.sub", "src/pkg/sub/a.py:1"),
++        ("t.py", "file", "tools", "tools/t.py:1"),
++        ("pkg", "module", "pkg", ""), ("pkg.sub", "module", "pkg.sub", ""), ("tools", "module", "tools", "")]
++    assert {t["key"]: t["files"] for t in terms if t["kind"] == "module"} == {
++        "pkg": ["src/pkg/b.py"], "pkg.sub": ["src/pkg/sub/a.py"], "tools": ["tools/t.py"]}
++
++
++def test_이름이_경로를_따르지_않는_지도는_지도의_모듈만_module_로_싣는다():
++    """C++ · C# 지도는 심볼 이름에 폴더가 없다. 폴더마다 레코드를 내지 않고 파일을 지도의 모듈에 붙인다."""
++    cg = _cg3([("C1", "Mesh", "src/render/mesh.cpp", "render"), ("C2", "Shader", "src/render/gl/shader.cpp", "render")],
++              ["render"])
++    terms = SP.nonnode_terms(_first(cg), set(_first(cg)), ["render"])
++    assert [(t["key"], t["kind"], t["module"]) for t in terms] == [
++        ("shader.cpp", "file", "render"), ("mesh.cpp", "file", "render"), ("render", "module", "render")]
++    assert terms[-1]["files"] == ["src/render/gl/shader.cpp", "src/render/mesh.cpp"]
++
++
++def test_증분_목록도_키는_지도_전체에서_정한다():
++    """거른 뒤에 정하면 겹치던 파일 이름이 혼자 남아 다른 키를 얻고, 지난 레코드와 어긋난다."""
++    cg = _cg3([("C1", "a.build.f", "src/a/build.py", "a"), ("C2", "b.build.f", "src/b/build.py", "b")], ["a", "b"])
++    terms = SP.nonnode_terms(_first(cg), {"C1"}, ["a", "b"])
++    assert [(t["key"], t["kind"]) for t in terms] == [("src/a/build.py", "file"), ("a", "module")]
++
++
++def test_비노드_층은_둘이고_file_세션이_먼저_돈다():
++    """첫 층은 `file` 줄과 `file` 세션, 둘째 층은 `module` 줄과 `module` 세션 하나 · 이름난 종류마다 세션 하나다."""
++    cg = _cg3([("C1", "pkg.a.f", "src/pkg/a.py", "pkg"), ("C2", "pkg.sub.b.g", "src/pkg/sub/b.py", "pkg")], ["pkg"])
++    one, two = SP.nonnode_layers(4, _first(cg), set(_first(cg)), cg)
++    assert (one["level"], two["level"]) == (4, 5) and one.get("kind") == two.get("kind") == "non-node"
++    assert [t["key"] for t in one.get("terms", [])] == ["a.py", "b.py"]
++    assert one.get("sessions") == [{"id": "NONNODE-FILE-00", "kind": "file", "keys": ["a.py", "b.py"]}]
++    assert [t["key"] for t in two.get("terms", [])] == ["pkg", "pkg.sub"]
++    assert two.get("sessions") == [
++        {"id": "NONNODE-MODULE", "kind": "module", "keys": ["pkg", "pkg.sub"]},
++        {"id": "NONNODE-ARTIFACT", "kind": "artifact", "keys": []}, {"id": "NONNODE-KEY", "kind": "key", "keys": []},
++        {"id": "NONNODE-CONCEPT", "kind": "concept", "keys": []}]
++
++
++def test_file_세션은_심볼_수_상한으로_나뉘고_파일은_쪼개지_않는다():
++    nodes = [("A%d" % i, "p.a.f%d" % i, "src/p/a.py", "p") for i in range(3)] \
++        + [("B%d" % i, "p.b.f%d" % i, "src/p/b.py", "p") for i in range(2)] + [("C0", "p.c.f", "src/p/c.py", "p")]
++    cg = _cg3(nodes, ["p"])
++    sessions = SP.nonnode_layers(1, _first(cg), set(_first(cg)), cg, file_cap=3)[0].get("sessions", [])
++    assert [(s["id"], s["keys"]) for s in sessions] == [
++        ("NONNODE-FILE-00", ["a.py"]), ("NONNODE-FILE-01", ["b.py", "c.py"])]
++    big = SP.nonnode_layers(1, _first(cg), set(_first(cg)), cg, file_cap=2)[0].get("sessions", [])
++    assert [s["keys"] for s in big] == [["a.py"], ["b.py"], ["c.py"]]          # 상한을 넘는 파일은 혼자 한 세션이다
++    assert [s["keys"] for s in SP.nonnode_layers(1, _first(cg), set(_first(cg)), cg)[0].get("sessions", [])] == [
++        ["a.py", "b.py", "c.py"]]                                                # 상한을 주지 않으면 한 세션이다
++
++
++def test_기계_목록이_빈_세션은_계획에_없다():
++    """쓸 레코드가 없는 세션을 띄우면 빈 샤드를 기다리다 `missing` 으로 되돌린다."""
++    cg = _cg3([("C1", "f", "a.py", ".")], [])
++    one, two = SP.nonnode_layers(1, _first(cg), set(), cg)
++    assert one.get("sessions") == [] and one.get("terms") == []
++    assert [s["id"] for s in two.get("sessions", [])] == ["NONNODE-ARTIFACT", "NONNODE-KEY", "NONNODE-CONCEPT"]
++
++
++def test_계획이_띄우는_세션과_세션마다_써야_할_키():
++    cg = _cg3([("C1", "pkg.a.f", "src/pkg/a.py", "pkg")], ["pkg"])
++    p = plan(cg)
++    assert [L.get("kind") for L in p["layers"]] == [None, "non-node", "non-node"]     # 비노드 층 둘이 계획의 끝이다
++    assert SP.session_ids(p) == ["L0-B00", "NONNODE-FILE-00", "NONNODE-MODULE", "NONNODE-ARTIFACT", "NONNODE-KEY",
++                                 "NONNODE-CONCEPT"]
++    assert SP.expected_keys(p, "L0-B00") == {"pkg.a.f"}
++    assert SP.expected_keys(p, "NONNODE-FILE-00") == {"a.py"} and SP.expected_keys(p, "NONNODE-MODULE") == {"pkg"}
++    assert SP.expected_keys(p, "NONNODE-KEY") is None and SP.expected_keys(p, "없는-세션") is None
++    assert [t["key"] for t in SP.listed_terms(p)] == ["a.py", "pkg"]
++
++
++def test_실제_지도_스냅샷의_비노드_목록():
++    """얼린 스냅샷으로 file · module 목록을 못박는다. 스냅샷에는 지도의 모듈 목록이 없어 module 은 폴더뿐이다."""
++    cg = json.load(open(SNAPSHOT, encoding="utf-8"))
++    first = _first(cg)
++    one, two = SP.nonnode_layers(6, first, set(first), cg, file_cap=250)
++    files = one.get("terms", [])
++    node_files = {n["file"] for n in cg["nodes"] if n.get("file")}
++    assert len(files) == len(node_files) == 77 and {t["files"][0] for t in files} == node_files
++    assert all(t["where"] == t["files"][0] + ":1" for t in files)
++    assert sorted(t["key"] for t in files if "/" in t["key"]) == [
++        "src/codewiki/python/machine/clang_doc.py", "src/codewiki/python/runner/wiki/build.py",
++        "src/codewiki/python/runner/wiki/check.py", "src/codewiki/python/runner/wiki/clang_doc.py",
++        "src/spec/python/viz/build.py", "src/spec/python/viz/check.py"]
++    assert [t["key"] for t in two.get("terms", [])] == [
++        "codewiki.python.machine", "codewiki.python.runner", "codewiki.python.runner.mode1",
++        "codewiki.python.runner.wiki", "codewiki.python.viz", "common", "core", "spec.python.runner",
++        "spec.python.viz", "split-work", "split-work.r9-gate-proto", "split-work.reorg",
++        "term.python.runner", "term.python.runner.term", "tools"]
++    sessions = one.get("sessions", [])
++    assert [len(s["keys"]) for s in sessions] == [30, 25, 22]
++    assert [k for s in sessions for k in s["keys"]] == [t["key"] for t in files]
++
++
++def test_심볼_이름과_같은_키는_기계_목록에_싣지_않는다():
++    """용어 사전은 키로 합친다 — 심볼과 같은 키의 `module` 레코드가 오면 심볼의 용어가 모듈의 글을 받는다."""
++    cg = _cg3([("C1", "render", "src/render/main.cpp", "render"), ("C2", "Mesh", "src/render/mesh.cpp", "render"),
++               ("C3", "a.py", "a.py", "render")], ["render"])
++    first = _first(cg)
++    one, two = SP.nonnode_layers(1, first, set(first), cg)
++    assert [(t["key"], t["kind"]) for t in one.get("terms", [])] == [("main.cpp", "file"), ("mesh.cpp", "file")]
++    assert one.get("sessions") == [{"id": "NONNODE-FILE-00", "kind": "file", "keys": ["main.cpp", "mesh.cpp"]}]
++    assert two.get("terms") == [] and [s["id"] for s in two.get("sessions", [])] == [
++        "NONNODE-ARTIFACT", "NONNODE-KEY", "NONNODE-CONCEPT"]
++
++
++def test_기계_목록의_키는_하나씩이고_file_줄이_먼저_갖는다():
++    """확장자 없는 파일 `bin/tools` 와 폴더 `tools` 가 한 키를 다투면 `file` 줄이 갖고 `module` 줄은 싣지 않는다."""
++    cg = _cg3([("C1", "run", "bin/tools", "tools"), ("C2", "tools.t.main", "tools/t.py", "tools")], ["tools"])
++    terms = SP.nonnode_terms(_first(cg), set(_first(cg)), ["tools"])
++    assert [(t["key"], t["kind"]) for t in terms] == [("tools", "file"), ("t.py", "file")]
+diff --git a/test/codewiki/test_terms_db.py b/test/codewiki/test_terms_db.py
+index 1466bc9..22f4763 100644
+--- a/test/codewiki/test_terms_db.py
++++ b/test/codewiki/test_terms_db.py
+@@ -185,6 +185,30 @@ def test_check_skips_citations_of_codegraph_records(tmp_path: Path):
+     assert T.check_terms(db, _repo(tmp_path)) == []
+ 
+ 
++# ── 3-1. file 레코드 — L3 은 줄의 글자가 아니라 where 의 경로다
++def test_file_레코드의_L3_은_where_의_경로가_키로_끝나는가다(tmp_path: Path):
++    """파일 이름은 그 파일의 첫 줄에 없는 것이 보통이다. `file` 의 근거는 경로이고 L1 · L2 는 다른 종류와 같다."""
++    repo = _repo(tmp_path)
++    for name in ("y.py", "xy.py"):
++        (tmp_path / "codegraph" / name).write_text("import os\n", encoding="utf-8")
++
++    def judge(key: str, where: str, kind: str = "file") -> list[tuple[str, str]]:
++        r: Terms = {key: {"kind": kind, "module": "codegraph", "where": where, "means": "파일.", "uses": [],
++                          "source": "reading"}}
++        return [(lvl, why) for lvl, _term, why in T.check_terms(T.merge_terms({}, r), repo)]
++
++    assert judge("y.py", "codegraph/y.py:1") == []                   # 첫 줄에 이름이 없어도 경로가 키로 끝난다
++    assert judge("codegraph/y.py", "codegraph/y.py:1") == []         # 키가 경로 전체다
++    assert judge("y.py", "codegraph/x.py:1") == [
++        ("근거 없음", "where L3 경로가 'y.py' 로 끝나지 않는다: codegraph/x.py:1")]
++    assert judge("y.py", "codegraph/xy.py:1") == [                    # 마디 경계에서 끝나야 한다
++        ("근거 없음", "where L3 경로가 'y.py' 로 끝나지 않는다: codegraph/xy.py:1")]
++    assert judge("y.py", "codegraph/gone/y.py:1") == [("실패", "where L1 파일 없음: codegraph/gone/y.py")]
++    assert judge("y.py", "codegraph/y.py:9") == [("실패", "where L2 줄 없음: codegraph/y.py:9 (파일은 1줄)")]
++    assert judge("y.py", "codegraph/y.py:1", kind="artifact") == [    # 다른 비노드 종류는 이름이 그 줄 근처에 있어야 한다
++        ("근거 없음", "where L3 그 줄 근처에 'y.py' 이 없다: codegraph/y.py:1")]
++
++
+ # ── 4. 합치기 — 구조 필드는 codegraph 가 이긴다
+ def test_merge_reading_overrides_means_but_not_structure():
+     """뜻은 reading 이 덮고 구조(id · kind · module · where)는 codegraph 가 이긴다."""
+diff --git a/test/core/test_measure.py b/test/core/test_measure.py
+index 81b8bdc..7ecdffe 100644
+--- a/test/core/test_measure.py
++++ b/test/core/test_measure.py
+@@ -225,6 +225,12 @@ def test_세션_인자는_Model_뒤_폴더_앞에_그대로_실린다():
+                     "--add-dir", "/repo", "--add-dir", "/tool"]
+ 
+ 
++def test_격리_인자는_내장_도구를_더_실을_수_있고_더하지_않으면_ISOLATED_다():
++    assert M.isolated() == M.ISOLATED
++    assert M.isolated(("Grep",)) == ("--tools", "Bash,Read,Write,Grep", "--strict-mcp-config",
++                                     "--disable-slash-commands", "--setting-sources", "")
++
++
+ def test_세션_인자를_바꾸면_권한_인자도_그_값으로_바뀐다():
+     argv = M.claude_argv("m", "/repo", [], ("--permission-mode", "dontAsk"))
+     assert argv.count("--permission-mode") == 1 and "bypassPermissions" not in argv
