@@ -1,5 +1,7 @@
 # 🧱 B1 — 전수조사 안정화: 구현 계획
 
+> 🔄 2026-11-23 기준 상태: 수행했다 — 구현해서 `main` 에 합쳤다(`git log` 참고). 아래의 승인 줄은 계획서를 쓴 날의 것 그대로다.
+
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9`**
 > 📄 근거: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.4 (가) · 3절 · 분할 docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md · 이번 재작성에서 읽은 코드: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · 프롬프트 다섯 줄
 > 🔒 지킬 규칙: 프롬프트는 `resource/` 에 두고, 프롬프트가 쓰는 이름은 전부 코드가 넘긴다 · 검사를 느슨하게 하지 않는다(검사 하나는 일부러 넓어진다 — 작업 3) · 주석은 지금의 것만 적는다

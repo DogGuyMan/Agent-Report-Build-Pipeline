@@ -1,5 +1,7 @@
 # 🧱 A3 — 세션 격리: 구현 계획
 
+> 🔄 2026-11-23 기준 상태: 수행했다 — 구현해서 `main` 에 합쳤다(`git log` 참고). 바탕은 A2 가 아니라 A1 + B1 과 B3 다. 아래의 승인 줄은 계획서를 쓴 날의 것 그대로다.
+
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9` + 계획 A1 · A2** (A3 는 `2026-11-22-mode1-a1-measure-semantics-plan.ko.md` 와 `2026-11-22-mode1-a2-session-end-condition-plan.ko.md` 다음에 구현한다. `src/` 와 `test/` 의 "Before" 는 그 둘의 "After" 다. 프롬프트 파일 `resource/codewiki/prompts/annotate-symbols.md` 의 "Before" 는 조각 1 에서 **`29c5ee9` + B1**, 조각 2 에서 **`+ B1 · B2 · B3`** 이다 — 여기에 기대는 diff 마다 그렇게 적는다)

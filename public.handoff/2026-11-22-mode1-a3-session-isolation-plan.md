@@ -1,5 +1,7 @@
 # 🧱 A3 — Session isolation: implementation plan
 
+> 🔄 Status as of 2026-11-23: carried out — implemented and merged into `main` (see `git log`), on A1 + B1 and B3 instead of A2. The approval line below stands as written on the day of the plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9` + plans A1 · A2** (A3 is implemented after `2026-11-22-mode1-a1-measure-semantics-plan.md` and `2026-11-22-mode1-a2-session-end-condition-plan.md`. For `src/` and `test/` "Before" is their "After". For the prompt file `resource/codewiki/prompts/annotate-symbols.md` "Before" is **`29c5ee9` + B1** in slice 1 and **`+ B1 · B2 · B3`** in slice 2 — each diff that depends on this says so)

@@ -1,5 +1,7 @@
 # ⏱️ A2 — Session end condition: implementation plan
 
+> 🔴 Status as of 2026-11-23: shelved by the user, not carried out. A hang is controlled by removing its cause — B3's prompt wording and A3's allow rules. Nothing may depend on this plan's time limits.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9` + plan A1** (A2 is implemented after `2026-11-22-mode1-a1-measure-semantics-plan.md`. Where a diff touches lines A1 changes, its "Before" is A1's "After" and the diff says so. Everywhere else "Before" is the source at `29c5ee9`)

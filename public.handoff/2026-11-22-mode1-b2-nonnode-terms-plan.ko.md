@@ -1,5 +1,7 @@
 # 🧩 B2 — 비노드 용어, 기계 목록, 세션 셋: 구현 계획
 
+> 🔴 2026-11-23 기준 상태: 이 폴더의 `2026-11-23-mode1-b2-nonnode-rounds-plan.md` 가 대신하며 수행하지 않았다. 이 계획서의 Before 는 B3 와 A3 이전이고, 열린 결정 D1 은 다르게 정해졌다. D2 는 아직 열려 있다(`2026-11-23-mode1-b2-decisions-handoff.md` 참고).
+
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9` + B1 계획** (`2026-11-22-mode1-b1-survey-stabilize-plan.ko.md`, 작업 다섯 모두 적용). 이 계획이 B1 이 바꾸는 줄을 건드리면 여기 보인 "Before" 는 B1 의 "After" 이고, 그런 diff 마다 그렇게 적는다. 표의 줄 번호는 `29c5ee9` 의 것이며 B1 이 몇 줄씩 옮긴다

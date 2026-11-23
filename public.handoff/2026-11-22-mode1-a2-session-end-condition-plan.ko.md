@@ -1,5 +1,7 @@
 # ⏱️ A2 — 세션 종료 조건: 구현 계획
 
+> 🔴 2026-11-23 기준 상태: 사용자가 보류했고 수행하지 않았다. 세션이 멈추는 일은 원인을 없애서 막는다 — B3 의 프롬프트 문구와 A3 의 허용 규칙. 이 계획서의 제한 시간에 기대는 것을 만들지 않는다.
+
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9` + A1 계획** (A2 는 `2026-11-22-mode1-a1-measure-semantics-plan.ko.md` 다음에 구현한다. diff 가 A1 이 바꾸는 줄을 건드리면 그 diff 의 "Before" 는 A1 의 "After" 이고 diff 가 그렇게 적는다. 그 밖의 곳에서 "Before" 는 `29c5ee9` 의 소스다)

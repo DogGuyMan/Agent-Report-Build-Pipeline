@@ -1,5 +1,7 @@
 # 📏 A1 — Measurement semantics and failure reason: implementation plan
 
+> 🔄 Status as of 2026-11-23: carried out — implemented and merged into `main` (see `git log`). The approval line below stands as written on the day of the plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9`** (the code files this plan edits are unmodified in the working tree; `qa/evals/README.md` has uncommitted edits, see ⚠️)

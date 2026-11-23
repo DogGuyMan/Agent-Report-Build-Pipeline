@@ -1,5 +1,7 @@
 # 🧱 B1 — Survey stabilization: implementation plan
 
+> 🔄 Status as of 2026-11-23: carried out — implemented and merged into `main` (see `git log`). The approval line below stands as written on the day of the plan.
+
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9`**
 > 📄 Evidence: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.4 (가) · §3 · split docs/superpowers/specs/2026-11-22-mode1-remediation-split.md · code read for this restyle: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · the five prompt lines
 > 🔒 Rules kept: prompts stay in `resource/` and every name a prompt uses is passed by the code · no check is loosened (one check becomes wider on purpose, see Task 3) · comments state the present only

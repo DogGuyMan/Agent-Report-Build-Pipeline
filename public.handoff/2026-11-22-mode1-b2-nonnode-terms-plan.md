@@ -1,5 +1,7 @@
 # 🧩 B2 — Non-node terms, machine list and three sessions: implementation plan
 
+> 🔴 Status as of 2026-11-23: superseded by `2026-11-23-mode1-b2-nonnode-rounds-plan.md` in this folder, not carried out. Its Before predates B3 and A3, and its open decision D1 is decided differently; D2 is still open (see `2026-11-23-mode1-b2-decisions-handoff.md`).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9` + plan B1** (`2026-11-22-mode1-b1-survey-stabilize-plan.md`, all five tasks applied). Where this plan touches a line that B1 changes, the "Before" shown here is B1's "After"; each such diff says so. Line numbers in the tables are those of `29c5ee9`; B1 shifts some by a few lines

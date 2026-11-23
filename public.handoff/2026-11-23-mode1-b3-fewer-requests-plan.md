@@ -1,5 +1,7 @@
 # ✂️ B3 — Fewer requests per survey session: implementation plan
 
+> 🔄 Status as of 2026-11-23: carried out — implemented and merged into `main` (see `git log`). Its open decisions D1–D4 are still the user's. The approval line below stands as written before the merge.
+
 > 📅 2026-11-23 · branch `mode1-b3` (local, not pushed) · **Before = `mode1-a1-b1` (A1 + B1)**, commit `9932518`. Plans B2 and A2 are **not** underneath
 > 📄 Evidence: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md` ("Decided", "How to read Measurement A", "A3 allow-list probe") · `docs/superpowers/plans/2026-11-22-mode1-session-cache-plan.md` (F9, R6, R8–R13) · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` §2.2 · §4.1 · §4.5 · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.5 and the "통독 캐시 왕복" row · the baseline run's session transcripts (92 survey sessions, recounted for this plan) · the baseline run's target clone
 > 🔒 Rules kept: prompts stay in `resource/` · the template gives the shape, the stage decides the data · no check loosened (no new `xfail`/`skip`, fault severities · `DROP_CLASS` · `REPORT_ONLY` untouched) · comments state the present only · no paid model call
