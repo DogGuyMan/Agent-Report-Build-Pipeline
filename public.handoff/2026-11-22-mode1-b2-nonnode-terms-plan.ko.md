@@ -5,7 +5,7 @@
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9` + B1 계획** (`2026-11-22-mode1-b1-survey-stabilize-plan.ko.md`, 작업 다섯 모두 적용). 이 계획이 B1 이 바꾸는 줄을 건드리면 여기 보인 "Before" 는 B1 의 "After" 이고, 그런 diff 마다 그렇게 적는다. 표의 줄 번호는 `29c5ee9` 의 것이며 B1 이 몇 줄씩 옮긴다
-> 📄 근거: 분할 `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` ("정한 것" · "비노드 용어 다섯 종류" · "측정 가를 읽는 법" · "숨은 결합") · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.4 (나) · 2.5 · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` 4.4 · `2026-11-22-mode1-session-cache-plan.ko.md` (F11 · D4) · B1 계획 · A2 계획 (B2 의 행) · 이 세션에서 읽은 코드: `src/codewiki/python/machine/survey_plan.py` · `terms_db.py` · `src/codewiki/python/runner/mode1/survey.py` · `survey_files.py` · `graph.py` · `context.py` · `src/codewiki/python/runner/check_shard.py` · `src/core/pipeline.py` · `resource/codewiki/prompts/annotate-symbols.md` · `resource/codewiki/faults.toml` · 시험 파일 · 기준선 실행의 산출물 사본(코드 지도 · 계획 · 샤드 92개 · <span style="color:cyan">병합한 읽기 파일</span> · 용어 DB)
+> 📄 근거: 분할 `public.handoff/2026-11-22-mode1-remediation-split.ko.md` ("정한 것" · "비노드 용어 다섯 종류" · "측정 가를 읽는 법" · "숨은 결합") · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.4 (나) · 2.5 · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` 4.4 · `2026-11-22-mode1-session-cache-plan.ko.md` (F11 · D4) · B1 계획 · A2 계획 (B2 의 행) · 이 세션에서 읽은 코드: `src/codewiki/python/machine/survey_plan.py` · `terms_db.py` · `src/codewiki/python/runner/mode1/survey.py` · `survey_files.py` · `graph.py` · `context.py` · `src/codewiki/python/runner/check_shard.py` · `src/core/pipeline.py` · `resource/codewiki/prompts/annotate-symbols.md` · `resource/codewiki/faults.toml` · 시험 파일 · 기준선 실행의 산출물 사본(코드 지도 · 계획 · 샤드 92개 · <span style="color:cyan">병합한 읽기 파일</span> · 용어 DB)
 > 🔒 지킬 규칙: 검사를 느슨하게 하지 않는다 — 새 `xfail` 이나 `skip` 없음 · 결함 심각도를 바꾸지 않음 · `terms_db.check_terms` 를 고치지 않음 · 프롬프트 글과 결함 문구는 `resource/` 에 둔다 · 템플릿은 꼴만 주고 데이터는 단계가 정한다 · 주석은 지금의 것만 적는다 · 제한 시간 코드나 설정 열쇠 없음(A2 의 몫) · 허용 목록 코드 없음(A3 의 몫)
 > 🧪 검증 방법: 단위 시험 먼저, 그다음 여섯 게이트. 유료 실행 없음. 계획 전체를 B1 위에서 저장소 밖의 개인 복제본에 적용했고, "검증" 절에 적은 무료 확인은 거기서와 기준선 실행의 산출물 사본에서 돌렸다. 실제 세션이 새 프롬프트로 무엇을 하는지는 `[미검증]` 이고 측정 가에서 한 번 읽는다
 > ✋ 승인: **승인 전** — 열린 결정 둘(D1 · D2)이 남았다
@@ -43,7 +43,7 @@
 | A2 — 멈춘 세션을 끊는 기준 | 세션 시작부터 센 제한 시간, 단계마다 한 값. 비노드 값은 약 1,280초다. 값은 `resource/codewiki/config.toml` 에 둔다 | 모든 단계에 1,800초 한 값 · 산출물이 통과한 뒤의 유예로 끊기 | 사용자 · 2026-11-22 |
 | B3 — 세션의 단위 | 그대로(층 단위 · 배치 목표 8 · 동시 8) | 동시 16 · 배치 목표 크기 바꾸기 | 사용자 · 2026-11-22 |
 
-출처: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` 의 "정한 것(사용자, 2026-11-22)". 행은 옮겨 적었고 A2 와 B3 의 행은 이 계획에 닿는 부분만 남기고 줄였다. 같은 문서가 이 계획이 따르는 제약 둘도 적는다 — B2 는 검사기를 느슨하게 해서 풀지 않는다(충돌은 프롬프트나 레코드를 내는 쪽에서 푼다, "숨은 결합"). 그리고 계획 안에서는 유료 확인을 돌리지 않는다(비교는 측정 가 하나다, "이 순서가 바꾸는 것"). 이 계획의 승인 자체는 아직 ✋ 승인 전이다.
+출처: `public.handoff/2026-11-22-mode1-remediation-split.ko.md` 의 "정한 것(사용자, 2026-11-22)". 행은 옮겨 적었고 A2 와 B3 의 행은 이 계획에 닿는 부분만 남기고 줄였다. 같은 문서가 이 계획이 따르는 제약 둘도 적는다 — B2 는 검사기를 느슨하게 해서 풀지 않는다(충돌은 프롬프트나 레코드를 내는 쪽에서 푼다, "숨은 결합"). 그리고 계획 안에서는 유료 확인을 돌리지 않는다(비교는 측정 가 하나다, "이 순서가 바꾸는 것"). 이 계획의 승인 자체는 아직 ✋ 승인 전이다.
 
 ## 💡 이 계획이 제안하는 것 — 정해지지 않음
 

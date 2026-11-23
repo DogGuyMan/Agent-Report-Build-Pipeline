@@ -11,7 +11,7 @@ Labels: `[measured]` a counted value · `[code read]` source that was read · `[
 
 ## 🔄 Update 2026-11-23 — read this first
 
-The sections below were written on 2026-11-22 and are kept as written. Where a row disagrees with this section, this section holds. On 2026-11-23 the A and B plan documents moved from `docs/superpowers/plans/` to the tracked folder `public.handoff/`, together with a handoff for the eight open B2 decisions (`public.handoff/2026-11-23-mode1-b2-decisions-handoff.md`); plan names in the sections below are found there.
+The sections below were written on 2026-11-22 and are kept as written. Where a row disagrees with this section, this section holds. On 2026-11-23 the A and B plan documents moved from `docs/superpowers/plans/` to the tracked folder `public.handoff/`, together with a handoff for the eight open B2 decisions (`public.handoff/2026-11-23-mode1-b2-decisions-handoff.md`); plan names in the sections below are found there. This document moved there on 2026-11-24. The two reports of 2026-11-21 and the session-cache plan named under Evidence stay outside git, in `docs/superpowers/specs/` and `docs/superpowers/plans/` on the machine where they were written, and do not open elsewhere.
 
 | What | Now | Was |
 |---|---|---|

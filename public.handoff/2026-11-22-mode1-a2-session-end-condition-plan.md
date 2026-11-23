@@ -5,7 +5,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9` + plan A1** (A2 is implemented after `2026-11-22-mode1-a1-measure-semantics-plan.md`. Where a diff touches lines A1 changes, its "Before" is A1's "After" and the diff says so. Everywhere else "Before" is the source at `29c5ee9`)
-> 📄 Evidence: split `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md` ("Decided" · "Where the decisions meet" · "Hidden couplings") · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` §4.1 · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.2 · baseline `qa/evals/runs/2026-11-21-mode1-report-builder-cold-layer-sonnet.{json,md}` · code read in this session: `src/core/pipeline.py` · `src/core/measure.py` · `src/codewiki/python/runner/run_mode1.py` · `src/codewiki/python/runner/mode1/{context,lang,survey,survey_files,wiki,edges,resume}.py` · `src/spec/python/runner/run_mode2.py` · the four test files
+> 📄 Evidence: split `public.handoff/2026-11-22-mode1-remediation-split.md` ("Decided" · "Where the decisions meet" · "Hidden couplings") · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` §4.1 · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.2 · baseline `qa/evals/runs/2026-11-21-mode1-report-builder-cold-layer-sonnet.{json,md}` · code read in this session: `src/core/pipeline.py` · `src/core/measure.py` · `src/codewiki/python/runner/run_mode1.py` · `src/codewiki/python/runner/mode1/{context,lang,survey,survey_files,wiki,edges,resume}.py` · `src/spec/python/runner/run_mode2.py` · the four test files
 > 🔒 Rules kept: additive only — no existing flag, JSON key or row field changes meaning · no check is loosened (no new `xfail` or `skip`) · settings values live in `resource/codewiki/config.toml` · comments state the present only · no paid model call
 > 🧪 Verification: unit tests with fake child processes, then the six gates. **Run once in a private clone outside the repository** (`29c5ee9`, A1 tasks 1–5 applied, then A2 tasks 1–7): results in 🧪 below. No real `claude` session was started; what a real session does when it is cut is `[unverified]`
 > ✋ Approval: **before approval**
@@ -43,7 +43,7 @@ Legend for every table and drawing below: **★ created from nothing · 🗘 exi
 | How to get a 14-stage record | One uninterrupted run after isolation. The no-`--resume` rule stays. If the limit is hit again, ask | Two partial records · a `--resume` exception | user · 2026-11-22 |
 | Language-hint model change in `resource/codewiki/config.toml` | Keep it; note in the next measurement's conditions that it differs from the baseline | Revert · defer | user · 2026-11-22 |
 
-Source: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md` "Decided". The split also says the value for stages with a single baseline sample is stated by this plan as `[proposed]` — that is open decision 1 below, not a decision.
+Source: `public.handoff/2026-11-22-mode1-remediation-split.md` "Decided". The split also says the value for stages with a single baseline sample is stated by this plan as `[proposed]` — that is open decision 1 below, not a decision.
 
 ## 💡 Proposed by this plan — not decided
 

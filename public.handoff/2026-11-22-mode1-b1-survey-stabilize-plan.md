@@ -3,7 +3,7 @@
 > 🔄 Status as of 2026-11-23: carried out — implemented and merged into `main` (see `git log`). The approval line below stands as written on the day of the plan.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9`**
-> 📄 Evidence: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.4 (가) · §3 · split docs/superpowers/specs/2026-11-22-mode1-remediation-split.md · code read for this restyle: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · the five prompt lines
+> 📄 Evidence: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.4 (가) · §3 · split public.handoff/2026-11-22-mode1-remediation-split.md · code read for this restyle: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · the five prompt lines
 > 🔒 Rules kept: prompts stay in `resource/` and every name a prompt uses is passed by the code · no check is loosened (one check becomes wider on purpose, see Task 3) · comments state the present only
 > 🧪 Verification: unit tests first, then the six gates. No paid run
 > ✋ Approval: **not approved yet**
@@ -53,7 +53,7 @@ Claim tags used below: `[코드 확인]` read in the source · `[실측]` measur
 | Order of this plan | B1 runs first, together with A1 — neither needs a decision or a paid check | — | user | 2026-11-22 |
 | Number of re-measurements | Two for the whole batch: Measurement A (through the survey) and Measurement B (full) | After every plan · once at the end | user | 2026-11-22 |
 
-Source of the first and third rows: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md`, section "Decided (user, 2026-11-22)".
+Source of the first and third rows: `public.handoff/2026-11-22-mode1-remediation-split.md`, section "Decided (user, 2026-11-22)".
 
 ### `[제안]` Proposed — design choices of the plan author (not user decisions)
 

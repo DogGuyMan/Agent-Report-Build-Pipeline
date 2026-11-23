@@ -5,7 +5,7 @@
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9`** (이 계획이 고치는 코드 파일은 작업 트리에서 수정되지 않았다. `qa/evals/README.md` 는 커밋되지 않은 수정이 있다 — ⚠️ 참조)
-> 📄 근거: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.2 · 2.4 (다) · `2026-11-22-mode1-session-cache-plan.ko.md` 0단계 결과 R7 · 분할 `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` · 이 세션에서 읽은 코드: `src/core/measure.py` · `src/core/pipeline.py` · `src/codewiki/python/runner/run_mode1.py` · 시험 파일 셋
+> 📄 근거: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.2 · 2.4 (다) · `2026-11-22-mode1-session-cache-plan.ko.md` 0단계 결과 R7 · 분할 `public.handoff/2026-11-22-mode1-remediation-split.ko.md` · 이 세션에서 읽은 코드: `src/core/measure.py` · `src/core/pipeline.py` · `src/codewiki/python/runner/run_mode1.py` · 시험 파일 셋
 > 🔒 지킬 규칙: 더하기만 한다 — 이미 있는 JSON 열쇠의 뜻을 바꾸지 않는다 · 검사를 느슨하게 하지 않는다 · 주석은 지금의 것만 적는다
 > 🧪 검증 방법: 단위 시험 먼저, 그다음 여섯 게이트. 유료 실행 없음. **이 계획에 대해 아직 아무것도 돌리지 않았다** — 아래의 기대 결과는 전부 `[미검증]` 이다
 > ✋ 승인: **승인 전**
@@ -40,7 +40,7 @@
 | 순서 | A1 을 B1 과 함께 먼저 돌린다 — 둘 다 결정이나 유료 확인이 필요 없고 파일을 나눠 쓰지 않는다 | 다른 계획을 기다리기 | 사용자 · 2026-11-22 |
 | 다시 재는 횟수 | 묶음 전체에 두 번 — 측정 A 와 측정 B | 계획마다 | 사용자 · 2026-11-22 |
 
-출처: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` "정한 것". 이 계획 자체의 승인은 아직 ✋ 대기다.
+출처: `public.handoff/2026-11-22-mode1-remediation-split.ko.md` "정한 것". 이 계획 자체의 승인은 아직 ✋ 대기다.
 
 ## 💡 이 계획이 제안하는 것 — 정해지지 않음
 

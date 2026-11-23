@@ -3,7 +3,7 @@
 > 🔄 2026-11-23 기준 상태: 수행했다 — 구현해서 `main` 에 합쳤다(`git log` 참고). 아래의 승인 줄은 계획서를 쓴 날의 것 그대로다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9`**
-> 📄 근거: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.4 (가) · 3절 · 분할 docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md · 이번 재작성에서 읽은 코드: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · 프롬프트 다섯 줄
+> 📄 근거: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.4 (가) · 3절 · 분할 public.handoff/2026-11-22-mode1-remediation-split.ko.md · 이번 재작성에서 읽은 코드: `survey.py` · `survey_files.py` · `terms_db.py` · `context.py` · `jsonio.py` · `src/core/pipeline.py` · 프롬프트 다섯 줄
 > 🔒 지킬 규칙: 프롬프트는 `resource/` 에 두고, 프롬프트가 쓰는 이름은 전부 코드가 넘긴다 · 검사를 느슨하게 하지 않는다(검사 하나는 일부러 넓어진다 — 작업 3) · 주석은 지금의 것만 적는다
 > 🧪 검증 방법: 단위 시험 먼저, 그다음 여섯 게이트. 유료 실행 없음
 > ✋ 승인: **승인 전**
@@ -53,7 +53,7 @@
 | 이 계획의 순서 | B1 은 A1 과 함께 먼저 돈다 — 둘 다 결정도 유료 확인도 필요 없다 | — | 사용자 | 2026-11-22 |
 | 다시 재는 횟수 | 묶음 전체에서 두 번: 측정 A(<span style="color:cyan">전수조사</span>까지)와 측정 B(전량) | 계획마다 · 끝에 한 번 | 사용자 | 2026-11-22 |
 
-첫째와 셋째 행의 출처: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` 의 "정한 것(사용자, 2026-11-22)" 절.
+첫째와 셋째 행의 출처: `public.handoff/2026-11-22-mode1-remediation-split.ko.md` 의 "정한 것(사용자, 2026-11-22)" 절.
 
 ### `[제안]` 제안 — 계획 작성자의 설계 선택(사용자 결정이 아니다)
 

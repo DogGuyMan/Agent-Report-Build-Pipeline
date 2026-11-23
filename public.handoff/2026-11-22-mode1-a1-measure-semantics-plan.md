@@ -5,7 +5,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 📅 2026-11-22 · branch `main` · **Before = `29c5ee9`** (the code files this plan edits are unmodified in the working tree; `qa/evals/README.md` has uncommitted edits, see ⚠️)
-> 📄 Evidence: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.2 · §2.4 (다) · `2026-11-22-mode1-session-cache-plan.md` Stage 0 result R7 · split `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md` · code read in this session: `src/core/measure.py` · `src/core/pipeline.py` · `src/codewiki/python/runner/run_mode1.py` · the three test files
+> 📄 Evidence: `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` §2.2 · §2.4 (다) · `2026-11-22-mode1-session-cache-plan.md` Stage 0 result R7 · split `public.handoff/2026-11-22-mode1-remediation-split.md` · code read in this session: `src/core/measure.py` · `src/core/pipeline.py` · `src/codewiki/python/runner/run_mode1.py` · the three test files
 > 🔒 Rules kept: additive only — no existing JSON key changes meaning · no check is loosened · comments state the present only
 > 🧪 Verification: unit tests first, then the six gates. No paid run. **Nothing has been run for this plan** — every expected result below is `[unverified]`
 > ✋ Approval: **not approved yet**
@@ -40,7 +40,7 @@ Legend for every table and drawing below: **★ created from nothing · 🗘 exi
 | Order | A1 runs first, together with B1 — neither needs a decision or a paid check, and they share no file | Waiting for the other plans | user · 2026-11-22 |
 | Number of re-measurements | Twice for the whole batch — Measurement A and Measurement B | After every plan | user · 2026-11-22 |
 
-Source: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.md` "Decided". The plan's approval itself is still ✋ pending.
+Source: `public.handoff/2026-11-22-mode1-remediation-split.md` "Decided". The plan's approval itself is still ✋ pending.
 
 ## 💡 Proposed by this plan — not decided
 

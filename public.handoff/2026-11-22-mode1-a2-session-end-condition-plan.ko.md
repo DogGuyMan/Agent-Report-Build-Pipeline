@@ -5,7 +5,7 @@
 > **에이전트 작업자에게:** 필수 하위 스킬 — superpowers:subagent-driven-development(권장) 또는 superpowers:executing-plans 로 이 계획을 작업 단위로 구현한다. 단계는 체크박스(`- [ ]`)로 추적한다.
 
 > 📅 2026-11-22 · 브랜치 `main` · **Before = `29c5ee9` + A1 계획** (A2 는 `2026-11-22-mode1-a1-measure-semantics-plan.ko.md` 다음에 구현한다. diff 가 A1 이 바꾸는 줄을 건드리면 그 diff 의 "Before" 는 A1 의 "After" 이고 diff 가 그렇게 적는다. 그 밖의 곳에서 "Before" 는 `29c5ee9` 의 소스다)
-> 📄 근거: 분할 `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` ("정한 것" · "정한 것이 서로 만나는 자리" · "숨은 결합") · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` 4.1 · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.2 · 기준선 `qa/evals/runs/2026-11-21-mode1-report-builder-cold-layer-sonnet.{json,md}` · 이 세션에서 읽은 코드: `src/core/pipeline.py` · `src/core/measure.py` · `src/codewiki/python/runner/run_mode1.py` · `src/codewiki/python/runner/mode1/{context,lang,survey,survey_files,wiki,edges,resume}.py` · `src/spec/python/runner/run_mode2.py` · 시험 파일 넷
+> 📄 근거: 분할 `public.handoff/2026-11-22-mode1-remediation-split.ko.md` ("정한 것" · "정한 것이 서로 만나는 자리" · "숨은 결합") · `docs/superpowers/specs/2026-11-21-mode1-cold-run-report.md` 4.1 · `docs/superpowers/specs/2026-11-21-mode1-audit-verification-report.md` 2.2 · 기준선 `qa/evals/runs/2026-11-21-mode1-report-builder-cold-layer-sonnet.{json,md}` · 이 세션에서 읽은 코드: `src/core/pipeline.py` · `src/core/measure.py` · `src/codewiki/python/runner/run_mode1.py` · `src/codewiki/python/runner/mode1/{context,lang,survey,survey_files,wiki,edges,resume}.py` · `src/spec/python/runner/run_mode2.py` · 시험 파일 넷
 > 🔒 지킬 규칙: 더하기만 한다 — 이미 있는 플래그 · JSON 열쇠 · 행 칸의 뜻을 바꾸지 않는다 · 검사를 느슨하게 하지 않는다(새 `xfail` 이나 `skip` 없음) · 설정값은 `resource/codewiki/config.toml` 에 둔다 · 주석은 지금의 것만 적는다 · 유료 Model 호출 없음
 > 🧪 검증 방법: 가짜 자식 프로세스로 단위 시험, 그다음 여섯 게이트. **저장소 밖의 개인 복제본에서 한 번 돌렸다**(`29c5ee9`, A1 작업 1~5 적용, 그다음 A2 작업 1~7): 결과는 아래 🧪 에 있다. 실제 `claude` 세션은 시작하지 않았다. 실제 세션이 끊길 때 어떻게 되는지는 `[미검증]` 이다
 > ✋ 승인: **승인 전**
@@ -43,7 +43,7 @@
 | 14단계 기록을 얻는 법 | 격리 뒤 끊지 않고 한 번에. `--resume` 을 쓰지 않는 규칙은 그대로다. 또 한도에 걸리면 묻는다 | 둘로 나눈 기록 · `--resume` 예외 | 사용자 · 2026-11-22 |
 | `resource/codewiki/config.toml` 의 언어 판별 Model 변경 | 그대로 둔다. 다음 측정의 조건에 기준선과 다르다고 적는다 | 되돌리기 · 보류 | 사용자 · 2026-11-22 |
 
-출처: `docs/superpowers/specs/2026-11-22-mode1-remediation-split.ko.md` "정한 것". 분할 문서는 표본이 하나뿐인 단계의 값을 이 계획이 `[제안]` 으로 적는다고도 말한다 — 그것은 결정이 아니라 아래 열린 결정 1 이다.
+출처: `public.handoff/2026-11-22-mode1-remediation-split.ko.md` "정한 것". 분할 문서는 표본이 하나뿐인 단계의 값을 이 계획이 `[제안]` 으로 적는다고도 말한다 — 그것은 결정이 아니라 아래 열린 결정 1 이다.
 
 ## 💡 이 계획이 제안하는 것 — 정해지지 않음
 
